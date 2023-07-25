@@ -18,9 +18,9 @@
 \value{
 A \code{data.table} containing 3 column :
 \itemize{
-\item{id_curve}{Index of the curve. It goes from 1 to N.}
-\item{Mn}{Number of sampled observation location.}
-\item{Tn}{Sampled observation location.}
+\item{id_curve :}{ Index of the curve. It goes from 1 to N.}
+\item{Mn :}{ Number of sampled observation location.}
+\item{Tn :}{ Sampled observation location.}
 }
 }
 \description{

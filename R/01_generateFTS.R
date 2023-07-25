@@ -203,9 +203,9 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #'
 #' @return A \code{data.table} containing 3 column :
 #' \itemize{
-#'    \item{id_curve}{Index of the curve. It goes from 1 to N.}
-#'    \item{Mn}{Number of sampled observation location.}
-#'    \item{Tn}{Sampled observation location.}
+#'    \item{id_curve :}{ Index of the curve. It goes from 1 to N.}
+#'    \item{Mn :}{ Number of sampled observation location.}
+#'    \item{Tn :}{ Sampled observation location.}
 #' }
 #'
 #' @import data.table
@@ -246,11 +246,11 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #'
 #' @return A \code{data.table} containing 3 column :
 #' \itemize{
-#'    \item{id_curve}{Index of the curve. It goes from 1 to N.}
-#'    \item{tobs}{Sampled observation points, for each \code{id_curve}.}
-#'    \item{ttag}{Tag on the observations points, for each \code{id_curve}. It is either \code{tcommon} for common design grid or \code{tcommon} pour random design.}
-#'    \item{far_mean}{The mean of the process evaluate at \code{tobs}, for each \code{id_curve}.}
-#'    \item{X}{The process observed at tobs, for each \code{id_curve}.}
+#'    \item{id_curve :}{ Index of the curve. It goes from 1 to N.}
+#'    \item{tobs :}{ Sampled observation points, for each \code{id_curve}.}
+#'    \item{ttag :}{ Tag on the observations points, for each \code{id_curve}. It is either \code{tcommon} for common design grid or \code{tcommon} pour random design.}
+#'    \item{far_mean :}{ The mean of the process evaluate at \code{tobs}, for each \code{id_curve}.}
+#'    \item{X :}{ The process observed at tobs, for each \code{id_curve}.}
 #' }
 #'
 #' @importFrom data.table data.table rbindlist setnames

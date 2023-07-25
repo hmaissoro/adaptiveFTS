@@ -48,11 +48,11 @@ If \code{tdesign = 'random'} and if we want to run some tests at a particular ob
 \value{
 A \code{data.table} containing 3 column :
 \itemize{
-\item{id_curve}{Index of the curve. It goes from 1 to N.}
-\item{tobs}{Sampled observation points, for each \code{id_curve}.}
-\item{ttag}{Tag on the observations points, for each \code{id_curve}. It is either \code{tcommon} for common design grid or \code{tcommon} pour random design.}
-\item{far_mean}{The mean of the process evaluate at \code{tobs}, for each \code{id_curve}.}
-\item{X}{The process observed at tobs, for each \code{id_curve}.}
+\item{id_curve :}{ Index of the curve. It goes from 1 to N.}
+\item{tobs :}{ Sampled observation points, for each \code{id_curve}.}
+\item{ttag :}{ Tag on the observations points, for each \code{id_curve}. It is either \code{tcommon} for common design grid or \code{tcommon} pour random design.}
+\item{far_mean :}{ The mean of the process evaluate at \code{tobs}, for each \code{id_curve}.}
+\item{X :}{ The process observed at tobs, for each \code{id_curve}.}
 }
 }
 \description{

@@ -81,10 +81,10 @@ uniform <- function(u){
 #'
 #' @return A \code{data.table} containing
 #' \itemize{
-#'    \item{h}{The bandwidth used to estimate the regression function.}
-#'    \item{inKernelSupp}{For each \code{t_i} in \code{tnew}, it is the number of  \code{t} between \code{t_i - h } and \code{t_i + h }.}
-#'    \item{tnew}{The vector \code{new}.}
-#'    \item{mhat}{The regression function's vector of estimates at \code{tnew}.}
+#'    \item{h :}{ The bandwidth used to estimate the regression function.}
+#'    \item{inKernelSupp :}{ For each \code{t_i} in \code{tnew}, it is the number of  \code{t} between \code{t_i - h } and \code{t_i + h }.}
+#'    \item{tnew :}{ The vector \code{new}.}
+#'    \item{mhat :}{ The regression function's vector of estimates at \code{tnew}.}
 #' }
 #'
 #' @importFrom methods is
