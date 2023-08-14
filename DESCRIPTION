@@ -13,3 +13,7 @@ Imports:
     data.table,
     MASS,
     methods
+Suggests: 
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr

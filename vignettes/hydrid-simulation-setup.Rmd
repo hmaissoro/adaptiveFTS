@@ -1,0 +1,24 @@
+---
+title: "Details of the setup of the simulation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{hydrid-simulation-setup}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(adaptiveFTS)
+```
+
+In this vignette we describe how to estimate the mean and the autoregressive kernel function from real data.
+The data
+
+

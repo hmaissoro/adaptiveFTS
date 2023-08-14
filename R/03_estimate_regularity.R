@@ -302,7 +302,6 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #'            \item{tobs :}{ The observation points associated to each curve \code{id_curve}.}
 #'            \item{X :}{ The observed values of the curve associated to \code{id_curve} at \code{tobs} observation points.}
 #'         }
-#' @export
 #'
 #' @import data.table
 #' @importFrom methods is

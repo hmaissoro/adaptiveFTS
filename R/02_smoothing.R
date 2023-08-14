@@ -146,8 +146,8 @@ estimate_nw <- function(y, t, tnew, h = NULL, smooth_ker = epanechnikov){
   A <- matrix(0, nrow = m, ncol = n)
   if (is.null(h)) {
     hcv <- estimate_nw_bw(y = y, t = t,
-                           h_grid = seq(1 / (2 * n), n ** (-1/3), len = 100),
-                           smooth_ker = smooth_ker)
+                          h_grid = seq(1 / (2 * n), n ** (-1/3), len = 100),
+                          smooth_ker = smooth_ker)
   }
   h <- ifelse(is.null(h), hcv, h)
   A <- outer(tnew, t, function(u, v) smooth_ker((u - v) / h))
@@ -246,3 +246,46 @@ estimate_nw_bw <- function(y, t, h_grid = seq(1 / (2 * length(t)), length(t) ** 
 }
 
 
+#' Estimate the the standard deviation of the observation error
+#'
+#' @inheritParams .format_data
+#' @param t \code{numeric (positive)}. Point at which we want to estimate the standard deviation of the error.
+#'
+#' @return A positive \code{numeric} scalar corresponding to the estimated standard-deviation.
+#' @export
+#'
+#' @import data.table
+#'
+estimate_sigma <- function(data, idcol = NULL, tcol = "tobs", ycol = "X", t = 1/2) {
+  # Input :
+  #         Data : a list of data.table containing two columns (t and x) for each curve
+  #         time : time at which we want to estimate sigma
+  #
+  # Output : a numeric value of the estimated sigma
+
+  # Format data
+  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+
+  sig_square <- mean(unlist(lapply(data[, unique(id_curve)], function(idx) {
+
+    # Compute get the index the two T_{n,k} closest to time for each X_n
+    d <- data[id_curve == idx]
+    d[, dd := abs(t - tobs)]
+    d[, rank_dist_to_t := order(order(dd))]
+    d[, dd := NULL]
+
+    # Compute [Y_{n,i_t} - Y_{n,j_t}]^2 for each curve X_n
+    Y1 <- d[rank_dist_to_t == 1, X]
+    Y2 <- d[rank_dist_to_t == 2, X]
+    Z <- 1 / 2 * (Y1 - Y2) ** 2
+    rm(d, Y1, Y2)
+
+    return(Z)
+  })))
+
+
+  # Step 3 : compute sigma
+  sig <- sqrt(sig_square)
+
+  return(sqrt(sig_square))
+}

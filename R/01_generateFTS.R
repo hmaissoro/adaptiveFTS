@@ -285,10 +285,10 @@ simulate_far <- function(N = 2L, lambda = 70L,
                     int_grid = 100L,
                     burnin = 100L,
                     remove_burnin = TRUE) {
-  if (! is.integer(N) & N > 1)
-    stop("N' must be an integer greater than 1.")
-  if (! is.integer(lambda) & lambda > 1)
-    stop("N' must be an integer greater than 1.")
+  if (! (N - floor(N) == 0) & N > 1)
+    stop("'N' must be an integer greater than 1.")
+  if (! (lambda - floor(lambda) == 0) & lambda > 1)
+    stop("'lambda' must be an integer greater than 1.")
   if (! methods::is(object = tdesign, class2 = "character")){
     stop("'tdesign' must be a character.")
   }else{
