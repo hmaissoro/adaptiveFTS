@@ -23,8 +23,9 @@ For more details see the vignette:
 }
 \examples{
 
-dt_mu <- get_real_data_mean(t = seq(0.1, 0.9, len = 10))
-plot(x = dt_mu$t, y = dt_mu$mean, type = "b", col = "red",
+t0 <- seq(0.1, 0.9, len = 10)
+m <- get_real_data_mean(t = t0)
+plot(x = t0, y = m, type = "b", col = "red",
      xlab = "t", ylab = "mean", main = "Mean function")
 
 }

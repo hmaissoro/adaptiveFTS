@@ -215,10 +215,10 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #' @export
 #'
 .random_design <- function(N, lambda, tdistribution = runif, ...) {
-  if (! is.integer(N) & N > 1)
-    stop("N' must be an integer greater than 1.")
-  if (! is.integer(lambda) & lambda > 1)
-    stop("N' must be an integer greater than 1.")
+  if (! (N - floor(N) == 0) & N > 1)
+    stop("'N' must be an integer greater than 1.")
+  if (! (lambda - floor(lambda) == 0) & lambda > 1)
+    stop("'lambda' must be an integer greater than 1.")
   if (! methods::is(object = tdistribution, class2 = "function"))
     stop("'tdistribution' must be a function.")
 

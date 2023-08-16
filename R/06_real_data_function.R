@@ -17,8 +17,9 @@
 #'
 #' @examples
 #'
-#' dt_mu <- get_real_data_mean(t = seq(0.1, 0.9, len = 10))
-#' plot(x = dt_mu$t, y = dt_mu$mean, type = "b", col = "red",
+#' t0 <- seq(0.1, 0.9, len = 10)
+#' m <- get_real_data_mean(t = t0)
+#' plot(x = t0, y = m, type = "b", col = "red",
 #'      xlab = "t", ylab = "mean", main = "Mean function")
 #'
 get_real_data_mean <- function(t = seq(0.1, 0.9, len = 10)){
@@ -59,9 +60,12 @@ get_real_data_mean <- function(t = seq(0.1, 0.9, len = 10)){
 
   # mean function estimation
   muhat <- eta %*% basis_coef
-  dt_res <- data.table::data.table("t" = t, "mean" = muhat[, 1])
 
-  return(dt_res)
+  # Remove objects
+  rm(cost_mat, sint_mat, eta, basis_coef)
+  gc()
+
+  return(muhat[, 1])
 }
 
 #' FAR kernel learned from the voltage curves of the electricity
@@ -69,116 +73,80 @@ get_real_data_mean <- function(t = seq(0.1, 0.9, len = 10)){
 #' For more details see the vignette:
 #' \code{vignette("hybrid-simulation-setup", package = "adaptiveFTS")}
 #'
-#' @param s \code{vector (numeric)}. The points corresponding to the first argument of the kernel function.
-#' It can be a scalar.
-#' @param t \code{vector (numeric)}. The points corresponding to the second argument of the kernel function.
-#' It can be a scalar.
+#' @param s \code{numeric (positive)}. A vector or scalar value(s) between 0 and 1.
+#' @param t \code{numeric (positive)}. A vector or scalar value(s) between 0 and 1.
 #' @param operator_norm \code{numeric (positive)}. A scalar corresponding to the norm of the integral operator associated with this kernel function.
-#' @param return_matrix \code{boolean}. If \code{TRUE}, return a \code{length(s) x length(t)} matrix. Default, \code{TRUE}.
 #'
-#' @return
-#'    \itemize{
-#'      \item{A \code{matrix}}{ of dimension \code{length(s) x length(t)} containing the kernel function elvatued at \code{s x t}.
-#'                              Colnames t1, t2, ..., tlenght(t) and rownames are s1, s2, ..., slenght(t)}
-#'      \item{Or a \code{data.table} containing 3 columns.}{
-#'        \itemize{
-#'          \item{s :}{ The vector or scalar \code{s}.}
-#'          \item{t :}{ The vector or scalar \code{t}.}
-#'          \item{ker_value :}{ For each pair \code{s x t}, the value of the kernel.}
-#'        }
-#'      }
-#'         }
+#' @return A vector (or scalar) of \code{numeric} values corresponding to the value of the kernel function evaluated at (\code{s}, \code{t}).
 #' @export
-#' @importFrom data.table data.table dcast
 #'
 #' @examples
-#' # Return a matrix
-#' mtx <- get_real_data_far_kenel(s = seq(0.1, 0.9, len = 5),
-#'                                t = seq(0.2, 0.8, len = 5),
-#'                                operator_norm = 0.5,
-#'                                return_matrix = TRUE)
-#' dim(mtx)
 #'
-#' # Return a data.table
-#' dt <- get_real_data_far_kenel(s = seq(0.1, 0.9, len = 5),
-#'                                t = seq(0.2, 0.8, len = 5),
-#'                                operator_norm = 0.5,
-#'                                return_matrix = FALSE)
-#' head(dt)
+#' # get the value of the kernel at (s,t) = (0.2, 0.3)
+#' kerval <- get_real_data_far_kenel(s = 0.2, t = 0.3, operator_norm = 0.5)
+#' kerval
 #'
-get_real_data_far_kenel <- function(s = seq(0.1, 0.9, len = 10),
-                                    t = seq(0.2, 0.8, len = 10),
-                                    operator_norm = 0.5,
-                                    return_matrix = TRUE){
-  # \eta(s)
-  coss_mat <- outer(X = s, Y = 1:5, function(si, l) sqrt(2) * cos(2 * pi * l * si))
-  sins_mat <- outer(X = s, Y = 1:5, function(si, l) sqrt(2) * sin(2 * pi * l * si))
-  eta <- cbind(1, coss_mat, sins_mat)
-
-  # \theta(t)
-  cost_mat <- outer(X = t, Y = 1:5, function(ti, l) sqrt(2) * cos(2 * pi * l * ti))
-  sint_mat <- outer(X = t, Y = 1:5, function(ti, l) sqrt(2) * sin(2 * pi * l * ti))
-  colnames(cost_mat) <- paste0("cos", 1:5)
-  colnames(sint_mat) <- paste0("sin", 1:5)
-  theta <- cbind(1, cost_mat, sint_mat)
-
-  # Basis function
-  basis_fun <- kronecker(X = eta, Y = theta)
+get_real_data_far_kenel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
 
   # Basis coefficient
+  # For each fixed {\eta_k(s), k = 1,...,K} and {\theta_l(t), l = 1,...,L}, we have
+  # c(b_{11}, b_{12}, ..., b_{1L},
+  #   b_{21}, b_{22}, ..., b_{2L},
+  #   ...,
+  #   b_{K1}, b_{K2}, ..., b_{KL})
   basis_coef <- c(
-    2.2337372971018, -0.325244044731151, 0.187206920919236, -0.251566711879163,
-    -0.0167644005889917, 0.276667058786411, 0.0615073725778918, 0.571603018336332,
-    -0.572809375110059, 0.0141379256684989, 0.0149022741092313, -4.82923610792512,
-    0.331031200463392, 0.183596326343559, -0.027634868017173, 0.140334666930028, 0,
-    -0.133119857316959, -0.0895419722599467, 0.00307262837174549, -0.0483508443594607,
-    -0.126251329568179, 3.32335705082494, -0.0540202044263184, 0.297999174567218,
-    -0.0715639682940563, 0.0286475855006393, 0.205067486705984, -0.131347879232633,
-    0.353557986549793, -0.162035292128456, -0.039114894690579, -0.0459684159226797,
-    1.7970025932255, 0, 0.0983572083794547, -0.00897146114351682, 0, 0.0654171627576935,
-    0.13131934147443, -0.0092546291688908, -0.185062678568791, 0.0906326014811482,
-    -0.0481786322361082, -4.72746806843479, 0.050670616460877, 0.0365619524515104, 0,
-    0.284723029485189, 0.0126513369315148, 0, -0.0698838250498888, 0, 0, -0.125755965630984,
-    -5.73918751880059, 0.245848419311172, 0, 0.267121966309844, 0, -0.0896598422716199,
-    0.0316171382003794, -0.49768715975112, 0.52440949359224, 0, 0.197938756150832,
-    2.45125518767279, -0.0463018677075481, -0.0549014918672375, -0.027309159416357,
-    -0.0604572008598179, 0.0750983773087162, 0.136683725955063, 0.142855565715424,
-    -0.297541175307152, -0.011750226937323, 0.027077398939407, 1.07367258651513,
-    0.18513260615123, -0.0244962109056109, 0.0671308295876077, -0.0756788959583738,
-    -0.0390603398330477, 0.191576162911029, -0.0250687004190137, 0.205775044698164,
-    -0.0517597384979335, 0.00607347821426663, -5.43802938211584, -0.161785518980206,
-    0.191707201891598, -0.00550062556645803, 0.0111654607750166, 0.255463915245325,
-    0.0821500379029488, 0.445786769743474, -0.354321377284522, 0.0587158994893179,
-    -0.0962640169091532, -3.51254535085072, -0.11445751095267, 0.12880151541983, 0,
-    -0.118712184576829, 0, 0.245074852935059, 0.200974977296935, -0.3024432765705,
-    0.289741051089142, 0, -0.983346082144421, 0.0820977879178276, -0.224174908365937,
-    0.246518722931093, 0, -0.0538389230933072, -0.161386348786155, -0.00595281133102742,
-    0.213730662849265, 0, 0.192629550171012
+    2.23373729709883, -4.82923610791908, 3.32335705082156, 1.79700259321478,
+    -4.72746806843297, -5.73918751872499, 2.45125518767258, 1.07367258654584,
+    -5.43802938214564, -3.51254535084025, -0.983346082229677, -0.325244044730888,
+    0.331031200463371, -0.0540202044257287, 0, 0.050670616459408, 0.245848419309361,
+    -0.0463018677073661, 0.185132606151136, -0.161785518978632, -0.114457510952933,
+    0.0820977879166196, 0.187206920919163, 0.183596326343521, 0.29799917456688,
+    0.0983572083790289, 0.0365619524514346, 0, -0.054901491867189, -0.0244962109053967,
+    0.191707201891362, 0.128801515419686, -0.224174908366066, -0.251566711879058,
+    -0.0276348680173348, -0.0715639682939576, -0.00897146114342853, 0, 0.267121966309748,
+    -0.0273091594161997, 0.067130829587406, -0.00550062556625829, 0, 0.246518722930269,
+    -0.0167644005889752, 0.140334666929821, 0.0286475855004669, 0, 0.28472302948554, 0,
+    -0.0604572008597386, -0.0756788959584134, 0.0111654607748143, -0.118712184576549, 0,
+    0.276667058786185, 0, 0.205067486705622, 0.0654171627574894, 0.012651336931906,
+    -0.0896598422692541, 0.0750983773085757, -0.0390603398328494, 0.255463915244155, 0,
+    -0.0538389230934492, 0.0615073725777393, -0.133119857316778, -0.131347879232277,
+    0.131319341474459, 0, 0.0316171381996287, 0.1366837259548, 0.191576162910903,
+    0.0821500379023849, 0.245074852934185, -0.161386348784381, 0.57160301833627,
+    -0.0895419722592298, 0.353557986549909, -0.00925462916880733, -0.0698838250503909,
+    -0.497687159750738, 0.142855565715012, -0.0250687004178898, 0.445786769743267,
+    0.20097497729795, -0.0059528113317605, -0.572809375110091, 0.00307262837101596,
+    -0.162035292129038, -0.185062678568657, 0, 0.524409493593714, -0.297541175306963,
+    0.205775044697609, -0.354321377285357, -0.302443276571187, 0.213730662847565,
+    0.0141379256684164, -0.0483508443593266, -0.0391148946905164, 0.0906326014808357,
+    0, 0, -0.0117502269372805, -0.0517597384977126, 0.0587158994889613, 0.289741051088531,
+    0, 0.0149022741092416, -0.126251329567908, -0.0459684159223364, -0.0481786322359199,
+    -0.125755965631474, 0.197938756150598, 0.0270773989392422, 0.00607347821449695,
+    -0.0962640169089107, 0, 0.192629550170813
   )
+  # Transform to (K, L) matrix
+  basis_coef_mat <- t(matrix(data = basis_coef, ncol = 11))
 
-  # operator norm
+  ker_values <- mapply(function(s,t, coef_mat){
+    # \eta(s)
+    etas <- c(1, sqrt(2) * cos(2 * pi * 1:5 * s), sqrt(2) * sin(2 * pi * 1:5 * s))
+
+    # \theta(t)
+    thetat <- c(1, sqrt(2) * cos(2 * pi * 1:5 * t), sqrt(2) * sin(2 * pi * 1:5 * t))
+
+    # Basis function
+    ker_val <- matrix(etas, nrow = 1) %*% coef_mat %*% matrix(thetat, ncol = 1)
+    return(c(ker_val))
+  }, s = s, t = t, MoreArgs = list(coef_mat = basis_coef_mat))
+
+  # Normalize values using operator norm
   op_norm <- 4.588783
   op_scale <- operator_norm / op_norm
+  ker_values <- ker_values * op_scale
 
+  # clean
+  rm(basis_coef_mat, basis_coef)
+  gc()
 
-  # FAR kernel
-  far_ker <- basis_fun %*% matrix(data = basis_coef, ncol = 1)
-  dt_far_ker <- data.table::as.data.table(expand.grid("s" = s, "t" = t))
-  dt_far_ker <- dt_far_ker[order(t)]
-  dt_far_ker[, ker_value := far_ker[, 1]]
-
-  # Scale operator norm
-  dt_far_ker[, ker_value := op_scale * ker_value]
-
-  if (return_matrix) {
-    dt_far_ker_dcast <- data.table::dcast(data = dt_far_ker, formula = s ~ t, value.var = "ker_value")
-    mat_far_ker <- as.matrix(dt_far_ker_dcast[, -1])
-    colnames(mat_far_ker) <- paste0("t", 1:length(s))
-    rownames(mat_far_ker) <- paste0("s", 1:length(t))
-    res <- mat_far_ker
-  } else{
-    res <- dt_far_ker
-  }
-
-  return(res)
+  return(ker_values)
 }
+

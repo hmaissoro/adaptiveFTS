@@ -4,54 +4,26 @@
 \alias{get_real_data_far_kenel}
 \title{FAR kernel learned from the voltage curves of the electricity}
 \usage{
-get_real_data_far_kenel(
-  s = seq(0.1, 0.9, len = 10),
-  t = seq(0.2, 0.8, len = 10),
-  operator_norm = 0.5,
-  return_matrix = TRUE
-)
+get_real_data_far_kenel(s = 0.2, t = 0.3, operator_norm = 0.5)
 }
 \arguments{
-\item{s}{\code{vector (numeric)}. The points corresponding to the first argument of the kernel function.
-It can be a scalar.}
+\item{s}{\code{numeric (positive)}. A vector or scalar value(s) between 0 and 1.}
 
-\item{t}{\code{vector (numeric)}. The points corresponding to the second argument of the kernel function.
-It can be a scalar.}
+\item{t}{\code{numeric (positive)}. A vector or scalar value(s) between 0 and 1.}
 
 \item{operator_norm}{\code{numeric (positive)}. A scalar corresponding to the norm of the integral operator associated with this kernel function.}
-
-\item{return_matrix}{\code{boolean}. If \code{TRUE}, return a \code{length(s) x length(t)} matrix. Default, \code{TRUE}.}
 }
 \value{
-\itemize{
-\item{A \code{matrix}}{ of dimension \code{length(s) x length(t)} containing the kernel function elvatued at \code{s x t}.
-Colnames t1, t2, ..., tlenght(t) and rownames are s1, s2, ..., slenght(t)}
-\item{Or a \code{data.table} containing 3 columns.}{
-\itemize{
-\item{s :}{ The vector or scalar \code{s}.}
-\item{t :}{ The vector or scalar \code{t}.}
-\item{ker_value :}{ For each pair \code{s x t}, the value of the kernel.}
-}
-}
-}
+A vector (or scalar) of \code{numeric} values corresponding to the value of the kernel function evaluated at (\code{s}, \code{t}).
 }
 \description{
 For more details see the vignette:
 \code{vignette("hybrid-simulation-setup", package = "adaptiveFTS")}
 }
 \examples{
-# Return a matrix
-mtx <- get_real_data_far_kenel(s = seq(0.1, 0.9, len = 5),
-                               t = seq(0.2, 0.8, len = 5),
-                               operator_norm = 0.5,
-                               return_matrix = TRUE)
-dim(mtx)
 
-# Return a data.table
-dt <- get_real_data_far_kenel(s = seq(0.1, 0.9, len = 5),
-                               t = seq(0.2, 0.8, len = 5),
-                               operator_norm = 0.5,
-                               return_matrix = FALSE)
-head(dt)
+# get the value of the kernel at (s,t) = (0.2, 0.3)
+kerval <- get_real_data_far_kenel(s = 0.2, t = 0.3, operator_norm = 0.5)
+kerval
 
 }
