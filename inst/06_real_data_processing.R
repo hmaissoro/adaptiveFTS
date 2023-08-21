@@ -1,6 +1,7 @@
 library(data.table)
 library(magrittr)
 library(ggplot2)
+library(latex2exp)
 
 # Import data ----
 dt_raw <- fread("../data_electricity/household_power_consumption.txt", sep = ";")
@@ -77,3 +78,348 @@ ggplot(dt_slice, aes(x = t, y = Voltage, color = Season, group = date)) +
   scale_color_grey() +
   theme(legend.position = "top")
 ggsave(filename = file.path(figures_path, "real_data_selected_curves.png"), units = "px", dpi = 300)
+
+
+# Mean function estimation ----
+# Import data
+dt <- fread(file = "../data_electricity/household_voltage_autumn2009_winter2010.csv")
+
+# Estimation of the Fourier basis coefficients
+# Indeed \mu(t) is expressed in fourier basis
+# Number of basis elements : 101
+
+## Empirical mean function
+dt_mu <- dt[order(tobs), .("mu" = mean(voltage, na.rm = TRUE)), by = "tobs"]
+dygraphs::dygraph(dt_mu)
+
+## Regression to estimate coefficients
+
+### co-variables
+tobs <- dt[, unique(sort(tobs))]
+K <- 50
+
+cos_mat <- outer(X = tobs, Y = 1:K, function(t, k) sqrt(2) * cos(2 * pi * k * t))
+colnames(cos_mat) <- paste0("cos", 1:K)
+
+sin_mat <- outer(X = tobs, Y = 1:K, function(t, k) sqrt(2) * sin(2 * pi * k * t))
+colnames(sin_mat) <- paste0("sin", 1:K)
+
+mat_covariable <- cbind(cos_mat, sin_mat)
+
+### LASSO regression
+cv_model <- glmnet::cv.glmnet(x = mat_covariable, y = dt_mu[, mu],
+                              intercept = TRUE, alpha = 1, nfolds = 20)
+plot(cv_model)
+best_lambda <- cv_model$lambda.min
+
+mu_model <- glmnet::glmnet(x = mat_covariable, y = dt_mu[, mu],
+                           intercept = TRUE, alpha = 1, lambda = best_lambda)
+mu_coef <- coef(mu_model)
+
+mu <- predict(mu_model, mat_covariable)
+dygraphs::dygraph(data = data.table::data.table(tobs, mu))
+
+## mean function construction
+
+get_real_data_mean <- function(t = seq(0.1, 0.9, len = 10)){
+  # \eta(t)
+  cost_mat <- outer(X = t, Y = 1:50, function(ti, k) sqrt(2) * cos(2 * pi * k * ti))
+  sint_mat <- outer(X = t, Y = 1:50, function(ti, k) sqrt(2) * sin(2 * pi * k * ti))
+  eta <- cbind(1, cost_mat, sint_mat)
+
+  # Basis coeffient
+  basis_coef <- c(
+    2.424666e+02, 2.045053e-01, 1.428404e-01, 3.570635e-01,
+    1.090163e-01, 2.118234e-01, 1.301123e-01, 9.508016e-02,
+    1.379302e-01, 4.820783e-03, -6.806055e-02, -2.388833e-02,
+    -7.403338e-02, -2.313821e-02, -5.963765e-02, -2.788351e-02,
+    6.017267e-02, 4.237483e-03, 2.406135e-02, 9.984997e-03,
+    2.732683e-02, -3.947718e-02, -2.744963e-03, -5.624731e-03,
+    -7.232138e-02, 1.228444e-02, -2.983196e-02, -1.373429e-02,
+    -5.086314e-03, -5.206650e-03, 1.983353e-02, -1.671532e-02,
+    1.694785e-02, 1.663588e-02, -8.924121e-03, -1.470650e-02,
+    -1.568260e-02, -3.873785e-03, -1.642147e-02, 0.000000e+00,
+    1.706651e-04, 3.662220e-03, 3.599005e-03, 2.163418e-02,
+    2.079180e-02, -5.805163e-03, -6.198625e-03, -3.051126e-03,
+    -3.050078e-02, -2.183053e-02, -2.030866e-02, 6.524725e-01,
+    1.448886e+00, -3.113890e-01, -4.050726e-01, 1.478745e-01,
+    -1.578363e-01, -2.346072e-01, -5.265881e-02, -5.181928e-02,
+    -8.382788e-02, -5.055031e-02, 1.471149e-01, -8.402212e-03,
+    -4.316013e-02, 7.528717e-02, 3.718024e-02, -4.602782e-03,
+    -4.930040e-02, -7.104138e-03, -3.485272e-02, -5.034491e-02,
+    2.230170e-02, 5.058664e-02, -2.996308e-02, 0.000000e+00,
+    1.773518e-02, 1.664768e-03, -5.118570e-04, 2.536951e-02,
+    1.103531e-02, -3.781447e-02, -9.837124e-03, 3.219296e-03,
+    -1.163841e-02, -1.604513e-02, -8.183994e-03, 3.309498e-02,
+    7.700235e-03, 1.578432e-02, 5.755486e-03, -3.571603e-03,
+    -1.118589e-03, -1.883942e-03, -5.265843e-03, -2.892450e-02,
+    1.032219e-02, 1.451413e-02, 6.348425e-04, 1.621365e-02,
+    1.322576e-02
+  )
+
+  # mean function estimation
+  muhat <- eta %*% basis_coef
+
+  # Remove objects
+  rm(cost_mat, sint_mat, eta, basis_coef)
+  gc()
+
+  return(muhat[, 1])
+}
+
+dt_smooth <- data.table("t" = tobs, "mean" = get_real_data_mean(t = tobs))
+
+### Plot for paper
+
+ggplot(dt_mu, aes(x = tobs, y = mu)) +
+  geom_line() +
+  ylim(238.5, 246) +
+  xlab(label = "t") +
+  ylab(label = expression(mu(t))) +
+  scale_color_grey() +
+  theme_minimal() +
+  theme(legend.position = "top")
+ggsave(filename = file.path(figures_path, "empirical_mean.png"), units = "px", dpi = 300)
+
+ggplot(dt_smooth, aes(x = t, y = mean)) +
+  geom_line() +
+  ylim(238.5, 246) +
+  ylab(label = expression(mu(t))) +
+  scale_color_grey() +
+  theme_minimal() +
+  theme(legend.position = "top")
+ggsave(filename = file.path(figures_path, "smooth_mean.png"), units = "px", dpi = 300)
+
+# Empirical covariance estimation ----
+## E[X(s)X(t)]
+dt_x <- data.table::dcast(data = dt, formula = tobs ~ date, value.var = "voltage")
+dt_x <- dt_x[order(tobs)]
+mat_x <- as.matrix(dt_x[, .SD, .SDcols = ! 'tobs'])
+rownames(mat_x) <- dt_x[, tobs]
+mat_XsXt <- (1 / ncol(mat_x)) * (mat_x %*% t(mat_x))
+
+## mu(s)mu(t)
+dt_mu <- dt_mu[order(tobs)]
+mat_mu <- matrix(data = dt_mu[, mu], ncol = 1)
+rownames(mat_mu) <- dt_mu[order(tobs), tobs]
+mat_musmut <- mat_mu %*% t(mat_mu)
+
+## C(s,t)
+mat_cov <- mat_XsXt - mat_musmut
+
+rm(mat_XsXt, mat_x, dt_x)
+
+## Plot covariance function
+ggrid <- expand.grid(s = tobs, t = tobs)
+dt_cov <- data.table::data.table(
+  "s" = ggrid$s,
+  "t" = ggrid$t,
+  "cov" = c(mat_cov)
+)
+
+ggplot(dt_cov, aes(x = s, y = t, z = cov)) +
+  geom_contour_filled(breaks = c(-2, 0, 3, 6, 9, 11, 12)) +
+  xlab(label = "s") +
+  ylab(label = "t") +
+  labs(fill = expression(C(s,t))) +
+  scale_fill_grey() +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+ggsave(filename = file.path(figures_path, "empirical_cov.png"), units = "px", dpi = 500)
+
+# Empirical lag-1 auto-covariance ----
+
+## E[X_n(s)X_{n+1}(t)]
+d <- dt[, unique(date)]
+dt_xn <- dt[! date == d[length(d)]]
+dt_xn_plus_1 <- dt[! date == d[1]]
+dt_xn <- dt_xn[order(tobs)]
+dt_xn_plus_1 <- dt_xn_plus_1[order(tobs)]
+
+dt_xn <- data.table::dcast(data = dt_xn, formula = tobs ~ date, value.var = "voltage")
+dt_xn_plus_1 <- data.table::dcast(data = dt_xn_plus_1, formula = tobs ~ date, value.var = "voltage")
+mat_xn <- as.matrix(dt_xn[, .SD, .SDcols = ! 'tobs'])
+mat_xn_plus_1 <- as.matrix(dt_xn_plus_1[, .SD, .SDcols = ! 'tobs'])
+rownames(mat_xn) <- dt_xn[, tobs]
+rownames(mat_xn_plus_1) <- dt_xn_plus_1[, tobs]
+
+mat_Xns_Xn_plus_1_t <- (1 / ncol(mat_xn)) * (mat_xn %*% t(mat_xn_plus_1))
+
+## C_1(s,t)
+mat_autocov <- mat_Xns_Xn_plus_1_t - mat_musmut
+
+rm(mat_musmut, mat_xn, mat_xn_plus_1, dt_xn_plus_1, dt_xn, mat_Xns_Xn_plus_1_t, d, mat_mu)
+gc()
+
+## plot C_1(s,t)
+ggrid <- expand.grid(s = tobs, t = tobs)
+dt_autocov <- data.table::data.table(
+  "s" = ggrid$s,
+  "t" = ggrid$t,
+  "autocov" = c(mat_autocov)
+)
+
+ggplot(dt_autocov, aes(x = s, y = t, z = autocov)) +
+  geom_contour_filled(breaks = c(-15, -10, 0, 10, 20, 25, 30)) +
+  xlab(label = "s") +
+  ylab(label = "t") +
+  labs(fill = latex2exp::TeX("$C_1(s,t)$")) +
+  scale_fill_grey() +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+ggsave(filename = file.path(figures_path, "empirical_lag1_autocov.png"), units = "px", dpi = 500)
+
+# Operator kernel estimation ----
+## LASSO regression
+### fourier basis
+tobs <- dt[, unique(sort(tobs))]
+L <- 5
+
+cos_mat <- outer(X = tobs, Y = 1:L, function(t, l) sqrt(2) * cos(2 * pi * l * t))
+colnames(cos_mat) <- paste0("cos", 1:L)
+
+sin_mat <- outer(X = tobs, Y = 1:L, function(t, l) sqrt(2) * sin(2 * pi * l * t))
+colnames(sin_mat) <- paste0("sin", 1:L)
+
+theta <- cbind(1, cos_mat, sin_mat)
+eta <- cbind(1, cos_mat, sin_mat)
+dim(eta)
+
+### Compute Z_l(s) = \int_{0}^{1} c(s,u) theta(u) du
+### Riemann approximation
+ZZ <- (1 / length(tobs)) * mat_cov %*% theta
+
+### Compute the co-variable matrix
+### Note that the following is faster then : FF <- kronecker(ZZ, eta)
+FF <- fastmatrix::kronecker.prod(eta, ZZ)
+
+### Compute the dependent variable vector
+### Note that c(matrix) = (matrix[, 1], matrix[, 2], ..., matrix[, ncol(matrix)])
+### Thus by doing...
+### CC1 <- c(mat_autocov)
+### we obtain the vector
+# vector(c_1(s_1, t_1),...,c_1(s_1440, t_1),
+#        c_1(s_1, t_2),...,c_1(s_1440, t_2)
+#        ,...,
+#        c_1(s_1, t_1440),...,c_1(s_1440, t_1440))
+#
+# which is compatible with the above kronecker product
+CC1 <- c(t(mat_autocov))
+
+rm(mat_autocov, mat_cov, ZZ, theta, eta, cos_mat, sin_mat)
+
+### Lasso regression
+beta_cv_model <- glmnet::cv.glmnet(x = FF, y = CC1,
+                                   intercept = FALSE, alpha = 1, nfolds = 10)
+plot(beta_cv_model)
+beta_lambda <- beta_cv_model$lambda.min
+
+beta_model <- glmnet::glmnet(x = FF, y = CC1,
+                             intercept = FALSE, alpha = 1, lambda = beta_lambda)
+beta_coef <- coef(beta_model)
+
+CC1_prev <- predict(beta_model, FF)
+
+### Build kernel function
+get_real_data_far_kenel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
+
+  # Basis coefficient
+  # For each fixed {\eta_k(s), k = 1,...,K} and {\theta_l(t), l = 1,...,L}, we have
+  # c(b_{11}, b_{12}, ..., b_{1L},
+  #   b_{21}, b_{22}, ..., b_{2L},
+  #   ...,
+  #   b_{K1}, b_{K2}, ..., b_{KL})
+  basis_coef <- c(
+    2.23373729709883, -4.82923610791908, 3.32335705082156, 1.79700259321478,
+    -4.72746806843297, -5.73918751872499, 2.45125518767258, 1.07367258654584,
+    -5.43802938214564, -3.51254535084025, -0.983346082229677, -0.325244044730888,
+    0.331031200463371, -0.0540202044257287, 0, 0.050670616459408, 0.245848419309361,
+    -0.0463018677073661, 0.185132606151136, -0.161785518978632, -0.114457510952933,
+    0.0820977879166196, 0.187206920919163, 0.183596326343521, 0.29799917456688,
+    0.0983572083790289, 0.0365619524514346, 0, -0.054901491867189, -0.0244962109053967,
+    0.191707201891362, 0.128801515419686, -0.224174908366066, -0.251566711879058,
+    -0.0276348680173348, -0.0715639682939576, -0.00897146114342853, 0, 0.267121966309748,
+    -0.0273091594161997, 0.067130829587406, -0.00550062556625829, 0, 0.246518722930269,
+    -0.0167644005889752, 0.140334666929821, 0.0286475855004669, 0, 0.28472302948554, 0,
+    -0.0604572008597386, -0.0756788959584134, 0.0111654607748143, -0.118712184576549, 0,
+    0.276667058786185, 0, 0.205067486705622, 0.0654171627574894, 0.012651336931906,
+    -0.0896598422692541, 0.0750983773085757, -0.0390603398328494, 0.255463915244155, 0,
+    -0.0538389230934492, 0.0615073725777393, -0.133119857316778, -0.131347879232277,
+    0.131319341474459, 0, 0.0316171381996287, 0.1366837259548, 0.191576162910903,
+    0.0821500379023849, 0.245074852934185, -0.161386348784381, 0.57160301833627,
+    -0.0895419722592298, 0.353557986549909, -0.00925462916880733, -0.0698838250503909,
+    -0.497687159750738, 0.142855565715012, -0.0250687004178898, 0.445786769743267,
+    0.20097497729795, -0.0059528113317605, -0.572809375110091, 0.00307262837101596,
+    -0.162035292129038, -0.185062678568657, 0, 0.524409493593714, -0.297541175306963,
+    0.205775044697609, -0.354321377285357, -0.302443276571187, 0.213730662847565,
+    0.0141379256684164, -0.0483508443593266, -0.0391148946905164, 0.0906326014808357,
+    0, 0, -0.0117502269372805, -0.0517597384977126, 0.0587158994889613, 0.289741051088531,
+    0, 0.0149022741092416, -0.126251329567908, -0.0459684159223364, -0.0481786322359199,
+    -0.125755965631474, 0.197938756150598, 0.0270773989392422, 0.00607347821449695,
+    -0.0962640169089107, 0, 0.192629550170813
+  )
+  # Transform to (K, L) matrix
+  basis_coef_mat <- t(matrix(data = basis_coef, ncol = 11))
+
+  ker_values <- mapply(function(s,t, coef_mat){
+    # \eta(s)
+    etas <- c(1, sqrt(2) * cos(2 * pi * 1:5 * s), sqrt(2) * sin(2 * pi * 1:5 * s))
+
+    # \theta(t)
+    thetat <- c(1, sqrt(2) * cos(2 * pi * 1:5 * t), sqrt(2) * sin(2 * pi * 1:5 * t))
+
+    # Basis function
+    ker_val <- matrix(etas, nrow = 1) %*% coef_mat %*% matrix(thetat, ncol = 1)
+    return(c(ker_val))
+  }, s = s, t = t, MoreArgs = list(coef_mat = basis_coef_mat))
+
+  # Normalize values using operator norm
+  op_norm <- 4.588783
+  op_scale <- operator_norm / op_norm
+  ker_values <- ker_values * op_scale
+
+  # clean
+  rm(basis_coef_mat, basis_coef)
+  gc()
+
+  return(ker_values)
+}
+
+### Plot of the kernel function
+
+ggrid <- expand.grid(s = (1:1440) / 1440, t = (1:1440) / 1440)
+dt_kernel <- data.table::data.table(
+  "s" = ggrid$s,
+  "t" = ggrid$t,
+  "Kernel_value" = get_real_data_far_kenel(s = ggrid$s, t = ggrid$t, operator_norm = 4.588783)
+)
+
+#### Contour plot
+ggplot(dt_kernel, aes(x = s, y = t, z = Kernel_value)) +
+  geom_contour_filled(breaks = c(-35, -25, -15, -5, 5, 15, 25)) +
+  xlab(label = "s") +
+  ylab(label = "t") +
+  labs(fill = expression(Theta(s,t))) +
+  scale_fill_grey() +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+ggsave(filename = file.path(figures_path, "far_kernel.png"), units = "px", dpi = 500)
+
+### Surface plot
+ggrid <- expand.grid(s = seq(0.01, 0.99, len = 200), t = seq(0.01, 0.99, len = 200))
+dt_kernel <- data.table::data.table(
+  "s" = ggrid$s,
+  "t" = ggrid$t,
+  "Kernel_value" = get_real_data_far_kenel(s = ggrid$s, t = ggrid$t, operator_norm = 4.588783)
+)
+ker_mat <- matrix(dt_kernel$Kernel_value, ncol = length(tobs))
+plot3D::persp3D(x = seq(0.01, 0.99, len = 200),y = seq(0.01, 0.99, len = 200), z = ker_mat)
+dim(ker_mat)
+## Calcul de la norm
+op_norm <- max(1 / 1440 * dt_far_ker %*% matrix(data = 1, nrow = length(tobs)))
+dim(dt_far_ker)
+
+op_norm <- max(apply(X = dt_far_ker, MARGIN = 1, FUN = function(r){
+  pracma::trapz(x = (1:1440) / 1440, y = r)
+}))
+
