@@ -44,10 +44,10 @@ Opposite, if f \code{data} is given as \code{list} of \code{data.table (or data.
 
 \item{ycol}{\code{character}. The name of the column that contains the observed value of the curves.}
 
-\item{t}{\code{numeric (positive)}. Point at which we want to estimate the standard deviation of the error.}
+\item{t}{\code{vector (numeric)}. Observation points at which we want to estimate the standard deviation of the error.}
 }
 \value{
-A positive \code{numeric} scalar corresponding to the estimated standard-deviation.
+A data.table with two columns: \code{t} and \code{sig} corresponding to the estimated standard deviation.
 }
 \description{
 Estimate the the standard deviation of the observation error
