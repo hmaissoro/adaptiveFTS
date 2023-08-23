@@ -84,7 +84,7 @@ uniform <- function(u){
 #'    \item{h :}{ The bandwidth used to estimate the regression function.}
 #'    \item{inKernelSupp :}{ For each \code{t_i} in \code{tnew}, it is the number of  \code{t} between \code{t_i - h } and \code{t_i + h }.}
 #'    \item{tnew :}{ The vector \code{new}.}
-#'    \item{mhat :}{ The regression function's vector of estimates at \code{tnew}.}
+#'    \item{yhat :}{ The regression function's vector of estimates at \code{tnew}.}
 #' }
 #'
 #' @importFrom methods is
@@ -124,9 +124,9 @@ uniform <- function(u){
 #'                      tnew = seq(0.01, 0.99, len = 100),
 #'                      h = hbest, smooth_ker = epanechnikov)
 #'
-#' plot(x = dt_nw[, tnew], y = dt_nw[, mhat], type = "l", col = "blue",
+#' plot(x = dt_nw[, tnew], y = dt_nw[, yhat], type = "l", col = "blue",
 #'      main = "Estimated and true regression function.")
-#' lines(x = dt_nw[, tnew], y = m(dt_nw[, tnew]), type = "l", col = "red")
+#' lines(x = dt_nw[, tnew], y = m(dt_nw[, yhat]), type = "l", col = "red")
 #' legend(x = 0.64, y = 4.1, fill = c("blue", "red"),legend = c("Estimated m", "True m"))
 #'
 #' }
@@ -146,7 +146,7 @@ estimate_nw <- function(y, t, tnew, h = NULL, smooth_ker = epanechnikov){
   A <- matrix(0, nrow = m, ncol = n)
   if (is.null(h)) {
     hcv <- estimate_nw_bw(y = y, t = t,
-                          h_grid = seq(1 / (2 * n), n ** (-1/3), len = 100),
+                          h_grid = seq(2 / n, n ** (-1/3), len = 100),
                           smooth_ker = smooth_ker)
   }
   h <- ifelse(is.null(h), hcv, h)
@@ -157,12 +157,10 @@ estimate_nw <- function(y, t, tnew, h = NULL, smooth_ker = epanechnikov){
     sum(abs(tnewi - t) <= h)
   }, t = t, h = h))
 
-  ## If row sum is nil, we replace NaN by 0
-  A <- apply(A, 1, function(x) x / ifelse(sum(x) != 0, sum(x), 1))
+  A <- apply(A, 1, function(x) x / sum(x))
   A <- t(A)
-  mhat <- A %*% y
-  mhat <- ifelse(is.nan(as.vector(mhat)), 0, as.vector(mhat))
-  dt <- data.table::data.table("h" = h, "inKernelSupp" = inKernelSupp, "tnew" = tnew, "mhat" = mhat)
+  yhat <- A %*% y
+  dt <- data.table::data.table("h" = h, "inKernelSupp" = inKernelSupp, "tnew" = tnew, "yhat" = c(yhat))
   return(dt)
 }
 
@@ -207,7 +205,7 @@ estimate_nw <- function(y, t, tnew, h = NULL, smooth_ker = epanechnikov){
 #'                      tnew = seq(0.01, 0.99, len = 100),
 #'                      h = hbest, smooth_ker = epanechnikov)
 #'
-#' plot(x = dt_nw[, tnew], y = dt_nw[, mhat], type = "l", col = "blue",
+#' plot(x = dt_nw[, tnew], y = dt_nw[, yhat], type = "l", col = "blue",
 #'      main = "Estimated and true regression function.")
 #' lines(x = dt_nw[, tnew], y = m(dt_nw[, tnew]), type = "l", col = "red")
 #' legend(x = 0.64, y = 4.1, fill = c("blue", "red"),legend = c("Estimated m", "True m"))
@@ -226,7 +224,7 @@ estimate_nw_bw <- function(y, t, h_grid = seq(1 / (2 * length(t)), length(t) ** 
     stop("'smooth_ker' must be a function.")
 
   cv_error <- sapply(h_grid, function(hi, y, t, K){
-    yhat <- estimate_nw(y = y, t = t, h = hi, tnew = t, smooth_ker = K)$mhat
+    yhat <- estimate_nw(y = y, t = t, h = hi, tnew = t, smooth_ker = K)$yhat
     wmat <- outer(X = t, Y = t, function(u, v) K((u-v) / hi))
     metric <- (y - yhat) / (1 - K(0) / rowSums(wmat))
 
@@ -249,43 +247,39 @@ estimate_nw_bw <- function(y, t, h_grid = seq(1 / (2 * length(t)), length(t) ** 
 #' Estimate the the standard deviation of the observation error
 #'
 #' @inheritParams .format_data
-#' @param t \code{numeric (positive)}. Point at which we want to estimate the standard deviation of the error.
+#' @param t \code{vector (numeric)}. Observation points at which we want to estimate the standard deviation of the error.
 #'
-#' @return A positive \code{numeric} scalar corresponding to the estimated standard-deviation.
+#' @return A data.table with two columns: \code{t} and \code{sig} corresponding to the estimated standard deviation.
 #' @export
 #'
 #' @import data.table
 #'
 estimate_sigma <- function(data, idcol = NULL, tcol = "tobs", ycol = "X", t = 1/2) {
-  # Input :
-  #         Data : a list of data.table containing two columns (t and x) for each curve
-  #         time : time at which we want to estimate sigma
-  #
-  # Output : a numeric value of the estimated sigma
-
   # Format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
 
-  sig_square <- mean(unlist(lapply(data[, unique(id_curve)], function(idx) {
-
+  dt_sig <- data.table::rbindlist(lapply(data[, unique(id_curve)], function(idx, data, t) {
     # Compute get the index the two T_{n,k} closest to time for each X_n
-    d <- data[id_curve == idx]
-    d[, dd := abs(t - tobs)]
-    d[, rank_dist_to_t := order(order(dd))]
-    d[, dd := NULL]
+    ## Get the rank i_t and j_t
+    data_idx <- data[id_curve == idx]
+    dif_mat <- outer(X = t, Y = data_idx[, tobs], function(ti, tobsi) abs(ti - tobsi))
+    rank_mat <- apply(X = dif_mat, MARGIN = 1, function(r) rank(r))
 
-    # Compute [Y_{n,i_t} - Y_{n,j_t}]^2 for each curve X_n
-    Y1 <- d[rank_dist_to_t == 1, X]
-    Y2 <- d[rank_dist_to_t == 2, X]
-    Z <- 1 / 2 * (Y1 - Y2) ** 2
-    rm(d, Y1, Y2)
+    ## Compute [Y_{n,i_t} - Y_{n,j_t}]^2 / 2 for each curve X_n and each t
+    Zn <- apply(X = rank_mat, MARGIN = 2, function(c, dt){
+      first <- which(c == 1)
+      second <- which(c == 2)
+      Y1 <- dt[first][, X]
+      Y2 <- dt[second][, X]
+      Zn <- 1 / 2 * (Y1 - Y2) ** 2
+    }, dt = data_idx)
+    dt_res <- data.table::data.table("t" = t, "Zn" = Zn)
+    rm(data_idx, Zn)
+    return(dt_res)
+  }, data = data, t = t))
+  # Estimate sigma
+  dt_sig[, sig := sqrt(mean(Zn)), by = t]
+  dt_sig <- unique(dt_sig[, list(t, sig)])
 
-    return(Z)
-  })))
-
-
-  # Step 3 : compute sigma
-  sig <- sqrt(sig_square)
-
-  return(sqrt(sig_square))
+  return(dt_sig)
 }

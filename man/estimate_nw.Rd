@@ -24,7 +24,7 @@ A \code{data.table} containing
 \item{h :}{ The bandwidth used to estimate the regression function.}
 \item{inKernelSupp :}{ For each \code{t_i} in \code{tnew}, it is the number of  \code{t} between \code{t_i - h } and \code{t_i + h }.}
 \item{tnew :}{ The vector \code{new}.}
-\item{mhat :}{ The regression function's vector of estimates at \code{tnew}.}
+\item{yhat :}{ The regression function's vector of estimates at \code{tnew}.}
 }
 }
 \description{
@@ -60,9 +60,9 @@ dt_nw <- estimate_nw(y = y, t = t,
                      tnew = seq(0.01, 0.99, len = 100),
                      h = hbest, smooth_ker = epanechnikov)
 
-plot(x = dt_nw[, tnew], y = dt_nw[, mhat], type = "l", col = "blue",
+plot(x = dt_nw[, tnew], y = dt_nw[, yhat], type = "l", col = "blue",
      main = "Estimated and true regression function.")
-lines(x = dt_nw[, tnew], y = m(dt_nw[, tnew]), type = "l", col = "red")
+lines(x = dt_nw[, tnew], y = m(dt_nw[, yhat]), type = "l", col = "red")
 legend(x = 0.64, y = 4.1, fill = c("blue", "red"),legend = c("Estimated m", "True m"))
 
 }
