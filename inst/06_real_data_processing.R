@@ -57,7 +57,16 @@ ggplot(dt, aes(x = t, y = Voltage, color = Season, group = date)) +
   geom_line() +
   ylim(220, 255) +
   scale_color_grey() +
-  theme(legend.position = "top")
+  theme(legend.position = "bottom",
+        axis.title = element_text(size = 16),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.text.x =  element_text(size = 16),
+        axis.text.y =  element_text(size = 16),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16),
+        legend.key.width= unit(0.8, 'cm')) +
+  guides(color = guide_legend(override.aes = list(size = 2)))
 ggsave(filename = file.path(figures_path, "real_data_all_curves.png"), units = "px", dpi = 300)
 
 ggplot(dt, aes(x = t, y = Voltage, color = Season, group = date, linetype = Season)) +
@@ -76,7 +85,16 @@ ggplot(dt_slice, aes(x = t, y = Voltage, color = Season, group = date)) +
   geom_line() +
   ylim(220, 255) +
   scale_color_grey() +
-  theme(legend.position = "top")
+  theme(legend.position = "bottom",
+        axis.title = element_text(size = 16),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.text.x =  element_text(size = 16),
+        axis.text.y =  element_text(size = 16),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16),
+        legend.key.width= unit(0.8, 'cm')) +
+  guides(color = guide_legend(override.aes = list(size = 2)))
 ggsave(filename = file.path(figures_path, "real_data_selected_curves.png"), units = "px", dpi = 300)
 
 
@@ -170,6 +188,7 @@ get_real_data_mean <- function(t = seq(0.1, 0.9, len = 10)){
 dt_smooth <- data.table("t" = tobs, "mean" = get_real_data_mean(t = tobs))
 
 ### Plot for paper
+figures_path <- "../../../report/learning-smmoothness/Learning-smoothness/figures/"
 
 ggplot(dt_mu, aes(x = tobs, y = mu)) +
   geom_line() +
@@ -178,7 +197,11 @@ ggplot(dt_mu, aes(x = tobs, y = mu)) +
   ylab(label = expression(mu(t))) +
   scale_color_grey() +
   theme_minimal() +
-  theme(legend.position = "top")
+  theme(axis.title = element_text(size = 16),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.text.x =  element_text(size = 16),
+        axis.text.y =  element_text(size = 16))
 ggsave(filename = file.path(figures_path, "empirical_mean.png"), units = "px", dpi = 300)
 
 ggplot(dt_smooth, aes(x = t, y = mean)) +
@@ -187,7 +210,11 @@ ggplot(dt_smooth, aes(x = t, y = mean)) +
   ylab(label = expression(mu(t))) +
   scale_color_grey() +
   theme_minimal() +
-  theme(legend.position = "top")
+  theme(axis.title = element_text(size = 16),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.text.x =  element_text(size = 16),
+        axis.text.y =  element_text(size = 16))
 ggsave(filename = file.path(figures_path, "smooth_mean.png"), units = "px", dpi = 300)
 
 # Empirical covariance estimation ----
@@ -224,8 +251,16 @@ ggplot(dt_cov, aes(x = s, y = t, z = cov)) +
   labs(fill = expression(C(s,t))) +
   scale_fill_grey() +
   theme_minimal() +
-  theme(legend.position = "bottom")
-ggsave(filename = file.path(figures_path, "empirical_cov.png"), units = "px", dpi = 500)
+  theme(legend.position = "bottom",
+        axis.title = element_text(size = 16),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.text.x =  element_text(size = 16),
+        axis.text.y =  element_text(size = 16),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16))
+# , legend.key.width= unit(0.8, 'cm')) + guides(color = guide_legend(override.aes = list(size = 2)))
+ggsave(filename = file.path(figures_path, "empirical_cov.png"), units = "px", dpi = 300)
 
 # Empirical lag-1 auto-covariance ----
 
@@ -266,8 +301,15 @@ ggplot(dt_autocov, aes(x = s, y = t, z = autocov)) +
   labs(fill = latex2exp::TeX("$C_1(s,t)$")) +
   scale_fill_grey() +
   theme_minimal() +
-  theme(legend.position = "bottom")
-ggsave(filename = file.path(figures_path, "empirical_lag1_autocov.png"), units = "px", dpi = 500)
+  theme(legend.position = "bottom",
+        axis.title = element_text(size = 16),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.text.x =  element_text(size = 16),
+        axis.text.y =  element_text(size = 16),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16))
+ggsave(filename = file.path(figures_path, "empirical_lag1_autocov.png"), units = "px", dpi = 300)
 
 # Operator kernel estimation ----
 ## LASSO regression
@@ -322,7 +364,6 @@ CC1_prev <- predict(beta_model, FF)
 
 ### Build kernel function
 get_real_data_far_kenel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
-
   # Basis coefficient
   # For each fixed {\eta_k(s), k = 1,...,K} and {\theta_l(t), l = 1,...,L}, we have
   # c(b_{11}, b_{12}, ..., b_{1L},
@@ -399,27 +440,35 @@ ggplot(dt_kernel, aes(x = s, y = t, z = Kernel_value)) +
   geom_contour_filled(breaks = c(-35, -25, -15, -5, 5, 15, 25)) +
   xlab(label = "s") +
   ylab(label = "t") +
-  labs(fill = expression(Theta(s,t))) +
+  labs(fill = latex2exp::TeX("$\\Theta(s,t)$  ")) +
   scale_fill_grey() +
   theme_minimal() +
-  theme(legend.position = "bottom")
-ggsave(filename = file.path(figures_path, "far_kernel.png"), units = "px", dpi = 500)
+  theme(legend.position = "bottom",
+        axis.title = element_text(size = 16),
+        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.text.x =  element_text(size = 16),
+        axis.text.y =  element_text(size = 16),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16))
+ggsave(filename = file.path(figures_path, "far_kernel.png"), units = "px", dpi = 300)
 
 ### Surface plot
-ggrid <- expand.grid(s = seq(0.01, 0.99, len = 200), t = seq(0.01, 0.99, len = 200))
+svec <- seq(0.01, 0.99, len = 200)
+tvec <- seq(0.01, 0.99, len = 200)
+ggrid <- expand.grid(s = svec, t = tvec)
 dt_kernel <- data.table::data.table(
   "s" = ggrid$s,
   "t" = ggrid$t,
   "Kernel_value" = get_real_data_far_kenel(s = ggrid$s, t = ggrid$t, operator_norm = 4.588783)
 )
-ker_mat <- matrix(dt_kernel$Kernel_value, ncol = length(tobs))
-plot3D::persp3D(x = seq(0.01, 0.99, len = 200),y = seq(0.01, 0.99, len = 200), z = ker_mat)
-dim(ker_mat)
-## Calcul de la norm
-op_norm <- max(1 / 1440 * dt_far_ker %*% matrix(data = 1, nrow = length(tobs)))
-dim(dt_far_ker)
-
-op_norm <- max(apply(X = dt_far_ker, MARGIN = 1, FUN = function(r){
-  pracma::trapz(x = (1:1440) / 1440, y = r)
-}))
+ker_mat <- matrix(dt_kernel$Kernel_value, ncol = length(tvec))
+plot3D::persp3D(x = seq(0.01, 0.99, len = 200),
+                y = seq(0.01, 0.99, len = 200),
+                z = ker_mat,
+                colvar = ker_mat,
+                breaks = c(-35, -25, -15, -5, 5, 15, 25),
+                col = RColorBrewer::brewer.pal(n = 8, "Greys")[8:3],
+                xlab = "s", ylab = "t", zlab = "Θ(s,t)",
+                ticktype = 'detailed', nticks = 5)
 
