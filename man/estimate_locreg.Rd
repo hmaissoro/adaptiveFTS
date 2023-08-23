@@ -12,8 +12,7 @@ estimate_locreg(
   t = 1/2,
   Delta = NULL,
   h = NULL,
-  smooth_ker = epanechnikov,
-  weighted = FALSE
+  smooth_ker = epanechnikov
 )
 }
 \arguments{
@@ -59,13 +58,13 @@ Opposite, if f \code{data} is given as \code{list} of \code{data.table (or data.
 \item{Delta}{\code{numeric (positive)}. The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.
 Default \code{Delta = NULL} and thus it we be estimated from the data.}
 
-\item{h}{\code{numeric (positive)}. The bandwidth of the Nadaraya-Watson estimator. Default \code{h = NULL} and thus it will be estimated by Cross-Validation on a subset of curves.}
+\item{h}{\code{numeric (positive vector or scalar)}. The bandwidth of the Nadaraya-Watson estimator for the local regularity estimation.
+Default \code{h = NULL} and thus it will be estimated by Cross-Validation on a subset of curves.
+If \code{h} is a \code{scalar}, then all curves will be smoothed with the same bandwidth.
+Otherwise, if \code{h} is a \code{vector}, its length must be equal to the number of curves in \code{data}
+and each element of the vector must correspond to a curve given in the same order as in \code{data}.}
 
 \item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.}
-
-\item{weighted}{\code{logical}. If \code{TRUE}, a weighted versions of the local regularity estimators are estimated.
-Default \code{weighted = FALSE}. Recall that to estimate the local regularity at $t_i$ we need to estimate each curve at $t_i - Delta/2$, $t_i$ and t_i + Delta/2$.
-The weighting is to consider only those curves for which there is at least one observation point in the smoothing window around $t_i - Delta/2$, $t_i$ and t_i + Delta/2$.}
 }
 \value{
 A \code{data.table} containing the following columns.
@@ -73,9 +72,9 @@ A \code{data.table} containing the following columns.
 \item{t :}{ The points around which the local regularity parameters are estimated.}
 \item{h :}{ The presmoothing bandwidth.}
 \item{Delta :}{ The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.}
+\item{Nused :}{ The number of curves that give non-degenerate estimates around \code{t}.}
 \item{H :}{ The local exponent estimates.}
 \item{L :}{ The Hölder constant estimates. It corresponds to $L_t^2$.}
-\item{Wn :}{ The number of curve used to estimate the local regularity parameters \code{weighted = TRUE}.}
 }
 }
 \description{
@@ -114,8 +113,7 @@ dt_locreg <- estimate_locreg(data = dt_far,
                              t = t0,
                              Delta = NULL,
                              h = NULL,
-                             smooth_ker = epanechnikov,
-                             weighted = FALSE)
+                             smooth_ker = epanechnikov)
 DT::datatable(dt_locreg)
 
 ## If data is a list of data.table (or data. frame)
@@ -130,8 +128,7 @@ dt_locreg_2 <- estimate_locreg(data = list_dt_far,
                                t = t0,
                                Delta = NULL,
                                h = NULL,
-                               smooth_ker = epanechnikov,
-                               weighted = FALSE)
+                               smooth_ker = epanechnikov)
 DT::datatable(dt_locreg_2)
 
 ## If data is a list of list
@@ -147,8 +144,7 @@ dt_locreg_3 <- estimate_locreg(data = list_list_far,
                                t = t0,
                                Delta = NULL,
                                h = NULL,
-                               smooth_ker = epanechnikov,
-                               weighted = TRUE)
+                               smooth_ker = epanechnikov)
 DT::datatable(dt_locreg_2)
 
 }

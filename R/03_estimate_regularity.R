@@ -36,26 +36,27 @@
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the local regularity parameters of the underlying process.
 #' @param Delta \code{numeric (positive)}. The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.
 #' Default \code{Delta = NULL} and thus it we be estimated from the data.
-#' @param h \code{numeric (positive)}. The bandwidth of the Nadaraya-Watson estimator. Default \code{h = NULL} and thus it will be estimated by Cross-Validation on a subset of curves.
+#' @param h \code{numeric (positive vector or scalar)}. The bandwidth of the Nadaraya-Watson estimator for the local regularity estimation.
+#' Default \code{h = NULL} and thus it will be estimated by Cross-Validation on a subset of curves.
+#' If \code{h} is a \code{scalar}, then all curves will be smoothed with the same bandwidth.
+#' Otherwise, if \code{h} is a \code{vector}, its length must be equal to the number of curves in \code{data}
+#' and each element of the vector must correspond to a curve given in the same order as in \code{data}.
 #' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
-#' @param weighted \code{logical}. If \code{TRUE}, a weighted versions of the local regularity estimators are estimated.
-#' Default \code{weighted = FALSE}. Recall that to estimate the local regularity at $t_i$ we need to estimate each curve at $t_i - Delta/2$, $t_i$ and t_i + Delta/2$.
-#' The weighting is to consider only those curves for which there is at least one observation point in the smoothing window around $t_i - Delta/2$, $t_i$ and t_i + Delta/2$.
 #'
 #' @return A \code{data.table} containing the following columns.
 #'          \itemize{
 #'            \item{t :}{ The points around which the local regularity parameters are estimated.}
 #'            \item{h :}{ The presmoothing bandwidth.}
 #'            \item{Delta :}{ The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.}
+#'            \item{Nused :}{ The number of curves that give non-degenerate estimates around \code{t}.}
 #'            \item{H :}{ The local exponent estimates.}
 #'            \item{L :}{ The Hölder constant estimates. It corresponds to $L_t^2$.}
-#'            \item{Wn :}{ The number of curve used to estimate the local regularity parameters \code{weighted = TRUE}.}
 #'         }
 #' @export
 #'
 #' @import data.table
 #' @importFrom methods is
-#' @importFrom stats median
+#' @importFrom stats median quantile
 #'
 #' @seealso [estimate_nw()], [estimate_nw_bw()], [simulate_far()], etc.
 #'
@@ -93,8 +94,7 @@
 #'                              t = t0,
 #'                              Delta = NULL,
 #'                              h = NULL,
-#'                              smooth_ker = epanechnikov,
-#'                              weighted = FALSE)
+#'                              smooth_ker = epanechnikov)
 #' DT::datatable(dt_locreg)
 #'
 #' ## If data is a list of data.table (or data. frame)
@@ -109,8 +109,7 @@
 #'                                t = t0,
 #'                                Delta = NULL,
 #'                                h = NULL,
-#'                                smooth_ker = epanechnikov,
-#'                                weighted = FALSE)
+#'                                smooth_ker = epanechnikov)
 #' DT::datatable(dt_locreg_2)
 #'
 #' ## If data is a list of list
@@ -126,8 +125,7 @@
 #'                                t = t0,
 #'                                Delta = NULL,
 #'                                h = NULL,
-#'                                smooth_ker = epanechnikov,
-#'                                weighted = TRUE)
+#'                                smooth_ker = epanechnikov)
 #' DT::datatable(dt_locreg_2)
 #'
 #'}
@@ -136,17 +134,16 @@
 #'
 estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                             t = 1/2, Delta = NULL, h = NULL,
-                            smooth_ker = epanechnikov, weighted = FALSE){
-  # Control see checkable arguments
+                            smooth_ker = epanechnikov){
+  # Control easy checkable arguments
   if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
-  if (! methods::is(weighted, "logical"))
-    stop("'weighted' must be TRUE or FALSE")
 
   # Control and format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  N <- data[, length(unique(id_curve))]
 
   # Control and set arguments depending on the data
   if (! is.null(Delta)) {
@@ -156,22 +153,29 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     lambdahat <- mean(data[, .N, by = "id_curve"][, N])
     Delta <- 2 * exp(-log(lambdahat) ** 0.72)
   }
+
+  # Control on the pre-smoothing bandwidth
   if (! is.null(h)) {
-    if (! (methods::is(h, "numeric") & data.table::between(h, 0, 1) & length(h) == 1))
-      stop("'h' must be a numeric scalar value between 0 and 1.")
+    # h is a vector or a scalar
+    if (! all(methods::is(h, "numeric") & data.table::between(h, 0, 1))){
+      stop("'h' must be a numeric vector or scalar value(s) between 0 and 1.")
+    } else if (length(h) > 1 & length(h) != N) {
+      stop("If 'h' is given as a vector, its length must be equal to the number of curves in 'data'.")
+    }
   } else {
     # If h = NULL, choose the bandwidth by CV
     lambdahat <- mean(data[, .N, by = "id_curve"][, N])
-    N <- length(data[, unique(id_curve)])
     if (N > 50) {
       sample_curves <- sample(x = 1:N, size = 30)
     } else {
       sample_curves <- 1:N
     }
     h <- median(unlist(lapply(sample_curves, function(i, lambdahat, data, smooth_ker){
-      hmax <- lambdahat ** (-1/3)
-      hmin <- 1 / (2 * lambdahat)
-      hgrid <- seq(hmin, hmax, len = 100)
+      K <- 100
+      b0 <- 2 / lambdahat
+      bK <- lambdahat ** (- 1 / 3)
+      a <- exp((log(bK) - log(b0)) / K)
+      hgrid <- b0 * a ** (seq_len(K))
       hbest <- estimate_nw_bw(y = data[id_curve == i, X],
                               t = data[id_curve ==i, tobs],
                               h_grid = hgrid,
@@ -180,82 +184,100 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     }, lambdahat = lambdahat, data = data, smooth_ker = smooth_ker)))
   }
 
+  # If the bandwidth is given as scalar or computed
+  if (length(h) == 1) h <- rep(h, N)
+
   # Step 1: estimate the curve at
-  t1 <- t - Delta / 2
-  t3 <- t + Delta / 2
-  t2 <- t
-  rm(t)
+  ## Take into account the cases where t-Delta/2 < 0 and t + Delta/2
+  dt_t <- data.table::rbindlist(lapply(t, function(ti, D){
+    if ((ti - D / 2 ) <= 0) {
+      t1 <- ti
+      t2 <- ti + D / 2
+      t3 <- ti + D
+    } else if ((ti + D / 2 ) >= 1) {
+      t3 <- ti
+      t2 <- ti - D / 2
+      t1 <- ti - D
+    } else {
+      t1 <- ti - Delta / 2
+      t2 <- ti
+      t3 <- ti + Delta / 2
+    }
+    return(data.table::data.table("t1" = t1, "t2" = t2, "t3" = t3))
+  }, D = Delta))
+  t1 <- dt_t[, t1]
+  t2 <- dt_t[, t2]
+  t3 <- dt_t[, t3]
+  rm(dt_t)
 
   dt_smooth <- rbindlist(lapply(data[, unique(id_curve)], function(i, data, h, t1, t2, t3){
-    ## smooth at one at t1, t2 and t3
-    m <- length(t2)
-    dt <- estimate_nw(y = data[id_curve == i, X],
-                      t = data[id_curve == i, tobs],
-                      tnew = c(t1, t2, t3), h = h, smooth_ker = smooth_ker)
-    xtilde <- dt$mhat
-    inKernelSupp <- dt$inKernelSupp
+    ## smooth an estimate
+    dt1 <- estimate_nw(y = data[id_curve == i, X],
+                       t = data[id_curve == i, tobs],
+                       tnew = t1, h = h[i],
+                       smooth_ker = smooth_ker)
+    dt2 <- estimate_nw(y = data[id_curve == i, X],
+                       t = data[id_curve == i, tobs],
+                       tnew = t2, h = h[i],
+                       smooth_ker = smooth_ker)
+    dt3 <- estimate_nw(y = data[id_curve == i, X],
+                       t = data[id_curve == i, tobs],
+                       tnew = t3, h = h[i],
+                       smooth_ker = smooth_ker)
 
     dt_out <- data.table::data.table(
-      id_curve = i, t1 = t1, xt1 = xtilde[1:m], nt1_inKerSupp = inKernelSupp[1:m],
-      t2 = t2, xt2 = xtilde[(m + 1):(2 * m)], nt2_inKerSupp = inKernelSupp[(m + 1):(2 * m)],
-      t3 = t3, xt3 = xtilde[(2 * m + 1):(3 * m)], nt3_inKerSupp = inKernelSupp[(2 * m + 1):(3 * m)]
+      id_curve = i, t1 = t1, xt1 = dt1$yhat,
+      t2 = t2, xt2 = dt2$yhat,
+      t3 = t3, xt3 = dt3$yhat
     )
-    rm(xtilde, inKernelSupp)
+    # rm(xtilde, inKernelSupp)
 
     return(dt_out)
   }, h = h, data = data, t1 = t1, t2 = t2, t3 = t3))
 
   # Step 2 : estimate regularity parameters
 
-  dt_reg <- rbindlist(lapply(1:length(t2), function(i, dt_smooth, t1, t2, t3, weighted) {
+  dt_reg <- rbindlist(lapply(1:length(t2), function(i, dt_smooth, t1, t2, t3, t) {
     ## Extract X_1(g),...,X_N(g) where g = t1, t2 or t3
     xt1 <- dt_smooth[t1 == t1[i] & t2 == t2[i] & t3 == t3[i], xt1]
     xt2 <- dt_smooth[t1 == t1[i] & t2 == t2[i] & t3 == t3[i], xt2]
     xt3 <- dt_smooth[t1 == t1[i] & t2 == t2[i] & t3 == t3[i], xt3]
 
+    ## Remove NaN values
+    any_nan <- (is.nan(xt1) | is.nan(xt2) | is.nan(xt3))
+    xt1 <- xt1[! any_nan]
+    xt2 <- xt2[! any_nan]
+    xt3 <- xt3[! any_nan]
+    rm(any_nan)
+    ## Remove extreme values
+    rxt1 <- (xt1 >= quantile(xt1, 0.025, na.rm = TRUE)) & (xt1 <= quantile(xt1, 0.975, na.rm = TRUE))
+    rxt2 <- (xt2 >= quantile(xt2, 0.025, na.rm = TRUE)) & (xt2 <= quantile(xt2, 0.975, na.rm = TRUE))
+    rxt3 <- (xt3 >= quantile(xt3, 0.025, na.rm = TRUE)) & (xt3 <= quantile(xt3, 0.975, na.rm = TRUE))
+    xt1 <- xt1[rxt1 & rxt2 & rxt3]
+    xt2 <- xt2[rxt1 & rxt2 & rxt3]
+    xt3 <- xt3[rxt1 & rxt2 & rxt3]
+    Nused <- sum(rxt1 & rxt2 & rxt3)
+    rm(rxt1, rxt2, rxt3)
+
     ## Compute Unweighed local regularity parameters
-    theta_t1_t3 <- mean((xt1 - xt3) ^ 2)
-    theta_t1_t2 <- mean((xt1 - xt2) ^ 2)
+    theta_t1_t3 <- mean((xt1 - xt3) ** 2, na.rm = TRUE)
+    theta_t1_t2 <- mean((xt1 - xt2) ** 2, na.rm = TRUE)
 
     H <- (log(theta_t1_t3) - log(theta_t1_t2))  / (2 * log(2))
     ## Bound H : 0.1 <= H <= 1
     # H <- min(max(H, 0.1), 1)
-    L <- theta_t1_t3 / (abs(t1[i] - t3[i])**(2 * H))
+    # L <- theta_t1_t3 / (abs(t1[i] - t3[i])**(2 * H))
+    L <- theta_t1_t2 / (abs(t1[i] - t2[i]) ** (2 * H))
 
-    if (weighted) {
-      ## Extract the number of observations T_ni used to estimate
-      ## each X_1(g),...,X_N(g) where g = t1, t2 or t3
-      nt1_inKerSupp <- dt_smooth[t1 == t1[i] & t2 == t2[i] & t3 == t3[i], nt1_inKerSupp]
-      nt2_inKerSupp <- dt_smooth[t1 == t1[i] & t2 == t2[i] & t3 == t3[i], nt2_inKerSupp]
-      nt3_inKerSupp <- dt_smooth[t1 == t1[i] & t2 == t2[i] & t3 == t3[i], nt3_inKerSupp]
-      w <- as.integer((nt1_inKerSupp > 1) & (nt2_inKerSupp > 1) & (nt3_inKerSupp > 1))
-
-      theta_t1_t3w <- sum(w * (xt1 - xt3) ^ 2, na.rm = TRUE) / sum(w)
-      theta_t1_t2w <- sum(w * (xt1 - xt2) ^ 2, na.rm = TRUE) / sum(w)
-
-      Hw <- (log(theta_t1_t3w) - log(theta_t1_t2w))  / (2 * log(2))
-      Lw <- theta_t1_t3w / (abs(t1[i] - t3[i]) ** (2 * Hw))
-
-      dt_out <- data.table(t = t2[i], H = H, L = L, Hw = Hw, Lw = Lw, Wn = sum(w))
-
-      rm(nt1_inKerSupp, nt2_inKerSupp, nt3_inKerSupp,
-         theta_t1_t3, theta_t1_t3w, theta_t1_t2, theta_t1_t2w,
-         H, L, Hw, Lw, xt1, xt2, xt3)
-    } else {
-      dt_out <- data.table(t = t2[i], H = H, L = L)
-      rm(theta_t1_t3, theta_t1_t2, H, L, xt1, xt2, xt3)
-    }
+    dt_out <- data.table(t = t[i], H = H, L = L, Nused = Nused)
+    rm(theta_t1_t3, theta_t1_t2, H, L, xt1, xt2, xt3)
 
     return(dt_out)
-  }, dt_smooth = dt_smooth, t1 = t1, t2 = t2, t3 = t3, weighted = weighted))
+  }, dt_smooth = dt_smooth, t1 = t1, t2 = t2, t3 = t3, t = t))
 
-  dt_reg[, c("h", "Delta") := list(h, Delta)]
+  dt_reg[, c("h", "Delta") := list(median(h), Delta)]
 
-  if (weighted) {
-    data.table::setcolorder(x = dt_reg, neworder = c("t", "h", "Delta", "H", "Hw", "Lw", "Wn"))
-  } else {
-    data.table::setcolorder(x = dt_reg, neworder = c("t", "h", "Delta", "H", "L"))
-  }
+  data.table::setcolorder(x = dt_reg, neworder = c("t", "Delta", "Nused", "h", "H", "L"))
 
   return(dt_reg)
 }
