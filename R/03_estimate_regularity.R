@@ -35,7 +35,7 @@
 #' @param ycol \code{character}. The name of the column that contains the observed value of the curves.
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the local regularity parameters of the underlying process.
 #' @param Delta \code{numeric (positive)}. The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.
-#' Default \code{Delta = NULL} and thus it we be estimated from the data.
+#' Default \code{Delta = NULL} and thus it will be estimated from the data.
 #' @param h \code{numeric (positive vector or scalar)}. The bandwidth of the Nadaraya-Watson estimator for the local regularity estimation.
 #' Default \code{h = NULL} and thus it will be estimated by Cross-Validation on a subset of curves.
 #' If \code{h} is a \code{scalar}, then all curves will be smoothed with the same bandwidth.
@@ -356,6 +356,13 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       data <- data.table::as.data.table(data)
       data.table::setnames(x = data, old = c(idcol, tcol, ycol), new = c("id_curve", "tobs", "X"))
       data <- data[, list(id_curve, tobs, X)]
+      Mn <- data[, .N, by = id_curve][, N]
+      N <- length(NTn)
+      id <- unlist(lapply(1:N, function(n, Mn){
+        rep(n, Mn[n])
+      }, Mn = Mn))
+      data[, id_curve := id]
+      rm(Mn, N, id)
     }
   } else if (is_list_dt_or_df) {
     if (! is.null(idcol))
