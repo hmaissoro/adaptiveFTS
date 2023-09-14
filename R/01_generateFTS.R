@@ -9,7 +9,7 @@
 #'
 #' @export
 #'
-#' @seealso \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}.
+#' @seealso [hurst_linear()], [hurst_logistic()].
 #'
 #' @examples
 #'
@@ -36,7 +36,7 @@ hurst_arctan <- function(t = seq(0.2, 0.8, len = 10)){
 #'
 #' @export
 #'
-#' @seealso \code{\link{hurst_arctan}}, \code{\link{hurst_logistic}}.
+#' @seealso [hurst_arctan()], [hurst_logistic()].
 #'
 #' @examples
 #' t0 <- seq(0.2, 0.8, len = 10)
@@ -68,7 +68,7 @@ hurst_linear <- function(t = seq(0.2, 0.8, len = 10), h_left = 0.2, h_right = 0.
 #'
 #' @export
 #'
-#' @seealso \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}.
+#' @seealso [hurst_arctan()], [hurst_linear()].
 #'
 #' @examples
 #' t0 <- seq(0.2, 0.8, len = 10)
