@@ -53,7 +53,7 @@ estimate_sigma <- function(data, idcol = NULL, tcol = "tobs", ycol = "X", t = c(
 #' @return A data.table with three columns: \code{t}, \code{lag} and \code{autocov} corresponding to the estimated autocovariance.
 #' @export
 #' @importFrom methods is
-#' @import data.table data.table rbindlist
+#' @importFrom data.table data.table rbindlist
 
 estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol = "X",
                                        t = c(1/4, 1/2, 3/4), lag = c(0, 1, 2), h = NULL,
@@ -64,6 +64,8 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
 
   if (any(N <= lag))
     stop("'lag' must be lower than the number of curves.")
+  if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
+    stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
 
   # Control on the pre-smoothing bandwidth
   if (! is.null(h)) {
@@ -110,7 +112,7 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
   }, hvec = h, t = t, kernel_smooth = smooth_ker, data = data))
 
   # Estimate mean function
-  dt_mean <- dt_smooth[!is.nan(x), .("muhat" = mean(x)), by = "t"]
+  dt_mean <- dt_smooth[!is.nan(x), list("muhat" = mean(x)), by = "t"]
 
   # Estimate autocovariance
   dt_autocov <- data.table::rbindlist(lapply(lag, function(lg, dt_smooth, dt_mean){

@@ -99,7 +99,7 @@
 #'
 #' ## If data is a list of data.table (or data. frame)
 #' list_dt_far <- lapply(unique(dt_far[, id_curve]), function(idx){
-#'   dt_far[id_curve == idx, .(tobs, X)]
+#'   dt_far[id_curve == idx, list(tobs, X)]
 #' })
 #'
 #' dt_locreg_2 <- estimate_locreg(data = list_dt_far,
@@ -210,7 +210,7 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   t3 <- dt_t[, t3]
   rm(dt_t)
 
-  dt_smooth <- rbindlist(lapply(data[, unique(id_curve)], function(i, data, h, t1, t2, t3){
+  dt_smooth <- data.table::rbindlist(lapply(data[, unique(id_curve)], function(i, data, h, t1, t2, t3){
     ## smooth an estimate
     dt1 <- estimate_nw(y = data[id_curve == i, X],
                        t = data[id_curve == i, tobs],
@@ -237,7 +237,7 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 
   # Step 2 : estimate regularity parameters
 
-  dt_reg <- rbindlist(lapply(1:length(t2), function(i, dt_smooth, t1, t2, t3, t) {
+  dt_reg <- data.table::rbindlist(lapply(1:length(t2), function(i, dt_smooth, t1, t2, t3, t) {
     ## Extract X_1(g),...,X_N(g) where g = t1, t2 or t3
     xt1 <- dt_smooth[t1 == t1[i] & t2 == t2[i] & t3 == t3[i], xt1]
     xt2 <- dt_smooth[t1 == t1[i] & t2 == t2[i] & t3 == t3[i], xt2]
@@ -357,7 +357,7 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       data.table::setnames(x = data, old = c(idcol, tcol, ycol), new = c("id_curve", "tobs", "X"))
       data <- data[, list(id_curve, tobs, X)]
       Mn <- data[, .N, by = id_curve][, N]
-      N <- length(NTn)
+      N <- length(Mn)
       id <- unlist(lapply(1:N, function(n, Mn){
         rep(n, Mn[n])
       }, Mn = Mn))

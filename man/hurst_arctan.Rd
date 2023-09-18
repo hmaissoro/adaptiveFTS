@@ -25,5 +25,5 @@ plot(x = t0, y = htan, type = "b", col = "red")
 
 }
 \seealso{
-\code{\link{hurst_linear}}, \code{\link{hurst_logistic}}.
+\code{\link[=hurst_linear]{hurst_linear()}}, \code{\link[=hurst_logistic]{hurst_logistic()}}.
 }

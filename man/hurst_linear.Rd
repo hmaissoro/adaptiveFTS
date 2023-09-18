@@ -28,5 +28,5 @@ plot(x = t0, y = hlinear, type = "b", col = "red")
 
 }
 \seealso{
-\code{\link{hurst_arctan}}, \code{\link{hurst_logistic}}.
+\code{\link[=hurst_arctan]{hurst_arctan()}}, \code{\link[=hurst_logistic]{hurst_logistic()}}.
 }

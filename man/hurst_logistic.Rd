@@ -40,5 +40,5 @@ plot(x = t0, y = hlogistic, type = "b", col = "red")
 
 }
 \seealso{
-\code{\link{hurst_arctan}}, \code{\link{hurst_linear}}.
+\code{\link[=hurst_arctan]{hurst_arctan()}}, \code{\link[=hurst_linear]{hurst_linear()}}.
 }
