@@ -9,6 +9,9 @@
 #'
 #' @export
 #'
+#' @importFrom methods is
+#' @importFrom data.table between
+#'
 #' @seealso [hurst_linear()], [hurst_logistic()].
 #'
 #' @examples
@@ -19,6 +22,8 @@
 #'
 #'
 hurst_arctan <- function(t = seq(0.2, 0.8, len = 10)){
+  if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
+    stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   hval <- atan(t) / pi + 1/2
   return(hval)
 }
@@ -36,6 +41,9 @@ hurst_arctan <- function(t = seq(0.2, 0.8, len = 10)){
 #'
 #' @export
 #'
+#' @importFrom methods is
+#' @importFrom data.table between
+#'
 #' @seealso [hurst_arctan()], [hurst_logistic()].
 #'
 #' @examples
@@ -45,6 +53,9 @@ hurst_arctan <- function(t = seq(0.2, 0.8, len = 10)){
 #'
 #'
 hurst_linear <- function(t = seq(0.2, 0.8, len = 10), h_left = 0.2, h_right = 0.8) {
+  if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
+    stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
+
   t1 <- 1
   t0 <- 0
   a <- (h_right - h_left) / (t1 - t0)
@@ -68,6 +79,9 @@ hurst_linear <- function(t = seq(0.2, 0.8, len = 10), h_left = 0.2, h_right = 0.
 #'
 #' @export
 #'
+#' @importFrom methods is
+#' @importFrom data.table between
+#'
 #' @seealso [hurst_arctan()], [hurst_linear()].
 #'
 #' @examples
@@ -80,6 +94,9 @@ hurst_linear <- function(t = seq(0.2, 0.8, len = 10), h_left = 0.2, h_right = 0.
 #'
 hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
                            change_point_position = 0.5) {
+  if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
+    stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
+
   u <- (t - change_point_position) / (1 - 0)
   hval <- (h_right - h_left) / (1 + exp(- slope * u)) + h_left
   return(hval)
@@ -136,7 +153,8 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' @return A \code{data.table} containing 2 column : \code{t} and \code{mfBm}, the sample path.
 #'
 #' @importFrom MASS mvrnorm
-#' @importFrom data.table data.table
+#' @importFrom data.table data.table between
+#' @importFrom methods is
 #'
 #' @export
 #'
@@ -147,6 +165,14 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' plot(x = dt_mfBm$t, y = dt_mfBm$mfBm, type = "l", col = "red")
 #'
 simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logistic, L = 1, tied = TRUE, ...) {
+  if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
+    stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
+  if (! methods::is(hurst_fun, "function"))
+    stop("'hurst_fun' must be a function.")
+  if (! (methods::is(L, "numeric") & L > 0 & length(L) == 1))
+    stop("'L' must be a positive scalar value.")
+  if (! methods::is(tied, "logical"))
+    stop("'tied' must be a TRUE or FALSE.")
   t <- sort(t)
   cov_mat <- .covariance_mfBm(t = t, hurst_fun = hurst_fun, ...)
   out <- MASS::mvrnorm(1,
@@ -170,7 +196,8 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 #' @export
 #'
 #' @importFrom MASS mvrnorm
-#' @importFrom data.table data.table
+#' @importFrom data.table data.table between
+#' @importFrom methods is
 #'
 #' @examples
 #'
@@ -179,6 +206,13 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 #' plot(x = dt_fBm$t, y = dt_fBm$fBm, type = "l", col = "red")
 #'
 simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied = TRUE) {
+  if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
+    stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
+  if (! (methods::is(hurst, "numeric") & (hurst >= 0 & hurst <=1) & length(hurst) == 1))
+    stop("'hurst' must be a positive scalar value between 0 and 1.")
+  if (! (methods::is(L, "numeric") & L > 0 & length(L) == 1))
+    stop("'L' must be a positive scalar value.")
+
   tmp <- expand.grid(u = t, v = t)
   u <- tmp$u
   v <- tmp$v
@@ -219,7 +253,7 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
     stop("'N' must be an integer greater than 1.")
   if (! (lambda - floor(lambda) == 0) & lambda > 1)
     stop("'lambda' must be an integer greater than 1.")
-  if (! methods::is(object = tdistribution, class2 = "function"))
+  if (! methods::is(tdistribution, "function"))
     stop("'tdistribution' must be a function.")
 
   M <- rpois(N, lambda)
@@ -254,6 +288,7 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #' }
 #'
 #' @importFrom data.table data.table rbindlist setnames
+#' @importFrom methods is
 #'
 #' @export
 #'
@@ -275,26 +310,26 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #'}
 #'
 simulate_far <- function(N = 2L, lambda = 70L,
-                    tdesign = "random",
-                    tdistribution = runif,
-                    tcommon = seq(0.2, 0.8, len = 50),
-                    hurst_fun = hurst_logistic,
-                    L = 4,
-                    far_kernel = function(s,t) 9/4 * exp( - (t + 2 * s) ** 2),
-                    far_mean = function(t) 4 * sin(1.5 * pi * t),
-                    int_grid = 100L,
-                    burnin = 100L,
-                    remove_burnin = TRUE) {
+                         tdesign = "random",
+                         tdistribution = runif,
+                         tcommon = seq(0.2, 0.8, len = 50),
+                         hurst_fun = hurst_logistic,
+                         L = 4,
+                         far_kernel = function(s,t) 9/4 * exp( - (t + 2 * s) ** 2),
+                         far_mean = function(t) 4 * sin(1.5 * pi * t),
+                         int_grid = 100L,
+                         burnin = 100L,
+                         remove_burnin = TRUE) {
   if (! (N - floor(N) == 0) & N > 1)
     stop("'N' must be an integer greater than 1.")
   if (! (lambda - floor(lambda) == 0) & lambda > 1)
     stop("'lambda' must be an integer greater than 1.")
-  if (! methods::is(object = tdesign, class2 = "character")){
+  if (! methods::is(tdesign, "character")){
     stop("'tdesign' must be a character.")
   }else{
     tdesign <- match.arg(arg = tdesign, choices = c("random", "common"))
   }
-  if (( ! methods::is(object = tdistribution, class2 = "function")) & tdesign == "random")
+  if (( ! methods::is(tdistribution, "function")) & tdesign == "random")
     stop("If tdesign = 'random', then 'tdistribution' must be a function.")
   if ((! is.null(tdistribution)) & tdesign == "common")
     stop("If tdesign = 'common', then 'tdistribution' must be NULL")
@@ -305,19 +340,19 @@ simulate_far <- function(N = 2L, lambda = 70L,
     if (! is.null(tcommon) & ! (any(tcommon > 0 & tcommon <= 1) & length(tcommon) > 2))
       stop("If tdesign = 'random', 'tcommon' must be either NULL or of minimum length 2 with values between 0 and 1.")
   }
-  if (! methods::is(object = hurst_fun, class2 = "function"))
+  if (! methods::is(hurst_fun, "function"))
     stop("'hurst_fun' must be a function.")
-  if (! L > 0)
+  if (! (methods::is(L, "numeric") & L > 0 & length(L) == 1))
     stop("'L' must be a positive scalar value.")
-  if (! methods::is(object = far_kernel, class2 = "function"))
+  if (! methods::is(far_kernel, "function"))
     stop("'far_kernel' must be bevariate function")
-  if (! methods::is(object = far_mean, class2 = "function"))
+  if (! methods::is(far_mean, "function"))
     stop("'far_mean' must be a function")
   if (! (is.integer(int_grid) & int_grid > 50))
     stop("'int_grid' must be an integer greater than 30.")
   if (! (is.integer(burnin) & burnin > 30))
     stop("'burnin' must be an integer greater than 30.")
-  if (! methods::is(object = remove_burnin, class2 = "logical"))
+  if (! methods::is(remove_burnin, "logical"))
     stop("'remove_burnin' must be boolean.")
   n <- N + burnin
   grid <- (1:int_grid) / int_grid

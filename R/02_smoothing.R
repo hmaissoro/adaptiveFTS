@@ -138,7 +138,7 @@ estimate_nw <- function(y, t, tnew, h = NULL, smooth_ker = epanechnikov){
     stop("The arguments 'y' and 't' must have a length of at least 2 and must be of the same length.")
   if (! is.null(h) & length(h) > 1)
     stop("The bandwidth 'h' must be either NULL or saclar.")
-  if (! methods::is(object = smooth_ker, class2 = "function"))
+  if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
 
   m <- length(tnew)
@@ -220,7 +220,7 @@ estimate_nw_bw <- function(y, t, h_grid = seq(1 / (2 * length(t)), length(t) ** 
     stop("The arguments 'y' and 't' must have a length of at least 2 and must be of the same length.")
   if (is.null(h_grid))
     stop("The bandwidth grid 'h_grid' must be a scalar or vector of numeric.")
-  if (! methods::is(object = smooth_ker, class2 = "function"))
+  if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
 
   cv_error <- sapply(h_grid, function(hi, y, t, K){
