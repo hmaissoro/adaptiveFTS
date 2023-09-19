@@ -146,7 +146,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     dt_risk[, PN := sum(pi_n), by = t]
 
     # compute \mathbb B(t,h, 2H) for each n = 1, ..., N
-    dt_risk[, B := (sum(pi_n * cn * bn2H) / PN) ** 2, by = t]
+    dt_risk[, B := sum(pi_n * cn * bn2H) / PN, by = t]
 
     # Compute \mathbb V_mu(t,h) for each n = 1, ..., N
     dt_risk[, Vmu := sum(pi_n * cn * wmax) / PN ** 2, by = t]
