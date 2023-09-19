@@ -24,7 +24,7 @@
 #'            \item{mean_risk :}{ The estimates of the risk function of the mean.}
 #'         }
 #' @export
-#' @seealso [estimate_mean()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()].
+#' @seealso [estimate_mean()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_empirical_autocov()].
 #'
 #' @importFrom methods is
 #' @importFrom data.table data.table rbindlist between
