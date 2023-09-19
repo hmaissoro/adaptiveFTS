@@ -100,7 +100,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     data = data, idcol = "id_curve",
     tcol = "tobs", ycol = "X", t = t)
 
-  # Estimation of the variance using the presmoothing bandwidth
+  # Estimation of the empirical autocovariance using the presmoothing bandwidth
   dt_autocov <- estimate_empirical_autocov(
     data = data, idcol = "id_curve",
     tcol = "tobs", ycol = "X", t = t, lag = 0:(N-1),
@@ -160,7 +160,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     ## Variance term
     varriance_term <- 2 * (sig_error ** 2) * dt_rk[, Vmu]
 
-    ## Convergence term to true mean
+    ## Dependence term
     ### Compute \rho_\ell(t;h)
     dt_rho_ell <- unique(dt_risk[, list(id_curve, t, pi_n, PN)])
     dt_rho <- data.table::rbindlist(lapply(1:(N-1), function(ell, t, dt_rho_ell){
