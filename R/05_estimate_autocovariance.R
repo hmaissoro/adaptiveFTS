@@ -20,17 +20,20 @@
 #'
 #' @return A \code{data.table} containing the following columns.
 #'          \itemize{
-#'            \item{t :}{ The points at which the risk function is estimated.}
+#'            \item{s :}{ The first argument of the autocovariance function.}
+#'            \item{t :}{ The second argument of the autocovariance function.}
 #'            \item{h :}{ The candidate bandwidth.}
-#'            \item{H :}{ The estimates of the local exponent.}
-#'            \item{L :}{ The estimates of the Hölder constant. It corresponds to $L_t^2$.}
+#'            \item{Hs :}{ The estimates of the local exponent for each \code{s}.}
+#'            \item{Ls :}{ The estimates of the Hölder constant for each \code{s}. It corresponds to \eqn{L_s^2}.}
+#'            \item{Ht :}{ The estimates of the local exponent for each \code{t}.}
+#'            \item{Lt :}{ The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
 #'            \item{bias_term :}{ The bias term of the risk function.}
 #'            \item{varriance_term :}{ The variance term of the risk function.}
 #'            \item{dependence_term :}{ The dependence term of the risk function.}
-#'            \item{mean_risk :}{ The estimates of the risk function of the mean.}
+#'            \item{autocov_risk :}{ The estimates of the risk function of the autocovariance function.}
 #'         }
 #' @export
-#' @seealso [estimate_mean()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_empirical_autocov()].
+#' @seealso [estimate_mean()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_empirical_XsXt_autocov()].
 #'
 #' @importFrom methods is
 #' @importFrom data.table data.table rbindlist between setnames
@@ -54,30 +57,39 @@
 #' dt_far[, X := X + rnorm(n = .N, mean = 0, sd = 0.9 ** (0.1)), by = id_curve]
 #'
 #' # Estimate risk function
-#' dt_mean_risk <- estimate_mean_risk(
+#' dt_autocov_risk <- estimate_autocov_risk(
 #'   data = dt_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-#'   t = c(1/4, 1/2, 3/4), bw_grid = seq(0.005, 0.15, len = 45),
-#'   Delta = NULL, h = NULL, smooth_ker = epanechnikov)
+#'   s = c(1/5, 2/5, 4/5),
+#'   t = c(1/4, 1/2, 3/4),
+#'   lag = 3,
+#'   bw_grid = seq(0.005, 0.15, len = 45),
+#'   Delta = NULL, h = NULL, smooth_ker = epanechnikov
+#' )
 #'
-#' # Plot mean risk
-#' dt_dcast <- data.table::dcast(data = dt_mean_risk, formula = h ~ t, value.var = "mean_risk")
+#' # Plot mean risk function
+#' dt_dcast <- data.table::dcast(data = dt_autocov_risk,
+#'                               formula = h ~ s + t ,
+#'                               value.var = "autocov_risk")
+#'
 #' manipulateWidget::combineWidgets(
 #'   list = list(
-#'     dygraphs::dygraph(
-#'       data = dt_dcast[, list(h, "t = 0.25" = `0.25`)],
-#'       main = "t = 0.25", xlab = "h", ylab = "risk function"),
-#'     dygraphs::dygraph(
-#'       data = dt_dcast[, list(h, "t = 0.5" = `0.5`)],
-#'       main = "t = 0.5", xlab = "h", ylab = "risk function"),
-#'     dygraphs::dygraph(
-#'       data = dt_dcast[, list(h, "t = 0.75" = `0.75`)],
-#'       main = "t = 0.75", xlab = "h", ylab = "risk function")
+#'     dygraphs::dygraph(data = dt_dcast[, .(h, "(s, t) = (0.2, 0.25)" = `0.2_0.25`)],
+#'                       main = "lag = 3 - (s, t) = (0.2, 0.25)",
+#'                       xlab = "h",
+#'                       ylab = "risk function"),
+#'     dygraphs::dygraph(data = dt_dcast[, .(h, "(s, t) = (0.4, 0.5)" = `0.4_0.5`)],
+#'                       main = "lag = 3 - (s, t) = (0.4, 0.5)",
+#'                       xlab = "h",
+#'                       ylab = "risk function"),
+#'     dygraphs::dygraph(data = dt_dcast[, .(h, "(s, t) = (0.8, 0.75)" = `0.8_0.75`)],
+#'                       main = "lag = 3 - (s, t) = (0.8, 0.75)",
+#'                       xlab = "h",
+#'                       ylab = "risk function")
 #'   ),
 #'   nrow = 3
 #' )
 #'
 #' }
-#'
 #'
 estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                   s = c(1/5, 2/5, 4/5),
@@ -358,5 +370,9 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
     kernel_smooth = smooth_ker, N = N, data = data, dt_EX2 = dt_EX2, dt_XsXt_autocov = dt_XsXt_autocov))
 
   return(dt_autocov_risk)
+}
+
+estimate_autocov <- function(){
+
 }
 

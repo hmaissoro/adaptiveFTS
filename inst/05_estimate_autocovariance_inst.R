@@ -25,13 +25,24 @@ dt_autocov_risk <- estimate_autocov_risk(
 )
 
 # Plot mean risk function
-dt_dcast <- data.table::dcast(data = dt_mean_risk, formula = h ~ t, value.var = "mean_risk")
+dt_dcast <- data.table::dcast(data = dt_autocov_risk,
+                              formula = h ~ s + t ,
+                              value.var = "autocov_risk")
 
 manipulateWidget::combineWidgets(
   list = list(
-    dygraphs::dygraph(dt_dcast[, .(h, "t = 0.25" = `0.25`)], main = "t = 0.25", xlab = "h", ylab = "risk function"),
-    dygraphs::dygraph(dt_dcast[, .(h, "t = 0.5" = `0.5`)], main = "t = 0.5", xlab = "h", ylab = "risk function"),
-    dygraphs::dygraph(dt_dcast[, .(h, "t = 0.75" = `0.75`)], main = "t = 0.75", xlab = "h", ylab = "risk function")
+    dygraphs::dygraph(data = dt_dcast[, .(h, "(s, t) = (0.2, 0.25)" = `0.2_0.25`)],
+                      main = "lag = 3 - (s, t) = (0.2, 0.25)",
+                      xlab = "h",
+                      ylab = "risk function"),
+    dygraphs::dygraph(data = dt_dcast[, .(h, "(s, t) = (0.4, 0.5)" = `0.4_0.5`)],
+                      main = "lag = 3 - (s, t) = (0.4, 0.5)",
+                      xlab = "h",
+                      ylab = "risk function"),
+    dygraphs::dygraph(data = dt_dcast[, .(h, "(s, t) = (0.8, 0.75)" = `0.8_0.75`)],
+                      main = "lag = 3 - (s, t) = (0.8, 0.75)",
+                      xlab = "h",
+                      ylab = "risk function")
   ),
   nrow = 3
 )
