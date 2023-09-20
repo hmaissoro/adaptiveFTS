@@ -110,7 +110,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
   # Estimate the risk function
   dt_mean_risk <- data.table::rbindlist(lapply(bw_grid, function(h, t, H, L, kernel_smooth, data, sig_error, N, dt_autocov){
     # compute quantities to estimate estimate the risk
-    dt_risk <- data.table::rbindlist(lapply(1:N, function(curve_index, h, t, h, H, kernel_smooth, data){
+    dt_risk <- data.table::rbindlist(lapply(1:N, function(curve_index, t, h, H, kernel_smooth, data){
       # Compute the weight of the estimator
       Tn <- data[id_curve == curve_index, tobs]
       ker <- outer(X = t, Y = Tn, FUN = function(ti, Tnm, Ker) Ker((Tnm - ti) / h), Ker = kernel_smooth)
