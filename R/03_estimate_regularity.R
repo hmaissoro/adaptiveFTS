@@ -50,7 +50,7 @@
 #'            \item{Delta :}{ The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.}
 #'            \item{Nused :}{ The number of curves that give non-degenerate estimates around \code{t}.}
 #'            \item{H :}{ The local exponent estimates.}
-#'            \item{L :}{ The Hölder constant estimates. It corresponds to $L_t^2$.}
+#'            \item{L :}{ The Hölder constant estimates. It corresponds to \eqn{L_t^2}.}
 #'         }
 #' @export
 #'

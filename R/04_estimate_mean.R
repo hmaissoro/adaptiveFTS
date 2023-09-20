@@ -17,7 +17,7 @@
 #'            \item{t :}{ The points at which the risk function is estimated.}
 #'            \item{h :}{ The candidate bandwidth.}
 #'            \item{H :}{ The estimates of the local exponent.}
-#'            \item{L :}{ The estimates of the Hölder constant. It corresponds to $L_t^2$.}
+#'            \item{L :}{ The estimates of the Hölder constant. It corresponds to \eqn{L_t^2}.}
 #'            \item{bias_term :}{ The bias term of the risk function.}
 #'            \item{varriance_term :}{ The variance term of the risk function.}
 #'            \item{dependence_term :}{ The dependence term of the risk function.}
@@ -209,7 +209,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #'          \itemize{
 #'            \item{t :}{ The points at which the risk function is estimated.}
 #'            \item{H :}{ The estimates of the local exponent for each \code{t}.}
-#'            \item{L :}{ The estimates of the Hölder constant for each \code{t}. It corresponds to $L_t^2$.}
+#'            \item{L :}{ The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
 #'            \item{optbw :}{ The optimal bandwidth. That is the bandwidth which minimises the risk function.}
 #'            \item{PN :}{ Number of selected curves for each \code{t}.}
 #'            \item{muhat :}{ The estimates of the mean function.}
