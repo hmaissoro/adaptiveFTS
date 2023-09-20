@@ -7,7 +7,7 @@
 #' @param t \code{vector (numeric)}. Second argument of the autocovariance function.
 #' It corresponds to the observation points \code{t} in the pair (\code{s}, \code{t}).
 #' It has to be of the same length as the \code{s}.
-#' @param lag \code{vector (positive integer)}. Lag of the autocovariance.
+#' @param lag \code{integer (positive integer)}. Lag of the autocovariance.
 #' @param bw_grid \code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each pair (\code{s}, \code{t}).
 #' @param Delta \code{numeric (positive)}. The length of the neighbourhood of \code{s} and \code{t} around which the local regularity is to be estimated.
 #' Default \code{Delta = NULL} and thus it will be estimated from the data.
@@ -135,8 +135,9 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
     dt_sigma_t[, list("t" = t, "sig_error_t" = sig)]
   )
   rm(dt_sigma_s, dt_sigma_t)
+  gc()
 
-  # Estimation of the secon order moment using the presmoothing bandwidth
+  # Estimation of the second order moment using the presmoothing bandwidth
   ## Smooth curves at s and at t
   dt_Xhat <- data.table::rbindlist(
     lapply(1:N, function(curve_index, s, t, presmooth_bw_s, presmooth_bw_t, kernel_smooth, data){
@@ -170,10 +171,19 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   rm(dt_Xhat)
   gc()
 
+  # Estimation of the empirical autocovariance of X_0(s)X_{\ell}(s)
+  ## The bandwidth is taking as the mean of the presmoothing bandwidths at s and t
+  dt_XsXt_autocov <- estimate_empirical_XsXt_autocov(
+    data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+    s = s, t = t, cross_lag = lag,
+    lag = 0:(N - lag - 1),
+    h = (dt_locreg_s[, unique(h)] + dt_locreg_t[, unique(h)]) / 2,
+    smooth_ker = smooth_ker)
+
   # Estimate the risk function
   dt_autocov_risk <- data.table::rbindlist(
     lapply(bw_grid, function(h, s, t, lag, Hs, Ls, Ht, Lt,
-                             kernel_smooth, dt_sigma, N, data, dt_EX2){
+                             kernel_smooth, dt_sigma, N, data, dt_EX2, dt_XsXt_autocov){
       # compute quantities to estimate estimate the risk
       dt_risk <- data.table::rbindlist(lapply(1:N, function(curve_index, h, s, t, Hs, Ls, Ht, Lt, kernel_smooth, data){
         # Extract the observation points per curve
@@ -258,6 +268,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
         y = dt_risk_t,
         by = "id_curve")
 
+      ## Merge
       dt_risk_merge <- data.table::merge.data.table(
         x = dt_risk_s,
         y = dt_risk_t,
@@ -293,11 +304,11 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
         3 * dt_risk[, EX2_s] * Lt * (h ** (2 * Ht)) * dt_risk[, Bt]
 
       ## Variance term
-      varriance_term <- 3 * dt_risk[, sig_error_s] * dt_risk[, EX2_t] * dt_risk[, Vgamma1] +
-        3 * dt_risk[, sig_error_t] * dt_risk[, EX2_s] * dt_risk[, Vgamma2] +
-        3 * dt_risk[, sig_error_s] * dt_risk[, sig_error_t] * dt_risk[, Vgamma]
+      varriance_term <- 3 * (dt_risk[, sig_error_s] ** 2) * dt_risk[, EX2_t] * dt_risk[, Vgamma1] +
+        3 * (dt_risk[, sig_error_t] ** 2) * dt_risk[, EX2_s] * dt_risk[, Vgamma2] +
+        3 * (dt_risk[, sig_error_s] ** 2) * (dt_risk[, sig_error_t] ** 2) * dt_risk[, Vgamma]
 
-      ## Convergence term to true mean
+      ## Dependence term
       ### Compute p_k(s,t;h)
       dt_p_k <- unique(dt_risk_merge[, list(id_curve.x, id_curve.y, id_lag, s, t, pin_s, pin_t, PNl)])
       dt_p <- data.table::rbindlist(lapply(1:(N-lag - 1), function(k, s, t, dt_p_k){
@@ -319,33 +330,33 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 
           rm(pin_s_vec, pin_s_i, pin_s_i_plus_k, pin_t_vec, pin_t_i_plus_ell, pin_t_i_plus_ell_plus_k, PNl)
           gc()
-
           return(dt_res)
         }, k = k, s = s, t = t, dt_p_k = dt_p_k))
       }, s = s, t = t, dt_p_k = dt_p_k))
 
-      dt_lr_var <- data.table::merge.data.table(
-        x = dt_autocov[lag > 0],
-        y = dt_rho,
-        by = c("t", "lag")
+      dt_long_run_var <- data.table::merge.data.table(
+        x = dt_XsXt_autocov[lag > 0],
+        y = dt_p,
+        by = c("s", "t", "lag")
       )
-      dt_lr_var <- dt_lr_var[, list("lr_var" = sum(2 * autocov * rho)), by = t]
-      dependence_coef <- dt_autocov[lag == 0][order(t), autocov] + dt_lr_var[order(t), lr_var]
+      dt_long_run_var <- dt_long_run_var[, list("long_run_var" = sum(2 * XsXt_autocov * pk)), by = c("s", "t")]
+      dependence_coef <- dt_XsXt_autocov[lag == 0][order(s, t), XsXt_autocov] + dt_long_run_var[order(s, t), long_run_var]
       ### Note that dependence_coef <= abs(dependence_coef), thus
       dependence_coef <- abs(dependence_coef)
-      dependence_term <- 2 * dependence_coef  / dt_rk[, PN]
+      dependence_term <- dependence_coef  / dt_risk[order(s, t), PNl]
 
       ## Final risk function
-      mean_risk <- bias_term + varriance_term + dependence_term
+      autocov_risk <- 2 * (bias_term + varriance_term + dependence_term)
 
       # Result to returned
-      dt_res <- data.table::data.table("t" = t, "h" = h, "H" = H, "L" = L,
+      dt_res <- data.table::data.table("s" = s, "t" = t, "h" = h, "Hs" = Hs, "Ls" = Ls, "Ht" = Ht, "Lt" = Lt,
                                        "bias_term" = bias_term, "varriance_term" = varriance_term,
-                                       "dependence_term" = dependence_term, "mean_risk" = mean_risk)
+                                       "dependence_term" = dependence_term, "autocov_risk" = autocov_risk)
       return(dt_res)
     }, s = s, t = t, lag = lag, Hs = dt_locreg_s[, H], Ls = dt_locreg_s[, L],
     Ht = dt_locreg_t[, H], Lt = dt_locreg_t[, L], dt_sigma = dt_sigma,
-    kernel_smooth = smooth_ker, N = N, data = data, dt_EX2 = dt_EX2))
+    kernel_smooth = smooth_ker, N = N, data = data, dt_EX2 = dt_EX2, dt_XsXt_autocov = dt_XsXt_autocov))
 
-  return(dt_mean_risk)
+  return(dt_autocov_risk)
 }
+
