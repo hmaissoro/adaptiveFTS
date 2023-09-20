@@ -444,6 +444,13 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 #' @importFrom methods is
 #'
 #' @examples
+#' \dontrun{
+#' # Coming ...
+#'
+#' # Coming ...
+#'
+#' # Coming ...
+#' }
 estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                              s = c(1/5, 2/5, 4/5),
                              t = c(1/4, 1/2, 3/4),

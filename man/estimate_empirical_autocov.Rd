@@ -71,3 +71,6 @@ A data.table with three columns: \code{t}, \code{lag} and \code{autocov} corresp
 \description{
 Estimate empirical autocovariance function
 }
+\seealso{
+\code{\link[=estimate_nw]{estimate_nw()}}
+}
