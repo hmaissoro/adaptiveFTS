@@ -18,6 +18,7 @@
 #'            \item{h :}{ The candidate bandwidth.}
 #'            \item{H :}{ The estimates of the local exponent.}
 #'            \item{L :}{ The estimates of the Hölder constant. It corresponds to \eqn{L_t^2}.}
+#'            \item{locreg_bw :}{ The bandwidth used to estimate the local regularity parameters.}
 #'            \item{bias_term :}{ The bias term of the risk function.}
 #'            \item{varriance_term :}{ The variance term of the risk function.}
 #'            \item{dependence_term :}{ The dependence term of the risk function.}
@@ -108,7 +109,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     smooth_ker = smooth_ker)
 
   # Estimate the risk function
-  dt_mean_risk <- data.table::rbindlist(lapply(bw_grid, function(h, t, H, L, kernel_smooth, data, sig_error, N, dt_autocov){
+  dt_mean_risk <- data.table::rbindlist(lapply(bw_grid, function(h, t, H, L, presmooth_bw, kernel_smooth, data, sig_error, N, dt_autocov){
     # compute quantities to estimate estimate the risk
     dt_risk <- data.table::rbindlist(lapply(1:N, function(curve_index, t, h, H, kernel_smooth, data){
       # Compute the weight of the estimator
@@ -190,11 +191,11 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     mean_risk <- bias_term + varriance_term + dependence_term
 
     # Result to returned
-    dt_res <- data.table::data.table("t" = t, "h" = h, "H" = H, "L" = L,
+    dt_res <- data.table::data.table("t" = t, "h" = h, "H" = H, "L" = L, "locreg_bw" = presmooth_bw,
                                      "bias_term" = bias_term, "varriance_term" = varriance_term,
                                      "dependence_term" = dependence_term, "mean_risk" = mean_risk)
     return(dt_res)
-  }, t = t, H = dt_locreg[, H], L = dt_locreg[, L], kernel_smooth = smooth_ker, data = data,
+  }, t = t, H = dt_locreg[, H], L = dt_locreg[, L], presmooth_bw = dt_locreg[, unique(h)], kernel_smooth = smooth_ker, data = data,
   sig_error = dt_sigma[, sig], N = N, dt_autocov = dt_autocov))
 
   return(dt_mean_risk)
@@ -208,6 +209,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #' @return A \code{data.table} containing the following columns.
 #'          \itemize{
 #'            \item{t :}{ The points at which the risk function is estimated.}
+#'            \item{locreg_bw :}{ The bandwidth used to estimate the local regularity parameters.}
 #'            \item{H :}{ The estimates of the local exponent for each \code{t}.}
 #'            \item{L :}{ The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
 #'            \item{optbw :}{ The optimal bandwidth. That is the bandwidth which minimises the risk function.}
@@ -262,14 +264,14 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 
   # Take the optimum of the risk function
   dt_mean_risk[, optbw := h[which.min(mean_risk)], by = t]
-  dt_mean_optbw <- unique(dt_mean_risk[, list(t, H, L, optbw)])
+  dt_mean_optbw <- unique(dt_mean_risk[, list(t, H, L, locreg_bw, optbw)])
 
   # Smooth curves with optimal bandwidth parameters
   dt_Xhat <- data.table::rbindlist(lapply(1:N, function(curve_index, t, data, dt_mean_optbw, smooth_ker){
     # \pi_n(t,h)
     Tn <- data[id_curve == curve_index, tobs]
     Yn <- data[id_curve == curve_index, X]
-    pi_n <- sapply( X = t, function(ti, Tn, dt_mean_optbw){
+    pi_n <- sapply(X = t, function(ti, Tn, dt_mean_optbw){
       as.numeric(abs(Tn - ti) <= dt_mean_optbw[t == ti, optbw])
     }, Tn = Tn, dt_mean_optbw = dt_mean_optbw)
     pi_n <- t(pi_n)
@@ -294,7 +296,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   # Add the optimal bandwidth
   dt_muhat <- unique(dt_Xhat[, list(t, muhat, PN)])
   dt_muhat <- data.table::merge.data.table(x = dt_muhat, y = dt_mean_optbw, by = "t")
-  data.table::setcolorder(x = dt_muhat, neworder = c("t", "H", "L", "optbw", "PN", "muhat"))
+  data.table::setcolorder(x = dt_muhat, neworder = c("t", "locreg_bw", "H", "L", "optbw", "PN", "muhat"))
   return(dt_muhat)
 }
 
