@@ -21,7 +21,10 @@ dt_autocov_risk <- estimate_autocov_risk(
   t = c(1/4, 1/2, 3/4),
   lag = 3,
   bw_grid = seq(0.005, 0.15, len = 45),
-  Delta = NULL, h = NULL, smooth_ker = epanechnikov
+  smooth_ker = epanechnikov,
+  Hs = NULL, Ls = NULL,
+  Ht = NULL, Lt = NULL,
+  Delta = NULL, h = NULL
 )
 
 # Plot mean risk function

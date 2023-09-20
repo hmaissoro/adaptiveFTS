@@ -1,4 +1,4 @@
-#' Estimate the risk of the mean function
+#' Estimate the risk of the lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function
 #'
 #' @inheritParams .format_data
 #' @param s \code{vector (numeric)}. First argument of the autocovariance function.
@@ -9,6 +9,16 @@
 #' It has to be of the same length as the \code{s}.
 #' @param lag \code{integer (positive integer)}. Lag of the autocovariance.
 #' @param bw_grid \code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each pair (\code{s}, \code{t}).
+#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator.
+#' Default \code{smooth_ker = epanechnikov}.
+#' @param Hs \code{vector (numeric)}. The estimates of the local exponent for each \code{s}.
+#' Default \code{Hs = NULL} and thus it will be estimated.
+#' @param Ls \code{vector (numeric)}. The estimates of the Hölder constant for each \code{s}.
+#' It corresponds to \eqn{L_s^2}. Default \code{Ls = NULL} and thus it will be estimated.
+#' @param Ht \code{vector (numeric)}. The estimates of the local exponent for each \code{t}.
+#' Default \code{Ht = NULL} and thus it will be estimated.
+#' @param Lt \code{vector (numeric)}. The estimates of the Hölder constant for each \code{t}.
+#' It corresponds to \eqn{L_t^2}. Default \code{Lt = NULL} and thus it will be estimated.
 #' @param Delta \code{numeric (positive)}. The length of the neighbourhood of \code{s} and \code{t} around which the local regularity is to be estimated.
 #' Default \code{Delta = NULL} and thus it will be estimated from the data.
 #' @param h \code{numeric (positive vector or scalar)}. The bandwidth of the Nadaraya-Watson estimator for the local regularity estimation.
@@ -16,7 +26,6 @@
 #' If \code{h} is a \code{scalar}, then all curves will be smoothed with the same bandwidth.
 #' Otherwise, if \code{h} is a \code{vector}, its length must be equal to the number of curves in \code{data}
 #' and each element of the vector must correspond to a curve given in the same order as in \code{data}.
-#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
 #'
 #' @return A \code{data.table} containing the following columns.
 #'          \itemize{
@@ -35,8 +44,8 @@
 #' @export
 #' @seealso [estimate_mean()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_empirical_XsXt_autocov()].
 #'
+#' @import data.table
 #' @importFrom methods is
-#' @importFrom data.table data.table rbindlist between setnames
 #'
 #' @examples
 #' \dontrun{
@@ -96,7 +105,10 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
                                   t = c(1/4, 1/2, 3/4),
                                   lag = 1,
                                   bw_grid = seq(0.005, 0.15, len = 45),
-                                  Delta = NULL, h = NULL, smooth_ker = epanechnikov){
+                                  smooth_ker = epanechnikov,
+                                  Hs = NULL, Ls = NULL,
+                                  Ht = NULL, Lt = NULL,
+                                  Delta = NULL, h = NULL){
   # Control easy checkable arguments
   if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
     stop("'s' must be a numeric vector or scalar value(s) between 0 and 1.")
@@ -108,6 +120,17 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
     stop("'smooth_ker' must be a function.")
   if (! (all(methods::is(bw_grid, "numeric") & data.table::between(t, 0, 1)) & length(bw_grid) > 1))
     stop("'bw_grid' must be a vector of positive values between 0 and 1.")
+
+  # Control on local regularity parameters
+  if (((!is.null(Hs)) & length(Hs) != length(s)) | ((!is.null(Ls)) & length(Ls) != length(s)))
+    stop("If 'Hs' or 'Ls' is not NULL, it must be the same length as 's'.")
+  if ( ((!is.null(Ht)) & length(Ht) != length(t)) | ((!is.null(Lt)) & length(Lt) != length(t)))
+    stop("If 'Ht' or 'Lt' is not NULL, it must be the same length as 't'.")
+  if ((!is.null(Hs) & ! methods::is(Hs, "numeric")) |
+      (!is.null(Ls) & ! methods::is(Ls, "numeric")) |
+      (!is.null(Ht) & ! methods::is(Ht, "numeric")) |
+      (!is.null(Lt) & ! methods::is(Lt, "numeric")))
+    stop("If 'Hs', 'Ls', 'Ht' or 'Lt' is not NULL, it must be numeric.")
 
   # Control and format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
@@ -126,15 +149,29 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 
   # Estimate local regularity parameters
   # This function controls the remaining arguments
-  dt_locreg_s <- estimate_locreg(
-    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-    t = s, Delta = Delta, h = h,
-    smooth_ker = smooth_ker)
-  dt_locreg_t <- estimate_locreg(
+  if (is.null(Hs) | is.null(Ls)) {
+    dt_locreg_s <- estimate_locreg(
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      t = s, Delta = Delta, h = h,
+      smooth_ker = smooth_ker)
+    Hs <- dt_locreg_s[, H]
+    Ls <- dt_locreg_s[, L]
+    hs <- dt_locreg_s[, unique(h)]
+  } else {
+    hs <- h
+  }
+  if (is.null(Ht) | is.null(Lt)) {
+    dt_locreg_t <- estimate_locreg(
     data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     t = t, Delta = Delta, h = h,
     smooth_ker = smooth_ker)
-
+    Ht <- dt_locreg_t[, H]
+    Lt <- dt_locreg_t[, L]
+    ht <- dt_locreg_t[, unique(h)]
+  } else {
+    ht <- h
+  }
+  rm(dt_locreg_s, dt_locreg_t)
   # Estimation of the observation error standard deviation
   dt_sigma_s <- estimate_sigma(
     data = data, idcol = "id_curve",
@@ -171,8 +208,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 
       dt_res <- data.table::data.table("id_curve" = curve_index, "s" = s, "t" = t, "Xhat_s" = Xhat_s, "Xhat_t" = Xhat_t)
     }, s = s, t = t,
-    presmooth_bw_s = dt_locreg_s[, unique(h)],
-    presmooth_bw_t = dt_locreg_t[, unique(h)],
+    presmooth_bw_s = hs, presmooth_bw_t = ht,
     kernel_smooth = smooth_ker, data = data))
 
   ##  Transform NaN to NA
@@ -185,12 +221,18 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 
   # Estimation of the empirical autocovariance of X_0(s)X_{\ell}(s)
   ## The bandwidth is taking as the mean of the presmoothing bandwidths at s and t
+  if (is.null(hs) | is.null(ht)) {
+    h_XsXt <- NULL
+  } else {
+    h_XsXt <- (hs + ht) / 2
+  }
   dt_XsXt_autocov <- estimate_empirical_XsXt_autocov(
     data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     s = s, t = t, cross_lag = lag,
     lag = 0:(N - lag - 1),
-    h = (dt_locreg_s[, unique(h)] + dt_locreg_t[, unique(h)]) / 2,
+    h = h_XsXt,
     smooth_ker = smooth_ker)
+  rm(hs, ht, h_XsXt)
 
   # Estimate the risk function
   dt_autocov_risk <- data.table::rbindlist(
@@ -365,14 +407,192 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
                                        "bias_term" = bias_term, "varriance_term" = varriance_term,
                                        "dependence_term" = dependence_term, "autocov_risk" = autocov_risk)
       return(dt_res)
-    }, s = s, t = t, lag = lag, Hs = dt_locreg_s[, H], Ls = dt_locreg_s[, L],
-    Ht = dt_locreg_t[, H], Lt = dt_locreg_t[, L], dt_sigma = dt_sigma,
-    kernel_smooth = smooth_ker, N = N, data = data, dt_EX2 = dt_EX2, dt_XsXt_autocov = dt_XsXt_autocov))
+    }, s = s, t = t, lag = lag, Hs = Hs, Ls = Ls, Ht = Ht, Lt = Lt,
+    dt_sigma = dt_sigma, kernel_smooth = smooth_ker, N = N, data = data,
+    dt_EX2 = dt_EX2, dt_XsXt_autocov = dt_XsXt_autocov))
 
   return(dt_autocov_risk)
 }
 
-estimate_autocov <- function(){
+#' Estimate lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function
+#'
+#' @inheritParams estimate_autocov_risk
+#'
+#' @return A \code{data.table} containing the following columns.
+#'          \itemize{
+#'            \item{s :}{ The first argument of the autocovariance function.}
+#'            \item{t :}{ The second argument of the autocovariance function.}
+#'            \item{locreg_bw :}{ The bandwidth used to estimate the local regularity parameters.}
+#'            \item{Hs :}{ The estimates of the local exponent for each \code{s}.}
+#'            \item{Ls :}{ The estimates of the Hölder constant for each \code{s}. It corresponds to \eqn{L_s^2}.}
+#'            \item{Ht :}{ The estimates of the local exponent for each \code{t}.}
+#'            \item{Lt :}{ The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
+#'            \item{lag :}{ The lag of the autocovariance. It corresponds to \eqn{\ell > 0}.}
+#'            \item{optbw_gamma :}{ The optimal bandwidth for \eqn{\gamma_\ell(s,t)}, \eqn{\ell > 0}.}
+#'            \item{optbw_muhat_s :}{ The optimal bandwidth for \eqn{\mu(s)}.}
+#'            \item{optbw_muhat_t :}{ The optimal bandwidth for \eqn{\mu(t)}.}
+#'            \item{muhat_s :}{ The estimates of the mean function \eqn{\mu(s)} for each \code{s}.}
+#'            \item{muhat_t :}{ The estimates of the mean function \eqn{\mu(t)} for each \code{t}.}
+#'            \item{gammahat :}{ The estimates of the \eqn{\gamma_\ell(s,t)} function for each (\code{s}, \code{t}).}
+#'            \item{autocovhat :}{ The estimates of the lag-\eqn{\ell} autocovariance function for each (\code{s}, \code{t}).}
+#'         }
+#' @export
+#' @seealso [estimate_mean()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_autocov_risk()].
+#' @export
+#'
+#' @import data.table
+#' @importFrom methods is
+#'
+#' @examples
+estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                             s = c(1/5, 2/5, 4/5),
+                             t = c(1/4, 1/2, 3/4),
+                             lag = 1,
+                             bw_grid = seq(0.005, 0.15, len = 45),
+                             Delta = NULL, h = NULL, smooth_ker = epanechnikov){
+  # Control easy checkable arguments
+  if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
+    stop("'s' must be a numeric vector or scalar value(s) between 0 and 1.")
+  if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
+    stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
+  if (! length(s) == length(t))
+    stop("Arguments 's' and 't' must be of equal length.")
+  if (! methods::is(smooth_ker, "function"))
+    stop("'smooth_ker' must be a function.")
+  if (! (all(methods::is(bw_grid, "numeric") & data.table::between(t, 0, 1)) & length(bw_grid) > 1))
+    stop("'bw_grid' must be a vector of positive values between 0 and 1.")
 
+  # Control and format data
+  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  N <- data[, length(unique(id_curve))]
+
+  if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
+    stop("'lag' must be a positive integer lower than the number of curves.")
+
+  # Sort by s and t
+  dt_st <- data.table::data.table("s" = s, "t" = t)
+  dt_st <- dt_st[order(s,t)]
+  s <- dt_st[, s]
+  t <- dt_st[, t]
+  rm(dt_st)
+  gc()
+
+  # Estimate mean function at s and at t
+  dt_mean_s <- estimate_mean(
+    data = data, idcol = idcol, tcol = tcol, ycol = ycol,
+    t = s, bw_grid = bw_grid, Delta = Delta,
+    h = h, smooth_ker = smooth_ker)
+  data.table::setnames(x = dt_mean_s,
+                       old = c("t", "locreg_bw", "H", "L", "optbw", "muhat"),
+                       new = c("s", "locreg_bw_s", "Hs", "Ls", "optbw_muhat_s", "muhat_s"))
+  dt_mean_t <- estimate_mean(
+    data = data, idcol = idcol, tcol = tcol, ycol = ycol,
+    t = t, bw_grid = bw_grid, Delta = Delta,
+    h = h, smooth_ker = smooth_ker)
+  data.table::setnames(x = dt_mean_t,
+                       old = c("t", "locreg_bw", "H", "L", "optbw", "muhat"),
+                       new = c("t", "locreg_bw_t", "Ht", "Lt", "optbw_muhat_t", "muhat_t"))
+  dt_mean <- cbind(dt_mean_s[, .SD, .SDcols = c("s", "locreg_bw_s", "Hs", "Ls", "optbw_muhat_s", "muhat_s")],
+                   dt_mean_t[, .SD, .SDcols = c("t", "locreg_bw_t", "Ht", "Lt", "optbw_muhat_t", "muhat_t")])
+  dt_mean[, locreg_bw := (locreg_bw_s + locreg_bw_t) / 2]
+  dt_mean[, c("locreg_bw_s", "locreg_bw_t") := NULL]
+  data.table::setcolorder(x = dt_mean,
+                          neworder = c("s", "t", "locreg_bw", "Hs", "Ls", "Ht", "Lt",
+                                       "optbw_muhat_s", "optbw_muhat_t", "muhat_s", "muhat_t"))
+  dt_mean <- dt_mean[order(s,t)]
+  rm(dt_mean_s, dt_mean_t) ; gc()
+
+  # Estimate the risk function
+  dt_autocov_risk <- estimate_autocov_risk(
+    data = data, idcol = idcol, tcol = tcol, ycol = ycol,
+    s = s, t = t, lag = lag,
+    bw_grid = bw_grid, smooth_ker = smooth_ker,
+    Hs = dt_mean[, Hs], Ls = dt_mean[, H],
+    Ht = dt_mean[, Ht], Lt = dt_mean[, Lt],
+    Delta = NULL, h = dt_mean[, unique(locreg_bw)]
+  )
+
+  # Take the optimum of the risk function
+  dt_autocov_risk[, optbw := h[which.min(autocov_risk)], by = c("s", "t")]
+  dt_autocov_optbw <- unique(dt_autocov_risk[, list(s, t, optbw)])
+  dt_autocov_optbw <- dt_autocov_optbw[order(s,t)]
+
+  # Smooth curves with optimal bandwidth parameters
+  dt_Xhat <- data.table::rbindlist(lapply(1:N, function(curve_index, s, t, data, dt_autocov_optbw, smooth_ker){
+    # Extract data
+    Tn <- data[id_curve == curve_index, tobs]
+    Yn <- data[id_curve == curve_index, X]
+
+    # \pi_n(s,h)
+    pin_s <- sapply(X = s, function(si, Tn, dt_autocov_optbw){
+      as.numeric(abs(Tn - si) <= dt_autocov_optbw[s == si, optbw])
+    }, Tn = Tn, dt_autocov_optbw = dt_autocov_optbw)
+    pin_s <- t(pin_s)
+    pin_s <- as.numeric(rowSums(pin_s, na.rm = TRUE) >= 1)
+
+    # \pi_{n + \ell}(t,h)
+    pin_t <- sapply(X = t, function(ti, Tn, dt_autocov_optbw){
+      as.numeric(abs(Tn - ti) <= dt_autocov_optbw[t == ti, optbw])
+    }, Tn = Tn, dt_autocov_optbw = dt_autocov_optbw)
+    pin_t <- t(pin_t)
+    pin_t <- as.numeric(rowSums(pin_t, na.rm = TRUE) >= 1)
+
+    # \widehat X(s;h)
+    Xhat_s <- mapply(function(s, h, Yn, Tn, ker){
+      estimate_nw(y = Yn, t = Tn, tnew = s, h = h, smooth_ker = ker)$yhat
+    }, s = dt_autocov_optbw[, s], h = dt_autocov_optbw[, optbw],
+    MoreArgs = list(Yn = Yn, Tn = Tn, ker = smooth_ker))
+
+    # \widehat X(t;h)
+    Xhat_t <- mapply(function(t, h, Yn, Tn, ker){
+      estimate_nw(y = Yn, t = Tn, tnew = t, h = h, smooth_ker = ker)$yhat
+    }, t = dt_autocov_optbw[, t], h = dt_autocov_optbw[, optbw],
+    MoreArgs = list(Yn = Yn, Tn = Tn, ker = smooth_ker))
+
+    dt_res <- data.table::data.table("id_curve" = curve_index, "s" = s, "t" = t,
+                                     "pin_s" = pin_s, "pin_t" = pin_t,
+                                     "Xhat_s" = Xhat_s, "Xhat_t" = Xhat_t)
+    return(dt_res)
+  }, data = data, s = s, t = t, dt_autocov_optbw = dt_autocov_optbw, smooth_ker = smooth_ker))
+
+  # Estimate \gamma_\ell(s,t, h_opt)
+  dt_gamma <- data.table::rbindlist(lapply(1:length(s), function(sid, s, t, lag, dt_Xhat){
+    N <- dt_Xhat[s == s[sid] & t == t[sid], .N]
+
+    ## For the argument s
+    Xhat_s_vec <- dt_Xhat[s == s[sid] & t == t[sid], Xhat_s]
+    pin_s_vec <- dt_Xhat[s == s[sid] & t == t[sid], pin_s]
+    Xhat_s_i <- Xhat_s_vec[1:(N - lag)]
+    pin_s_i <- pin_s_vec[1:(N - lag)]
+
+    ## For the argument t
+    Xhat_t_vec <- dt_Xhat[s == s[sid] & t == t[sid], Xhat_t]
+    pin_t_vec <- dt_Xhat[s == s[sid] & t == t[sid], pin_t]
+    Xhat_t_i_plus_lag <- Xhat_t_vec[(1 + lag):N]
+    pin_t_i_plus_lag <- pin_t_vec[(1 + lag):N]
+
+    ## Estimate gamma
+    XsXt_vec <- pin_s_i * pin_t_i_plus_lag * Xhat_s_i * Xhat_t_i_plus_lag
+
+    XsXt_vec <- XsXt_vec[!is.nan(XsXt_vec)]
+    gammahat <- mean(XsXt_vec)
+    dt_res <- data.table::data.table("s" = s[sid], "t" = t[sid], "lag" = lag, "gammahat" = gammahat)
+  }, s = s, t = t, lag = lag, dt_Xhat = dt_Xhat))
+
+  # Estimate  lag-\ell autocovariance
+  dt_autocov <- data.table::merge.data.table(
+    x = dt_mean, y = dt_gamma, by = c("s", "t")
+  )
+  dt_autocov <- data.table::merge.data.table(
+    x = dt_autocov, y = dt_autocov_optbw[, list("optbw_gamma" = optbw), by = c("s", "t")],
+    by = c("s", "t")
+  )
+  dt_autocov[, autocovhat := gammahat - muhat_s * muhat_t, by = c("s", "t")]
+  data.table::setcolorder(
+    x = dt_autocov,
+    neworder = c("s", "t", "locreg_bw", "Hs", "Ls", "Ht", "Lt", "lag",
+                 "optbw_gamma", "optbw_muhat_s", "optbw_muhat_t",
+                 "muhat_s", "muhat_t", "gammahat", "autocovhat"))
+  return(dt_autocov)
 }
 
