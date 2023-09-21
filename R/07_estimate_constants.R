@@ -93,7 +93,7 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
       hgrid <- b0 * a ** (seq_len(K))
       hbest <- estimate_nw_bw(y = data[id_curve == i, X],
                               t = data[id_curve ==i, tobs],
-                              h_grid = hgrid,
+                              bw_grid = hgrid,
                               smooth_ker = smooth_ker)
 
     }, lambdahat = lambdahat, data = data, smooth_ker = smooth_ker)))
@@ -215,7 +215,7 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", y
       hgrid <- b0 * a ** (seq_len(K))
       hbest <- estimate_nw_bw(y = data[id_curve == i, X],
                               t = data[id_curve ==i, tobs],
-                              h_grid = hgrid,
+                              bw_grid = hgrid,
                               smooth_ker = smooth_ker)
 
     }, lambdahat = lambdahat, data = data, smooth_ker = smooth_ker)))

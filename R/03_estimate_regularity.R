@@ -146,7 +146,7 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       hgrid <- b0 * a ** (seq_len(K))
       hbest <- estimate_nw_bw(y = data[id_curve == i, X],
                               t = data[id_curve ==i, tobs],
-                              h_grid = hgrid,
+                              bw_grid = hgrid,
                               smooth_ker = smooth_ker)
 
     }, lambdahat = lambdahat, data = data, smooth_ker = smooth_ker)))
