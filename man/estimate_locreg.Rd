@@ -70,7 +70,7 @@ and each element of the vector must correspond to a curve given in the same orde
 A \code{data.table} containing the following columns.
 \itemize{
 \item{t :}{ The points around which the local regularity parameters are estimated.}
-\item{h :}{ The presmoothing bandwidth.}
+\item{locreg_bw :}{ The presmoothing bandwidth.}
 \item{Delta :}{ The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.}
 \item{Nused :}{ The number of curves that give non-degenerate estimates around \code{t}.}
 \item{H :}{ The local exponent estimates.}

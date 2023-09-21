@@ -156,7 +156,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
       smooth_ker = smooth_ker)
     Hs <- dt_locreg_s[, H]
     Ls <- dt_locreg_s[, L]
-    hs <- dt_locreg_s[, unique(h)]
+    hs <- dt_locreg_s[, unique(locreg_bw)]
   } else {
     hs <- h
   }
@@ -167,7 +167,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
     smooth_ker = smooth_ker)
     Ht <- dt_locreg_t[, H]
     Lt <- dt_locreg_t[, L]
-    ht <- dt_locreg_t[, unique(h)]
+    ht <- dt_locreg_t[, unique(locreg_bw)]
   } else {
     ht <- h
   }

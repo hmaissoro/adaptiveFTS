@@ -105,7 +105,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
   dt_autocov <- estimate_empirical_autocov(
     data = data, idcol = "id_curve",
     tcol = "tobs", ycol = "X", t = t, lag = 0:(N-1),
-    h = dt_locreg[, unique(h)],
+    h = dt_locreg[, unique(locreg_bw)],
     smooth_ker = smooth_ker)
 
   # Estimate the risk function
@@ -195,7 +195,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
                                      "bias_term" = bias_term, "varriance_term" = varriance_term,
                                      "dependence_term" = dependence_term, "mean_risk" = mean_risk)
     return(dt_res)
-  }, t = t, H = dt_locreg[, H], L = dt_locreg[, L], presmooth_bw = dt_locreg[, unique(h)], kernel_smooth = smooth_ker, data = data,
+  }, t = t, H = dt_locreg[, H], L = dt_locreg[, L], presmooth_bw = dt_locreg[, unique(locreg_bw)], kernel_smooth = smooth_ker, data = data,
   sig_error = dt_sigma[, sig], N = N, dt_autocov = dt_autocov))
 
   return(dt_mean_risk)

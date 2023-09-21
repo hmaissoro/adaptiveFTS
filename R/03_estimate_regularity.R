@@ -14,7 +14,7 @@
 #' @return A \code{data.table} containing the following columns.
 #'          \itemize{
 #'            \item{t :}{ The points around which the local regularity parameters are estimated.}
-#'            \item{h :}{ The presmoothing bandwidth.}
+#'            \item{locreg_bw :}{ The presmoothing bandwidth.}
 #'            \item{Delta :}{ The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.}
 #'            \item{Nused :}{ The number of curves that give non-degenerate estimates around \code{t}.}
 #'            \item{H :}{ The local exponent estimates.}
@@ -132,24 +132,16 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     }
   } else {
     # If h = NULL, choose the bandwidth by CV
-    lambdahat <- mean(data[, .N, by = "id_curve"][, N])
     if (N > 50) {
-      sample_curves <- sample(x = 1:N, size = 30)
+      Nsubset <- 30
     } else {
-      sample_curves <- 1:N
+      Nsubset <- NULL
     }
-    h <- median(unlist(lapply(sample_curves, function(i, lambdahat, data, smooth_ker){
-      K <- 100
-      b0 <- 2 / lambdahat
-      bK <- lambdahat ** (- 1 / 3)
-      a <- exp((log(bK) - log(b0)) / K)
-      hgrid <- b0 * a ** (seq_len(K))
-      hbest <- estimate_nw_bw(y = data[id_curve == i, X],
-                              t = data[id_curve ==i, tobs],
-                              bw_grid = hgrid,
-                              smooth_ker = smooth_ker)
-
-    }, lambdahat = lambdahat, data = data, smooth_ker = smooth_ker)))
+    dt_optbw <- get_nw_optimal_bw(
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      bw_grid = NULL, nsubset = Nsubset, smooth_ker = smooth_ker)
+    h <- dt_optbw[, median(optbw)]
+    rm(dt_optbw) ; gc()
   }
 
   # If the bandwidth is given as scalar or computed
@@ -243,9 +235,9 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     return(dt_out)
   }, dt_smooth = dt_smooth, t1 = t1, t2 = t2, t3 = t3, t = t))
 
-  dt_reg[, c("h", "Delta") := list(median(h), Delta)]
+  dt_reg[, c("locreg_bw", "Delta") := list(median(h), Delta)]
 
-  data.table::setcolorder(x = dt_reg, neworder = c("t", "Delta", "Nused", "h", "H", "L"))
+  data.table::setcolorder(x = dt_reg, neworder = c("t", "Delta", "Nused", "locreg_bw", "H", "L"))
 
   return(dt_reg)
 }
