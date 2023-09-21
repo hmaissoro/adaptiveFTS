@@ -133,15 +133,18 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   } else {
     # If h = NULL, choose the bandwidth by CV
     if (N > 50) {
-      Nsubset <- 30
+      dt_optbw <- get_nw_optimal_bw(
+        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+        bw_grid = NULL, nsubset = 30, smooth_ker = smooth_ker)
+      h <- dt_optbw[, median(optbw)]
+      rm(dt_optbw) ; gc()
     } else {
-      Nsubset <- NULL
+      dt_optbw <- get_nw_optimal_bw(
+        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+        bw_grid = NULL, nsubset = NULL, smooth_ker = smooth_ker)
+      h <- dt_optbw[, optbw]
+      rm(dt_optbw) ; gc()
     }
-    dt_optbw <- get_nw_optimal_bw(
-      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-      bw_grid = NULL, nsubset = Nsubset, smooth_ker = smooth_ker)
-    h <- dt_optbw[, median(optbw)]
-    rm(dt_optbw) ; gc()
   }
 
   # If the bandwidth is given as scalar or computed

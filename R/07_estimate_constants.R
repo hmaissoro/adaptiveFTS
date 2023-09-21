@@ -79,24 +79,19 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
     }
   } else {
     # If h = NULL, choose the bandwidth by CV
-    lambdahat <- mean(data[, .N, by = "id_curve"][, N])
     if (N > 50) {
-      sample_curves <- sample(x = 1:N, size = 30)
+      dt_optbw <- get_nw_optimal_bw(
+        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+        bw_grid = NULL, nsubset = 30, smooth_ker = smooth_ker)
+      h <- dt_optbw[, median(optbw)]
+      rm(dt_optbw) ; gc()
     } else {
-      sample_curves <- 1:N
+      dt_optbw <- get_nw_optimal_bw(
+        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+        bw_grid = NULL, nsubset = NULL, smooth_ker = smooth_ker)
+      h <- dt_optbw[, optbw]
+      rm(dt_optbw) ; gc()
     }
-    h <- median(unlist(lapply(sample_curves, function(i, lambdahat, data, smooth_ker){
-      K <- 100
-      b0 <- 2 / lambdahat
-      bK <- lambdahat ** (- 1 / 3)
-      a <- exp((log(bK) - log(b0)) / K)
-      hgrid <- b0 * a ** (seq_len(K))
-      hbest <- estimate_nw_bw(y = data[id_curve == i, X],
-                              t = data[id_curve ==i, tobs],
-                              bw_grid = hgrid,
-                              smooth_ker = smooth_ker)
-
-    }, lambdahat = lambdahat, data = data, smooth_ker = smooth_ker)))
   }
 
   # If the bandwidth is given as scalar or computed
@@ -207,18 +202,19 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", y
     } else {
       sample_curves <- 1:N
     }
-    h <- median(unlist(lapply(sample_curves, function(i, lambdahat, data, smooth_ker){
-      K <- 100
-      b0 <- 2 / lambdahat
-      bK <- lambdahat ** (- 1 / 3)
-      a <- exp((log(bK) - log(b0)) / K)
-      hgrid <- b0 * a ** (seq_len(K))
-      hbest <- estimate_nw_bw(y = data[id_curve == i, X],
-                              t = data[id_curve ==i, tobs],
-                              bw_grid = hgrid,
-                              smooth_ker = smooth_ker)
-
-    }, lambdahat = lambdahat, data = data, smooth_ker = smooth_ker)))
+    if (N > 50) {
+      dt_optbw <- get_nw_optimal_bw(
+        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+        bw_grid = NULL, nsubset = 30, smooth_ker = smooth_ker)
+      h <- dt_optbw[, median(optbw)]
+      rm(dt_optbw) ; gc()
+    } else {
+      dt_optbw <- get_nw_optimal_bw(
+        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+        bw_grid = NULL, nsubset = NULL, smooth_ker = smooth_ker)
+      h <- dt_optbw[, optbw]
+      rm(dt_optbw) ; gc()
+    }
   }
 
   # If the bandwidth is given as scalar or computed
