@@ -114,9 +114,9 @@ uniform <- function(u){
 #' lines(x = t, y = m(t), type = "l", col = "red")
 #'
 #' ## Estimate the best bandwidth
-#' h_grid <- seq(1 / (2 * length(t)), length(t) ** (- 1/3), len = 100)
+#' bw_grid <- seq(1 / (2 * length(t)), length(t) ** (- 1/3), len = 100)
 #' hbest <- estimate_nw_bw(y = y, t = t,
-#'                         h_grid = h_grid,
+#'                         bw_grid = bw_grid,
 #'                         smooth_ker = epanechnikov)
 #'
 #' ## Estimate the regression function
@@ -146,7 +146,7 @@ estimate_nw <- function(y, t, tnew, h = NULL, smooth_ker = epanechnikov){
   A <- matrix(0, nrow = m, ncol = n)
   if (is.null(h)) {
     hcv <- estimate_nw_bw(y = y, t = t,
-                          h_grid = seq(2 / n, n ** (-1/3), len = 100),
+                          bw_grid = seq(2 / n, n ** (-1/3), len = 100),
                           smooth_ker = smooth_ker)
   }
   h <- ifelse(is.null(h), hcv, h)
@@ -168,7 +168,7 @@ estimate_nw <- function(y, t, tnew, h = NULL, smooth_ker = epanechnikov){
 #'
 #' @param y \code{vector (numeric)}. A numeric vector containing the observed values of the independent variable corresponding to the observation points \code{t}.
 #' @param t \code{vector (numeric)}. A numeric vector containing the observed values of the dependent variable.
-#' @param h_grid \code{vector (numeric)}. A grid of bandwidth to test.
+#' @param bw_grid \code{vector (numeric)}. A grid of bandwidth to test.
 #' @param smooth_ker \code{function}. The kernel function of the estimator.
 #'
 #' @return A \code{numeric} value corresponding to the best bandwidth.
@@ -195,9 +195,9 @@ estimate_nw <- function(y, t, tnew, h = NULL, smooth_ker = epanechnikov){
 #' lines(x = t, y = m(t), type = "l", col = "red")
 #'
 #' ## Estimate the best bandwidth
-#' h_grid <- seq(1 / (2 * length(t)), length(t) ** (- 1/3), len = 100)
+#' bw_grid <- seq(1 / (2 * length(t)), length(t) ** (- 1/3), len = 100)
 #' hbest <- estimate_nw_bw(y = y, t = t,
-#'                         h_grid = h_grid,
+#'                         bw_grid = bw_grid,
 #'                         smooth_ker = epanechnikov)
 #'
 #' ## Estimate the regression function
@@ -212,18 +212,18 @@ estimate_nw <- function(y, t, tnew, h = NULL, smooth_ker = epanechnikov){
 #'
 #' }
 #'
-estimate_nw_bw <- function(y, t, h_grid = seq(1 / (2 * length(t)), length(t) ** (- 1/3), len = 100),
+estimate_nw_bw <- function(y, t, bw_grid = seq(1 / (2 * length(t)), length(t) ** (- 1/3), len = 100),
                            smooth_ker = epanechnikov) {
-  if (! is.numeric(y) | ! is.numeric(t) |! is.numeric(h_grid))
+  if (! is.numeric(y) | ! is.numeric(t) |! is.numeric(bw_grid))
     stop("The arguments 'y', 't', 'tnew', 'h' must be numeric.")
   if (length(t) != length(y) & length(t) < 2)
     stop("The arguments 'y' and 't' must have a length of at least 2 and must be of the same length.")
-  if (is.null(h_grid))
-    stop("The bandwidth grid 'h_grid' must be a scalar or vector of numeric.")
+  if (is.null(bw_grid))
+    stop("The bandwidth grid 'bw_grid' must be a scalar or vector of numeric.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
 
-  cv_error <- sapply(h_grid, function(hi, y, t, K){
+  cv_error <- sapply(bw_grid, function(hi, y, t, K){
     yhat <- estimate_nw(y = y, t = t, h = hi, tnew = t, smooth_ker = K)$yhat
     wmat <- outer(X = t, Y = t, function(u, v) K((u-v) / hi))
     metric <- (y - yhat) / (1 - K(0) / rowSums(wmat))
@@ -234,11 +234,80 @@ estimate_nw_bw <- function(y, t, h_grid = seq(1 / (2 * length(t)), length(t) ** 
 
   # If cv_error is NaN, do take it into account
   if (any(is.nan(cv_error))) {
-    h_grid <- h_grid[-which(is.nan(cv_error))]
+    bw_grid <- bw_grid[-which(is.nan(cv_error))]
     cv_error <- cv_error[! is.nan(cv_error)]
-    hcv <- h_grid[which.min(cv_error)]
+    hcv <- bw_grid[which.min(cv_error)]
   } else {
-    hcv <- h_grid[which.min(cv_error)]
+    hcv <- bw_grid[which.min(cv_error)]
   }
   return(hcv)
+}
+
+#' Estimate Nadayara-Watson optimal bandwidth on all or a subset of curves
+#'
+#' @inheritParams .format_data
+#' @param bw_grid \code{vector (numeric)}. The cross-validation bandwidth grid.
+#' Default \code{bw_grid = NULL} and so it will be set as an exponential grid using the average of the number of observation points per curve.
+#' @param nsubset \code{integer (positive integer)}. The number of subset curves to be randomly and uniformly selected.
+#' Default \code{nsubset = NULL} and thus an optimal bandwidth is calculated for each curve.
+#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator.
+#' Default \code{smooth_ker = epanechnikov}.
+#'
+#' @return A \code{data.table} containing the following columns.
+#'          \itemize{
+#'            \item{id_curve :}{The index of the curve.}
+#'            \item{optbw :}{ The optimal bandwidth obtained by Cross-Validation.}
+#'         }
+#' @export
+#'
+get_nw_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                              bw_grid = NULL, nsubset = NULL, smooth_ker = epanechnikov){
+  # Control parameters
+  if ((!is.null(bw_grid)) & (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1)))
+    stop("If'bw_grid' is not NULL, then it must be a vector of positive values between 0 and 1.")
+  if (! methods::is(smooth_ker, "function"))
+    stop("'smooth_ker' must be a function.")
+  if ((!is.null(nsubset)) & (any(nsubset < 0)| (length(nsubset) > 1) | any(nsubset - floor(nsubset) > 0) | any(N <= nsubset)))
+    stop("If 'nsubset' is not NULL, then if must be a positive integer lower than the number of curves.")
+
+  # Control and format data
+  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  N <- data[, length(unique(id_curve))]
+
+  # Define the set of curve
+  if (! is.null(nsubset)) {
+    sample_curves <- sample(x = 1:N, size = nsubset)
+  } else {
+    sample_curves <- 1:N
+  }
+
+  # Define the grid
+  if (is.null(bw_grid)) {
+    lambdahat <- mean(data[, .N, by = "id_curve"][, N])
+    K <- 100
+    b0 <- 2 / lambdahat
+    bK <- lambdahat ** (- 1 / 3)
+    a <- exp((log(bK) - log(b0)) / K)
+    bw_grid <- b0 * a ** (seq_len(K))
+
+    rm(K, b0, bK, a) ; gc()
+  } else {
+    NA
+  }
+
+  dt_optbw <- data.table::rbindlist(lapply(sample_curves, function(i, bw_grid, data, smooth_ker){
+    K <- 100
+    b0 <- 2 / lambdahat
+    bK <- lambdahat ** (- 1 / 3)
+    a <- exp((log(bK) - log(b0)) / K)
+    hgrid <- b0 * a ** (seq_len(K))
+    hbest <- estimate_nw_bw(y = data[id_curve == i, X],
+                            t = data[id_curve ==i, tobs],
+                            bw_grid = bw_grid,
+                            smooth_ker = smooth_ker)
+    dt_res <- data.table::data.table("id_curve" = i, "optbw" = hbest)
+    return(dt_res)
+  }, bw_grid = bw_grid, data = data, smooth_ker = smooth_ker))
+
+  return(dt_optbw)
 }
