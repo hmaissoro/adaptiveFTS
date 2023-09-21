@@ -1,38 +1,6 @@
 #' Local Regularity Parameters Estimation
 #'
-#' @param data \code{data.table (or data.frame)} or \code{list} of \code{data.table (or data.frame)} or \code{list} of \code{list}.
-#' \itemize{
-#'    \item{If \code{data.table}}{
-#'        It must contain the raw binding of the curve observations with at least 3 columns.
-#'        \itemize{
-#'          \item{\code{idcol} :}{ The name of the column that contains the index of the curve in the sample.
-#'                              Each index of a curve is repeated as many times as it has observation points.}
-#'          \item{\code{tcol} :}{ The name of the column that contains the observation points associated to each curve index.}
-#'          \item{\code{ycol} :}{ The name of the column that contains the observed value of a curve at each point of observation and for each index of the curve.}
-#'        }
-#'    }
-#'    \item{If \code{list} of \code{data.table}}{
-#'         In this case, each element of the given \code{list} corresponds to the observation scheme of a curve, which is given as \code{data.table} or \code{data.frame}.
-#'         The data.table contains at least 2 columns.
-#'         \itemize{
-#'          \item{\code{tcol} :}{ The name of the column that contains the observation points associated to the curve.}
-#'          \item{\code{ycol} :}{ The name of the column that contains the observed value of the curve.}
-#'        }
-#'    }
-#'    \item{If \code{list} of \code{list}}{
-#'      In the latter case, the \code{data} is a list \code{list} where each element is the observation scheme of a curve given as a \code{list} of 2 vectors.
-#'      \itemize{
-#'          \item{\code{tcol} :}{ The name of the vector that contains the observation points associated the curve.}
-#'          \item{\code{ycol} :}{ The name of the vector that contains the observed value of the curve.}
-#'        }
-#'    }
-#' }
-#' @param idcol \code{character}. If \code{data} is given as \code{data.table} or \code{data.frame},
-#' it is the name of the column that contains the index of the curve in the sample.
-#' Each index of a curve is repeated as many times as it has observation points.
-#' Opposite, if f \code{data} is given as \code{list} of \code{data.table (or data.frame)} of \code{list} of \code{list}, \code{idcol = NULL.}
-#' @param tcol \code{character}. The name of the column (or vector) that contains the observation points associated to the curves.
-#' @param ycol \code{character}. The name of the column that contains the observed value of the curves.
+#' @inheritParams .format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the local regularity parameters of the underlying process.
 #' @param Delta \code{numeric (positive)}. The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.
 #' Default \code{Delta = NULL} and thus it will be estimated from the data.
