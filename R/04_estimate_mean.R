@@ -258,7 +258,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 
   # Estimate the risk function
   dt_mean_risk <- estimate_mean_risk(
-    data = data, idcol = idcol, tcol = tcol, ycol = ycol,
+    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     t = t, bw_grid = bw_grid,
     Delta = Delta, h = Delta, smooth_ker = smooth_ker)
 

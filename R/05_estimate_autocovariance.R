@@ -486,14 +486,14 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 
   # Estimate mean function at s and at t
   dt_mean_s <- estimate_mean(
-    data = data, idcol = idcol, tcol = tcol, ycol = ycol,
+    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     t = s, bw_grid = bw_grid, Delta = Delta,
     h = h, smooth_ker = smooth_ker)
   data.table::setnames(x = dt_mean_s,
                        old = c("t", "locreg_bw", "H", "L", "optbw", "muhat"),
                        new = c("s", "locreg_bw_s", "Hs", "Ls", "optbw_muhat_s", "muhat_s"))
   dt_mean_t <- estimate_mean(
-    data = data, idcol = idcol, tcol = tcol, ycol = ycol,
+    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     t = t, bw_grid = bw_grid, Delta = Delta,
     h = h, smooth_ker = smooth_ker)
   data.table::setnames(x = dt_mean_t,
