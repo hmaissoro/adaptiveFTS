@@ -118,7 +118,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
     stop("Arguments 's' and 't' must be of equal length.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
-  if (! (all(methods::is(bw_grid, "numeric") & data.table::between(t, 0, 1)) & length(bw_grid) > 1))
+  if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
     stop("'bw_grid' must be a vector of positive values between 0 and 1.")
 
   # Control on local regularity parameters
@@ -466,7 +466,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     stop("Arguments 's' and 't' must be of equal length.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
-  if (! (all(methods::is(bw_grid, "numeric") & data.table::between(t, 0, 1)) & length(bw_grid) > 1))
+  if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
     stop("'bw_grid' must be a vector of positive values between 0 and 1.")
 
   # Control and format data
