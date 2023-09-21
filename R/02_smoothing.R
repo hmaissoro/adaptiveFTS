@@ -260,6 +260,9 @@ estimate_nw_bw <- function(y, t, bw_grid = seq(1 / (2 * length(t)), length(t) **
 #'         }
 #' @export
 #'
+#' @importFrom methods is
+#' @importFrom data.table data.table rbindlist
+#'
 get_nw_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                               bw_grid = NULL, nsubset = NULL, smooth_ker = epanechnikov){
   # Control parameters

@@ -7,7 +7,7 @@
 estimate_nw_bw(
   y,
   t,
-  h_grid = seq(1/(2 * length(t)), length(t)^(-1/3), len = 100),
+  bw_grid = seq(1/(2 * length(t)), length(t)^(-1/3), len = 100),
   smooth_ker = epanechnikov
 )
 }
@@ -16,7 +16,7 @@ estimate_nw_bw(
 
 \item{t}{\code{vector (numeric)}. A numeric vector containing the observed values of the dependent variable.}
 
-\item{h_grid}{\code{vector (numeric)}. A grid of bandwidth to test.}
+\item{bw_grid}{\code{vector (numeric)}. A grid of bandwidth to test.}
 
 \item{smooth_ker}{\code{function}. The kernel function of the estimator.}
 }
@@ -46,9 +46,9 @@ plot(x = t, y = y, main = "Observed points and true regression function")
 lines(x = t, y = m(t), type = "l", col = "red")
 
 ## Estimate the best bandwidth
-h_grid <- seq(1 / (2 * length(t)), length(t) ** (- 1/3), len = 100)
+bw_grid <- seq(1 / (2 * length(t)), length(t) ** (- 1/3), len = 100)
 hbest <- estimate_nw_bw(y = y, t = t,
-                        h_grid = h_grid,
+                        bw_grid = bw_grid,
                         smooth_ker = epanechnikov)
 
 ## Estimate the regression function
