@@ -11,6 +11,8 @@ estimate_mean_risk(
   ycol = "X",
   t = c(1/4, 1/2, 3/4),
   bw_grid = seq(0.005, 0.15, len = 45),
+  Ht = NULL,
+  Lt = NULL,
   Delta = NULL,
   h = NULL,
   smooth_ker = epanechnikov
@@ -58,6 +60,12 @@ Opposite, if f \code{data} is given as \code{list} of \code{data.table (or data.
 
 \item{bw_grid}{\code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each \code{t}.}
 
+\item{Ht}{\code{vector (numeric)}. The estimates of the local exponent for each \code{t}.
+Default \code{Ht = NULL} and thus it will be estimated.}
+
+\item{Lt}{\code{vector (numeric)}. The estimates of the Hölder constant for each \code{t}.
+It corresponds to \eqn{L_t^2}. Default \code{Lt = NULL} and thus it will be estimated.}
+
 \item{Delta}{\code{numeric (positive)}. The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.
 Default \code{Delta = NULL} and thus it will be estimated from the data.}
 
@@ -74,8 +82,8 @@ A \code{data.table} containing the following columns.
 \itemize{
 \item{t :}{ The points at which the risk function is estimated.}
 \item{h :}{ The candidate bandwidth.}
-\item{H :}{ The estimates of the local exponent.}
-\item{L :}{ The estimates of the Hölder constant. It corresponds to \eqn{L_t^2}.}
+\item{Ht :}{ The estimates of the local exponent for each \code{t}. It corresponds to \eqn{H_t}}
+\item{Lt :}{ The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
 \item{locreg_bw :}{ The bandwidth used to estimate the local regularity parameters.}
 \item{bias_term :}{ The bias term of the risk function.}
 \item{varriance_term :}{ The variance term of the risk function.}

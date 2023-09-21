@@ -17,8 +17,8 @@
 #'            \item{locreg_bw :}{ The presmoothing bandwidth.}
 #'            \item{Delta :}{ The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.}
 #'            \item{Nused :}{ The number of curves that give non-degenerate estimates around \code{t}.}
-#'            \item{H :}{ The local exponent estimates.}
-#'            \item{L :}{ The Hölder constant estimates. It corresponds to \eqn{L_t^2}.}
+#'            \item{Ht :}{ The local exponent estimates for each \code{t}. It corresponds to \eqn{H_t}}
+#'            \item{Lt :}{ The Hölder constant estimates \code{t}. It corresponds to \eqn{L_t^2}.}
 #'         }
 #' @export
 #'
@@ -226,21 +226,21 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     theta_t1_t3 <- mean((xt1 - xt3) ** 2, na.rm = TRUE)
     theta_t1_t2 <- mean((xt1 - xt2) ** 2, na.rm = TRUE)
 
-    H <- (log(theta_t1_t3) - log(theta_t1_t2))  / (2 * log(2))
+    Ht <- (log(theta_t1_t3) - log(theta_t1_t2))  / (2 * log(2))
     ## Bound H : 0.1 <= H <= 1
     # H <- min(max(H, 0.1), 1)
     # L <- theta_t1_t3 / (abs(t1[i] - t3[i])**(2 * H))
-    L <- theta_t1_t2 / (abs(t1[i] - t2[i]) ** (2 * H))
+    Lt <- theta_t1_t2 / (abs(t1[i] - t2[i]) ** (2 * Ht))
 
-    dt_out <- data.table(t = t[i], H = H, L = L, Nused = Nused)
-    rm(theta_t1_t3, theta_t1_t2, H, L, xt1, xt2, xt3)
+    dt_out <- data.table(t = t[i], Ht = Ht, Lt = Lt, Nused = Nused)
+    rm(theta_t1_t3, theta_t1_t2, Ht, Lt, xt1, xt2, xt3)
 
     return(dt_out)
   }, dt_smooth = dt_smooth, t1 = t1, t2 = t2, t3 = t3, t = t))
 
   dt_reg[, c("locreg_bw", "Delta") := list(median(h), Delta)]
 
-  data.table::setcolorder(x = dt_reg, neworder = c("t", "Delta", "Nused", "locreg_bw", "H", "L"))
+  data.table::setcolorder(x = dt_reg, neworder = c("t", "Delta", "Nused", "locreg_bw", "Ht", "Lt"))
 
   return(dt_reg)
 }

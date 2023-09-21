@@ -102,9 +102,9 @@ A \code{data.table} containing the following columns.
 \item{s :}{ The first argument of the autocovariance function.}
 \item{t :}{ The second argument of the autocovariance function.}
 \item{h :}{ The candidate bandwidth.}
-\item{Hs :}{ The estimates of the local exponent for each \code{s}.}
+\item{Hs :}{ The estimates of the local exponent for each \code{s}. It corresponds to \eqn{H_s}}
 \item{Ls :}{ The estimates of the Hölder constant for each \code{s}. It corresponds to \eqn{L_s^2}.}
-\item{Ht :}{ The estimates of the local exponent for each \code{t}.}
+\item{Ht :}{ The estimates of the local exponent for each \code{t}. It corresponds to \eqn{H_t}}
 \item{Lt :}{ The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
 \item{bias_term :}{ The bias term of the risk function.}
 \item{varriance_term :}{ The variance term of the risk function.}

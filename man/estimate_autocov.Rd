@@ -13,6 +13,10 @@ estimate_autocov(
   t = c(1/4, 1/2, 3/4),
   lag = 1,
   bw_grid = seq(0.005, 0.15, len = 45),
+  Hs = NULL,
+  Ls = NULL,
+  Ht = NULL,
+  Lt = NULL,
   Delta = NULL,
   h = NULL,
   smooth_ker = epanechnikov
@@ -67,6 +71,18 @@ It has to be of the same length as the \code{s}.}
 \item{lag}{\code{integer (positive integer)}. Lag of the autocovariance.}
 
 \item{bw_grid}{\code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each pair (\code{s}, \code{t}).}
+
+\item{Hs}{\code{vector (numeric)}. The estimates of the local exponent for each \code{s}.
+Default \code{Hs = NULL} and thus it will be estimated.}
+
+\item{Ls}{\code{vector (numeric)}. The estimates of the Hölder constant for each \code{s}.
+It corresponds to \eqn{L_s^2}. Default \code{Ls = NULL} and thus it will be estimated.}
+
+\item{Ht}{\code{vector (numeric)}. The estimates of the local exponent for each \code{t}.
+Default \code{Ht = NULL} and thus it will be estimated.}
+
+\item{Lt}{\code{vector (numeric)}. The estimates of the Hölder constant for each \code{t}.
+It corresponds to \eqn{L_t^2}. Default \code{Lt = NULL} and thus it will be estimated.}
 
 \item{Delta}{\code{numeric (positive)}. The length of the neighbourhood of \code{s} and \code{t} around which the local regularity is to be estimated.
 Default \code{Delta = NULL} and thus it will be estimated from the data.}

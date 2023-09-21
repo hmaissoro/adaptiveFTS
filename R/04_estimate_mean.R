@@ -3,6 +3,10 @@
 #' @inheritParams .format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the mean function of the underlying process.
 #' @param bw_grid \code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each \code{t}.
+#' @param Ht \code{vector (numeric)}. The estimates of the local exponent for each \code{t}.
+#' Default \code{Ht = NULL} and thus it will be estimated.
+#' @param Lt \code{vector (numeric)}. The estimates of the Hölder constant for each \code{t}.
+#' It corresponds to \eqn{L_t^2}. Default \code{Lt = NULL} and thus it will be estimated.
 #' @param Delta \code{numeric (positive)}. The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.
 #' Default \code{Delta = NULL} and thus it will be estimated from the data.
 #' @param h \code{numeric (positive vector or scalar)}. The bandwidth of the Nadaraya-Watson estimator for the local regularity estimation.
@@ -16,8 +20,8 @@
 #'          \itemize{
 #'            \item{t :}{ The points at which the risk function is estimated.}
 #'            \item{h :}{ The candidate bandwidth.}
-#'            \item{H :}{ The estimates of the local exponent.}
-#'            \item{L :}{ The estimates of the Hölder constant. It corresponds to \eqn{L_t^2}.}
+#'            \item{Ht :}{ The estimates of the local exponent for each \code{t}. It corresponds to \eqn{H_t}}
+#'            \item{Lt :}{ The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
 #'            \item{locreg_bw :}{ The bandwidth used to estimate the local regularity parameters.}
 #'            \item{bias_term :}{ The bias term of the risk function.}
 #'            \item{varriance_term :}{ The variance term of the risk function.}
@@ -76,7 +80,8 @@
 #'
 estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                t = c(1/4, 1/2, 3/4), bw_grid = seq(0.005, 0.15, len = 45),
-                               Delta = NULL, h = NULL, smooth_ker = epanechnikov){
+                               Ht = NULL, Lt = NULL, Delta = NULL, h = NULL,
+                               smooth_ker = epanechnikov){
   # Control easy checkable arguments
   if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
@@ -84,6 +89,12 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     stop("'smooth_ker' must be a function.")
   if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
     stop("'bw_grid' must be a vector of positive values between 0 and 1.")
+  # Control on local regularity parameters
+  if ( ((!is.null(Ht)) & length(Ht) != length(t)) | ((!is.null(Lt)) & length(Lt) != length(t)))
+    stop("If 'Ht' or 'Lt' is not NULL, it must be the same length as 't'.")
+  if ((!is.null(Ht) & ! methods::is(Ht, "numeric")) |
+      (!is.null(Lt) & ! methods::is(Lt, "numeric")))
+    stop("If 'Ht' or 'Lt' is not NULL, it must be numeric.")
 
   # Control and format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
@@ -91,10 +102,17 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 
   # Estimate local regularity parameters
   # This function controls the remaining arguments
-  dt_locreg <- estimate_locreg(
-    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-    t = t, Delta = Delta, h = h,
-    smooth_ker = smooth_ker)
+  if (is.null(Ht) | is.null(Lt)) {
+    dt_locreg <- estimate_locreg(
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      t = t, Delta = Delta, h = h,
+      smooth_ker = smooth_ker)
+    Ht <- dt_locreg[, Ht]
+    Lt <- dt_locreg[, Lt]
+    ht <- dt_locreg[, unique(locreg_bw)]
+  } else {
+    ht <- h
+  }
 
   # Estimation of the observation error standard deviation
   dt_sigma <- estimate_sigma(
@@ -105,13 +123,12 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
   dt_autocov <- estimate_empirical_autocov(
     data = data, idcol = "id_curve",
     tcol = "tobs", ycol = "X", t = t, lag = 0:(N-1),
-    h = dt_locreg[, unique(locreg_bw)],
-    smooth_ker = smooth_ker)
+    h = ht, smooth_ker = smooth_ker)
 
   # Estimate the risk function
-  dt_mean_risk <- data.table::rbindlist(lapply(bw_grid, function(h, t, H, L, presmooth_bw, kernel_smooth, data, sig_error, N, dt_autocov){
+  dt_mean_risk <- data.table::rbindlist(lapply(bw_grid, function(h, t, Ht, Lt, presmooth_bw, kernel_smooth, data, sig_error, N, dt_autocov){
     # compute quantities to estimate estimate the risk
-    dt_risk <- data.table::rbindlist(lapply(1:N, function(curve_index, t, h, H, kernel_smooth, data){
+    dt_risk <- data.table::rbindlist(lapply(1:N, function(curve_index, t, h, Ht, kernel_smooth, data){
       # Compute the weight of the estimator
       Tn <- data[id_curve == curve_index, tobs]
       ker <- outer(X = t, Y = Tn, FUN = function(ti, Tnm, Ker) Ker((Tnm - ti) / h), Ker = kernel_smooth)
@@ -125,8 +142,8 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 
       Tn_t_2H <- outer(
         X = 1:length(t), Y = Tn,
-        FUN = function(tid, Tnm, t, H) abs((Tnm - t[tid]) / h) ** (2 * H[tid]),
-        t = t, H = H
+        FUN = function(tid, Tnm, t, Ht) abs((Tnm - t[tid]) / h) ** (2 * Ht[tid]),
+        t = t, Ht = Ht
       )
 
       bn2H <- diag(abs(wker) %*% t(Tn_t_2H))
@@ -141,7 +158,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
         "cn" = cn, "bn2H" = bn2H, "pi_n" = pi_n
       )
       return(dt_res)
-    }, h = h, t = t, H = H, kernel_smooth = kernel_smooth, data = data))
+    }, h = h, t = t, Ht = Ht, kernel_smooth = kernel_smooth, data = data))
 
     # Compute P_N(t, h)
     dt_risk[, PN := sum(pi_n), by = t]
@@ -156,7 +173,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     dt_rk <- unique(dt_risk[, list(t, B, Vmu, PN)])
 
     ## Biais term
-    bias_term <- 2 * L * (h ** (2 * H)) * dt_rk[, B]
+    bias_term <- 2 * Lt * (h ** (2 * Ht)) * dt_rk[, B]
 
     ## Variance term
     varriance_term <- 2 * (sig_error ** 2) * dt_rk[, Vmu]
@@ -191,11 +208,11 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     mean_risk <- bias_term + varriance_term + dependence_term
 
     # Result to returned
-    dt_res <- data.table::data.table("t" = t, "h" = h, "H" = H, "L" = L, "locreg_bw" = presmooth_bw,
+    dt_res <- data.table::data.table("t" = t, "h" = h, "Ht" = Ht, "Lt" = Lt, "locreg_bw" = presmooth_bw,
                                      "bias_term" = bias_term, "varriance_term" = varriance_term,
                                      "dependence_term" = dependence_term, "mean_risk" = mean_risk)
     return(dt_res)
-  }, t = t, H = dt_locreg[, H], L = dt_locreg[, L], presmooth_bw = dt_locreg[, unique(locreg_bw)], kernel_smooth = smooth_ker, data = data,
+  }, t = t, Ht = Ht, Lt = Lt, presmooth_bw = ht, kernel_smooth = smooth_ker, data = data,
   sig_error = dt_sigma[, sig], N = N, dt_autocov = dt_autocov))
 
   return(dt_mean_risk)
@@ -210,8 +227,8 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #'          \itemize{
 #'            \item{t :}{ The points at which the risk function is estimated.}
 #'            \item{locreg_bw :}{ The bandwidth used to estimate the local regularity parameters.}
-#'            \item{H :}{ The estimates of the local exponent for each \code{t}.}
-#'            \item{L :}{ The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
+#'            \item{Ht :}{ The estimates of the local exponent for each \code{t}. It corresponds to \eqn{H_t}}
+#'            \item{Lt :}{ The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
 #'            \item{optbw :}{ The optimal bandwidth. That is the bandwidth which minimises the risk function.}
 #'            \item{PN :}{ Number of selected curves for each \code{t}.}
 #'            \item{muhat :}{ The estimates of the mean function.}
@@ -250,7 +267,8 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #'
 estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                           t = c(1/4, 1/2, 3/4), bw_grid = seq(0.005, 0.15, len = 45),
-                          Delta = NULL, h = NULL, smooth_ker = epanechnikov){
+                          Ht = NULL, Lt = NULL, Delta = NULL, h = NULL,
+                          smooth_ker = epanechnikov){
 
   # Control and format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
@@ -260,11 +278,12 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   dt_mean_risk <- estimate_mean_risk(
     data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     t = t, bw_grid = bw_grid,
-    Delta = Delta, h = Delta, smooth_ker = smooth_ker)
+    Ht = Ht, Lt = Lt, Delta = Delta, h = h,
+    smooth_ker = smooth_ker)
 
   # Take the optimum of the risk function
   dt_mean_risk[, optbw := h[which.min(mean_risk)], by = t]
-  dt_mean_optbw <- unique(dt_mean_risk[, list(t, H, L, locreg_bw, optbw)])
+  dt_mean_optbw <- unique(dt_mean_risk[, list(t, Ht, Lt, locreg_bw, optbw)])
 
   # Smooth curves with optimal bandwidth parameters
   dt_Xhat <- data.table::rbindlist(lapply(1:N, function(curve_index, t, data, dt_mean_optbw, smooth_ker){
@@ -296,7 +315,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   # Add the optimal bandwidth
   dt_muhat <- unique(dt_Xhat[, list(t, muhat, PN)])
   dt_muhat <- data.table::merge.data.table(x = dt_muhat, y = dt_mean_optbw, by = "t")
-  data.table::setcolorder(x = dt_muhat, neworder = c("t", "locreg_bw", "H", "L", "optbw", "PN", "muhat"))
+  data.table::setcolorder(x = dt_muhat, neworder = c("t", "locreg_bw", "Ht", "Lt", "optbw", "PN", "muhat"))
   return(dt_muhat)
 }
 

@@ -32,9 +32,9 @@
 #'            \item{s :}{ The first argument of the autocovariance function.}
 #'            \item{t :}{ The second argument of the autocovariance function.}
 #'            \item{h :}{ The candidate bandwidth.}
-#'            \item{Hs :}{ The estimates of the local exponent for each \code{s}.}
+#'            \item{Hs :}{ The estimates of the local exponent for each \code{s}. It corresponds to \eqn{H_s}}
 #'            \item{Ls :}{ The estimates of the Hölder constant for each \code{s}. It corresponds to \eqn{L_s^2}.}
-#'            \item{Ht :}{ The estimates of the local exponent for each \code{t}.}
+#'            \item{Ht :}{ The estimates of the local exponent for each \code{t}. It corresponds to \eqn{H_t}}
 #'            \item{Lt :}{ The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
 #'            \item{bias_term :}{ The bias term of the risk function.}
 #'            \item{varriance_term :}{ The variance term of the risk function.}
@@ -154,8 +154,8 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
       data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       t = s, Delta = Delta, h = h,
       smooth_ker = smooth_ker)
-    Hs <- dt_locreg_s[, H]
-    Ls <- dt_locreg_s[, L]
+    Hs <- dt_locreg_s[, Ht]
+    Ls <- dt_locreg_s[, Lt]
     hs <- dt_locreg_s[, unique(locreg_bw)]
   } else {
     hs <- h
@@ -165,8 +165,8 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
     data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     t = t, Delta = Delta, h = h,
     smooth_ker = smooth_ker)
-    Ht <- dt_locreg_t[, H]
-    Lt <- dt_locreg_t[, L]
+    Ht <- dt_locreg_t[, Ht]
+    Lt <- dt_locreg_t[, Lt]
     ht <- dt_locreg_t[, unique(locreg_bw)]
   } else {
     ht <- h
@@ -456,7 +456,10 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
                              t = c(1/4, 1/2, 3/4),
                              lag = 1,
                              bw_grid = seq(0.005, 0.15, len = 45),
-                             Delta = NULL, h = NULL, smooth_ker = epanechnikov){
+                             Hs = NULL, Ls = NULL,
+                             Ht = NULL, Lt = NULL,
+                             Delta = NULL, h = NULL,
+                             smooth_ker = epanechnikov){
   # Control easy checkable arguments
   if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
     stop("'s' must be a numeric vector or scalar value(s) between 0 and 1.")
@@ -468,6 +471,17 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     stop("'smooth_ker' must be a function.")
   if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
     stop("'bw_grid' must be a vector of positive values between 0 and 1.")
+
+  # Control on local regularity parameters
+  if (((!is.null(Hs)) & length(Hs) != length(s)) | ((!is.null(Ls)) & length(Ls) != length(s)))
+    stop("If 'Hs' or 'Ls' is not NULL, it must be the same length as 's'.")
+  if ( ((!is.null(Ht)) & length(Ht) != length(t)) | ((!is.null(Lt)) & length(Lt) != length(t)))
+    stop("If 'Ht' or 'Lt' is not NULL, it must be the same length as 't'.")
+  if ((!is.null(Hs) & ! methods::is(Hs, "numeric")) |
+      (!is.null(Ls) & ! methods::is(Ls, "numeric")) |
+      (!is.null(Ht) & ! methods::is(Ht, "numeric")) |
+      (!is.null(Lt) & ! methods::is(Lt, "numeric")))
+    stop("If 'Hs', 'Ls', 'Ht' or 'Lt' is not NULL, it must be numeric.")
 
   # Control and format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
@@ -487,17 +501,21 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   # Estimate mean function at s and at t
   dt_mean_s <- estimate_mean(
     data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-    t = s, bw_grid = bw_grid, Delta = Delta,
-    h = h, smooth_ker = smooth_ker)
+    t = s, bw_grid = bw_grid,
+    Ht = Hs, Lt = Ls,
+    Delta = Delta, h = h,
+    smooth_ker = smooth_ker)
   data.table::setnames(x = dt_mean_s,
-                       old = c("t", "locreg_bw", "H", "L", "optbw", "muhat"),
+                       old = c("t", "locreg_bw", "Ht", "Lt", "optbw", "muhat"),
                        new = c("s", "locreg_bw_s", "Hs", "Ls", "optbw_muhat_s", "muhat_s"))
   dt_mean_t <- estimate_mean(
     data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-    t = t, bw_grid = bw_grid, Delta = Delta,
-    h = h, smooth_ker = smooth_ker)
+    t = t, bw_grid = bw_grid,
+    Ht = Ht, Lt = Lt,
+    Delta = Delta, h = h,
+    smooth_ker = smooth_ker)
   data.table::setnames(x = dt_mean_t,
-                       old = c("t", "locreg_bw", "H", "L", "optbw", "muhat"),
+                       old = c("t", "locreg_bw", "Ht", "Lt", "optbw", "muhat"),
                        new = c("t", "locreg_bw_t", "Ht", "Lt", "optbw_muhat_t", "muhat_t"))
   dt_mean <- cbind(dt_mean_s[, .SD, .SDcols = c("s", "locreg_bw_s", "Hs", "Ls", "optbw_muhat_s", "muhat_s")],
                    dt_mean_t[, .SD, .SDcols = c("t", "locreg_bw_t", "Ht", "Lt", "optbw_muhat_t", "muhat_t")])
@@ -514,9 +532,9 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     data = data, idcol = idcol, tcol = tcol, ycol = ycol,
     s = s, t = t, lag = lag,
     bw_grid = bw_grid, smooth_ker = smooth_ker,
-    Hs = dt_mean[, Hs], Ls = dt_mean[, H],
+    Hs = dt_mean[, Hs], Ls = dt_mean[, Ls],
     Ht = dt_mean[, Ht], Lt = dt_mean[, Lt],
-    Delta = NULL, h = dt_mean[, unique(locreg_bw)]
+    Delta = Delta, h = dt_mean[, unique(locreg_bw)]
   )
 
   # Take the optimum of the risk function

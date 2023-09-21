@@ -73,8 +73,8 @@ A \code{data.table} containing the following columns.
 \item{locreg_bw :}{ The presmoothing bandwidth.}
 \item{Delta :}{ The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.}
 \item{Nused :}{ The number of curves that give non-degenerate estimates around \code{t}.}
-\item{H :}{ The local exponent estimates.}
-\item{L :}{ The Hölder constant estimates. It corresponds to \eqn{L_t^2}.}
+\item{Ht :}{ The local exponent estimates for each \code{t}. It corresponds to \eqn{H_t}}
+\item{Lt :}{ The Hölder constant estimates \code{t}. It corresponds to \eqn{L_t^2}.}
 }
 }
 \description{
