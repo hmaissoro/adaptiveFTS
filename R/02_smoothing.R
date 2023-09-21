@@ -270,8 +270,9 @@ get_nw_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X
     stop("If'bw_grid' is not NULL, then it must be a vector of positive values between 0 and 1.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
-  if ((!is.null(nsubset)) & (any(nsubset < 0)| (length(nsubset) > 1) | any(nsubset - floor(nsubset) > 0) | any(N <= nsubset)))
-    stop("If 'nsubset' is not NULL, then if must be a positive integer lower than the number of curves.")
+  if (!is.null(nsubset))
+    if (any(nsubset < 0) | (length(nsubset) > 1) | any(nsubset - floor(nsubset) > 0) | any(N <= nsubset))
+      stop("If 'nsubset' is not NULL, then if must be a positive integer lower than the number of curves.")
 
   # Control and format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
