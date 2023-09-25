@@ -701,7 +701,11 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' @param p \code{numeric (integer)}. It is used as exponent.
 #' @param q \code{numeric (integer)}. It is used as exponent.
 #' @param h \code{numeric (positive scalar)}. The bandwidth of the estimator.
+#' @param dt_mean_rp \code{data.table}. It contains the estimates of the mean function at each observation point for each curve.
+#' The name of the curve identification column must be \code{id_curve}, the observation points column \code{tobs} and the mean estimates column \code{muhat_RP}.
+#' Default \code{dt_mean_rp = NULL} and so it will be estimated.
 #' @param optbw_mean \code{numeric (positive scalar)}. Optimal bandwidth for the mean function estimator.
+#' It is \code{NULL} if \code{dt_mean_rp} is not \code{NULL}.
 #' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator.
 #' Default \code{smooth_ker = epanechnikov}.
 #'
@@ -710,7 +714,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #'
 .Qpq_fun <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                      s = 1/4, t = 1/2, lag = 1, p = 1, q = 1,
-                     h, optbw_mean, smooth_ker = epanechnikov){
+                     h, dt_mean_rp = NULL, optbw_mean = NULL, smooth_ker = epanechnikov){
   # Control easy checkable arguments
   if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1)) & length(s) == 1))
     stop("'s' must be a numeric scalar value between 0 and 1.")
@@ -723,6 +727,13 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     stop("'p' and 'q' must be positive integers.")
   if (! (methods::is(h, "numeric") & all(data.table::between(h, 0, 1))  & length(h) == 1))
     stop("'h' must be a numeric scalar value between 0 and 1.")
+  if (is.null(dt_mean_rp)) {
+    if (is.null(optbw_mean))
+      stop("If 'dt_mean_rp' is NULL, then optbw_mean can not be NULL")
+  } else {
+    if (! (data.table::is.data.table(dt_mean_rp) & all(c("id_curve", "tobs", "muhat_RP") %in% colnames(dt_mean_rp))))
+      stop("'dt_mean_rp' must be a data.table containing the columns : 'id_curve', 'tobs' and 'muhat_RP'.")
+  }
   if (! (methods::is(optbw_mean, "numeric") & all(data.table::between(optbw_mean, 0, 1))  & length(optbw_mean) == 1))
     stop("'optbw_mean' must be a numeric scalar value between 0 and 1.")
   if (! methods::is(smooth_ker, "function"))
@@ -732,24 +743,28 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
+  # Estimate mean function is it is NULL
+  if (is.null(dt_mean_rp)) {
+    dt_mean_rp <- data[order(tobs), list(id_curve, tobs)]
+    dt_mean <- estimate_mean_rp(
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      t = dt_mean_rp[, tobs], h = optbw_mean, smooth_ker = smooth_ker)
+    dt_mean_rp[, muhat_RP := dt_mean[, muhat_RP]]
+  } else {
+    dt_mean_rp <- dt_mean_rp[order(id_curve)]
+  }
+
   # Calculate the sum
-  Qpq_sum <- sum(unlist(lapply(1:(N - lag), function(curve_index, s, t, p, q, lag, h, optbw_mean, ker, data = data){
+  Qpq_sum <- sum(unlist(lapply(1:(N - lag), function(curve_index, s, t, p, q, lag, h, ker, data = data, dt_mean_rp){
     # Extract observation points and observed points
     Tn <- data[id_curve %in% curve_index, tobs]
     Tn_plus_lag <- data[id_curve %in% (curve_index + lag), tobs]
     Yn <- data[id_curve %in% curve_index, X]
     Yn_plus_lag <- data[id_curve %in% (curve_index + lag), X]
 
-    # Estimate mean function
-    dt_mean_rp_Tn <- estimate_mean_rp(
-      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-      t = Tn, h = optbw_mean, smooth_ker = smooth_ker)
-    muhat_Tn <- dt_mean_rp_Tn[, muhat_RP]
-    dt_mean_rp_Tn_plus_lag <- estimate_mean_rp(
-      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-      t = Tn_plus_lag, h = optbw_mean, smooth_ker = smooth_ker)
-    muhat_Tn_plus_lag <- dt_mean_rp_Tn_plus_lag[, muhat_RP]
-    rm(dt_mean_rp_Tn, dt_mean_rp_Tn_plus_lag) ; gc()
+    # Extract mean function estimates
+    muhat_Tn <- dt_mean_rp[id_curve %in% curve_index, muhat_RP]
+    muhat_Tn_plus_lag <- dt_mean_rp[id_curve %in% (curve_index + lag), muhat_RP]
 
     # Calculation of the elements to be summed up
     mat_res <- outer(
@@ -775,12 +790,12 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     # Sum for each curve
     Qpq_res <- sum(rowSums(mat_res))
     return(Qpq_res)
-  }, s = s, t = t, p = p, q = q, lag = lag, h = h, optbw_mean = optbw_mean, ker = smooth_ker, data = data)))
+  }, s = s, t = t, p = p, q = q, lag = lag, h = h, ker = smooth_ker, data = data, dt_mean_rp = dt_mean_rp)))
   Qpq <- Qpq_sum / (N - lag)
   return(Qpq)
 }
 
-#' Estimate lag-\egn{\ell} (\egn{\ell \leq 0}) autocovariance function using Rubìn and Panaretos (2020) method
+#' Estimate lag-\eqn{\ell} (\eqn{\ell \leq 0}) autocovariance function using Rubìn and Panaretos (2020) method
 #'
 #' @inheritParams .format_data
 #' @param s \code{vector (numeric)}. First argument of the autocovariance function.
@@ -791,17 +806,29 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' It has to be of the same length as the \code{s}.
 #' @param lag \code{integer (positive integer)}. Lag of the autocovariance.
 #' @param h \code{numeric (positive scalar)}. The bandwidth of the estimator.
+#' @param dt_mean_rp \code{data.table}. It contains the estimates of the mean function at each observation point for each curve.
+#' The name of the curve identification column must be \code{id_curve}, the observation points column \code{tobs} and the mean estimates column \code{muhat_RP}.
+#' Default \code{dt_mean_rp = NULL} and so it will be estimated.
 #' @param optbw_mean \code{numeric (positive scalar)}. Optimal bandwidth for the mean function estimator.
+#' It is \code{NULL} if \code{dt_mean_rp} is not \code{NULL}.
 #' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator.
 #' Default \code{smooth_ker = epanechnikov}.
 #'
-#' @return
+#' @return A \code{data.table} containing the following columns.
+#'          \itemize{
+#'            \item{s :}{ The first argument of the autocovariance function.}
+#'            \item{t :}{ The second argument of the autocovariance function.}
+#'            \item{lag :}{ The lag of the autocovariance. It corresponds to \eqn{\ell \leq 0}.}
+#'            \item{optbw_mean :}{ The optimal bandwidth for the mean function estimator.}
+#'            \item{h :}{ The bandwidth used to estimate the lag-\eqn{\ell}, \eqn{\ell \leq 0} autocovariance function}
+#'            \item{autocovhat_rp :}{ The estimates of the lag-\eqn{\ell} autocovariance function for each (\code{s}, \code{t}) using Rubìn and Panaretos (2020) method.}
+#'         }
 #' @export
 #'
-#' @examples
 estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                 s = c(1/5, 2/5, 4/5), t = c(1/4, 1/2, 3/4),
-                                lag = 1, h, optbw_mean, smooth_ker = epanechnikov){
+                                lag = 1, h, optbw_mean = NULL, dt_mean_rp = NULL,
+                                smooth_ker = epanechnikov){
   # Control easy checkable arguments
   if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
     stop("'s' must be a numeric vector or scalar value(s) between 0 and 1.")
@@ -813,6 +840,13 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
     stop("'smooth_ker' must be a function.")
   if (! (methods::is(h, "numeric") & all(data.table::between(h, 0, 1))  & length(h) == 1))
     stop("'h' must be a numeric scalar value between 0 and 1.")
+  if (is.null(dt_mean_rp)) {
+    if (is.null(optbw_mean))
+      stop("If 'dt_mean_rp' is NULL, then optbw_mean can not be NULL")
+  } else {
+    if (! (data.table::is.data.table(dt_mean_rp) & all(c("id_curve", "tobs", "muhat_RP") %in% colnames(dt_mean_rp))))
+      stop("'dt_mean_rp' must be a data.table containing the columns : 'id_curve', 'tobs' and 'muhat_RP'.")
+  }
   if (! (methods::is(optbw_mean, "numeric") & all(data.table::between(optbw_mean, 0, 1))  & length(optbw_mean) == 1))
     stop("'optbw_mean' must be a numeric scalar value between 0 and 1.")
   if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
@@ -820,7 +854,6 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
 
   # Control and format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
-  N <- data[, length(unique(id_curve))]
 
   # Sort by s and t
   dt_st <- data.table::data.table("s" = s, "t" = t)
@@ -829,8 +862,19 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
   t <- dt_st[, t]
   rm(dt_st) ; gc()
 
+  # Estimate mean function is it is NULL
+  if (is.null(dt_mean_rp)) {
+    dt_mean_rp <- data[order(tobs), list(id_curve, tobs)]
+    dt_mean <- estimate_mean_rp(
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      t = dt_mean_rp[, tobs], h = optbw_mean, smooth_ker = smooth_ker)
+    dt_mean_rp[, muhat_RP := dt_mean[, muhat_RP]]
+  } else {
+    dt_mean_rp <- dt_mean_rp[order(id_curve)]
+  }
+
   # Calculate S_{pq} and Q_{pq}
-  autocov_vec <- mapply(function(si, ti, h, optbw_mean, lag, data, ker){
+  autocov_vec <- mapply(function(si, ti, h, lag, optbw_mean, dt_mean_rp, data, ker){
     # Calculate S_{pq} and A_1^{(\ell)},A_2^{(\ell)}, A_3^{(\ell)}
     S00 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                     s = si, t = ti, lag = lag, p = 0, q = 0, h = h, smooth_ker = ker)
@@ -853,15 +897,146 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
 
     # Calculate Q_{pq}
     Q00 <- .Qpq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", s = si, t = ti,
-                    lag = lag, p = 0, q = 0, h = h, optbw_mean = optbw_mean, smooth_ker = ker)
+                    lag = lag, p = 0, q = 0, h = h, dt_mean_rp = dt_mean_rp, optbw_mean = optbw_mean, smooth_ker = ker)
     Q10 <- .Qpq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", s = si, t = ti,
-                    lag = lag, p = 1, q = 0, h = h, optbw_mean = optbw_mean, smooth_ker = ker)
+                    lag = lag, p = 1, q = 0, h = h, dt_mean_rp = dt_mean_rp, optbw_mean = optbw_mean, smooth_ker = ker)
     Q01 <- .Qpq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", s = si, t = ti,
-                    lag = lag, p = 0, q = 1, h = h, optbw_mean = optbw_mean, smooth_ker = ker)
+                    lag = lag, p = 0, q = 1, h = h, dt_mean_rp = dt_mean_rp, optbw_mean = optbw_mean, smooth_ker = ker)
 
     # estimate autocovariance
     R <- (A1 * Q00 - A2 * Q10 - A3 * Q01) / B
-    return(R)
-  }, si = s, ti = t, MoreArgs = list(h = h, optbw_mean = optbw_mean, lag = lag, data = data, ker = smooth_ker))
 
+    return(R)
+  }, si = s, ti = t, MoreArgs = list(h = h, lag = lag, data = data, optbw_mean = optbw_mean,
+                                     dt_mean_rp = dt_mean_rp, ker = smooth_ker))
+  dt_res <- data.table::data.table("s" = s, "t" = t, "lag" = lag, "optbw_mean" = optbw_mean, "autocovhat_rp" = autocov_vec)
+  return(dt_res)
 }
+
+#' Bandwidth estimation using cross-validation for the Rubìn and Panaretos (2020) autocovariance function estimator.
+#'
+#' @inheritParams .format_data
+#' @param Kfold \code{integer (positive)}. Number of fold for the cross-validation.
+#' @param bw_grid \code{vector (numeric)}. The bandwidth grid.
+#' @param dt_mean_rp \code{data.table}. It contains the estimates of the mean function at each observation point for each curve.
+#' The name of the curve identification column must be \code{id_curve}, the observation points column \code{tobs} and the mean estimates column \code{muhat_RP}.
+#' Default \code{dt_mean_rp = NULL} and so it will be estimated.
+#' @param optbw_mean \code{numeric (positive scalar)}. Optimal bandwidth for the mean function estimator.
+#' It is \code{NULL} if \code{dt_mean_rp} is not \code{NULL}.
+#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
+#'
+#' @return A \code{data.table} containing the following columns.
+#'          \itemize{
+#'            \item{h :}{ The candidate bandwidth.}
+#'            \item{cv_error :}{ The estimates of the Cross-Validation error for each \code{h}.}
+#'         }
+#' @export
+#' @importFrom caret createFolds
+#' @importFrom data.table data.table rbindlist
+#' @seealso [estimate_mean_rp()], [estimate_mean_bw_rp()], [estimate_autocov_rp()]
+#'
+#' @examples
+#' \dontrun{
+#' # Coming ...
+#' }
+#'
+estimate_autocov_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                                   Kfold = 10, bw_grid = seq(0.001, 0.15, len = 45),
+                                   optbw_mean = NULL, dt_mean_rp = NULL, smooth_ker = epanechnikov){
+  # Control and format data
+  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  N <- data[, length(unique(id_curve))]
+
+  if (any(Kfold < 0)| (length(Kfold) > 1) | any(Kfold - floor(Kfold) > 0) | any(N <= Kfold))
+    stop("'Kfold' must be a positive integer lower than the number of curves.")
+  if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
+    stop("'bw_grid' must be a vector of positive values between 0 and 1.")
+  if (! methods::is(smooth_ker, "function"))
+    stop("'smooth_ker' must be a function.")
+  if (is.null(dt_mean_rp)) {
+    if (is.null(optbw_mean))
+      stop("If 'dt_mean_rp' is NULL, then optbw_mean can not be NULL")
+  } else {
+    if (! (data.table::is.data.table(dt_mean_rp) & all(c("id_curve", "tobs", "muhat_RP") %in% colnames(dt_mean_rp))))
+      stop("'dt_mean_rp' must be a data.table containing the columns : 'id_curve', 'tobs' and 'muhat_RP'.")
+  }
+  if (! (methods::is(optbw_mean, "numeric") & all(data.table::between(optbw_mean, 0, 1))  & length(optbw_mean) == 1))
+    stop("'optbw_mean' must be a numeric scalar value between 0 and 1.")
+
+  # Estimate mean function is it is NULL
+  if (is.null(dt_mean_rp)) {
+    dt_mean_rp <- data[order(tobs), list(id_curve, tobs)]
+    dt_mean <- estimate_mean_rp(
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      t = dt_mean_rp[, tobs], h = optbw_mean, smooth_ker = smooth_ker)
+    dt_mean_rp[, muhat_RP := dt_mean[, muhat_RP]]
+  } else {
+    dt_mean_rp <- dt_mean_rp[order(id_curve)]
+  }
+
+  # Create Kfold folds
+  fold <- caret::createFolds(y = unique(data[, id_curve]), k = Kfold, list = TRUE)
+
+  # Get risk for each bandwidth in the grid
+  dt_bw <- data.table::rbindlist(lapply(bw_grid, function(BR0, data, dt_mean_rp, fold, kernel_smooth){
+
+    # Compute the cross-validation error for each f in fold
+    err_fold <- tryCatch(
+      expr = sapply(fold, function(f, data, dt_mean_rp, BR0, kernel_smooth){
+        # split train - test
+        dt_test <- data[id_curve %in% unlist(f)]
+        dt_test <- dt_test[order(tobs)]
+        dt_train <- data[id_curve %in% setdiff(unlist(fold), unlist(f))]
+        dt_train <- dt_train[order(tobs)]
+
+        # Extract Tn
+        Tn <- dt_test[order(tobs), tobs]
+        Tn_grid <- expand.grid(xti = Tn, xtj = Tn)
+        xti <- Tn_grid$xti
+        xtj <- Tn_grid$xtj
+
+        # Extract Yn
+        Yn <- dt_test[order(tobs), X]
+        Yn_grid <- expand.grid(Yti = Yn, Ytj = Yn)
+        Yti <- Yn_grid$Yti
+        Ytj <- Yn_grid$Ytj
+
+        # Extract mean function
+        dt_mean_test <- dt_mean_rp[id_curve %in% unlist(f)]
+        muhat <- dt_mean_test[order(tobs), muhat_RP]
+        muhat_grid <- expand.grid(muhat_ti = muhat, muhat_tj = muhat)
+        muhat_ti <- Yn_grid$muhat_ti
+        muhat_tj <- Yn_grid$muhat_tj
+
+        rm(Tn, Yn, Tn_grid, Yn_grid, muhat_grid, muhat, dt_mean_test) ; gc()
+
+        # Estimation of mean on fold\f and test on f
+        dt_autocov <- estimate_autocov_rp(
+          data = dt_train, idcol = "id_curve", tcol = "tobs", ycol = "X",
+          s = xti, t = xtj, lag = 0, h = BR0, optbw_mean = optbw_mean,
+          dt_mean_rp = dt_mean_rp, smooth_ker = kernel_smooth)
+
+        # Calculate the error
+        Sqerror <- ((Yti - muhat_ti) * (Ytj - muhat_tj) - dt_autocov[, autocovhat_rp]) ** 2
+        err <- sum(Sqerror)
+        return(err)
+      }, data = data, dt_mean_rp = dt_mean_rp, BR0 = BR0, kernel_smooth = kernel_smooth, simplify = TRUE),
+      error = function(e){
+        message("Error in estimating the autocovariance function:")
+        print(e)
+        return(NA)
+
+      })
+
+    # Cross-validaiton error
+    cv_err <- mean(err_fold, na.rm = TRUE)
+
+    # Return the result
+    dt_res <- data.table::data.table("h" = BR0, "cv_error" = cv_err)
+    return(dt_res)
+
+  }, data = data, dt_mean_rp = dt_mean_rp, fold = fold, kernel_smooth = smooth_ker))
+
+  return(dt_bw)
+}
+

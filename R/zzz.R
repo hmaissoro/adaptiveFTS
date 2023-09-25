@@ -1,7 +1,7 @@
 utils::globalVariables(
   c("Mn", "Tn", "V1", "X", "eps", "id_curve", "mfBm", "ttag", "tobs",
     "dd", "rank_dist_to_t", "t", "s", "ker_value", "Zn", "sig",
-    "B", "PN", "Vmu", "Xhat", "autocov", "bn2H", "cn",
+    "B", "PN", "Vmu", "Xhat", "autocov", "bn2H", "cn", "N", "autocovhat_rp",
     "lag", "lr_var", "mean_risk", "muhat", "muhat_RP", "optbw",
     "pi_n", "rho", "wmax", "x", "Bs", "Bt", "EX2_s", "EX2_t", "Hs",
     "Ht", "Lt", "PNl", "Vgamma", "Vgamma1", "Vgamma2", "Xhat_s", "Xhat_t",
