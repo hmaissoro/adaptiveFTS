@@ -520,13 +520,9 @@ estimate_mean_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
         dt_train <- dt_train[order(tobs)]
 
         # Estimation of mean on fold\f and test on f
-        dt_mu <- estimate_mean_rp(data = dt_train,
-                                  idcol = idcol,
-                                  tcol = tcol,
-                                  ycol = ycol,
-                                  t = dt_test[, tobs],
-                                  h = Bmu0,
-                                  smooth_ker = kernel_smooth)
+        dt_mu <- estimate_mean_rp(
+          data = dt_train, idcol = "id_curve", tcol = "tobs", ycol = "X",
+          t = dt_test[, tobs], h = Bmu0, smooth_ker = kernel_smooth)
 
         Sqerror <- (dt_test[, X] - dt_mu[, muhat_RP]) ** 2
         err <- sum(Sqerror)
