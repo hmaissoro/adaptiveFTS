@@ -112,7 +112,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   # Control easy checkable arguments
   if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
     stop("'s' must be a numeric vector or scalar value(s) between 0 and 1.")
-  if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
+  if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! length(s) == length(t))
     stop("Arguments 's' and 't' must be of equal length.")
@@ -144,8 +144,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   dt_st <- dt_st[order(s,t)]
   s <- dt_st[, s]
   t <- dt_st[, t]
-  rm(dt_st)
-  gc()
+  rm(dt_st) ; gc()
 
   # Estimate local regularity parameters
   # This function controls the remaining arguments
@@ -162,9 +161,9 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   }
   if (is.null(Ht) | is.null(Lt)) {
     dt_locreg_t <- estimate_locreg(
-    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-    t = t, Delta = Delta, h = h,
-    smooth_ker = smooth_ker)
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      t = t, Delta = Delta, h = h,
+      smooth_ker = smooth_ker)
     Ht <- dt_locreg_t[, Ht]
     Lt <- dt_locreg_t[, Lt]
     ht <- dt_locreg_t[, unique(locreg_bw)]
@@ -215,7 +214,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   dt_Xhat[is.nan(Xhat_s), Xhat_s := NA]
   dt_Xhat[is.nan(Xhat_t), Xhat_t := NA]
   dt_EX2 <- dt_Xhat[, list("EX2_s" = mean(Xhat_s, na.rm = TRUE), "EX2_t" = mean(Xhat_t, na.rm = TRUE)),
-                        by = c("s", "t")]
+                    by = c("s", "t")]
   rm(dt_Xhat)
   gc()
 
@@ -463,7 +462,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   # Control easy checkable arguments
   if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
     stop("'s' must be a numeric vector or scalar value(s) between 0 and 1.")
-  if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
+  if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! length(s) == length(t))
     stop("Arguments 's' and 't' must be of equal length.")
@@ -495,8 +494,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   dt_st <- dt_st[order(s,t)]
   s <- dt_st[, s]
   t <- dt_st[, t]
-  rm(dt_st)
-  gc()
+  rm(dt_st) ; gc()
 
   # Estimate mean function at s and at t
   dt_mean_s <- estimate_mean(
@@ -621,3 +619,249 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   return(dt_autocov)
 }
 
+# Autocovariance function estimator : Rubìn et Paranaretos (2020) ----
+# Following the Rubìn and Panaretos Equation (B.7), we define Spq_fun and Qpq_fun
+
+#' \eqn{S_{pq}^{(\ell)}}, (\eqn{\ell \leq 0}) function. See Rubìn and Panaretos (2020) Equation (B.7)
+#'
+#' @inheritParams .format_data
+#' @param s \code{vector (numeric)}. First argument of the autocovariance function.
+#' It corresponds to the observation points \code{s} in the pair (\code{s}, \code{t}).
+#' It has to be of the same length as the \code{t}
+#' @param t \code{vector (numeric)}. Second argument of the autocovariance function.
+#' It corresponds to the observation points \code{t} in the pair (\code{s}, \code{t}).
+#' It has to be of the same length as the \code{s}.
+#' @param lag \code{integer (positive integer)}. Lag of the autocovariance.
+#' @param p \code{numeric (integer)}. It is used as exponent.
+#' @param q \code{numeric (integer)}. It is used as exponent.
+#' @param h \code{numeric (positive scalar)}. The bandwidth of the estimator.
+#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator.
+#' Default \code{smooth_ker = epanechnikov}.
+#'
+#' @return A \code{numeric} scalar.
+#' @export
+#'
+.Spq_fun <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                     s = 1/4, t = 1/2, lag = 1, p = 1, q = 1,
+                     h, smooth_ker = epanechnikov){
+  # Control easy checkable arguments
+  if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1)) & length(s) == 1))
+    stop("'s' must be a numeric scalar value between 0 and 1.")
+  if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))  & length(t) == 1))
+    stop("'t' must be a numeric scalar value between 0 and 1.")
+  if (! methods::is(smooth_ker, "function"))
+    stop("'smooth_ker' must be a function.")
+  if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
+    stop("'lag' must be a positive integer lower than the number of curves.")
+  if ((any(p < 0)| (length(p) > 1) | any(p - floor(p) > 0)) |
+      any(q < 0)| (length(q) > 1) | any(q - floor(q) > 0))
+    stop("'p' and 'q' must be positive integers.")
+  if (! (methods::is(h, "numeric") & all(data.table::between(h, 0, 1))  & length(h) == 1))
+    stop("'h' must be a numeric scalar value between 0 and 1.")
+
+  # Control and format data
+  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  N <- data[, length(unique(id_curve))]
+
+  # Calculate the sum
+  Spq_sum <- sum(unlist(lapply(1:(N-lag), function(curve_index, s, t, p, q, lag, h, ker, data = data){
+    # Extract observation points
+    Tn <- data[id_curve %in% curve_index, tobs]
+    Tn_plus_lag <- data[id_curve %in% (curve_index + lag), tobs]
+
+    # Calculation of the elements to be summed up
+    mat_res <- outer(X = Tn, Y = Tn_plus_lag, function(xtk, xthj, s, t, p, q, h, ker){
+      res <- (((xthj - t) / h ) ** p) * (((xtk - s) / h ) ** q) *
+        (1 / (h ** 2)) * ker((xthj - t) / h) * ker((xtk - s) / h )
+      return(res)
+    },s = s, t = t, p = p, q = q, h = h, ker = ker)
+
+    # If lag == 0, set the diagonal to zero
+    if (lag == 0) {
+      diag(mat_res) <- 0
+    }
+    # Sum for each curve
+    Spq_res <- sum(rowSums(mat_res))
+    return(Spq_res)
+  }, s = s, t = t, p = p, q = q, lag = lag, h = h, ker = smooth_ker, data = data)))
+  Spq <- Spq_sum / (N - lag)
+  return(Spq)
+}
+
+#' \eqn{Q_{pq}^{(\ell)}}, (\eqn{\ell \leq 0}) function. See Rubìn and Panaretos (2020) Equation (B.7)
+#'
+#' @inheritParams .format_data
+#' @param s \code{vector (numeric)}. First argument of the autocovariance function.
+#' It corresponds to the observation points \code{s} in the pair (\code{s}, \code{t}).
+#' It has to be of the same length as the \code{t}
+#' @param t \code{vector (numeric)}. Second argument of the autocovariance function.
+#' It corresponds to the observation points \code{t} in the pair (\code{s}, \code{t}).
+#' It has to be of the same length as the \code{s}.
+#' @param lag \code{integer (positive integer)}. Lag of the autocovariance.
+#' @param p \code{numeric (integer)}. It is used as exponent.
+#' @param q \code{numeric (integer)}. It is used as exponent.
+#' @param h \code{numeric (positive scalar)}. The bandwidth of the estimator.
+#' @param optbw_mean \code{numeric (positive scalar)}. Optimal bandwidth for the mean function estimator.
+#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator.
+#' Default \code{smooth_ker = epanechnikov}.
+#'
+#' @return A \code{numeric} scalar.
+#' @export
+#'
+.Qpq_fun <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                     s = 1/4, t = 1/2, lag = 1, p = 1, q = 1,
+                     h, optbw_mean, smooth_ker = epanechnikov){
+  # Control easy checkable arguments
+  if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1)) & length(s) == 1))
+    stop("'s' must be a numeric scalar value between 0 and 1.")
+  if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))  & length(t) == 1))
+    stop("'t' must be a numeric scalar value between 0 and 1.")
+  if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
+    stop("'lag' must be a positive integer lower than the number of curves.")
+  if ((any(p < 0)| (length(p) > 1) | any(p - floor(p) > 0)) |
+      any(q < 0)| (length(q) > 1) | any(q - floor(q) > 0))
+    stop("'p' and 'q' must be positive integers.")
+  if (! (methods::is(h, "numeric") & all(data.table::between(h, 0, 1))  & length(h) == 1))
+    stop("'h' must be a numeric scalar value between 0 and 1.")
+  if (! (methods::is(optbw_mean, "numeric") & all(data.table::between(optbw_mean, 0, 1))  & length(optbw_mean) == 1))
+    stop("'optbw_mean' must be a numeric scalar value between 0 and 1.")
+  if (! methods::is(smooth_ker, "function"))
+    stop("'smooth_ker' must be a function.")
+
+  # Control and format data
+  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  N <- data[, length(unique(id_curve))]
+
+  # Calculate the sum
+  Qpq_sum <- sum(unlist(lapply(1:(N - lag), function(curve_index, s, t, p, q, lag, h, optbw_mean, ker, data = data){
+    # Extract observation points and observed points
+    Tn <- data[id_curve %in% curve_index, tobs]
+    Tn_plus_lag <- data[id_curve %in% (curve_index + lag), tobs]
+    Yn <- data[id_curve %in% curve_index, X]
+    Yn_plus_lag <- data[id_curve %in% (curve_index + lag), X]
+
+    # Estimate mean function
+    dt_mean_rp_Tn <- estimate_mean_rp(
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      t = Tn, h = optbw_mean, smooth_ker = smooth_ker)
+    muhat_Tn <- dt_mean_rp_Tn[, muhat_RP]
+    dt_mean_rp_Tn_plus_lag <- estimate_mean_rp(
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      t = Tn_plus_lag, h = optbw_mean, smooth_ker = smooth_ker)
+    muhat_Tn_plus_lag <- dt_mean_rp_Tn_plus_lag[, muhat_RP]
+    rm(dt_mean_rp_Tn, dt_mean_rp_Tn_plus_lag) ; gc()
+
+    # Calculation of the elements to be summed up
+    mat_res <- outer(
+      X = 1:length(Tn), Y = 1:length(Tn_plus_lag),
+      function(index_xtk, index_xthj, s, t, p, q, h, ker,
+               Tn, Tn_plus_lag, Yn, Yn_plus_lag, muhat_Tn, muhat_Tn_plus_lag){
+        # Calculate G_{h,t}(x_{t+h, j}, x_{t, k})
+        Gth <- (Yn_plus_lag[index_xthj] - muhat_Tn_plus_lag[index_xthj]) * (Yn[index_xtk] - muhat_Tn[index_xtk])
+
+        # Calculate
+        res <- Gth * (((Tn_plus_lag[index_xthj] - t) / h ) ** p) * (((Tn[index_xtk] - s) / h ) ** q) *
+          (1 / (h ** 2)) * ker((Tn_plus_lag[index_xthj] - t) / h) * ker((Tn[index_xtk] - s) / h )
+        return(res)
+      }, s = s, t = t, p = p, q = q, h = h, ker = ker,
+      Tn = Tn, Tn_plus_lag = Tn_plus_lag, Yn = Yn, Yn_plus_lag = Yn_plus_lag,
+      muhat_Tn = muhat_Tn, muhat_Tn_plus_lag = muhat_Tn_plus_lag)
+    rm(Tn, Tn_plus_lag, Yn, Yn_plus_lag, muhat_Tn, muhat_Tn_plus_lag) ; gc()
+
+    # If lag == 0, set the diagonal to zero
+    if (lag == 0) {
+      diag(mat_res) <- 0
+    }
+    # Sum for each curve
+    Qpq_res <- sum(rowSums(mat_res))
+    return(Qpq_res)
+  }, s = s, t = t, p = p, q = q, lag = lag, h = h, optbw_mean = optbw_mean, ker = smooth_ker, data = data)))
+  Qpq <- Qpq_sum / (N - lag)
+  return(Qpq)
+}
+
+#' Estimate lag-\egn{\ell} (\egn{\ell \leq 0}) autocovariance function using Rubìn and Panaretos (2020) method
+#'
+#' @inheritParams .format_data
+#' @param s \code{vector (numeric)}. First argument of the autocovariance function.
+#' It corresponds to the observation points \code{s} in the pair (\code{s}, \code{t}).
+#' It has to be of the same length as the \code{t}
+#' @param t \code{vector (numeric)}. Second argument of the autocovariance function.
+#' It corresponds to the observation points \code{t} in the pair (\code{s}, \code{t}).
+#' It has to be of the same length as the \code{s}.
+#' @param lag \code{integer (positive integer)}. Lag of the autocovariance.
+#' @param h \code{numeric (positive scalar)}. The bandwidth of the estimator.
+#' @param optbw_mean \code{numeric (positive scalar)}. Optimal bandwidth for the mean function estimator.
+#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator.
+#' Default \code{smooth_ker = epanechnikov}.
+#'
+#' @return
+#' @export
+#'
+#' @examples
+estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                                s = c(1/5, 2/5, 4/5), t = c(1/4, 1/2, 3/4),
+                                lag = 1, h, optbw_mean, smooth_ker = epanechnikov){
+  # Control easy checkable arguments
+  if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
+    stop("'s' must be a numeric vector or scalar value(s) between 0 and 1.")
+  if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
+    stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
+  if (! length(s) == length(t))
+    stop("Arguments 's' and 't' must be of equal length.")
+  if (! methods::is(smooth_ker, "function"))
+    stop("'smooth_ker' must be a function.")
+  if (! (methods::is(h, "numeric") & all(data.table::between(h, 0, 1))  & length(h) == 1))
+    stop("'h' must be a numeric scalar value between 0 and 1.")
+  if (! (methods::is(optbw_mean, "numeric") & all(data.table::between(optbw_mean, 0, 1))  & length(optbw_mean) == 1))
+    stop("'optbw_mean' must be a numeric scalar value between 0 and 1.")
+  if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
+    stop("'lag' must be a positive integer lower than the number of curves.")
+
+  # Control and format data
+  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  N <- data[, length(unique(id_curve))]
+
+  # Sort by s and t
+  dt_st <- data.table::data.table("s" = s, "t" = t)
+  dt_st <- dt_st[order(s,t)]
+  s <- dt_st[, s]
+  t <- dt_st[, t]
+  rm(dt_st) ; gc()
+
+  # Calculate S_{pq} and Q_{pq}
+  autocov_vec <- mapply(function(si, ti, h, optbw_mean, lag, data, ker){
+    # Calculate S_{pq} and A_1^{(\ell)},A_2^{(\ell)}, A_3^{(\ell)}
+    S00 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                    s = si, t = ti, lag = lag, p = 0, q = 0, h = h, smooth_ker = ker)
+    S01 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                    s = si, t = ti, lag = lag, p = 0, q = 1, h = h, smooth_ker = ker)
+    S02 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                    s = si, t = ti, lag = lag, p = 0, q = 2, h = h, smooth_ker = ker)
+    S10 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                    s = si, t = ti, lag = lag, p = 1, q = 0, h = h, smooth_ker = ker)
+    S11 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                    s = si, t = ti, lag = lag, p = 1, q = 1, h = h, smooth_ker = ker)
+    S20 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                    s = si, t = ti, lag = lag, p = 2, q = 0, h = h, smooth_ker = ker)
+
+    # calculate A_1^{(\ell)},A_2^{(\ell)}, A_3^{(\ell)} and B^{(\ell)}
+    A1 <- S20 * S02 - (S11 ** 2)
+    A2 <- S10 * S02 - S01 * S11
+    A3 <- S01 * S20 - S10 * S11
+    B <- A1 * S00 - A2 * S10 - A3 * S01
+
+    # Calculate Q_{pq}
+    Q00 <- .Qpq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", s = si, t = ti,
+                    lag = lag, p = 0, q = 0, h = h, optbw_mean = optbw_mean, smooth_ker = ker)
+    Q10 <- .Qpq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", s = si, t = ti,
+                    lag = lag, p = 1, q = 0, h = h, optbw_mean = optbw_mean, smooth_ker = ker)
+    Q01 <- .Qpq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", s = si, t = ti,
+                    lag = lag, p = 0, q = 1, h = h, optbw_mean = optbw_mean, smooth_ker = ker)
+
+    # estimate autocovariance
+    R <- (A1 * Q00 - A2 * Q10 - A3 * Q01) / B
+    return(R)
+  }, si = s, ti = t, MoreArgs = list(h = h, optbw_mean = optbw_mean, lag = lag, data = data, ker = smooth_ker))
+
+}
