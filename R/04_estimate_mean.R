@@ -458,7 +458,7 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' @export
 #' @importFrom caret createFolds
 #' @importFrom data.table data.table rbindlist
-#' @seealso [estimate_mean_bw_rp()]
+#' @seealso [estimate_mean_rp()]
 #'
 #' @examples
 #' \dontrun{
@@ -514,9 +514,9 @@ estimate_mean_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
     err_fold <- tryCatch(
       expr = sapply(fold, function(f, data, Bmu0, kernel_smooth){
         # split train - test
-        dt_test <- data[id_curve %in% unlist(f)][order(tobs)]
+        dt_test <- data[id_curve %in% unlist(f)]
         dt_test <- dt_test[order(tobs)]
-        dt_train <- data[id_curve %in% setdiff(unlist(fold), unlist(f))][order(tobs)]
+        dt_train <- data[id_curve %in% setdiff(unlist(fold), unlist(f))]
         dt_train <- dt_train[order(tobs)]
 
         # Estimation of mean on fold\f and test on f
