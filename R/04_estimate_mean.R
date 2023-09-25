@@ -320,7 +320,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 }
 
 # mean function estimator : Rubìn et Paranaretos ----
-# Following the Rubìn and Panaretos Equation (B.1), we define S_r_fun and Q_r_fun
+# Following the Rubìn and Panaretos Equation (B.1), we define Sr_fun and Qr_fun
 
 #' Sr function. See Rubìn and Panaretos (2020) Equation (B.1)
 #'
@@ -345,7 +345,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   rm(data)
 
   # Compute S_r
-  Sr <- sum( ((Tn - t) ** r) * (1 / h) * smooth_ker((Tn - t) / h)) / N
+  Sr <- sum(((Tn - t) ** r) * (1 / h) * smooth_ker((Tn - t) / h)) / N
 
   return(Sr)
 }
@@ -437,7 +437,7 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     S2 <- .Sr_fun(data = data, idcol = idcol, tcol = tcol, ycol = ycol, t = ti, r = 2, h = h, smooth_ker = ker)
     muhat_ti <- (Q0 * S2 - Q1 * S1) / (S0 * S2 - S1 ** 2)
     return(muhat_ti)
-  }, data = data, idcol = idcol, tcol = tcol, ycol = ycol, h = h, ker = smooth_ker, simplify = TRUE)
+  }, data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", h = h, ker = smooth_ker, simplify = TRUE)
 
   dt_res <- data.table::data.table("t" = t, "h" = h, "muhat_RP" = muhat)
   return(dt_res)
