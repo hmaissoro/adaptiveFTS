@@ -183,8 +183,7 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", y
   dt_st <- dt_st[order(s,t)]
   s <- dt_st[, s]
   t <- dt_st[, t]
-  rm(dt_st)
-  gc()
+  rm(dt_st) ; gc()
 
   # Control on the pre-smoothing bandwidth
   if (! is.null(h)) {
