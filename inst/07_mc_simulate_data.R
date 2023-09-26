@@ -51,7 +51,7 @@ sim_fun <- function(mc_i, Ni, lbda, t0, sig = 0.5,
     d[, X := X + rnorm(n = .N, mean = 0, sd = sig)]
 
     # Get be
-    bw <- adaptiveFTS::estimate_nw_bw(y = d[, X], t = d[, tobs], h_grid = bw_grid)
+    bw <- estimate_nw_bw(y = d[, X], t = d[, tobs], bw_grid = bw_grid)
     d[, presmooth_bw := bw]
   }, dtt = dt_far, bw_grid = bw_grid))
 
