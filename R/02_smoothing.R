@@ -265,6 +265,10 @@ estimate_nw_bw <- function(y, t, bw_grid = seq(1 / (2 * length(t)), length(t) **
 #'
 get_nw_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                               bw_grid = NULL, nsubset = NULL, smooth_ker = epanechnikov){
+  # Control and format data
+  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  N <- data[, length(unique(id_curve))]
+
   # Control parameters
   if ((!is.null(bw_grid)) & (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1)))
     stop("If'bw_grid' is not NULL, then it must be a vector of positive values between 0 and 1.")
@@ -273,10 +277,6 @@ get_nw_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X
   if (!is.null(nsubset))
     if (any(nsubset < 0) | (length(nsubset) > 1) | any(nsubset - floor(nsubset) > 0) | any(N <= nsubset))
       stop("If 'nsubset' is not NULL, then if must be a positive integer lower than the number of curves.")
-
-  # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
-  N <- data[, length(unique(id_curve))]
 
   # Define the set of curve
   if (! is.null(nsubset)) {
