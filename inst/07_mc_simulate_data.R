@@ -83,7 +83,7 @@ dt_N <- data.table::rbindlist(lapply(N, function(Ni){
                      mean_far = get_real_data_mean, hurst = Hlogistic)
       return(dt_)
     }, mc.cores = 75))
-    rds_name <- paste0("./inst/data/dt_mc_fts_real_data_N=", Ni, "_mu=", lambdai, "_Hlogistic_sig05.RDS")
+    rds_name <- paste0("./inst/data/dt_mc_fts_real_data_N=", Ni, "_lambda=", lambdai, "_Hlogistic_sig05.RDS")
     saveRDS(object = dt_mc, file = rds_name)
   }))
 }))
