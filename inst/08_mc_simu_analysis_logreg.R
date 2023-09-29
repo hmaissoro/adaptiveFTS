@@ -2,6 +2,7 @@ library(data.table)
 library(ggplot2)
 library(ggpubr)
 library(magrittr)
+library(latex2exp)
 
 # Simulation parameters ----
 N <- c(100L, 200L, 400L)
@@ -89,3 +90,56 @@ dt_locreg <- data.table::rbindlist(lapply(N, function(Ni){
 }))
 
 saveRDS(dt_locreg, "./inst/locreg_estimates/dt_Hlogistic_bw_sig05.RDS")
+
+# Plot true local regularity parameters ----
+## Generate data
+dt_Hlogistic <- data.table::data.table(
+  "t" = seq(0.01, 0.99, len = 100),
+  "Ht" = Hlogistic(t = seq(0.01, 0.99, len = 100))
+)
+dt_Lconstant <- data.table::data.table(
+  "t" = seq(0.01, 0.99, len = 100),
+  "Lt" = rep(4, 100)
+)
+
+## Plot and save
+figures_path <- "../../../report/learning-smmoothness/Learning-smoothness/figures/"
+theme_set(theme_minimal())
+
+### Local exponent
+ggplot(dt_Hlogistic, aes(x = t, y = Ht)) +
+  geom_line(size = 1.5) +
+  ylim(0.4, 0.8) +
+  xlab(label = "t") +
+  ylab(label = latex2exp::TeX("$H_t$")) +
+  scale_color_grey() +
+  theme(legend.position = "bottom",
+        axis.title = element_text(size = 16),
+        axis.title.x = element_text(size = 18, margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 18, margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.text.x =  element_text(size = 16),
+        axis.text.y =  element_text(size = 16),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16),
+        legend.key.width= unit(0.8, 'cm')) +
+  guides(color = guide_legend(override.aes = list(size = 2)))
+ggsave(filename = file.path(figures_path, "local_exponent.png"), units = "px", dpi = 300)
+
+### Hölder function
+ggplot(dt_Lconstant, aes(x = t, y = Lt)) +
+  geom_line(size = 1.5) +
+  ylim(3, 5) +
+  xlab(label = "t") +
+  ylab(label = latex2exp::TeX("$L_t^2$")) +
+  scale_color_grey() +
+  theme(legend.position = "bottom",
+        axis.title = element_text(size = 16),
+        axis.title.x = element_text(size = 18, margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 18, margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.text.x =  element_text(size = 16),
+        axis.text.y =  element_text(size = 16),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 16),
+        legend.key.width= unit(0.8, 'cm')) +
+  guides(color = guide_legend(override.aes = list(size = 2)))
+ggsave(filename = file.path(figures_path, "holder_constant.png"), units = "px", dpi = 300)
