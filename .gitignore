@@ -1,4 +1,4 @@
 .Rproj.user
 .Rhistory
 inst/data
-inst/logreg_estimates
+inst/locreg_estimates/
