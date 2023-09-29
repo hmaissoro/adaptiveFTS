@@ -143,3 +143,106 @@ ggplot(dt_Lconstant, aes(x = t, y = Lt)) +
         legend.key.width= unit(0.8, 'cm')) +
   guides(color = guide_legend(override.aes = list(size = 2)))
 ggsave(filename = file.path(figures_path, "holder_constant.png"), units = "px", dpi = 300)
+
+# Estimates of the local regularity parameters ----
+dt_locreg[, c("N", "lambda") := .(as.factor(N), as.factor(lambda))]
+
+ggplot(dt_locreg[t == t0[6] & delta_formula == "exponential"], aes(x = lambda, y = H_mc, fill = N)) +
+  geom_boxplot() +
+  ggtitle(paste0("Delta = exponential - t = ", t0[6] , " - H_t = ", round(Hlogistic(t0[6]), 3))) +
+  geom_hline(aes(yintercept = Hlogistic(t0[6])), colour = "black") +
+  scale_fill_grey() +
+  theme_minimal() +
+  theme(legend.position = "top")
+ggsave(filename = file.path("./inst/locreg_estimates/", "H_locreg_estimate_t6.png"), units = "px", dpi = 300)
+
+## Plot Local exponent H
+for(i in 1:6){
+  ggplot(dt_locreg[t == t0[i] & delta_formula == "exponential"], aes(x = lambda, y = H_mc, fill = N)) +
+    geom_boxplot() +
+    ggtitle(paste0("Delta = exponential - t = ", t0[i] , " - H_t = ", round(Hlogistic(t0[i]), 3))) +
+    geom_hline(aes(yintercept = Hlogistic(t0[i])), colour = "black") +
+    scale_fill_grey() +
+    theme_minimal() +
+    theme(legend.position = "top")
+  ggsave(filename = file.path(paste0("./inst/locreg_estimates/", "H_locreg_Delta_exponential_estimate_t=",t0[i], ".png")), units = "px", dpi = 300)
+}
+
+for(i in 1:6){
+  ggplot(dt_locreg[t == t0[i] & delta_formula == "polynomial"], aes(x = lambda, y = H_mc, fill = N)) +
+    geom_boxplot() +
+    ggtitle(paste0("Delta = polynomial - t = ", t0[i] , " - H_t = ", round(Hlogistic(t0[i]), 3))) +
+    geom_hline(aes(yintercept = Hlogistic(t0[i])), colour = "black") +
+    scale_fill_grey() +
+    theme_minimal() +
+    theme(legend.position = "top")
+  ggsave(filename = file.path(paste0("./inst/locreg_estimates/", "H_locregDelta_polynomial_estimate_t=",t0[i], ".png")), units = "px", dpi = 300)
+}
+
+## Hölder constant
+for(i in 1:6){
+  ggplot(dt_locreg[t == t0[i] & delta_formula == "exponential"], aes(x = lambda, y = L_mc, fill = N)) +
+    geom_boxplot() +
+    ggtitle(paste0("Delta = exponential - t = ", t0[i] , " - L_t = 4 - H_t = ", round(Hlogistic(t0[i]), 3))) +
+    geom_hline(aes(yintercept = 4), colour = "black") +
+    scale_fill_grey() +
+    theme_minimal() +
+    theme(legend.position = "top")
+  ggsave(filename = file.path(paste0("./inst/locreg_estimates/", "L_locreg_Delta_exponential_estimate_t=",t0[i], "_Lt.png")), units = "px", dpi = 300)
+}
+
+for(i in 1:6){
+  ggplot(dt_locreg[t == t0[i] & delta_formula == "polynomial"], aes(x = lambda, y = L_mc, fill = N)) +
+    geom_boxplot() +
+    ggtitle(paste0("Delta = polynomial - t = ", t0[i] , " - L_t = 4 - H_t = ", round(Hlogistic(t0[i]), 3))) +
+    geom_hline(aes(yintercept = 4), colour = "black") +
+    scale_fill_grey() +
+    theme_minimal() +
+    theme(legend.position = "top")
+  ggsave(filename = file.path(paste0("./inst/locreg_estimates/", "L_locregDelta_polynomial_estimate_t=",t0[i], "_Lt.png")), units = "px", dpi = 300)
+}
+
+## Gamma exponent for Delta exponential
+
+### Local exponent
+for(i in 1:6){
+  ggplot(dt_locreg[t == t0[i] & delta_formula == "exponential"], aes(x = lambda, y = gH_mc, fill = N)) +
+    geom_boxplot() +
+    ggtitle(paste0("gH - Delta = exponential - t = ", t0[i] , " - L_t = 4 - H_t = ", round(Hlogistic(t0[i]), 3))) +
+    scale_fill_grey() +
+    theme_minimal() +
+    theme(legend.position = "top")
+  ggsave(filename = file.path(paste0("./inst/locreg_estimates/", "gH_Delta_exponential_estimate_t=",t0[i], "_Ht.png")), units = "px", dpi = 300)
+}
+
+for(i in 1:6){
+  ggplot(dt_locreg[t == t0[i] & delta_formula == "polynomial"], aes(x = lambda, y = gH_mc, fill = N)) +
+    geom_boxplot() +
+    ggtitle(paste0("gH - Delta = polynomial - t = ", t0[i] , " - L_t = 4 - H_t = ", round(Hlogistic(t0[i]), 3))) +
+    scale_fill_grey() +
+    theme_minimal() +
+    theme(legend.position = "top")
+  ggsave(filename = file.path(paste0("./inst/locreg_estimates/", "gH_Delta_polynomial_estimate_t=",t0[i], "_Ht.png")), units = "px", dpi = 300)
+}
+
+### Holder constant
+for(i in 1:6){
+  ggplot(dt_locreg[t == t0[i] & delta_formula == "exponential"], aes(x = lambda, y = gL_mc, fill = N)) +
+    geom_boxplot() +
+    ggtitle(paste0("gL - Delta = exponential - t = ", t0[i] , " - L_t = 4 - H_t = ", round(Hlogistic(t0[i]), 3))) +
+    scale_fill_grey() +
+    theme_minimal() +
+    theme(legend.position = "top")
+  ggsave(filename = file.path(paste0("./inst/locreg_estimates/", "gL_Delta_exponential_estimate_t=",t0[i], "_Lt.png")), units = "px", dpi = 300)
+}
+
+for(i in 1:6){
+  ggplot(dt_locreg[t == t0[i] & delta_formula == "polynomial"], aes(x = lambda, y = gL_mc, fill = N)) +
+    geom_boxplot() +
+    ggtitle(paste0("gL - Delta = polynomial - t = ", t0[i] , " - L_t = 4 - H_t = ", round(Hlogistic(t0[i]), 3))) +
+    scale_fill_grey() +
+    theme_minimal() +
+    theme(legend.position = "top")
+  ggsave(filename = file.path(paste0("./inst/locreg_estimates/", "gL_Delta_polynomial_estimate_t=",t0[i], "_Lt.png")), units = "px", dpi = 300)
+}
+
