@@ -59,8 +59,8 @@ ggplot(dt, aes(x = t, y = Voltage, color = Season, group = date)) +
   scale_color_grey() +
   theme(legend.position = "bottom",
         axis.title = element_text(size = 16),
-        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
-        axis.title.y = element_text(margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(size = 16, margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 16, margin = margin(t = , r = 10, b = 0, l = 0)),
         axis.text.x =  element_text(size = 16),
         axis.text.y =  element_text(size = 16),
         legend.text = element_text(size = 16),
@@ -87,8 +87,8 @@ ggplot(dt_slice, aes(x = t, y = Voltage, color = Season, group = date)) +
   scale_color_grey() +
   theme(legend.position = "bottom",
         axis.title = element_text(size = 16),
-        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
-        axis.title.y = element_text(margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(size = 16, margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 16, margin = margin(t = , r = 10, b = 0, l = 0)),
         axis.text.x =  element_text(size = 16),
         axis.text.y =  element_text(size = 16),
         legend.text = element_text(size = 16),
@@ -198,8 +198,8 @@ ggplot(dt_mu, aes(x = tobs, y = mu)) +
   scale_color_grey() +
   theme_minimal() +
   theme(axis.title = element_text(size = 16),
-        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
-        axis.title.y = element_text(margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(size = 16, margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 16, margin = margin(t = , r = 10, b = 0, l = 0)),
         axis.text.x =  element_text(size = 16),
         axis.text.y =  element_text(size = 16))
 ggsave(filename = file.path(figures_path, "empirical_mean.png"), units = "px", dpi = 300)
@@ -211,8 +211,8 @@ ggplot(dt_smooth, aes(x = t, y = mean)) +
   scale_color_grey() +
   theme_minimal() +
   theme(axis.title = element_text(size = 16),
-        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
-        axis.title.y = element_text(margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(size = 16, margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 16, margin = margin(t = , r = 10, b = 0, l = 0)),
         axis.text.x =  element_text(size = 16),
         axis.text.y =  element_text(size = 16))
 ggsave(filename = file.path(figures_path, "smooth_mean.png"), units = "px", dpi = 300)
@@ -253,8 +253,8 @@ ggplot(dt_cov, aes(x = s, y = t, z = cov)) +
   theme_minimal() +
   theme(legend.position = "bottom",
         axis.title = element_text(size = 16),
-        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
-        axis.title.y = element_text(margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(size = 16, margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 16, margin = margin(t = , r = 10, b = 0, l = 0)),
         axis.text.x =  element_text(size = 16),
         axis.text.y =  element_text(size = 16),
         legend.text = element_text(size = 16),
@@ -303,8 +303,8 @@ ggplot(dt_autocov, aes(x = s, y = t, z = autocov)) +
   theme_minimal() +
   theme(legend.position = "bottom",
         axis.title = element_text(size = 16),
-        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
-        axis.title.y = element_text(margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(size = 16, margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 16, margin = margin(t = , r = 10, b = 0, l = 0)),
         axis.text.x =  element_text(size = 16),
         axis.text.y =  element_text(size = 16),
         legend.text = element_text(size = 16),
@@ -440,13 +440,13 @@ ggplot(dt_kernel, aes(x = s, y = t, z = Kernel_value)) +
   geom_contour_filled(breaks = c(-35, -25, -15, -5, 5, 15, 25)) +
   xlab(label = "s") +
   ylab(label = "t") +
-  labs(fill = latex2exp::TeX("$\\Theta(s,t)$  ")) +
+  labs(fill = latex2exp::TeX("$\\psi(s,t)$  ")) +
   scale_fill_grey() +
   theme_minimal() +
   theme(legend.position = "bottom",
         axis.title = element_text(size = 16),
-        axis.title.x = element_text(margin = margin(t = 10, r = 0, b = 0, l = 0)),
-        axis.title.y = element_text(margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.title.x = element_text(size = 16, margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 16, margin = margin(t = , r = 10, b = 0, l = 0)),
         axis.text.x =  element_text(size = 16),
         axis.text.y =  element_text(size = 16),
         legend.text = element_text(size = 16),
