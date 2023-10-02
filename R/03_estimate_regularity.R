@@ -102,12 +102,14 @@
 #'
 estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                             t = 1/2, Delta = NULL, h = NULL,
-                            smooth_ker = epanechnikov){
+                            smooth_ker = epanechnikov, center = TRUE){
   # Control easy checkable arguments
   if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
+  if (! methods::is(center, "logical"))
+    stop("'center' must be a TRUE or FALSE.")
 
   # Control and format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
@@ -200,7 +202,7 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 
   # Step 2 : estimate regularity parameters
 
-  dt_reg <- data.table::rbindlist(lapply(1:length(t2), function(i, dt_smooth, t1, t2, t3, t) {
+  dt_reg <- data.table::rbindlist(lapply(1:length(t2), function(i, dt_smooth, t1, t2, t3, t, center){
     ## Extract X_1(g),...,X_N(g) where g = t1, t2 or t3
     xt1 <- dt_smooth[t1 == t1[i] & t2 == t2[i] & t3 == t3[i], xt1]
     xt2 <- dt_smooth[t1 == t1[i] & t2 == t2[i] & t3 == t3[i], xt2]
@@ -212,6 +214,7 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     xt2 <- xt2[! any_nan]
     xt3 <- xt3[! any_nan]
     rm(any_nan)
+
     ## Remove extreme values
     rxt1 <- (xt1 >= quantile(xt1, 0.025, na.rm = TRUE)) & (xt1 <= quantile(xt1, 0.975, na.rm = TRUE))
     rxt2 <- (xt2 >= quantile(xt2, 0.025, na.rm = TRUE)) & (xt2 <= quantile(xt2, 0.975, na.rm = TRUE))
@@ -222,21 +225,24 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     Nused <- sum(rxt1 & rxt2 & rxt3)
     rm(rxt1, rxt2, rxt3)
 
+    ## Center data if the argument center = TRUE
+    xt1 <- xt1 - center * mean(xt1)
+    xt2 <- xt2 - center * mean(xt2)
+    xt3 <- xt3 - center * mean(xt3)
+
     ## Compute Unweighed local regularity parameters
     theta_t1_t3 <- mean((xt1 - xt3) ** 2, na.rm = TRUE)
     theta_t1_t2 <- mean((xt1 - xt2) ** 2, na.rm = TRUE)
+    theta_t2_t3 <- mean((xt2 - xt3) ** 2, na.rm = TRUE)
+    Ht <- (log(theta_t1_t3) - log(theta_t2_t3))  / (2 * log(2))
+    Lt <- theta_t2_t3 / (abs(t2[i] - t3[i])**(2 * Ht))
 
-    Ht <- (log(theta_t1_t3) - log(theta_t1_t2))  / (2 * log(2))
-    ## Bound H : 0.1 <= H <= 1
-    # H <- min(max(H, 0.1), 1)
-    # L <- theta_t1_t3 / (abs(t1[i] - t3[i])**(2 * H))
-    Lt <- theta_t1_t2 / (abs(t1[i] - t2[i]) ** (2 * Ht))
-
+    ## Return the result
     dt_out <- data.table(t = t[i], Ht = Ht, Lt = Lt, Nused = Nused)
-    rm(theta_t1_t3, theta_t1_t2, Ht, Lt, xt1, xt2, xt3)
+    rm(theta_t1_t3, theta_t2_t3, theta_t1_t2, Ht, Lt, xt1, xt2, xt3)
 
     return(dt_out)
-  }, dt_smooth = dt_smooth, t1 = t1, t2 = t2, t3 = t3, t = t))
+  }, dt_smooth = dt_smooth, t1 = t1, t2 = t2, t3 = t3, t = t, center = center))
 
   dt_reg[, c("locreg_bw", "Delta") := list(median(h), Delta)]
 
