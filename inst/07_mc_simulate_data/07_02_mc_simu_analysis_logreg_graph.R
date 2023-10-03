@@ -71,7 +71,7 @@ ggplot(dt_Lconstant, aes(x = t, y = Lt)) +
 ggsave(filename = file.path(figures_path, "holder_constant.png"), units = "px", dpi = 300)
 
 # Delta expo vs Delta poly ----
-dt_locreg <- readRDS("./inst/locreg_estimates/many_delta/dt_Hlogistic_bw_sig05_ml.RDS")
+dt_locreg <- readRDS("./inst/07_mc_simulate_data/locreg_estimates/many_delta/dt_Hlogistic_bw_sig05_ml.RDS")
 
 ## Estimates of the local regularity parameters ----
 dt_locreg[, c("N", "lambda") := .(as.factor(N), as.factor(lambda))]
@@ -150,7 +150,7 @@ gHexp <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/many_delta/H_Delta_expo.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/many_delta/H_Delta_expo.png"),
   plot = gHexp, units = "px", dpi = 300, bg = "white")
 
 gHpoli <- gridExtra::grid.arrange(
@@ -163,7 +163,7 @@ gHpoli <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/many_delta/H_Delta_poli.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/many_delta/H_Delta_poli.png"),
   plot = gHpoli, units = "px", dpi = 300, bg = "white")
 
 ### Hölder constant ----
@@ -177,7 +177,7 @@ gLexp <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/many_delta/L_Delta_expo.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/many_delta/L_Delta_expo.png"),
   plot = gLexp, units = "px", dpi = 300, bg = "white")
 
 gLpoli <- gridExtra::grid.arrange(
@@ -190,7 +190,7 @@ gLpoli <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/many_delta/L_Delta_poli.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/many_delta/L_Delta_poli.png"),
   plot = gLpoli, units = "px", dpi = 300, bg = "white")
 
 ### Delta values ----
@@ -205,7 +205,7 @@ gDeltaH_exp <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/many_delta/deltaH_Delta_expo.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/many_delta/deltaH_Delta_expo.png"),
   plot = gDeltaH_exp, units = "px", dpi = 300, bg = "white")
 
 gDeltaH_poli <- gridExtra::grid.arrange(
@@ -218,7 +218,7 @@ gDeltaH_poli <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/many_delta/deltaH_Delta_poli.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/many_delta/deltaH_Delta_poli.png"),
   plot = gDeltaH_poli, units = "px", dpi = 300, bg = "white")
 
 ### For L
@@ -232,7 +232,7 @@ gDeltaL_exp <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/many_delta/deltaL_Delta_expo.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/many_delta/deltaL_Delta_expo.png"),
   plot = gDeltaL_exp, units = "px", dpi = 300, bg = "white")
 
 gDeltaL_poli <- gridExtra::grid.arrange(
@@ -245,7 +245,7 @@ gDeltaL_poli <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/many_delta/deltaL_Delta_poli.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/many_delta/deltaL_Delta_poli.png"),
   plot = gDeltaL_poli, units = "px", dpi = 300, bg = "white")
 ### Delta values ----
 #### For H
@@ -259,7 +259,7 @@ ggH_exp <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/many_delta/gH_Delta_expo.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/many_delta/gH_Delta_expo.png"),
   plot = ggH_exp, units = "px", dpi = 300, bg = "white")
 
 ggH_poli <- gridExtra::grid.arrange(
@@ -272,7 +272,7 @@ ggH_poli <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/many_delta/gH_Delta_poli.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/many_delta/gH_Delta_poli.png"),
   plot = ggH_poli, units = "px", dpi = 300, bg = "white")
 
 ### For L
@@ -286,7 +286,7 @@ ggL_exp <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/many_delta/gL_Delta_expo.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/many_delta/gL_Delta_expo.png"),
   plot = ggL_exp, units = "px", dpi = 300, bg = "white")
 
 ggL_poli <- gridExtra::grid.arrange(
@@ -299,11 +299,11 @@ ggL_poli <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/many_delta/gL_Delta_poli.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/many_delta/gL_Delta_poli.png"),
   plot = ggL_poli, units = "px", dpi = 300, bg = "white")
 
 # Graphs for one Delta ----
-dt_locreg_delta_expo <- readRDS("./inst/locreg_estimates/best_delta/dt_Hlogistic_bw_sig05_Delta_expo.RDS")
+dt_locreg_delta_expo <- readRDS("./inst/07_mc_simulate_data/locreg_estimates/best_delta/dt_Hlogistic_bw_sig05_Delta_expo.RDS")
 dt_locreg_delta_expo[, c("N", "lambda") := .(as.factor(N), as.factor(lambda))]
 
 ## Delta exponential
@@ -317,7 +317,7 @@ gHexp_best <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/best_delta/H_bestDelta_expo.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/best_delta/H_bestDelta_expo.png"),
   plot = gHexp_best, units = "px", dpi = 300, bg = "white")
 
 gLexp_best <- gridExtra::grid.arrange(
@@ -330,11 +330,11 @@ gLexp_best <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/best_delta/L_bestDelta_expo.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/best_delta/L_bestDelta_expo.png"),
   plot = gLexp_best, units = "px", dpi = 300, bg = "white")
 
 ## Delta constant
-dt_locreg_delta_const <- readRDS("./inst/locreg_estimates/best_delta/dt_Hlogistic_bw_sig05_Delta015.RDS")
+dt_locreg_delta_const <- readRDS("./inst/07_mc_simulate_data/locreg_estimates/best_delta/dt_Hlogistic_bw_sig05_Delta015.RDS")
 dt_locreg_delta_const[, c("N", "lambda") := .(as.factor(N), as.factor(lambda))]
 
 gHconstant_best <- gridExtra::grid.arrange(
@@ -347,7 +347,7 @@ gHconstant_best <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/many_delta/H_bestDelta_constant.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/many_delta/H_bestDelta_constant.png"),
   plot = gHconstant_best, units = "px", dpi = 300, bg = "white")
 
 gLconstant_best <- gridExtra::grid.arrange(
@@ -360,7 +360,7 @@ gLconstant_best <- gridExtra::grid.arrange(
   ncol = 3, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/locreg_estimates/many_delta/L_bestDelta_constant.png"),
+  filename = file.path("./inst/07_mc_simulate_data/locreg_estimates/many_delta/L_bestDelta_constant.png"),
   plot = gHconstant_best, units = "px", dpi = 300, bg = "white")
 
 

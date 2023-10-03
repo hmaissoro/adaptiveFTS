@@ -17,7 +17,7 @@ Hlogistic <- function(t){
 dt_locreg <- data.table::rbindlist(lapply(N, function(Ni){
   dt_lbda <- data.table::rbindlist(lapply(lambda, function(lambdai, Ni){
     # Import data
-    dt <- readRDS(paste0("./inst/data/dt_mc_fts_real_data_N=", Ni, "_mu=", lambdai, "_Hlogistic_sig05.RDS"))
+    dt <- readRDS(paste0("./inst/07_mc_simulate_data/data/dt_mc_fts_real_data_N=", Ni, "_mu=", lambdai, "_Hlogistic_sig05.RDS"))
     dt <- dt[ttag == "trandom"][, .SD, .SDcols = ! c("ttag", "far_mean")]
 
     # Estimate local regularity by mc
@@ -84,13 +84,13 @@ dt_locreg <- data.table::rbindlist(lapply(N, function(Ni){
   }, Ni = Ni))
   return(dt_lbda)
 }))
-saveRDS(dt_locreg, "./inst/locreg_estimates/many_delta/dt_Hlogistic_bw_sig05.RDS")
+saveRDS(dt_locreg, "./inst/07_mc_simulate_data/locreg_estimatesmany_delta/dt_Hlogistic_bw_sig05.RDS")
 
 # Estimate local regularity at multiple Delta (more light) ----
 dt_locreg_ml <- data.table::rbindlist(lapply(N, function(Ni){
   dt_lbda <- data.table::rbindlist(lapply(lambda, function(lambdai, Ni){
     # Import data
-    dt <- readRDS(paste0("./inst/data/dt_mc_fts_real_data_N=", Ni, "_mu=", lambdai, "_Hlogistic_sig05.RDS"))
+    dt <- readRDS(paste0("./inst/07_mc_simulate_data/data/dt_mc_fts_real_data_N=", Ni, "_mu=", lambdai, "_Hlogistic_sig05.RDS"))
     dt <- dt[ttag == "trandom"][, .SD, .SDcols = ! c("ttag", "far_mean")]
 
     # Estimate local regularity by mc
@@ -157,13 +157,13 @@ dt_locreg_ml <- data.table::rbindlist(lapply(N, function(Ni){
   }, Ni = Ni))
   return(dt_lbda)
 }))
-saveRDS(dt_locreg_ml, "./inst/locreg_estimates/many_delta/dt_Hlogistic_bw_sig05_ml.RDS")
+saveRDS(dt_locreg_ml, "./inst/07_mc_simulate_data/locreg_estimatesmany_delta/dt_Hlogistic_bw_sig05_ml.RDS")
 
 # Estimate local regularity for one Delta ----
 dt_locreg_Delta_expo <- data.table::rbindlist(lapply(N, function(Ni){
   dt_lbda <- data.table::rbindlist(lapply(lambda, function(lambdai, Ni){
     # Import data
-    dt <- readRDS(paste0("./inst/data/dt_mc_fts_real_data_N=", Ni, "_mu=", lambdai, "_Hlogistic_sig05.RDS"))
+    dt <- readRDS(paste0("./inst/07_mc_simulate_data/data/dt_mc_fts_real_data_N=", Ni, "_mu=", lambdai, "_Hlogistic_sig05.RDS"))
     dt <- dt[ttag == "trandom"][, .SD, .SDcols = ! c("ttag", "far_mean")]
 
     # Estimate local regularity by mc
@@ -195,14 +195,14 @@ dt_locreg_Delta_expo <- data.table::rbindlist(lapply(N, function(Ni){
   return(dt_lbda)
 }))
 
-saveRDS(dt_locreg_Delta_expo, "./inst/locreg_estimates/best_delta/dt_Hlogistic_bw_sig05_Delta_expo.RDS")
+saveRDS(dt_locreg_Delta_expo, "./inst/07_mc_simulate_data/locreg_estimatesbest_delta/dt_Hlogistic_bw_sig05_Delta_expo.RDS")
 
 
 ## Centered data
 dt_locreg_Delta_expo_nc <- data.table::rbindlist(lapply(N, function(Ni){
   dt_lbda <- data.table::rbindlist(lapply(lambda, function(lambdai, Ni){
     # Import data
-    dt <- readRDS(paste0("./inst/data/dt_mc_fts_real_data_N=", Ni, "_mu=", lambdai, "_Hlogistic_sig05.RDS"))
+    dt <- readRDS(paste0("./inst/07_mc_simulate_data/data/dt_mc_fts_real_data_N=", Ni, "_mu=", lambdai, "_Hlogistic_sig05.RDS"))
     dt <- dt[ttag == "trandom"][, .SD, .SDcols = ! c("ttag", "far_mean")]
 
     # Estimate local regularity by mc
@@ -234,14 +234,14 @@ dt_locreg_Delta_expo_nc <- data.table::rbindlist(lapply(N, function(Ni){
   return(dt_lbda)
 }))
 
-saveRDS(dt_locreg_Delta_expo_nc, "./inst/locreg_estimates/best_delta/dt_Hlogistic_bw_sig05_Delta_expo_not_centered.RDS")
+saveRDS(dt_locreg_Delta_expo_nc, "./inst/07_mc_simulate_data/locreg_estimatesbest_delta/dt_Hlogistic_bw_sig05_Delta_expo_not_centered.RDS")
 
 
 ## Delta = 0.15
 dt_locreg_Delta015 <- data.table::rbindlist(lapply(N, function(Ni){
   dt_lbda <- data.table::rbindlist(lapply(lambda, function(lambdai, Ni){
     # Import data
-    dt <- readRDS(paste0("./inst/data/dt_mc_fts_real_data_N=", Ni, "_mu=", lambdai, "_Hlogistic_sig05.RDS"))
+    dt <- readRDS(paste0("./inst/07_mc_simulate_data/data/dt_mc_fts_real_data_N=", Ni, "_mu=", lambdai, "_Hlogistic_sig05.RDS"))
     dt <- dt[ttag == "trandom"][, .SD, .SDcols = ! c("ttag", "far_mean")]
 
     # Estimate local regularity by mc
@@ -267,6 +267,6 @@ dt_locreg_Delta015 <- data.table::rbindlist(lapply(N, function(Ni){
   return(dt_lbda)
 }))
 
-saveRDS(dt_locreg_Delta015, "./inst/locreg_estimates/best_delta/dt_Hlogistic_bw_sig05_Delta010.RDS")
+saveRDS(dt_locreg_Delta015, "./inst/07_mc_simulate_data/locreg_estimatesbest_delta/dt_Hlogistic_bw_sig05_Delta010.RDS")
 
 

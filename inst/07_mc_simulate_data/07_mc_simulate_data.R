@@ -1,6 +1,7 @@
 # Mont2-Carlo simulation for the paper : data generation
 
-# Simulation parameters----
+# Simulation for data in inst/data ----
+## Simulation parameters----
 N <- c(100L, 200L, 400L)
 lambda <- c(25L, 50L, 100L, 200L, 300L)
 sig <- 0.5
@@ -13,7 +14,7 @@ Hlogistic <- function(t){
                  change_point_position = 0.5, slope = 5)
 }
 
-# Simulation function ----
+## Simulation function ----
 sim_fun <- function(mc_i, Ni, lbda, t0, sig = 0.5,
                     kernel_far = get_real_data_far_kenel,
                     mean_far = get_real_data_mean, hurst = Hlogistic){
@@ -75,7 +76,7 @@ sim_fun <- function(mc_i, Ni, lbda, t0, sig = 0.5,
   return(dt_res)
 }
 
-# Simulattion loop ----
+## Simulattion loop ----
 dt_N <- data.table::rbindlist(lapply(N, function(Ni){
   dt_lambda <- data.table::rbindlist(lapply(lambda, function(lambdai){
     dt_mc <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
@@ -84,7 +85,7 @@ dt_N <- data.table::rbindlist(lapply(N, function(Ni){
                      mean_far = get_real_data_mean, hurst = Hlogistic)
       return(dt_)
     }, mc.cores = 75))
-    rds_name <- paste0("./inst/data/dt_mc_fts_real_data_N=", Ni, "_lambda=", lambdai, "_Hlogistic_sig05.RDS")
+    rds_name <- paste0("./inst/07_mc_simulate_data/data/dt_mc_fts_real_data_N=", Ni, "_lambda=", lambdai, "_Hlogistic_sig05.RDS")
     saveRDS(object = dt_mc, file = rds_name)
   }))
 }))
