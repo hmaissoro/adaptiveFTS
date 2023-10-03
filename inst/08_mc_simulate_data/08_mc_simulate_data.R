@@ -91,7 +91,7 @@ far_ker_d1 <- function(s,t, operator_norm = 0.7){
   k <- sqrt(pi) / 2 * (
     pnorm(q = 2, mean = 0, sd = sqrt(1/2)) - pnorm(q = 0, mean = 0, sd = sqrt(1/2))
   )
-  kappa_c <- operator_nom / k
+  kappa_c <- operator_norm / k
   res <- kappa_c * exp(- (s - 2 * t) ** 2)
 }
 
