@@ -4,14 +4,19 @@
 \alias{.random_design}
 \title{Generate a random design of the place where the observation is made.}
 \usage{
-.random_design(N, lambda, tdistribution = runif, ...)
+.random_design(N, lambda, Mdistribution = rpois, tdistribution = runif, ...)
 }
 \arguments{
 \item{N}{\code{integer}. Number of curves.}
 
 \item{lambda}{\code{integer}. Mean of the number of observations per curve.}
 
-\item{tdistribution}{\code{function}. Observation point distribution.}
+\item{Mdistribution}{\code{function}. Distribution of the number of observation points per curve.
+The first argument of the function must correspond to \code{N} and the second to \code{lambda}.
+Default \code{Mdistribution = rpois}.}
+
+\item{tdistribution}{\code{function}. Distribution of the observation point in the domain.
+Currently only \code{runif} is accepted.}
 
 \item{...}{Additional argument of \code{tdistribution}.}
 }

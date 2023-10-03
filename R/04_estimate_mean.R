@@ -39,6 +39,7 @@
 #' # Generate a sample path of FTS
 #' dt_far <- simulate_far(N = 50, lambda = 70,
 #'                        tdesign = "random",
+#'                        Mdistribution = rpois,
 #'                        tdistribution = runif,
 #'                        tcommon = NULL,
 #'                        hurst_fun = hurst_logistic,
@@ -241,6 +242,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #' # Generate a FAR A process
 #' dt_far <- simulate_far(N = 50, lambda = 70,
 #'                        tdesign = "random",
+#'                        Mdistribution = rpois,
 #'                        tdistribution = runif,
 #'                        tcommon = NULL,
 #'                        hurst_fun = hurst_logistic,
@@ -402,6 +404,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' # Generate a FAR A process
 #' dt_far <- simulate_far(N = 50, lambda = 70,
 #'                        tdesign = "random",
+#'                        Mdistribution = rpois,
 #'                        tdistribution = runif,
 #'                        tcommon = NULL,
 #'                        hurst_fun = hurst_logistic,
@@ -465,6 +468,7 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' # Generate a FAR A process
 #' dt_far <- simulate_far(N = 50, lambda = 70,
 #'                        tdesign = "random",
+#'                        Mdistribution = rpois,
 #'                        tdistribution = runif,
 #'                        tcommon = NULL,
 #'                        hurst_fun = hurst_logistic,

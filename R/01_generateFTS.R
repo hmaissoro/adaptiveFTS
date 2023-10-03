@@ -232,7 +232,11 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #'
 #' @param N \code{integer}. Number of curves.
 #' @param lambda \code{integer}. Mean of the number of observations per curve.
-#' @param tdistribution \code{function}. Observation point distribution.
+#' @param Mdistribution \code{function}. Distribution of the number of observation points per curve.
+#' The first argument of the function must correspond to \code{N} and the second to \code{lambda}.
+#' Default \code{Mdistribution = rpois}.
+#' @param tdistribution \code{function}. Distribution of the observation point in the domain.
+#' Currently only \code{runif} is accepted.
 #' @param ... Additional argument of \code{tdistribution}.
 #'
 #' @return A \code{data.table} containing 3 column :
@@ -248,15 +252,17 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #'
 #' @export
 #'
-.random_design <- function(N, lambda, tdistribution = runif, ...) {
+.random_design <- function(N, lambda, Mdistribution = rpois, tdistribution = runif, ...) {
   if (! (N - floor(N) == 0) & N > 1)
     stop("'N' must be an integer greater than 1.")
   if (! (lambda - floor(lambda) == 0) & lambda > 1)
     stop("'lambda' must be an integer greater than 1.")
-  if (! methods::is(tdistribution, "function"))
-    stop("'tdistribution' must be a function.")
+  if (! methods::is(Mdistribution, "function"))
+    stop("'Mdistribution' must be a function.")
+  if (! (methods::is(tdistribution, "function") & identical(tdistribution, runif)))
+    stop("'tdistribution' must be a function, and currently only 'runif' is accepted.")
 
-  M <- rpois(N, lambda)
+  M <- Mdistribution(N, lambda)
   data.table::rbindlist(lapply(1:N, function(n, M = M, ...){
     data.table::data.table("id_curve" = n, "Mn" = M[n], "Tn" =  sort(tdistribution(M[n], ...)))
   }, M = M, ... = ...))
@@ -267,6 +273,9 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #'@param N \code{integer}. Number of curves.
 #' @param lambda \code{integer}. Mean of the number of observations per curve.
 #' @param tdesign \code{character}. Type of the design. It is either 'random' or 'common'.
+#' @param Mdistribution \code{function}. Distribution of the number of observation points per curve.
+#' The first argument of the function must correspond to \code{N} and the second to \code{lambda}.
+#' Default \code{Mdistribution = rpois}.
 #' @param tdistribution \code{function (or NULL)}. Observation point distribution if \code{tdesign = 'random'} and \code{NULL} otherwise.
 #' @param tcommon \code{vector (float)}. Observation point vector if \code{tdesign = 'common'}.
 #' If \code{tdesign = 'random'} and if we want to run some tests at a particular observation position, this can also be specified.
@@ -295,22 +304,24 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #' @examples
 #'
 #'\dontrun{
-#' dt_far <- far.sim(N = 2L, lambda = 70L,
-#'                   tdesign = "random",
-#'                   tdistribution = runif,
-#'                   tcommon = seq(0.2, 0.8, len = 50),
-#'                   hurst_fun = hurst_logistic,
-#'                   L = 4,
-#'                   far_kernel = function(s,t) 9/4 * exp(- (t + 2 * s) ** 2),
-#'                   far_mean = function(t) 4 * sin(1.5 * pi * t),
-#'                   int_grid = 100L,
-#'                   burnin = 100L,
-#'                   remove_burnin = TRUE)
+#' dt_far <- simulate_far(N = 2L, lambda = 70L,
+#'                        tdesign = "random",
+#'                        Mdistribution = rpois,
+#'                        tdistribution = runif,
+#'                        tcommon = seq(0.2, 0.8, len = 50),
+#'                        hurst_fun = hurst_logistic,
+#'                        L = 4,
+#'                        far_kernel = function(s,t) 9/4 * exp(- (t + 2 * s) ** 2),
+#'                        far_mean = function(t) 4 * sin(1.5 * pi * t),
+#'                        int_grid = 100L,
+#'                        burnin = 100L,
+#'                        remove_burnin = TRUE)
 #'
 #'}
 #'
 simulate_far <- function(N = 2L, lambda = 70L,
                          tdesign = "random",
+                         Mdistribution = rpois,
                          tdistribution = runif,
                          tcommon = seq(0.2, 0.8, len = 50),
                          hurst_fun = hurst_logistic,
@@ -329,10 +340,10 @@ simulate_far <- function(N = 2L, lambda = 70L,
   }else{
     tdesign <- match.arg(arg = tdesign, choices = c("random", "common"))
   }
-  if (( ! methods::is(tdistribution, "function")) & tdesign == "random")
-    stop("If tdesign = 'random', then 'tdistribution' must be a function.")
-  if ((! is.null(tdistribution)) & tdesign == "common")
-    stop("If tdesign = 'common', then 'tdistribution' must be NULL")
+  if (( ! (methods::is(Mdistribution, "function") & methods::is(tdistribution, "function"))) & tdesign == "random")
+    stop("If tdesign = 'random', then 'Mdistribution' and 'tdistribution' must be functions.")
+  if ((! (is.null(Mdistribution) & is.null(tdistribution))) & tdesign == "common")
+    stop("If tdesign = 'common', then 'Mdistribution' and 'tdistribution' must be NULL.")
   if (tdesign == "common"){
     if (is.null(tcommon) | ! (any(tcommon > 0 & tcommon <= 1) & length(tcommon) > 2))
       stop("'tcommon' must be of minimum length 2 with values between 0 and 1.")

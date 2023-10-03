@@ -10,6 +10,7 @@
 #' Otherwise, if \code{h} is a \code{vector}, its length must be equal to the number of curves in \code{data}
 #' and each element of the vector must correspond to a curve given in the same order as in \code{data}.
 #' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
+#' @param center \code{logical}. If \code{TRUE}, the curves are centered.
 #'
 #' @return A \code{data.table} containing the following columns.
 #'          \itemize{
@@ -41,6 +42,7 @@
 #'
 #' dt_far <- simulate_far(N = 200L, lambda = 100L,
 #'                        tdesign = "random",
+#'                        Mdistribution = rpois,
 #'                        tdistribution = runif,
 #'                        tcommon = NULL,
 #'                        hurst_fun = Hfun,

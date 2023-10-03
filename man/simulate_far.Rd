@@ -8,6 +8,7 @@ simulate_far(
   N = 2L,
   lambda = 70L,
   tdesign = "random",
+  Mdistribution = rpois,
   tdistribution = runif,
   tcommon = seq(0.2, 0.8, len = 50),
   hurst_fun = hurst_logistic,
@@ -25,6 +26,10 @@ simulate_far(
 \item{lambda}{\code{integer}. Mean of the number of observations per curve.}
 
 \item{tdesign}{\code{character}. Type of the design. It is either 'random' or 'common'.}
+
+\item{Mdistribution}{\code{function}. Distribution of the number of observation points per curve.
+The first argument of the function must correspond to \code{N} and the second to \code{lambda}.
+Default \code{Mdistribution = rpois}.}
 
 \item{tdistribution}{\code{function (or NULL)}. Observation point distribution if \code{tdesign = 'random'} and \code{NULL} otherwise.}
 
@@ -61,17 +66,18 @@ Draw a Functional Autoregressive Process of order 1 (FAR(1))
 \examples{
 
 \dontrun{
-dt_far <- far.sim(N = 2L, lambda = 70L,
-                  tdesign = "random",
-                  tdistribution = runif,
-                  tcommon = seq(0.2, 0.8, len = 50),
-                  hurst_fun = hurst_logistic,
-                  L = 4,
-                  far_kernel = function(s,t) 9/4 * exp(- (t + 2 * s) ** 2),
-                  far_mean = function(t) 4 * sin(1.5 * pi * t),
-                  int_grid = 100L,
-                  burnin = 100L,
-                  remove_burnin = TRUE)
+dt_far <- simulate_far(N = 2L, lambda = 70L,
+                       tdesign = "random",
+                       Mdistribution = rpois,
+                       tdistribution = runif,
+                       tcommon = seq(0.2, 0.8, len = 50),
+                       hurst_fun = hurst_logistic,
+                       L = 4,
+                       far_kernel = function(s,t) 9/4 * exp(- (t + 2 * s) ** 2),
+                       far_mean = function(t) 4 * sin(1.5 * pi * t),
+                       int_grid = 100L,
+                       burnin = 100L,
+                       remove_burnin = TRUE)
 
 }
 

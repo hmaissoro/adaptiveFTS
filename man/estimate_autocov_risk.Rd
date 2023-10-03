@@ -120,6 +120,7 @@ Estimate the risk of the lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function
 # Generate a sample path of FTS
 dt_far <- simulate_far(N = 50, lambda = 70,
                        tdesign = "random",
+                       Mdistribution = rpois,
                        tdistribution = runif,
                        tcommon = NULL,
                        hurst_fun = hurst_logistic,

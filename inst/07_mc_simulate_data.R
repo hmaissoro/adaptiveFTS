@@ -1,6 +1,6 @@
 # Mont2-Carlo simulation for the paper : data generation
 
-# Simulation parameters ----
+# Simulation parameters----
 N <- c(100L, 200L, 400L)
 lambda <- c(25L, 50L, 100L, 200L, 300L)
 sig <- 0.5
@@ -21,6 +21,7 @@ sim_fun <- function(mc_i, Ni, lbda, t0, sig = 0.5,
   # Generate FTS
   dt_far <- simulate_far(N = Ni, lambda = lbda,
                          tdesign = "random",
+                         Mdistribution = rpois,
                          tdistribution = runif,
                          tcommon = t0,
                          hurst_fun = hurst,

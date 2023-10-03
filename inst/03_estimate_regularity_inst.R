@@ -9,6 +9,7 @@ L <- 4
 
 dt_far <- simulate_far(N = 200L, lambda = 100L,
                        tdesign = "random",
+                       Mdistribution = rpois,
                        tdistribution = runif,
                        tcommon = NULL,
                        hurst_fun = Hfun,

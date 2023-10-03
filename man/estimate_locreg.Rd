@@ -12,7 +12,8 @@ estimate_locreg(
   t = 1/2,
   Delta = NULL,
   h = NULL,
-  smooth_ker = epanechnikov
+  smooth_ker = epanechnikov,
+  center = TRUE
 )
 }
 \arguments{
@@ -65,6 +66,8 @@ Otherwise, if \code{h} is a \code{vector}, its length must be equal to the numbe
 and each element of the vector must correspond to a curve given in the same order as in \code{data}.}
 
 \item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.}
+
+\item{center}{\code{logical}. If \code{TRUE}, the curves are centered.}
 }
 \value{
 A \code{data.table} containing the following columns.
@@ -92,6 +95,7 @@ L <- 4
 
 dt_far <- simulate_far(N = 200L, lambda = 100L,
                        tdesign = "random",
+                       Mdistribution = rpois,
                        tdistribution = runif,
                        tcommon = NULL,
                        hurst_fun = Hfun,

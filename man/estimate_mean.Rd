@@ -97,6 +97,7 @@ Estimate mean function
 # Generate a FAR A process
 dt_far <- simulate_far(N = 50, lambda = 70,
                        tdesign = "random",
+                       Mdistribution = rpois,
                        tdistribution = runif,
                        tcommon = NULL,
                        hurst_fun = hurst_logistic,
