@@ -1,8 +1,6 @@
 # Mont2-Carlo simulation for the paper : data generation
 
-## Simulation parameters----
-# N <- c(400L, 1000L)
-# lambda <- c(25L, 50L, 100L, 200L, 1000L)
+## Simulation global parameters----
 sig <- 0.5
 mc <- 100
 t0 <- c(0.2, 0.4, 0.7, 0.8)
@@ -48,7 +46,6 @@ sim_fun <- function(mc_i, Ni, lbda, t0, sig = 0.5,
   ## Determine bw for each curve
   index <- dt_far[, unique(id_curve)]
   dt <- data.table::rbindlist(lapply(index, function(id, dtt, bw_grid){
-
     # Filter data
     d <- dtt[id_curve == id & ttag == "trandom"][order(tobs)]
 
@@ -58,6 +55,7 @@ sim_fun <- function(mc_i, Ni, lbda, t0, sig = 0.5,
     # Get be
     bw <- estimate_nw_bw(y = d[, X], t = d[, tobs], bw_grid = bw_grid)
     d[, presmooth_bw := bw]
+    return(d)
   }, dtt = dt_far, bw_grid = bw_grid))
 
   # Add fix design points
@@ -94,7 +92,7 @@ far_ker_d1 <- function(s,t, operator_norm = 0.7){
     pnorm(q = 2, mean = 0, sd = sqrt(1/2)) - pnorm(q = 0, mean = 0, sd = sqrt(1/2))
   )
   kappa_c <- operator_nom / k
-  res <- kappa_c * exp(-(s - 2 * t) ** 2)
+  res <- kappa_c * exp(- (s - 2 * t) ** 2)
 }
 
 ## Data generation
