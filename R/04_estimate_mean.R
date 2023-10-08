@@ -112,7 +112,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     Lt <- dt_locreg[, Lt]
     ht <- dt_locreg[, unique(locreg_bw)]
   } else {
-    ht <- h
+    ht <- median(h)
   }
 
   # Estimation of the observation error standard deviation
