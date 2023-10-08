@@ -13,7 +13,10 @@ Imports:
     caret,
     data.table,
     MASS,
-    methods
+    methods,
+    Rdpack
+RdMacros: 
+    Rdpack
 Suggests: 
     knitr,
     rmarkdown
