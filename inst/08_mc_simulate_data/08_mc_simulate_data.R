@@ -156,7 +156,7 @@ sim_estim_locreg_proxy <- function(mc_i, Ni, lbda, t0,
   # Add MC index
   dt_locreg[, c("id_mc", "N", "lambda") := .(mc_i, Ni, lbda)]
   data.table::setcolorder(
-    x = dt_res,
+    x = dt_locreg,
     neworder = c("id_mc", "N", "lambda", "t0", "Delta", "theta_t1_t2", "theta_t1_t3", "theta_t2_t3", "H", "L"))
   return(dt_locreg)
 }
