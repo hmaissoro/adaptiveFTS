@@ -217,7 +217,7 @@ dt_mc_proxy_N1000_lambda1000_d1 <- data.table::rbindlist(parallel::mclapply(seq_
   return(dt_)
 }, mc.cores = 75))
 saveRDS(object = dt_mc_proxy_N1000_lambda1000_d1, file = "./inst/08_mc_simulate_data/data/dt_mc_locreg_proxy_far_N=1000_lambda=1000_d1.RDS")
-rm(dt_mc_N1000_lambda1000_d1) ; gc()
+rm(dt_mc_proxy_N1000_lambda1000_d1) ; gc()
 
 # Simulation - design 2 ----
 ## Mean function from real data + Same kernel as design 1
