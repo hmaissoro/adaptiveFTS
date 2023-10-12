@@ -26,25 +26,48 @@ bounded_uniform <- function(N, lambda, p = 0.2){
 }
 
 # Functions ----
+zero_mean_func <- function(t){
+  0 * t
+}
 
 ## Simulation function ----
+## If center = TRUE, the mean function is added to a mean-zero FAR(1) process
 sim_fun <- function(mc_i, Ni, lbda, t0, sig = 0.5,
                     kernel_far = get_real_data_far_kenel,
-                    mean_far = get_real_data_mean, hurst = Hlogistic){
+                    mean_far = get_real_data_mean,
+                    hurst = Hlogistic, center = FALSE){
 
   # Generate FTS
-  dt_far <- simulate_far(N = Ni, lambda = lbda,
-                         tdesign = "random",
-                         Mdistribution = bounded_uniform,
-                         tdistribution = runif,
-                         tcommon = t0,
-                         hurst_fun = hurst,
-                         L = 4,
-                         far_kernel = kernel_far,
-                         far_mean = mean_far,
-                         int_grid = 100L,
-                         burnin = 100L,
-                         remove_burnin = TRUE)
+  if (center) {
+    # Simulate mean-zero FAR(1) process
+    dt_far <- simulate_far(N = Ni, lambda = lbda,
+                           tdesign = "random",
+                           Mdistribution = bounded_uniform,
+                           tdistribution = runif,
+                           tcommon = t0,
+                           hurst_fun = hurst,
+                           L = 4,
+                           far_kernel = kernel_far,
+                           far_mean = zero_mean_func,
+                           int_grid = 100L,
+                           burnin = 100L,
+                           remove_burnin = TRUE)
+    # mean_far
+    dt_far[, X := X + mean_far(tobs)]
+  } else {
+    dt_far <- simulate_far(N = Ni, lambda = lbda,
+                           tdesign = "random",
+                           Mdistribution = bounded_uniform,
+                           tdistribution = runif,
+                           tcommon = t0,
+                           hurst_fun = hurst,
+                           L = 4,
+                           far_kernel = kernel_far,
+                           far_mean = mean_far,
+                           int_grid = 100L,
+                           burnin = 100L,
+                           remove_burnin = TRUE)
+  }
 
   # Get pre-smoothing bandwidth
   ## Define and exponential bandwidth grid
@@ -90,9 +113,11 @@ sim_fun <- function(mc_i, Ni, lbda, t0, sig = 0.5,
 }
 
 ## Local regularity proxy values estimation function ----
+## If center = TRUE, the mean function is added to a mean-zero FAR(1) process
 sim_estim_locreg_proxy <- function(mc_i, Ni, lbda, t0,
                                    kernel_far = get_real_data_far_kenel,
-                                   mean_far = get_real_data_mean, hurst = Hlogistic){
+                                   mean_far = get_real_data_mean,
+                                   hurst = Hlogistic, center = FALSE){
   # Chose a vector of Delta
   Delta_vec <- seq(0.01, 0.19, by = 0.005)
 
@@ -110,18 +135,35 @@ sim_estim_locreg_proxy <- function(mc_i, Ni, lbda, t0,
   dt_time <- dt_time[order(time)]
 
   # Generate FTS
-  dt_far <- simulate_far(N = Ni, lambda = lbda,
-                         tdesign = "common",
-                         Mdistribution = NULL,
-                         tdistribution = NULL,
-                         tcommon = dt_time[, time],
-                         hurst_fun = hurst,
-                         L = 4,
-                         far_kernel = kernel_far,
-                         far_mean = mean_far,
-                         int_grid = 100L,
-                         burnin = 100L,
-                         remove_burnin = TRUE)
+  ## If center = TRUE, the mean function is added to a mean-zero FAR(1) process
+  if (center) {
+    dt_far <- simulate_far(N = Ni, lambda = lbda,
+                           tdesign = "common",
+                           Mdistribution = NULL,
+                           tdistribution = NULL,
+                           tcommon = dt_time[, time],
+                           hurst_fun = hurst,
+                           L = 4,
+                           far_kernel = kernel_far,
+                           far_mean = zero_mean_func,
+                           int_grid = 100L,
+                           burnin = 100L,
+                           remove_burnin = TRUE)
+    dt_far[, X := X + mean_far(tobs)]
+  } else {
+    dt_far <- simulate_far(N = Ni, lambda = lbda,
+                           tdesign = "common",
+                           Mdistribution = NULL,
+                           tdistribution = NULL,
+                           tcommon = dt_time[, time],
+                           hurst_fun = hurst,
+                           L = 4,
+                           far_kernel = kernel_far,
+                           far_mean = mean_far,
+                           int_grid = 100L,
+                           burnin = 100L,
+                           remove_burnin = TRUE)
+  }
   # Add dt_time
   dt_far[, id_time := unique(dt_time[, id_time]), by = "id_curve"]
   dt_far <- data.table::merge.data.table(x = dt_far, y = dt_time, by = "id_time")
@@ -180,6 +222,7 @@ far_ker_d1 <- function(s,t, operator_norm = 0.7){
 }
 
 ## Data generation ----
+### Not centered FAR ----
 ### (N, lambda) = (400, 1000)
 dt_mc_N400_lambda300_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
   dt_ <- sim_fun(mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0, sig = sig,
@@ -198,7 +241,31 @@ dt_mc_N1000_lambda1000_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc
 saveRDS(object = dt_mc_N1000_lambda1000_d1, file = "./inst/08_mc_simulate_data/data/dt_mc_far_N=1000_lambda=1000_d1.RDS")
 rm(dt_mc_N1000_lambda1000_d1) ; gc()
 
+### Centered FAR + mean ----
+### (N, lambda) = (400, 1000)
+dt_mc_N400_lambda300_centered_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_fun(mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0, sig = sig,
+                 kernel_far = far_ker_d1, mean_far = far_mean_d1, hurst = Hlogistic, center = TRUE)
+  return(dt_)
+}, mc.cores = 75))
+saveRDS(
+  object = dt_mc_N400_lambda300_centered_d1,
+  file = "./inst/08_mc_simulate_data/data/dt_mc_far_N=400_lambda=300_centered_d1.RDS")
+rm(dt_mc_N400_lambda300_centered_d1) ; gc()
+
+### (N, lambda) = (1000, 1000)
+dt_mc_N1000_lambda1000_centered_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_fun(mc_i = mc_i, Ni = 1000, lbda = 1000, t0 = t0, sig = sig,
+                 kernel_far = far_ker_d1, mean_far = far_mean_d1, hurst = Hlogistic, center = TRUE)
+  return(dt_)
+}, mc.cores = 75))
+saveRDS(
+  object = dt_mc_N1000_lambda1000_centered_d1,
+  file = "./inst/08_mc_simulate_data/data/dt_mc_far_N=1000_lambda=1000_centered_d1.RDS")
+rm(dt_mc_N1000_lambda1000_centered_d1) ; gc()
+
 ## Estimate local regularity proxies ----
+### Not centered FAR(1) ----
 ### (N, lambda) = (400, 1000)
 dt_mc_proxy_N400_lambda300_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
   dt_ <- sim_estim_locreg_proxy(
@@ -219,10 +286,36 @@ dt_mc_proxy_N1000_lambda1000_d1 <- data.table::rbindlist(parallel::mclapply(seq_
 saveRDS(object = dt_mc_proxy_N1000_lambda1000_d1, file = "./inst/08_mc_simulate_data/data/dt_mc_locreg_proxy_far_N=1000_lambda=1000_d1.RDS")
 rm(dt_mc_proxy_N1000_lambda1000_d1) ; gc()
 
+# Centered FAR + mean ----
+### (N, lambda) = (400, 1000)
+dt_mc_proxy_N400_lambda300_centered_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_estim_locreg_proxy(
+    mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0,
+    kernel_far = far_ker_d1, mean_far = far_mean_d1, hurst = Hlogistic, center = TRUE)
+  return(dt_)
+}, mc.cores = 75))
+saveRDS(
+  object = dt_mc_proxy_N400_lambda300_centered_d1,
+  file = "./inst/08_mc_simulate_data/data/dt_mc_locreg_proxy_far_N=400_lambda=300_centered_d1.RDS")
+rm(dt_mc_proxy_N400_lambda300_centered_d1) ; gc()
+
+### (N, lambda) = (1000, 1000)
+dt_mc_proxy_N1000_lambda1000_centered_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_estim_locreg_proxy(
+    mc_i = mc_i, Ni = 1000, lbda = 1000, t0 = t0,
+    kernel_far = far_ker_d1, mean_far = far_mean_d1, hurst = Hlogistic, center = TRUE)
+  return(dt_)
+}, mc.cores = 75))
+saveRDS(
+  object = dt_mc_proxy_N1000_lambda1000_centered_d1,
+  file = "./inst/08_mc_simulate_data/data/dt_mc_locreg_proxy_far_N=1000_lambda=1000_centered_d1.RDS")
+rm(dt_mc_proxy_N1000_lambda1000_centered_d1) ; gc()
+
 # Simulation - design 2 ----
 ## Mean function from real data + Same kernel as design 1
 
 ## Data generation ----
+### Not centered FAR(1) ----
 ### (N, lambda) = (400, 1000)
 dt_mc_N400_lambda300_d2 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
   dt_ <- sim_fun(mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0, sig = sig,
@@ -240,7 +333,31 @@ dt_mc_N1000_lambda1000_d2 <- data.table::rbindlist(parallel::mclapply(seq_len(mc
 saveRDS(object = dt_mc_N1000_lambda1000_d2, file = "./inst/08_mc_simulate_data/data/dt_mc_far_N=1000_lambda=1000_d2.RDS")
 rm(dt_mc_N1000_lambda1000_d2) ; gc()
 
+### Centered FAR + mean ----
+### (N, lambda) = (400, 1000)
+dt_mc_N400_lambda300_centered_d2 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_fun(mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0, sig = sig,
+                 kernel_far = far_ker_d1, mean_far = get_real_data_mean, hurst = Hlogistic, center = TRUE)
+  return(dt_)
+}, mc.cores = 75))
+saveRDS(
+  object = dt_mc_N400_lambda300_centered_d2,
+  file = "./inst/08_mc_simulate_data/data/dt_mc_far_N=400_lambda=300_centered_d2.RDS")
+rm(dt_mc_N400_lambda300_centered_d2) ; gc()
+
+### (N, lambda) = (1000, 1000)
+dt_mc_N1000_lambda1000_centered_d2 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_fun(mc_i = mc_i, Ni = 1000, lbda = 1000, t0 = t0, sig = sig,
+                 kernel_far = far_ker_d1, mean_far = get_real_data_mean, hurst = Hlogistic, center = TRUE)
+  return(dt_)
+}, mc.cores = 75))
+saveRDS(
+  object = dt_mc_N1000_lambda1000_centered_d2,
+  file = "./inst/08_mc_simulate_data/data/dt_mc_far_N=1000_lambda=1000_centered_d2.RDS")
+rm(dt_mc_N1000_lambda1000_centered_d2) ; gc()
+
 ## Estimate local regularity proxies ----
+### Not centered FAR(1) ----
 ### (N, lambda) = (400, 1000)
 dt_mc_proxy_N400_lambda300_d2 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
   dt_ <- sim_estim_locreg_proxy(
@@ -265,10 +382,36 @@ saveRDS(
   file = "./inst/08_mc_simulate_data/data/dt_mc_locreg_proxy_far_N=1000_lambda=1000_d2.RDS")
 rm(dt_mc_proxy_N1000_lambda1000_d2) ; gc()
 
+### Centered FAR + mean ----
+### (N, lambda) = (400, 1000)
+dt_mc_proxy_N400_lambda300_centered_d2 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_estim_locreg_proxy(
+    mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0,
+    kernel_far = far_ker_d1, mean_far = get_real_data_mean, hurst = Hlogistic, center = TRUE)
+  return(dt_)
+}, mc.cores = 75))
+saveRDS(
+  object = dt_mc_proxy_N400_lambda300_centered_d2,
+  file = "./inst/08_mc_simulate_data/data/dt_mc_locreg_proxy_far_N=400_lambda=300_centered_d2.RDS")
+rm(dt_mc_proxy_N400_lambda300_centered_d2) ; gc()
+
+### (N, lambda) = (1000, 1000)
+dt_mc_proxy_N1000_lambda1000_centered_d2 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_estim_locreg_proxy(
+    mc_i = mc_i, Ni = 1000, lbda = 1000, t0 = t0,
+    kernel_far = far_ker_d1, mean_far = get_real_data_mean, hurst = Hlogistic)
+  return(dt_)
+}, mc.cores = 75))
+saveRDS(
+  object = dt_mc_proxy_N1000_lambda1000_centered_d2,
+  file = "./inst/08_mc_simulate_data/data/dt_mc_locreg_proxy_far_N=1000_lambda=1000_centered_d2.RDS")
+rm(dt_mc_proxy_N1000_lambda1000_centered_d2) ; gc()
+
 # Simulation - design 3 ----
 ## Mean and far kenel estimated from real data
 
 ## Data generation ----
+### Note centered FAR(1) ----
 ### (N, lambda) = (400, 1000)
 dt_mc_N400_lambda300_d3 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
   dt_ <- sim_fun(mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0, sig = sig,
@@ -287,7 +430,31 @@ dt_mc_N1000_lambda1000_d3 <- data.table::rbindlist(parallel::mclapply(seq_len(mc
 saveRDS(object = dt_mc_N1000_lambda1000_d3, file = "./inst/08_mc_simulate_data/data/dt_mc_far_N=1000_lambda=1000_d3.RDS")
 rm(dt_mc_N1000_lambda1000_d3) ; gc()
 
+### Centered FAR + mean ----
+### (N, lambda) = (400, 1000)
+dt_mc_N400_lambda300_centered_d3 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_fun(mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0, sig = sig,
+                 kernel_far = get_real_data_far_kenel, mean_far = get_real_data_mean, hurst = Hlogistic, center = TRUE)
+  return(dt_)
+}, mc.cores = 75))
+saveRDS(
+  object = dt_mc_N400_lambda300_centered_d3,
+  file = "./inst/08_mc_simulate_data/data/dt_mc_far_N=400_lambda=300_centered_d3.RDS")
+rm(dt_mc_N400_lambda300_centered_d3) ; gc()
+
+### (N, lambda) = (1000, 1000)
+dt_mc_N1000_lambda1000_centered_d3 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_fun(mc_i = mc_i, Ni = 1000, lbda = 1000, t0 = t0, sig = sig,
+                 kernel_far = get_real_data_far_kenel, mean_far = get_real_data_mean, hurst = Hlogistic, center = TRUE)
+  return(dt_)
+}, mc.cores = 75))
+saveRDS(
+  object = dt_mc_N1000_lambda1000_centered_d3,
+  file = "./inst/08_mc_simulate_data/data/dt_mc_far_N=1000_lambda=1000_centered_d3.RDS")
+rm(dt_mc_N1000_lambda1000_centered_d3) ; gc()
+
 ## Estimate local regularity proxies ----
+### Not centered FAR(1) ----
 ### (N, lambda) = (400, 1000)
 dt_mc_proxy_N400_lambda300_d3 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
   dt_ <- sim_estim_locreg_proxy(
@@ -311,3 +478,29 @@ saveRDS(
   object = dt_mc_proxy_N1000_lambda1000_d3,
   file = "./inst/08_mc_simulate_data/data/dt_mc_locreg_proxy_far_N=1000_lambda=1000_d3.RDS")
 rm(dt_mc_proxy_N1000_lambda1000_d3) ; gc()
+
+### Centered FAR + mean ----
+### (N, lambda) = (400, 1000)
+dt_mc_proxy_N400_lambda300_centered_d3 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_estim_locreg_proxy(
+    mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0,
+    kernel_far = get_real_data_far_kenel, mean_far = get_real_data_mean, hurst = Hlogistic, center = FALSE)
+  return(dt_)
+}, mc.cores = 75))
+saveRDS(
+  object = dt_mc_proxy_N400_lambda300_centered_d3,
+  file = "./inst/08_mc_simulate_data/data/dt_mc_locreg_proxy_far_N=400_lambda=300_centered_d3.RDS")
+rm(dt_mc_proxy_N400_lambda300_centered_d3) ; gc()
+
+### (N, lambda) = (1000, 1000)
+dt_mc_proxy_N1000_lambda1000_centered_d3 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_estim_locreg_proxy(
+    mc_i = mc_i, Ni = 1000, lbda = 1000, t0 = t0,
+    kernel_far = get_real_data_far_kenel, mean_far = get_real_data_mean, hurst = Hlogistic, center = TRUE)
+  return(dt_)
+}, mc.cores = 75))
+saveRDS(
+  object = dt_mc_proxy_N1000_lambda1000_centered_d3,
+  file = "./inst/08_mc_simulate_data/data/dt_mc_locreg_proxy_far_N=1000_lambda=1000_centered_d3.RDS")
+rm(dt_mc_proxy_N1000_lambda1000_centered_d3) ; gc()
+
