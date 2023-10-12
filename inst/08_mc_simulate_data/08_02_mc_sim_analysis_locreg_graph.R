@@ -27,7 +27,7 @@ gplot <- function(N = 400, lambda = 300, design = "d1", param = "Ht"){
   if (param == "Ht") {
     gplt <- ggplot(dt_locreg, aes(x = t, y = get(param))) +
       geom_boxplot() +
-      ylim(0.1, 0.9) +
+      ylim(0.2, 0.9) +
       ggtitle(latex2exp::TeX(title_exp)) +
       xlab("t") +
       ylab(latex2exp::TeX("$H_t$")) +

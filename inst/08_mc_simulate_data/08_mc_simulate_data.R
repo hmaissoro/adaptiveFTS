@@ -12,7 +12,15 @@ Hlogistic <- function(t){
 }
 ## {M_n} distribution
 bounded_uniform <- function(N, lambda, p = 0.2){
-  round(runif(n = N, min = lambda * (1 -p), max = lambda * (1 + p)))
+  round(runif(n = N, min = lambda * (1 - p), max = lambda * (1 + p)))
+}
+
+bounded_uniform <- function(N, lambda, p = 0.2){
+  sample(
+    x = seq(floor(lambda * (1 - p)), floor(lambda * (1 + p)), by = 1),
+    size = N,
+    replace = TRUE
+  )
 }
 
 ## Simulation function ----
