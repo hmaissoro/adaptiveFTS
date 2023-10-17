@@ -156,7 +156,7 @@ sim_estim_locreg_proxy <- function(mc_i, Ni, lbda, t0,
     new = c("xt1", "xt2", "xt3"))
 
   ## Clean
-  rm(dt_far_tcommon, dt_time) ; gc()
+  rm(dt_far_tcommon, dt_time, dt_far) ; gc()
 
   ## Estimate theta
   dt_locreg_proxies <- dt_far_tcommon_dcast[
@@ -203,7 +203,7 @@ dt_mc_locreg_proxy <- data.table::rbindlist(parallel::mclapply(seq_len(mc), func
                                 hurst = Hlogistic, center = FALSE)
   return(dt_)
 }, mc.cores = 75))
-saveRDS(object = dt_mc_locreg_proxy, file = "./inst/09_mc_simulate_data/data/dt_mc_far_proxy_N=400_lambda=300.RDS")
+saveRDS(object = dt_mc_locreg_proxy, file = "./inst/10_mc_simulate_data/data/dt_mc_far_proxy_N=400_lambda=300.RDS")
 rm(dt_mc_locreg_proxy) ; gc()
 
 ## Centered FAR - (N, lambda) = (400, 300)
@@ -213,7 +213,7 @@ dt_mc_locreg_proxy_centered <- data.table::rbindlist(parallel::mclapply(seq_len(
                                 hurst = Hlogistic, center = TRUE)
   return(dt_)
 }, mc.cores = 75))
-saveRDS(object = dt_mc_locreg_proxy_centered, file = "./inst/09_mc_simulate_data/data/dt_mc_far_proxy_centered_N=400_lambda=300.RDS")
+saveRDS(object = dt_mc_locreg_proxy_centered, file = "./inst/10_mc_simulate_data/data/dt_mc_far_proxy_centered_N=400_lambda=300.RDS")
 rm(dt_mc_locreg_proxy_centered) ; gc()
 
 
