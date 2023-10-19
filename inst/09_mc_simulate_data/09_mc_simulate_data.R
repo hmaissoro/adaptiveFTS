@@ -7,11 +7,8 @@ t0 <- c(0.2, 0.4, 0.7, 0.8)
 
 ## Logistic constant hurst function
 Hvec <- c(0.4, 0.5, 0.7)
-## {M_n} distribution
-# bounded_uniform <- function(N, lambda, p = 0.2){
-#   round(runif(n = N, min = lambda * (1 -p), max = lambda * (1 + p)))
-# }
 
+## {M_n} distribution
 bounded_uniform <- function(N, lambda, p = 0.2){
   sample(
     x = seq(floor(lambda * (1 - p)), floor(lambda * (1 + p)), by = 1),
@@ -23,24 +20,40 @@ bounded_uniform <- function(N, lambda, p = 0.2){
 ## Simulation function ----
 sim_fun <- function(mc_i, Ni, lbda, t0, sig = 0.5,
                     kernel_far = get_real_data_far_kenel,
-                    mean_far = get_real_data_mean, Hvec = Hvec){
-
+                    mean_far = get_real_data_mean, Hvec = Hvec, center = FALSE){
+  zero_mean_fun <- function(t) 0 * t
   dt_all_H <- data.table::rbindlist(lapply(Hvec, function(Hi){
 
     # Generate FTS
     Hfun <-  function(t) Hi + 0 * t
-    dt_far <- simulate_far(N = Ni, lambda = lbda,
-                           tdesign = "random",
-                           Mdistribution = bounded_uniform,
-                           tdistribution = runif,
-                           tcommon = t0,
-                           hurst_fun = Hfun,
-                           L = 4,
-                           far_kernel = kernel_far,
-                           far_mean = mean_far,
-                           int_grid = 100L,
-                           burnin = 100L,
-                           remove_burnin = TRUE)
+    if (center) {
+      dt_far <- simulate_far(N = Ni, lambda = lbda,
+                             tdesign = "random",
+                             Mdistribution = bounded_uniform,
+                             tdistribution = runif,
+                             tcommon = t0,
+                             hurst_fun = Hfun,
+                             L = 4,
+                             far_kernel = kernel_far,
+                             far_mean = zero_mean_fun,
+                             int_grid = 100L,
+                             burnin = 100L,
+                             remove_burnin = TRUE)
+    } else {
+      dt_far <- simulate_far(N = Ni, lambda = lbda,
+                             tdesign = "random",
+                             Mdistribution = bounded_uniform,
+                             tdistribution = runif,
+                             tcommon = t0,
+                             hurst_fun = Hfun,
+                             L = 4,
+                             far_kernel = kernel_far,
+                             far_mean = zero_mean_fun,
+                             int_grid = 100L,
+                             burnin = 100L,
+                             remove_burnin = TRUE)
+      dt_far[, X := X + mean_far(tobs)]
+    }
 
     # Get pre-smoothing bandwidth
     ## Define and exponential bandwidth grid
@@ -106,7 +119,7 @@ far_ker_d1 <- function(s,t, operator_norm = 0.7){
 }
 
 ## Data generation
-### (N, lambda) = (400, 1000)
+### Not centered (N, lambda) = (400, 1000)
 dt_mc_N400_lambda300_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
   dt_ <- sim_fun(mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0, sig = sig,
                  kernel_far = far_ker_d1, mean_far = far_mean_d1, Hvec = Hvec)
@@ -115,20 +128,69 @@ dt_mc_N400_lambda300_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc),
 saveRDS(object = dt_mc_N400_lambda300_d1, file = "./inst/09_mc_simulate_data/data/dt_mc_far_fBm_N=400_lambda=300_d1.RDS")
 rm(dt_mc_N400_lambda300_d1) ; gc() ; gc()
 
-### (N, lambda) = (1000, 1000)
-dt_mc_N1000_lambda1000_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
-  dt_ <- sim_fun(mc_i = mc_i, Ni = 1000, lbda = 1000, t0 = t0, sig = sig,
-                 kernel_far = far_ker_d1, mean_far = far_mean_d1, Hvec = Hvec)
+### Centered (N, lambda) = (400, 1000)
+dt_mc_N400_lambda300_centered_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_fun(mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0, sig = sig,
+                 kernel_far = far_ker_d1, mean_far = far_mean_d1, Hvec = Hvec, center = TRUE)
   return(dt_)
 }, mc.cores = 75))
-saveRDS(object = dt_mc_N1000_lambda1000_d1, file = "./inst/09_mc_simulate_data/data/dt_mc_far_fBm_N=1000_lambda=1000_d1.RDS")
-rm(dt_mc_N1000_lambda1000_d1) ; gc()
+saveRDS(object = dt_mc_N400_lambda300_centered_d1, file = "./inst/09_mc_simulate_data/data/dt_mc_far_fBm_N=400_lambda=300_centered_d1.RDS")
+rm(dt_mc_N400_lambda300_centered_d1) ; gc() ; gc()
+
+### (N, lambda) = (1000, 1000)
+# dt_mc_N1000_lambda1000_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+#   dt_ <- sim_fun(mc_i = mc_i, Ni = 1000, lbda = 1000, t0 = t0, sig = sig,
+#                  kernel_far = far_ker_d1, mean_far = far_mean_d1, Hvec = Hvec)
+#   return(dt_)
+# }, mc.cores = 75))
+# saveRDS(object = dt_mc_N1000_lambda1000_d1, file = "./inst/09_mc_simulate_data/data/dt_mc_far_fBm_N=1000_lambda=1000_d1.RDS")
+# rm(dt_mc_N1000_lambda1000_d1) ; gc()
+
+# Simulation - design 1 bis----
+
+## Mean function
+far_mean_d1 <- function(t) 4 * sin(3 * pi * t / 2)
+
+## Autoregressive kernel
+far_ker_d1_bis <- function(s,t) 9 / 4 * s * t
+
+## Data generation
+### Not centered (N, lambda) = (400, 1000)
+
+dt_mc_N400_lambda300_d1_bis <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_fun(mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0, sig = sig,
+                 kernel_far = far_ker_d1_bis, mean_far = far_mean_d1, Hvec = Hvec)
+  return(dt_)
+}, mc.cores = 75))
+saveRDS(object = dt_mc_N400_lambda300_d1_bis, file = "./inst/09_mc_simulate_data/data/dt_mc_far_fBm_N=400_lambda=300_d1_bis.RDS")
+rm(dt_mc_N400_lambda300_d1_bis) ; gc() ; gc()
+
+### Centered (N, lambda) = (400, 1000)
+dt_mc_N400_lambda300_centered_d1_bis <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_fun(mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0, sig = sig,
+                 kernel_far = far_ker_d1_bis, mean_far = far_mean_d1, Hvec = Hvec, center = TRUE)
+  return(dt_)
+}, mc.cores = 75))
+saveRDS(
+  object = dt_mc_N400_lambda300_centered_d1_bis,
+  file = "./inst/09_mc_simulate_data/data/dt_mc_far_fBm_N=400_lambda=300_centered_d1_bis.RDS"
+)
+rm(dt_mc_N400_lambda300_centered_d1_bis) ; gc() ; gc()
+
+### (N, lambda) = (1000, 1000)
+# dt_mc_N1000_lambda1000_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+#   dt_ <- sim_fun(mc_i = mc_i, Ni = 1000, lbda = 1000, t0 = t0, sig = sig,
+#                  kernel_far = far_ker_d1, mean_far = far_mean_d1, Hvec = Hvec)
+#   return(dt_)
+# }, mc.cores = 75))
+# saveRDS(object = dt_mc_N1000_lambda1000_d1, file = "./inst/09_mc_simulate_data/data/dt_mc_far_fBm_N=1000_lambda=1000_d1.RDS")
+# rm(dt_mc_N1000_lambda1000_d1) ; gc()
 
 # Simulation - design 2 ----
 ## Mean function from real data + Same kernel as design 1
 
 ## Data generation
-### (N, lambda) = (400, 1000)
+### Not cnetered (N, lambda) = (400, 1000)
 dt_mc_N400_lambda300_d2 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
   dt_ <- sim_fun(mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0, sig = sig,
                  kernel_far = far_ker_d1, mean_far = get_real_data_mean, Hvec = Hvec)
@@ -137,14 +199,23 @@ dt_mc_N400_lambda300_d2 <- data.table::rbindlist(parallel::mclapply(seq_len(mc),
 saveRDS(object = dt_mc_N400_lambda300_d2, file = "./inst/09_mc_simulate_data/data/dt_mc_far_fBm_N=400_lambda=300_d2.RDS")
 rm(dt_mc_N400_lambda300_d2) ; gc()
 
-### (N, lambda) = (1000, 1000)
-dt_mc_N1000_lambda1000_d2 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
-  dt_ <- sim_fun(mc_i = mc_i, Ni = 1000, lbda = 1000, t0 = t0, sig = sig,
-                 kernel_far = far_ker_d1, mean_far = get_real_data_mean, Hvec = Hvec)
+### d2_bis = d2 with far_ker_d1_bis
+dt_mc_N400_lambda300_d2_bis <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+  dt_ <- sim_fun(mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0, sig = sig,
+                 kernel_far = far_ker_d1_bis, mean_far = get_real_data_mean, Hvec = Hvec, center = FALSE)
   return(dt_)
 }, mc.cores = 75))
-saveRDS(object = dt_mc_N1000_lambda1000_d2, file = "./inst/09_mc_simulate_data/data/dt_mc_far_fBm_fBm_N=1000_lambda=1000_d2.RDS")
-rm(dt_mc_N1000_lambda1000_d2) ; gc()
+saveRDS(object = dt_mc_N400_lambda300_d2_bis, file = "./inst/09_mc_simulate_data/data/dt_mc_far_fBm_N=400_lambda=300_d2_bis.RDS")
+rm(dt_mc_N400_lambda300_d2_bis) ; gc()
+
+### (N, lambda) = (1000, 1000)
+# dt_mc_N1000_lambda1000_d2 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+#   dt_ <- sim_fun(mc_i = mc_i, Ni = 1000, lbda = 1000, t0 = t0, sig = sig,
+#                  kernel_far = far_ker_d1, mean_far = get_real_data_mean, Hvec = Hvec)
+#   return(dt_)
+# }, mc.cores = 75))
+# saveRDS(object = dt_mc_N1000_lambda1000_d2, file = "./inst/09_mc_simulate_data/data/dt_mc_far_fBm_fBm_N=1000_lambda=1000_d2.RDS")
+# rm(dt_mc_N1000_lambda1000_d2) ; gc()
 
 # Simulation - design 3 ----
 ## Mean and far kenel estimated from real data
@@ -160,10 +231,10 @@ saveRDS(object = dt_mc_N400_lambda300_d3, file = "./inst/09_mc_simulate_data/dat
 rm(dt_mc_N400_lambda300_d3) ; gc()
 
 ### (N, lambda) = (1000, 1000)
-dt_mc_N1000_lambda1000_d3 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
-  dt_ <- sim_fun(mc_i = mc_i, Ni = 1000, lbda = 1000, t0 = t0, sig = sig,
-                 kernel_far = get_real_data_far_kenel, mean_far = get_real_data_mean, Hvec = Hvec)
-  return(dt_)
-}, mc.cores = 75))
-saveRDS(object = dt_mc_N1000_lambda1000_d3, file = "./inst/09_mc_simulate_data/data/dt_mc_far_fBm_N=1000_lambda=1000_d3.RDS")
-rm(dt_mc_N1000_lambda1000_d3) ; gc()
+# dt_mc_N1000_lambda1000_d3 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+#   dt_ <- sim_fun(mc_i = mc_i, Ni = 1000, lbda = 1000, t0 = t0, sig = sig,
+#                  kernel_far = get_real_data_far_kenel, mean_far = get_real_data_mean, Hvec = Hvec)
+#   return(dt_)
+# }, mc.cores = 75))
+# saveRDS(object = dt_mc_N1000_lambda1000_d3, file = "./inst/09_mc_simulate_data/data/dt_mc_far_fBm_N=1000_lambda=1000_d3.RDS")
+# rm(dt_mc_N1000_lambda1000_d3) ; gc()
