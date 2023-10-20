@@ -130,13 +130,15 @@ saveRDS(object = dt_mc_N400_lambda300_d1, file = "./inst/11_mc_simulate_data/dat
 rm(dt_mc_N400_lambda300_d1) ; gc()
 
 # Centered version
-dt_mc_N400_lambda300_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
+dt_mc_N400_lambda300_centered_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
   dt_ <- sim_fun(mc_i = mc_i, Ni = 400, lbda = 300, t0 = t0, sig = sig,
-                 kernel_fma = far_ker_d1, mean_fma = far_mean_d1, hurst = Hlogistic)
+                 kernel_fma = far_ker_d1, mean_fma = far_mean_d1, hurst = Hlogistic, center = TRUE)
   return(dt_)
 }, mc.cores = 75))
-saveRDS(object = dt_mc_N400_lambda300_d1, file = "./inst/11_mc_simulate_data/data/dt_mc_fma_N=400_lambda=300_centered_d1.RDS")
-rm(dt_mc_N400_lambda300_d1) ; gc()
+saveRDS(
+  object = dt_mc_N400_lambda300_centered_d1,
+  file = "./inst/11_mc_simulate_data/data/dt_mc_fma_N=400_lambda=300_centered_d1.RDS")
+rm(dt_mc_N400_lambda300_centered_d1) ; gc()
 
 ### (N, lambda) = (1000, 1000)
 dt_mc_N1000_lambda1000_d1 <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i){
