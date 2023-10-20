@@ -15,17 +15,17 @@ Hvec <- c(0.4, 0.5, 0.7)
 # Estimates of the local regularity parameters ----
 
 ## Plot function
-gplot <- function(N = 400, lambda = 300, design = "d1", param = "Ht", center = TRUE){
+gplot <- function(N = 400, lambda = 300, design = "d1", param = "Ht", center = FALSE){
   if (center) {
-    dt_locreg <- readRDS(paste0("./inst/09_mc_simulate_data/locreg_estimates/dt_locreg_fBm_N=", N, "_lambda=", lambda, "_", design, ".RDS"))
+    dt_locreg <- readRDS(paste0("./inst/09_mc_simulate_data/locreg_estimates/dt_locreg_fBm_N=", N, "_lambda=", lambda, "_centered_", design, ".RDS"))
     title_exp <- paste0("N = ", N , ", $\\lambda$=", lambda, " - Centered")
     ylim_Ht <- c(0.1, 0.9)
     ylim_Lt <- c(2, 16)
   } else {
-    dt_locreg <- readRDS(paste0("./inst/09_mc_simulate_data/locreg_estimates/dt_locreg_fBm_N=", N, "_lambda=", lambda, "_not_centered_", design, ".RDS"))
+    dt_locreg <- readRDS(paste0("./inst/09_mc_simulate_data/locreg_estimates/dt_locreg_fBm_N=", N, "_lambda=", lambda, "_", design, ".RDS"))
     title_exp <- paste0("N = ", N , ", $\\lambda$=", lambda, " - Not centered")
-    ylim_Ht <- c(0.1, 1.5)
-    ylim_Lt <- c(2, 500)
+    ylim_Ht <- c(0.1, 0.9)
+    ylim_Lt <- c(2, 16)
   }
   dt_locreg[, t := as.factor(t)]
   dt_locreg[, Htrue := as.factor(Htrue)]
@@ -76,14 +76,26 @@ gplot <- function(N = 400, lambda = 300, design = "d1", param = "Ht", center = T
 ## d1
 g_d1 <- gridExtra::grid.arrange(
   gplot(N = 400, lambda = 300, design = "d1", param = "Ht"),
-  gplot(N = 400, lambda = 300, design = "d1", param = "Ht", center = FALSE),
+  gplot(N = 400, lambda = 300, design = "d1", param = "Ht", center = TRUE),
   gplot(N = 400, lambda = 300, design = "d1", param = "Lt"),
-  gplot(N = 400, lambda = 300, design = "d1", param = "Lt", center = FALSE),
+  gplot(N = 400, lambda = 300, design = "d1", param = "Lt", center = TRUE),
   ncol = 2, nrow = 2
 )
 ggsave(
   filename = file.path("./inst/09_mc_simulate_data/locreg_estimates/locreg_fBm_d1.png"),
   plot = g_d1, bg = "white")
+
+## d1 bis
+g_d1_bis <- gridExtra::grid.arrange(
+  gplot(N = 400, lambda = 300, design = "d1_bis", param = "Ht"),
+  gplot(N = 400, lambda = 300, design = "d1_bis", param = "Ht", center = TRUE),
+  gplot(N = 400, lambda = 300, design = "d1_bis", param = "Lt"),
+  gplot(N = 400, lambda = 300, design = "d1_bis", param = "Lt", center = TRUE),
+  ncol = 2, nrow = 2
+)
+ggsave(
+  filename = file.path("./inst/09_mc_simulate_data/locreg_estimates/locreg_fBm_d1_bis.png"),
+  plot = g_d1_bis, bg = "white")
 
 ## d2
 g_d2 <- gridExtra::grid.arrange(
