@@ -192,7 +192,7 @@ sim_estim_locreg_proxy <- function(mc_i, Ni, lbda, t0,
                  "theta_t1_t2", "theta_t1_t3", "theta_t2_t3",
                  "Htrue", "Ltrue", "tildeH", "tildeL",
                  "Nused",  "locreg_bw","hatH", "hatL"))
-  return(dt_locreg)
+  return(dt_locreg_res)
 }
 
 # Data generation ----
