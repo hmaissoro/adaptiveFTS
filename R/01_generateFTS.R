@@ -119,7 +119,7 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
   return(val)
 }
 
-#' Title
+#' Covariance matrix of the multi-fractional Brownian Motion
 #'
 #' @param t \code{vector (float)}. Points between 0 and 1 at which to compute the covariance function.
 #' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}.
@@ -268,7 +268,7 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
   }, M = M, ... = ...))
 }
 
-#' Draw a Functional Autoregressive Process of order 1 (FAR(1))
+#' Functional Autoregressive process of order 1 (FAR(1)) simulation
 #'
 #'@param N \code{integer}. Number of curves.
 #' @param lambda \code{integer}. Mean of the number of observations per curve.
