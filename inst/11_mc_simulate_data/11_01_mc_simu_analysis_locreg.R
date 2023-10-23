@@ -1,6 +1,6 @@
 # Simulation global parameters----
 sig <- 0.5
-mc <- 100
+mc <- 75
 t0 <- c(0.2, 0.4, 0.7, 0.8)
 
 ## Logistic constant hurst function
@@ -13,10 +13,10 @@ Hlogistic <- function(t){
 estim_locreg_fun <- function(N = 400, lambda = 300, design = "d1", center = FALSE){
   if (center) {
     dt <- readRDS(paste0("./inst/11_mc_simulate_data/data/dt_mc_fma_N=", N, "_lambda=", lambda, "_centered_", design, ".RDS"))
-    dt <- dt[ttag == "trandom"][, .SD, .SDcols = ! c("ttag", "far_mean")]
+    dt <- dt[ttag == "trandom"][, .SD, .SDcols = ! c("ttag", "fma_mean")]
   } else {
     dt <- readRDS(paste0("./inst/11_mc_simulate_data/data/dt_mc_fma_N=", N, "_lambda=", lambda, "_", design, ".RDS"))
-    dt <- dt[ttag == "trandom"][, .SD, .SDcols = ! c("ttag", "far_mean")]
+    dt <- dt[ttag == "trandom"][, .SD, .SDcols = ! c("ttag", "fma_mean")]
   }
 
 
@@ -30,7 +30,7 @@ estim_locreg_fun <- function(N = 400, lambda = 300, design = "d1", center = FALS
     # Estimate the local regularity
     ## Delta
     lambdahat <- mean(dt_mc[, .N, by = id_curve][, N])
-    delta <- exp(- log(lambdahat) ** 0.35)
+    delta <- exp(- log(lambdahat) ** 0.25)
     # delta <- (1 / lambdahat) ** 0.5
 
     ## For exponential Delta
@@ -57,7 +57,7 @@ estim_locreg_fun <- function(N = 400, lambda = 300, design = "d1", center = FALS
 
 ## Estimate local regularity (Centered) ----
 ### d1
-dt_N400_lambda300_d1 <- estim_locreg_fun(N = 400, lambda = 300, design = "d1")
+dt_N400_lambda300_d1 <- estim_locreg_fun(N = 400, lambda = 300, design = "d1", center = TRUE)
 dt_N1000_lambda1000_d1 <- estim_locreg_fun(N = 1000, lambda = 1000, design = "d1")
 
 ### d2
