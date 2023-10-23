@@ -17,8 +17,6 @@ Hlogistic <- function(t){
 
 
 # Estimates of the local regularity parameters ----
-
-# Estimates of the local regularity parameters ----
 ## Plot function
 gplot <- function(N = 400, lambda = 300, design = "d1", param = "Ht", center = TRUE){
   if (center) {

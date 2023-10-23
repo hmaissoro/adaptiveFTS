@@ -119,7 +119,7 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
   return(val)
 }
 
-#' Title
+#' Covariance matrix of the multi-fractional Brownian Motion
 #'
 #' @param t \code{vector (float)}. Points between 0 and 1 at which to compute the covariance function.
 #' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}.
@@ -268,7 +268,7 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
   }, M = M, ... = ...))
 }
 
-#' Draw a Functional Autoregressive Process of order 1 (FAR(1))
+#' Functional Autoregressive process of order 1 (FAR(1)) simulation
 #'
 #'@param N \code{integer}. Number of curves.
 #' @param lambda \code{integer}. Mean of the number of observations per curve.
@@ -431,3 +431,176 @@ simulate_far <- function(N = 2L, lambda = 70L,
   data.table::setnames(x = dt_far, old = "tall", new = "tobs")
   return(dt_far)
 }
+
+#' Functional Moving Average process of order 1 (FMA(1)) simulation
+#'
+#'@param N \code{integer}. Number of curves.
+#' @param lambda \code{integer}. Mean of the number of observations per curve.
+#' @param tdesign \code{character}. Type of the design. It is either 'random' or 'common'.
+#' @param Mdistribution \code{function}. Distribution of the number of observation points per curve.
+#' The first argument of the function must correspond to \code{N} and the second to \code{lambda}.
+#' Default \code{Mdistribution = rpois}.
+#' @param tdistribution \code{function (or NULL)}. Observation point distribution if \code{tdesign = 'random'} and \code{NULL} otherwise.
+#' @param tcommon \code{vector (float)}. Observation point vector if \code{tdesign = 'common'}.
+#' If \code{tdesign = 'random'} and if we want to run some tests at a particular observation position, this can also be specified.
+#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}.
+#' @param L \code{float (positive)}. Hölder constant.
+#' @param fma_kernel \code{function}. Kernel function of the operator of the FMA(1).
+#' @param fma_mean \code{function}. Mean function of the FMA(1).
+#' @param int_grid \code{integer}. Length of the grid used to approximate the integral.
+#' @param burnin \code{integer}. Burnin period of the FMA(1).
+#' @param remove_burnin \code{boolean}. If \code{TRUE}, burnin period is removed.
+#'
+#' @return A \code{data.table} containing 3 column :
+#' \itemize{
+#'    \item{id_curve :}{ Index of the curve. It goes from 1 to N.}
+#'    \item{tobs :}{ Sampled observation points, for each \code{id_curve}.}
+#'    \item{ttag :}{ Tag on the observations points, for each \code{id_curve}. It is either \code{tcommon} for common design grid or \code{tcommon} pour random design.}
+#'    \item{fma_mean :}{ The mean of the process evaluate at \code{tobs}, for each \code{id_curve}.}
+#'    \item{X :}{ The process observed at tobs, for each \code{id_curve}.}
+#' }
+#'
+#' @importFrom data.table data.table rbindlist setnames
+#' @importFrom methods is
+#'
+#' @export
+#'
+#' @examples
+#'
+#'\dontrun{
+#' dt_fma <- simulate_fma(N = 2L, lambda = 70L,
+#'                        tdesign = "random",
+#'                        Mdistribution = rpois,
+#'                        tdistribution = runif,
+#'                        tcommon = seq(0.2, 0.8, len = 50),
+#'                        hurst_fun = hurst_logistic,
+#'                        L = 4,
+#'                        fma_kernel = function(s,t) 9/4 * exp(- (t + 2 * s) ** 2),
+#'                        fma_mean = function(t) 4 * sin(1.5 * pi * t),
+#'                        int_grid = 100L,
+#'                        burnin = 100L,
+#'                        remove_burnin = TRUE)
+#' # plot simulated curve
+#' library(ggplot2)
+#'
+#' ggplot(data = dt_fma[ttag == "trandom", .("id_curve" = as.factor(id_curve), tobs, X)],
+#'        mapping = aes(x = tobs, y = X, group = id_curve, color = id_curve)) +
+#'   geom_line() +
+#'   scale_colour_grey() +
+#'   theme_minimal()
+#'
+#'}
+#'
+simulate_fma <- function(N = 2L, lambda = 70L,
+                         tdesign = "random",
+                         Mdistribution = rpois,
+                         tdistribution = runif,
+                         tcommon = seq(0.2, 0.8, len = 50),
+                         hurst_fun = hurst_logistic,
+                         L = 4,
+                         fma_kernel = function(s,t) 9/4 * exp( - (t + 2 * s) ** 2),
+                         fma_mean = function(t) 4 * sin(1.5 * pi * t),
+                         int_grid = 100L,
+                         burnin = 100L,
+                         remove_burnin = TRUE) {
+  if (! (N - floor(N) == 0) & N > 1)
+    stop("'N' must be an integer greater than 1.")
+  if (! (lambda - floor(lambda) == 0) & lambda > 1)
+    stop("'lambda' must be an integer greater than 1.")
+  if (! methods::is(tdesign, "character")){
+    stop("'tdesign' must be a character.")
+  }else{
+    tdesign <- match.arg(arg = tdesign, choices = c("random", "common"))
+  }
+  if (( ! (methods::is(Mdistribution, "function") & methods::is(tdistribution, "function"))) & tdesign == "random")
+    stop("If tdesign = 'random', then 'Mdistribution' and 'tdistribution' must be functions.")
+  if ((! (is.null(Mdistribution) & is.null(tdistribution))) & tdesign == "common")
+    stop("If tdesign = 'common', then 'Mdistribution' and 'tdistribution' must be NULL.")
+  if (tdesign == "common"){
+    if (is.null(tcommon) | ! (any(tcommon > 0 & tcommon <= 1) & length(tcommon) > 2))
+      stop("'tcommon' must be of minimum length 2 with values between 0 and 1.")
+  }else{
+    if (! is.null(tcommon) & ! (any(tcommon > 0 & tcommon <= 1) & length(tcommon) > 2))
+      stop("If tdesign = 'random', 'tcommon' must be either NULL or of minimum length 2 with values between 0 and 1.")
+  }
+  if (! methods::is(hurst_fun, "function"))
+    stop("'hurst_fun' must be a function.")
+  if (! (methods::is(L, "numeric") & L > 0 & length(L) == 1))
+    stop("'L' must be a positive scalar value.")
+  if (! methods::is(fma_kernel, "function"))
+    stop("'fma_kernel' must be bevariate function")
+  if (! methods::is(fma_mean, "function"))
+    stop("'fma_mean' must be a function")
+  if (! (is.integer(int_grid) & int_grid > 50))
+    stop("'int_grid' must be an integer greater than 30.")
+  if (! (is.integer(burnin) & burnin > 30))
+    stop("'burnin' must be an integer greater than 30.")
+  if (! methods::is(remove_burnin, "logical"))
+    stop("'remove_burnin' must be boolean.")
+  n <- N + burnin
+  grid <- (1:int_grid) / int_grid
+
+  # If random design
+  if (tdesign == "random"){
+    dt_rdesign <- .random_design(N = n, lambda = lambda, tdistribution = tdistribution)
+    M <- dt_rdesign[, unique(Mn), by = "id_curve"][, V1]
+
+    dt_fma <- data.table::rbindlist(lapply(1:n, function(i, dt_rdesign, grid, tcommon, M, hurst_fun, L){
+      # Combine design + integration grid + tcommon
+      tall <- c(dt_rdesign[id_curve == i, Tn], grid, tcommon)
+      ttag <- c(rep("trandom", M[i]), rep("int_grid", length(grid)), rep("tcommon", length(tcommon)))
+      dt <- data.table::data.table("id_curve" = i, "tall" = tall, "ttag" = ttag)
+      dt <- dt[order(tall)]
+
+      # Generate and add mfBm
+      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L = L, tied = FALSE)
+      dt[, eps := dt_eps[, mfBm]]
+
+      # Add mean function
+      dt[, fma_mean := fma_mean(tall)]
+    }, dt_rdesign = dt_rdesign, grid = grid, tcommon = tcommon, M = M, hurst_fun = hurst_fun, L = L))
+  } else {
+    # Common design case
+    dt_fma <- data.table::rbindlist(lapply(1:n, function(i, tcommon, grid, hurst_fun, L){
+      # Combine design + integration grid
+      tall <- c(tcommon, grid)
+      ttag <- c(rep("tcommon", length(tcommon)), rep("int_grid", length(grid)))
+      dt <- data.table::data.table("id_curve" = i, "tall" = tall, "ttag" = ttag)
+      dt <- dt[order(tall)]
+
+      # Generate and add mfBm
+      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L = L, tied = FALSE)
+      dt[, eps := dt_eps[, mfBm]]
+
+      # Add mean function
+      dt[, fma_mean := fma_mean(tall)]
+    }, tcommon = tcommon, grid = grid, hurst_fun = hurst_fun, L = L))
+  }
+
+  # Generate FAR(1)
+  dt_fma[id_curve == 1, X := fma_mean + eps]
+  for(i in 2:n){
+    tall <- dt_fma[id_curve == i, tall]
+    Eold <- dt_fma[id_curve == i - 1 & ttag == "int_grid", eps]
+    Enew <- dt_fma[id_curve == i, eps]
+    fma_mean_new <- dt_fma[id_curve == i, fma_mean]
+
+    tmp <- expand.grid(u = tall, v = grid)
+    u <- tmp$u
+    v <- tmp$v
+    beta <- matrix(fma_kernel(u,v), ncol = int_grid, byrow = FALSE)
+    Xi <- fma_mean_new + Enew + as.numeric((1 / int_grid) * beta %*% matrix(Eold, ncol = 1))
+    dt_fma[id_curve == i, X := Xi]
+  }
+
+  # Remove the data for integral approximation
+  dt_fma <- dt_fma[ttag != "int_grid"]
+  dt_fma[, eps := NULL]
+  if(remove_burnin){
+    dt_fma <- dt_fma[! id_curve %in% 1:burnin]
+    dt_fma[, id_curve := id_curve - burnin]
+  }
+  data.table::setnames(x = dt_fma, old = "tall", new = "tobs")
+  return(dt_fma)
+}
+
