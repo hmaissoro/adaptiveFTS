@@ -1,4 +1,3 @@
-
 library(data.table)
 
 # Simulation global parameters----
@@ -208,3 +207,53 @@ simate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
   # return the result
   return(dt_res)
 }
+
+# Simulate all MC process
+
+simate_data <- function(Nmc = mc, Ni = 400, lambdai = 300, t0, sig = 0.25,
+                        process = "FAR",
+                        process_ker = get_real_data_far_kenel,
+                        process_mean = get_real_data_mean,
+                        white_noise = "mfBm",
+                        hurst = Hlogistic, Hvec = Hvec, design = "d1"){
+  dt_res <- data.table::rbindlist(
+    parallel::mclapply(seq_len(Nmc), function(mc_i, Ni, lambdai, t0, sig, process,
+                                              process_ker, process_mean, white_noise, hurst, Hvec){
+      dt_ <- simate_data_fun(mc_i = mc_i, Ni = Ni, lambdai = lambdai, t0 = t0, sig = sig,
+                             process = process, process_ker = process_ker,
+                             process_mean = process_mean, white_noise = white_noise,
+                             hurst = hurst, Hvec = Hvec)
+      return(dt_)
+    }, Ni = Ni, lambdai = lambdai, t0 = t0, sig = sig,
+    process = process, process_ker = process_ker, process_mean = process_mean,
+    white_noise = white_noise, hurst = hurst, Hvec = Hvec, mc.cores = 75))
+
+  ### Local Regularity
+  file_tilde <- paste0("./inst/12_mc_simulate_data/", process, "/data/dt_mc_",
+                       process,"_", white_noise, "_", "N=", Ni, "_lambda=", lambdai, "_", design,".RDS")
+
+  saveRDS(object = dt_res, file = file_tilde)
+  rm(dt_res) ; gc() ; gc()
+}
+
+# Data generation ----
+## Simulation - design 1 ----
+
+## Mean function
+mean_d1 <- function(t) 4 * sin(3 * pi * t / 2)
+
+## Autoregressive kernel
+ker_d1 <- function(s,t, operator_norm = 0.7){
+  # Note that : \kappa_c * k = operator_norm
+  k <- sqrt(pi) / 2 * (
+    pnorm(q = 2, mean = 0, sd = sqrt(1/2)) - pnorm(q = 0, mean = 0, sd = sqrt(1/2))
+  )
+  kappa_c <- operator_norm / k
+  res <- kappa_c * exp(- (s - 2 * t) ** 2)
+}
+
+## FAR process ----
+simate_data(Nmc = 75, Ni = 400, lambdai = 300, t0, sig = 0.25,
+            process = "FAR", process_ker = ker_d1,
+            process_mean = mean_d1, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1")
