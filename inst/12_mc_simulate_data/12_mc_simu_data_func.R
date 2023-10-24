@@ -229,11 +229,11 @@ simate_data <- function(Nmc = mc, Ni = 400, lambdai = 300, t0, sig = 0.25,
     white_noise = white_noise, hurst = hurst, Hvec = Hvec, mc.cores = 75))
 
   ### Local Regularity
-  file_tilde <- paste0("./inst/12_mc_simulate_data/", process, "/data/dt_mc_",
+  file_title <- paste0("./inst/12_mc_simulate_data/", process, "/data/dt_mc_",
                        process,"_", white_noise, "_", "N=", Ni, "_lambda=", lambdai, "_", design,".RDS")
 
-  saveRDS(object = dt_res, file = file_tilde)
-  rm(dt_res) ; gc() ; gc()
+  saveRDS(object = dt_res, file = file_title)
+  rm(dt_res, file_title) ; gc() ; gc()
 }
 
 # Data generation ----
@@ -253,7 +253,14 @@ ker_d1 <- function(s,t, operator_norm = 0.7){
 }
 
 ## FAR process ----
+## mfBm
 simate_data(Nmc = 75, Ni = 400, lambdai = 300, t0, sig = 0.25,
             process = "FAR", process_ker = ker_d1,
             process_mean = mean_d1, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1")
+
+## fBm
+simate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
+            process = "FAR", process_ker = ker_d1,
+            process_mean = mean_d1, white_noise = "fBm",
             hurst = Hlogistic, Hvec = Hvec, design = "d1")

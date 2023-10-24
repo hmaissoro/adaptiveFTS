@@ -9,3 +9,7 @@ inst/09_mc_simulate_data/locreg_estimates/
 inst/10_mc_simulate_data/data/
 inst/11_mc_simulate_data/data/
 inst/11_mc_simulate_data/locreg_estimates/
+inst/11_mc_simulate_data/mean_estimates/
+
+inst/12_mc_simulate_data/*.RDS
+inst/12_mc_simulate_data/*.png
