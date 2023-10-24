@@ -1,5 +1,4 @@
 # Simulation global parameters----
-## Simulation global parameters----
 sig <- 0.5
 mc <- 75
 t0 <- c(0.2, 0.4, 0.7, 0.8)
