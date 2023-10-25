@@ -27,20 +27,21 @@ bounded_uniform <- function(N, lambda, p = 0.2){
 zero_mean_func <- function(t) 0 * t
 
 # local regularity estimation ----
-estim_locreg_fun <- function(Nmc = mc, N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1"){
+estim_locreg_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1"){
   file_title <- paste0("./inst/12_mc_simulate_data/", process, "/data/dt_mc_",
                        process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
   dt <- readRDS(file_title)
   dt <- dt[ttag == "trandom"][, .SD, .SDcols = ! c("ttag", "process_mean")]
+  index_mc <- dt[, unique(id_mc)]
 
   if (white_noise == "mfBm") {
     # Estimate local regularity by mc
-    dt_reg_mc <- data.table::rbindlist(parallel::mclapply(seq_len(Nmc), function(mc_i, dt, Ni, lambdai){
+    dt_reg_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, dt, Ni, lambdai){
       # Extract and sort data
       dt_mc <- dt[id_mc == mc_i]
       dt_mc <- dt_mc[order(id_curve, tobs)]
       bw <- unique(dt_mc[, .(id_curve, presmooth_bw)])[order(id_curve), presmooth_bw]
-      bw_plus_mean <- unique(dt_mc[, .(id_curve, presmooth_bw_plus)])[order(id_curve), presmooth_bw_plus]
+      bw_plus_mean <- unique(dt_mc[, .(id_curve, presmooth_bw_plus_mean)])[order(id_curve), presmooth_bw_plus_mean]
 
       # Estimate the local regularity
       ## Delta
@@ -73,7 +74,7 @@ estim_locreg_fun <- function(Nmc = mc, N = 400, lambda = 300, process = "FAR", w
 
   } else if (white_noise == "fBm") {
     # Estimate local regularity by mc
-    dt_reg_mc <- data.table::rbindlist(parallel::mclapply(seq_len(Nmc), function(mc_i, dt, Ni, lambdai, t0){
+    dt_reg_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, dt, Ni, lambdai, t0){
       # Extract and sort data
       dt_mc <- dt[id_mc == mc_i]
       dt_mc <- dt_mc[order(id_curve, tobs)]
@@ -86,7 +87,7 @@ estim_locreg_fun <- function(Nmc = mc, N = 400, lambda = 300, process = "FAR", w
 
         ## Extract bandwidth
         bw <- unique(dt_mc[Htrue == Hi, .(id_curve, presmooth_bw)])[order(id_curve), presmooth_bw]
-        bw_plus_mean <- unique(dt_mc[Htrue == Hi, .(id_curve, presmooth_bw_plus)])[order(id_curve), presmooth_bw_plus]
+        bw_plus_mean <- unique(dt_mc[Htrue == Hi, .(id_curve, presmooth_bw_plus_mean)])[order(id_curve), presmooth_bw_plus_mean]
 
         ## Centered process
         dt_locreg <- estimate_locreg(
@@ -127,3 +128,12 @@ estim_locreg_fun <- function(Nmc = mc, N = 400, lambda = 300, process = "FAR", w
 
   return(paste0("Done : dt_locreg_", process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS"))
 }
+
+# Estimate local regularity ----
+## FAR ----
+estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
+estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
+
+## FMA ----
+estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1")
+estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1")
