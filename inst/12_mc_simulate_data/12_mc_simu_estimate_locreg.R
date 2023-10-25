@@ -78,7 +78,7 @@ estim_locreg_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise
       # Extract and sort data
       dt_mc <- dt[id_mc == mc_i]
       dt_mc <- dt_mc[order(id_curve, tobs)]
-      Hvec <- dt_mc[, sort(unqiue(Htrue))]
+      Hvec <- dt_mc[, sort(unique(Htrue))]
 
       dt_by_Hvec <- data.table::rbindlist(lapply(Hvec, function(Hi, dt_mc, t0){
         ## Set Delta
@@ -113,13 +113,12 @@ estim_locreg_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise
 
         ## Clean
         rm(dt_locreg_res, dt_locreg, dt_locreg_plus_mean) ; gc()
+        return(dt_res)
       }, dt_mc = dt_mc, t0 = t0))
 
-      return(dt_res)
+      return(dt_by_Hvec)
     }, mc.cores = 75, dt = dt, Ni = N, lambdai = lambda, t0 = t0))
   }
-
-
   ## Save
   file_name <- paste0("./inst/12_mc_simulate_data/", process, "/locreg_estimates/dt_locreg_",
                       process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
