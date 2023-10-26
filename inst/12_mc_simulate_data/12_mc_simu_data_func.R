@@ -254,7 +254,7 @@ ker_d1 <- function(s,t, operator_norm = 0.7){
 
 ## FAR process ----
 ## mfBm
-simate_data(Nmc = 75, Ni = 400, lambdai = 300, t0, sig = 0.25,
+simate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
             process = "FAR", process_ker = ker_d1,
             process_mean = mean_d1, white_noise = "mfBm",
             hurst = Hlogistic, Hvec = Hvec, design = "d1")
