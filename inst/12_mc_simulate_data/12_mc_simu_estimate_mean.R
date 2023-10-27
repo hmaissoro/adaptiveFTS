@@ -82,7 +82,7 @@ estim_mean_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white_no
         y = dt_risk_muhat_plus_mean,
         by = c("t", "h")
       )
-      rm(dt_risk_muhat, dt_locreg, dt_risk_muhat_plus_mean) ; gc()
+      rm(dt_risk_muhat, dt_risk_muhat_plus_mean) ; gc()
 
       ## Add the MSE of mutilde
       dt_risk <- data.table::merge.data.table(
@@ -90,7 +90,7 @@ estim_mean_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white_no
       )
       dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, dt_risk)
       rm(dt_risk_muhat_res, dt_risk_mutilde, dt_risk) ; gc()
-      # return(dt_res)
+      return(dt_res)
     }, mc.cores = 75, dt_random = dt_random, dt_common = dt_common, dt_locreg = dt_locreg, Ni = N, lambdai = lambda, bw_grid = bw_grid, t0 = t0))
 
   } else if (white_noise == "fBm") {
@@ -147,7 +147,7 @@ estim_mean_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white_no
           y = dt_risk_muhat_plus_mean,
           by = c("t", "h")
         )
-        rm(dt_risk_muhat, dt_locreg, dt_risk_muhat_plus_mean) ; gc()
+        rm(dt_risk_muhat, dt_risk_muhat_plus_mean) ; gc()
 
         ## Add the MSE of mutilde and return
         dt_risk <- data.table::merge.data.table(
