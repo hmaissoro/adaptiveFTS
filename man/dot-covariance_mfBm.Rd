@@ -2,7 +2,7 @@
 % Please edit documentation in R/01_generateFTS.R
 \name{.covariance_mfBm}
 \alias{.covariance_mfBm}
-\title{Title}
+\title{Covariance matrix of the multi-fractional Brownian Motion}
 \usage{
 .covariance_mfBm(t = seq(0.2, 0.8, len = 10), hurst_fun = hurst_logistic, ...)
 }
@@ -17,5 +17,5 @@
 a \code{matrix} of \code{t} x \code{t} covariance.
 }
 \description{
-Title
+Covariance matrix of the multi-fractional Brownian Motion
 }
