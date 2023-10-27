@@ -112,4 +112,4 @@ g_d3 <- gridExtra::grid.arrange(
 )
 ggsave(
   filename = file.path("./inst/11_mc_simulate_data/locreg_estimates/locreg_fma_fBm_d3.png"),
-  plot = g_d2, bg = "white")
+  plot = g_d3, bg = "white")

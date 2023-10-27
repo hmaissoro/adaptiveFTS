@@ -370,7 +370,7 @@ simulate_far <- function(N = 2L, lambda = 70L,
 
   # If random design
   if (tdesign == "random"){
-    dt_rdesign <- .random_design(N = n, lambda = lambda, tdistribution = tdistribution)
+    dt_rdesign <- .random_design(N = n, lambda = lambda, Mdistribution = Mdistribution, tdistribution = tdistribution)
     M <- dt_rdesign[, unique(Mn), by = "id_curve"][, V1]
 
     dt_far <- data.table::rbindlist(lapply(1:n, function(i, dt_rdesign, grid, tcommon, M, hurst_fun, L){
@@ -542,7 +542,7 @@ simulate_fma <- function(N = 2L, lambda = 70L,
 
   # If random design
   if (tdesign == "random"){
-    dt_rdesign <- .random_design(N = n, lambda = lambda, tdistribution = tdistribution)
+    dt_rdesign <- .random_design(N = n, lambda = lambda, Mdistribution = Mdistribution, tdistribution = tdistribution)
     M <- dt_rdesign[, unique(Mn), by = "id_curve"][, V1]
 
     dt_fma <- data.table::rbindlist(lapply(1:n, function(i, dt_rdesign, grid, tcommon, M, hurst_fun, L){

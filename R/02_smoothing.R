@@ -168,7 +168,7 @@ estimate_nw <- function(y, t, tnew, h = NULL, smooth_ker = epanechnikov){
 #'
 #' @param y \code{vector (numeric)}. A numeric vector containing the observed values of the independent variable corresponding to the observation points \code{t}.
 #' @param t \code{vector (numeric)}. A numeric vector containing the observed values of the dependent variable.
-#' @param bw_grid \code{vector (numeric)}. A grid of bandwidth to test.
+#' @param bw_grid \code{vector (numeric)}. A grid of bandwidth to test. Default \code{bw_grid = NULL}, so it will be set as an exponential grid of \code{length(t)}.
 #' @param smooth_ker \code{function}. The kernel function of the estimator.
 #'
 #' @return A \code{numeric} value corresponding to the best bandwidth.
@@ -212,16 +212,25 @@ estimate_nw <- function(y, t, tnew, h = NULL, smooth_ker = epanechnikov){
 #'
 #' }
 #'
-estimate_nw_bw <- function(y, t, bw_grid = seq(1 / (2 * length(t)), length(t) ** (- 1/3), len = 100),
+estimate_nw_bw <- function(y, t, bw_grid = NULL,
                            smooth_ker = epanechnikov) {
   if (! is.numeric(y) | ! is.numeric(t) |! is.numeric(bw_grid))
     stop("The arguments 'y', 't', 'tnew', 'h' must be numeric.")
   if (length(t) != length(y) & length(t) < 2)
     stop("The arguments 'y' and 't' must have a length of at least 2 and must be of the same length.")
-  if (is.null(bw_grid))
-    stop("The bandwidth grid 'bw_grid' must be a scalar or vector of numeric.")
+  if (! is.numeric(bw_grid) & ! is.numeric(bw_grid))
+    stop("If the bandwidth grid 'bw_grid' is not NULL, so it must be a scalar or vector of numeric.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
+
+  if (is.null(bw_grid)) {
+    K <- 100
+    b0 <- 1 / length(t)
+    bK <- length(t) ** (- 1 / 3)
+    a <- exp((log(bK) - log(b0)) / K)
+    bw_grid <- b0 * a ** (seq_len(K))
+    rm(b0, bK, a, K) ; gc()
+  }
 
   cv_error <- sapply(bw_grid, function(hi, y, t, K){
     yhat <- estimate_nw(y = y, t = t, h = hi, tnew = t, smooth_ker = K)$yhat
