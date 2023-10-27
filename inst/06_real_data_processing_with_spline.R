@@ -98,6 +98,29 @@ ggplot(dt_slice, aes(x = t, y = Voltage, color = Season, group = date)) +
   guides(color = guide_legend(override.aes = list(size = 2)))
 ggsave(filename = file.path(figures_path, "real_data_selected_curves.png"), units = "px", dpi = 300)
 
+# Local regularity estimation ----
+# Import data
+dt <- fread(file = "../electricity_consumption_data/household_voltage_autumn2009_winter2010.csv")
+N <- length(dt[, unique(date)])
+lambda <- mean(dt[, .N, by = "date"][, N])
+date_vec <- dt[, unique(date)]
+delta <- exp(-log(lambda) ** 1/3)
+
+lambdahat <- mean(dt_gen[ttag == "trandom", .N, by = id_curve][, N])
+K <- 100
+b0 <- 1 / lambdahat
+bK <- lambdahat ** (- 1 / 3)
+a <- exp((log(bK) - log(b0)) / K)
+bw_grid <- b0 * a ** (seq_len(K))
+rm(b0, bK, a, K) ; gc()
+
+bw <- unlist(lapply(date_vec, function(di, data){
+  estimate_nw_bw(
+    y = data[date == di, voltage],
+    t = data[date == di, tobs],
+    bw_grid = , smooth_ker = epanechnikov)
+}, data = dt))
+
 
 # Mean function estimation ----
 # Import data
@@ -115,15 +138,15 @@ dygraphs::dygraph(dt_mu)
 
 ### co-variables
 tobs <- dt[, unique(sort(tobs))]
-K <- 5
+K <- 10
+# splines2::nsp(x = tobs, df = 6, intercept = FALSE)
+# cos_mat <- outer(X = tobs, Y = 1:K, function(t, k) sqrt(2) * cos(2 * pi * k * t))
+# colnames(cos_mat) <- paste0("cos", 1:K)
+#
+# sin_mat <- outer(X = tobs, Y = 1:K, function(t, k) sqrt(2) * sin(2 * pi * k * t))
+# colnames(sin_mat) <- paste0("sin", 1:K)
 
-cos_mat <- outer(X = tobs, Y = 1:K, function(t, k) sqrt(2) * cos(2 * pi * k * t))
-colnames(cos_mat) <- paste0("cos", 1:K)
-
-sin_mat <- outer(X = tobs, Y = 1:K, function(t, k) sqrt(2) * sin(2 * pi * k * t))
-colnames(sin_mat) <- paste0("sin", 1:K)
-
-mat_covariable <- cbind(cos_mat, sin_mat)
+mat_covariable <- splines2::nsp(x = tobs, df = (K + 1 + 1), intercept = TRUE)
 
 ### LASSO regression
 cv_model <- glmnet::cv.glmnet(x = mat_covariable, y = dt_mu[, mu],
@@ -132,7 +155,7 @@ plot(cv_model)
 best_lambda <- cv_model$lambda.min
 
 mu_model <- glmnet::glmnet(x = mat_covariable, y = dt_mu[, mu],
-                           intercept = TRUE, alpha = 1, lambda = best_lambda)
+                           intercept = FALSE, alpha = 1, lambda = best_lambda)
 mu_coef <- coef(mu_model)
 
 mu <- predict(mu_model, mat_covariable)
@@ -142,45 +165,24 @@ dygraphs::dygraph(data = data.table::data.table(tobs, mu))
 
 get_real_data_mean <- function(t = seq(0.1, 0.9, len = 10)){
   # \eta(t)
-  cost_mat <- outer(X = t, Y = 1:50, function(ti, k) sqrt(2) * cos(2 * pi * k * ti))
-  sint_mat <- outer(X = t, Y = 1:50, function(ti, k) sqrt(2) * sin(2 * pi * k * ti))
-  eta <- cbind(1, cost_mat, sint_mat)
+  # cost_mat <- outer(X = t, Y = 1:50, function(ti, k) sqrt(2) * cos(2 * pi * k * ti))
+  # sint_mat <- outer(X = t, Y = 1:50, function(ti, k) sqrt(2) * sin(2 * pi * k * ti))
+  eta <- splines2::nsp(x = t, df = 12, intercept = TRUE)
 
   # Basis coeffient
-  basis_coef <- c(
-    2.424666e+02, 2.045053e-01, 1.428404e-01, 3.570635e-01,
-    1.090163e-01, 2.118234e-01, 1.301123e-01, 9.508016e-02,
-    1.379302e-01, 4.820783e-03, -6.806055e-02, -2.388833e-02,
-    -7.403338e-02, -2.313821e-02, -5.963765e-02, -2.788351e-02,
-    6.017267e-02, 4.237483e-03, 2.406135e-02, 9.984997e-03,
-    2.732683e-02, -3.947718e-02, -2.744963e-03, -5.624731e-03,
-    -7.232138e-02, 1.228444e-02, -2.983196e-02, -1.373429e-02,
-    -5.086314e-03, -5.206650e-03, 1.983353e-02, -1.671532e-02,
-    1.694785e-02, 1.663588e-02, -8.924121e-03, -1.470650e-02,
-    -1.568260e-02, -3.873785e-03, -1.642147e-02, 0.000000e+00,
-    1.706651e-04, 3.662220e-03, 3.599005e-03, 2.163418e-02,
-    2.079180e-02, -5.805163e-03, -6.198625e-03, -3.051126e-03,
-    -3.050078e-02, -2.183053e-02, -2.030866e-02, 6.524725e-01,
-    1.448886e+00, -3.113890e-01, -4.050726e-01, 1.478745e-01,
-    -1.578363e-01, -2.346072e-01, -5.265881e-02, -5.181928e-02,
-    -8.382788e-02, -5.055031e-02, 1.471149e-01, -8.402212e-03,
-    -4.316013e-02, 7.528717e-02, 3.718024e-02, -4.602782e-03,
-    -4.930040e-02, -7.104138e-03, -3.485272e-02, -5.034491e-02,
-    2.230170e-02, 5.058664e-02, -2.996308e-02, 0.000000e+00,
-    1.773518e-02, 1.664768e-03, -5.118570e-04, 2.536951e-02,
-    1.103531e-02, -3.781447e-02, -9.837124e-03, 3.219296e-03,
-    -1.163841e-02, -1.604513e-02, -8.183994e-03, 3.309498e-02,
-    7.700235e-03, 1.578432e-02, 5.755486e-03, -3.571603e-03,
-    -1.118589e-03, -1.883942e-03, -5.265843e-03, -2.892450e-02,
-    1.032219e-02, 1.451413e-02, 6.348425e-04, 1.621365e-02,
-    1.322576e-02
-  )
+  basis_coef <- matrix(
+    data = c(731.389571901671, -0.52006982827689, 246.098166747946,
+             243.059070562643, 239.632261351878, 242.246665268361,
+             241.476817297158, 246.281122481508, 241.410779068207,
+             238.415397856336, -5.9613322334532, 734.400332002359),
+    ncol = 1)
+
 
   # mean function estimation
   muhat <- eta %*% basis_coef
 
   # Remove objects
-  rm(cost_mat, sint_mat, eta, basis_coef)
+  rm(eta, basis_coef)
   gc()
 
   return(muhat[, 1])
@@ -316,16 +318,10 @@ ggsave(filename = file.path(figures_path, "empirical_lag1_autocov.png"), units =
 ## LASSO regression
 ### fourier basis
 tobs <- dt[, unique(sort(tobs))]
-L <- 2
+L <- 5
 
-cos_mat <- outer(X = tobs, Y = 1:L, function(t, l) sqrt(2) * cos(2 * pi * l * t))
-colnames(cos_mat) <- paste0("cos", 1:L)
-
-sin_mat <- outer(X = tobs, Y = 1:L, function(t, l) sqrt(2) * sin(2 * pi * l * t))
-colnames(sin_mat) <- paste0("sin", 1:L)
-
-theta <- cbind(1, cos_mat, sin_mat)
-eta <- cbind(1, cos_mat, sin_mat)
+theta <- splines2::nsp(x = tobs, df = (L + 1 + 1), intercept = TRUE)
+eta <- splines2::nsp(x = tobs, df = (L + 1 + 1), intercept = TRUE)
 dim(eta)
 
 ### Compute Z_l(s) = \int_{0}^{1} c(s,u) theta(u) du
@@ -349,7 +345,7 @@ FF <- fastmatrix::kronecker.prod(eta, ZZ)
 # which is compatible with the above kronecker product
 CC1 <- c(t(mat_autocov))
 
-rm(mat_autocov, mat_cov, ZZ, theta, eta, cos_mat, sin_mat)
+rm(mat_autocov, mat_cov, ZZ, theta, eta)
 
 ### Lasso regression
 beta_cv_model <- glmnet::cv.glmnet(x = FF, y = CC1,
@@ -372,27 +368,44 @@ get_real_data_far_kenel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
   #   ...,
   #   b_{K1}, b_{K2}, ..., b_{KL})
   basis_coef <- c(
-    2.57941060039562, -4.65662130992959, 1.5225055060594, 4.3037464414024,
-    0.13756488746035, -0.290043632023058, 0.307363812510174, -0.0185231460161384,
-    -0.0294750471444012, 0.178548954594415, 0.149939543585357, 0.166076151730632,
-    0.251806576768987, -0.0816563105543888, -0.0543167925659293, 0.03780271855891,
-    -0.131443317726857, -0.125582864547152, 0.144243986892005, 0.134101454330207,
-    0.508908339757622, -0.101104935110456, 0.30474744066116, 0.103156715437213,
-    -0.0352343962613528)
+    -152.339167113767, 109.891801325509, 8.01218483618224, 40.7773902997773,
+    9.29538508447265, -130.869348227434, 114.349788382373, -86.6452258918943,
+    66.6620550406495, 2.85516854777547, 5.4726154735248, 8.16996388562305,
+    -56.2974864050636, 82.3309005212671, -104.821148135886, 70.806466322378,
+    3.20308498330693, 6.34208585976186, 12.8240898172477, -68.4244432976903,
+    57.5035523478083, -79.009963744684, 55.5058015942419, 7.42288493639332,
+    20.1537864363113, 2.35376692860042, -61.7830117509254, 77.2298006322408,
+    -80.679220971239, 59.4135944681524, 4.1358055271817, 18.1150446807183,
+    5.8204767292337, -60.5952551453644, 60.9830028643384, -137.595821369872,
+    83.2753892033171, -7.64204301659673, -4.06678434607622, 11.8936539033712,
+    -66.1910800695624, 85.8780261168699, -142.247945431835, 121.819129805756,
+    9.45741883242566, 39.8753096159282, 6.85395396362438, -132.236594114549,
+    128.212492255768)
   # Transform to (K, L) matrix
-  basis_coef_mat <- t(matrix(data = basis_coef, ncol = 5))
+  basis_coef_mat <- t(matrix(data = basis_coef, ncol = 7))
 
-  ker_values <- mapply(function(s,t, coef_mat){
-    # \eta(s)
-    etas <- c(1, sqrt(2) * cos(2 * pi * 1:2 * s), sqrt(2) * sin(2 * pi * 1:2 * s))
+  # ker_values <- mapply(function(s,t, coef_mat){
+  #   # \eta(s)
+  #   etas <- splines2::nsp(x = s, df = 5 + 1 + 1, intercept = TRUE)
+  #   # etas <- c(1, sqrt(2) * cos(2 * pi * 1:2 * s), sqrt(2) * sin(2 * pi * 1:2 * s))
+  #
+  #   # \theta(t)
+  #   thetat <- splines2::nsp(x = t, df = 5 + 1 + 1, intercept = TRUE)
+  #   # thetat <- c(1, sqrt(2) * cos(2 * pi * 1:2 * t), sqrt(2) * sin(2 * pi * 1:2 * t))
+  #
+  #   # Basis function
+  #   ker_val <- matrix(etas, nrow = 1) %*% coef_mat %*% matrix(thetat, ncol = 1)
+  #   return(c(ker_val))
+  # }, s = s, t = t, MoreArgs = list(coef_mat = basis_coef_mat))
 
-    # \theta(t)
-    thetat <- c(1, sqrt(2) * cos(2 * pi * 1:2 * t), sqrt(2) * sin(2 * pi * 1:2 * t))
+  # \eta(s)
+  etas <- splines2::nsp(x = s, df = 5 + 1 + 1, intercept = TRUE)
 
-    # Basis function
-    ker_val <- matrix(etas, nrow = 1) %*% coef_mat %*% matrix(thetat, ncol = 1)
-    return(c(ker_val))
-  }, s = s, t = t, MoreArgs = list(coef_mat = basis_coef_mat))
+  # \theta(t)
+  thetat <- splines2::nsp(x = t, df = 5 + 1 + 1, intercept = TRUE)
+
+  # Basis function
+  ker_values <-  diag(etas %*% basis_coef_mat %*% t(thetat))
 
   # Normalize values using operator norm
   op_norm <- 4.588783
