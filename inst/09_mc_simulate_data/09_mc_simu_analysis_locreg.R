@@ -8,9 +8,14 @@ t0 <- c(0.2, 0.4, 0.7, 0.8)
 Hvec <- c(0.4, 0.5, 0.7)
 
 # Local regularity estimation function ----
-estim_locreg_fun <- function(N = 400, lambda = 300, design = "d1", center = TRUE){
-  dt <- readRDS(paste0("./inst/09_mc_simulate_data/data/dt_mc_far_fBm_N=", N, "_lambda=", lambda, "_", design, ".RDS"))
-  dt <- dt[ttag == "trandom"][, .SD, .SDcols = ! c("ttag", "far_mean")]
+estim_locreg_fun <- function(N = 400, lambda = 300, design = "d1", center = FALSE){
+  if (center) {
+    dt <- readRDS(paste0("./inst/09_mc_simulate_data/data/dt_mc_far_fBm_N=", N, "_lambda=", lambda, "_centered_", design, ".RDS"))
+    dt <- dt[ttag == "trandom"][, .SD, .SDcols = ! c("ttag", "far_mean")]
+  } else {
+    dt <- readRDS(paste0("./inst/09_mc_simulate_data/data/dt_mc_far_fBm_N=", N, "_lambda=", lambda, "_", design, ".RDS"))
+    dt <- dt[ttag == "trandom"][, .SD, .SDcols = ! c("ttag", "far_mean")]
+  }
 
   # Estimate local regularity by mc
   dt_reg_mc <- data.table::rbindlist(parallel::mclapply(seq_len(mc), function(mc_i, Ni, lambdai){
@@ -21,7 +26,7 @@ estim_locreg_fun <- function(N = 400, lambda = 300, design = "d1", center = TRUE
     # Estimate the local regularity
     ## Delta
     lambdahat <- mean(dt_mc[, .N, by = id_curve][, N])
-    delta <- exp(- log(lambdahat) ** 0.35)
+    delta <- 2 * exp(- log(lambdahat) ** 0.72)
     # delta <- (1 / lambdahat) ** 0.5
 
     ## For exponential Delta
@@ -31,7 +36,7 @@ estim_locreg_fun <- function(N = 400, lambda = 300, design = "d1", center = TRUE
         data = dt_mc[Htrue == Hi], idcol = "id_curve",
         tcol = "tobs", ycol = "X",
         t = t0, Delta = delta, h = bw,
-        smooth_ker = epanechnikov, center = center)
+        smooth_ker = epanechnikov, center = TRUE)
       dt_locreg[, Htrue := Hi]
     }, dt_mc = dt_mc, t0 = t0, bw = bw, delta = delta, center = center))
 
@@ -43,22 +48,35 @@ estim_locreg_fun <- function(N = 400, lambda = 300, design = "d1", center = TRUE
 
   ## Save
   if (center) {
-    file_name <- paste0("./inst/09_mc_simulate_data/locreg_estimates/dt_locreg_fBm_N=", N, "_lambda=", lambda, "_", design, ".RDS")
+    file_name <- paste0("./inst/09_mc_simulate_data/locreg_estimates/dt_locreg_fBm_N=", N, "_lambda=", lambda, "_centered_", design, ".RDS")
   } else {
-    file_name <- paste0("./inst/09_mc_simulate_data/locreg_estimates/dt_locreg_fBm_N=", N, "_lambda=", lambda, "_not_centered_", design, ".RDS")
+    file_name <- paste0("./inst/09_mc_simulate_data/locreg_estimates/dt_locreg_fBm_N=", N, "_lambda=", lambda, "_", design, ".RDS")
   }
   saveRDS(object = dt_reg_mc, file = file_name)
   return(dt_reg_mc)
 }
 
-## Estimate local regularity (Centered) ----
+## Estimate local regularity----
 ### d1
 dt_N400_lambda300_d1 <- estim_locreg_fun(N = 400, lambda = 300, design = "d1")
-dt_N1000_lambda1000_d1 <- estim_locreg_fun(N = 1000, lambda = 1000, design = "d1")
+rm(dt_N400_lambda300_d1) ; gc()
+
+dt_N400_lambda300_centered_d1 <- estim_locreg_fun(N = 400, lambda = 300, design = "d1", center = TRUE)
+rm(dt_N400_lambda300_centered_d1) ; gc()
+
+### d1_bis
+dt_N400_lambda300_d1_bis <- estim_locreg_fun(N = 400, lambda = 300, design = "d1_bis")
+rm(dt_N400_lambda300_d1_bis) ; gc()
+
+dt_N400_lambda300_centered_d1_bis <- estim_locreg_fun(N = 400, lambda = 300, design = "d1_bis", center = TRUE)
+rm(dt_N400_lambda300_centered_d1_bis) ; gc()
 
 ### d2
 dt_N400_lambda300_d2 <- estim_locreg_fun(N = 400, lambda = 300, design = "d2")
-dt_N1000_lambda1000_d2 <- estim_locreg_fun(N = 1000, lambda = 1000, design = "d2")
+rm(dt_N400_lambda300_d2) ; gc()
+dt_N400_lambda300_d2_bis <- estim_locreg_fun(N = 400, lambda = 300, design = "d2_bis")
+rm(dt_N400_lambda300_d2_bis) ; gc()
+
 
 ### d3
 dt_N400_lambda300_d3 <- estim_locreg_fun(N = 400, lambda = 300, design = "d3")

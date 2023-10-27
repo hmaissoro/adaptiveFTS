@@ -17,15 +17,15 @@ Hvec <- c(0.4, 0.5, 0.7)
 ## Plot function
 gplot <- function(N = 400, lambda = 300, design = "d1", param = "Ht", center = FALSE){
   if (center) {
-    dt_locreg <- readRDS(paste0("./inst/09_mc_simulate_data/locreg_estimates/dt_locreg_fBm_N=", N, "_lambda=", lambda, "_centered_", design, ".RDS"))
-    title_exp <- paste0("N = ", N , ", $\\lambda$=", lambda, " - Centered")
+    dt_locreg <- readRDS(paste0("./inst/11_mc_simulate_data/locreg_estimates/dt_locreg_fma_fBm_N=", N, "_lambda=", lambda, "_centered_", design, ".RDS"))
+    title_exp <- paste0("Zero-mean FMA(1) - ", "N = ", N , ", $\\lambda$=", lambda)
     ylim_Ht <- c(0.1, 0.9)
     ylim_Lt <- c(2, 16)
   } else {
-    dt_locreg <- readRDS(paste0("./inst/09_mc_simulate_data/locreg_estimates/dt_locreg_fBm_N=", N, "_lambda=", lambda, "_", design, ".RDS"))
-    title_exp <- paste0("N = ", N , ", $\\lambda$=", lambda, " - Not centered")
+    dt_locreg <- readRDS(paste0("./inst/11_mc_simulate_data/locreg_estimates/dt_locreg_fma_fBm_N=", N, "_lambda=", lambda, "_", design, ".RDS"))
+    title_exp <- paste0("FMA(1) - ", "N = ", N , ", $\\lambda$=", lambda)
     ylim_Ht <- c(0.1, 0.9)
-    ylim_Lt <- c(2, 16)
+    ylim_Lt <- c(-2, 16)
   }
   dt_locreg[, t := as.factor(t)]
   dt_locreg[, Htrue := as.factor(Htrue)]
@@ -50,11 +50,13 @@ gplot <- function(N = 400, lambda = 300, design = "d1", param = "Ht", center = F
             axis.text.y =  element_text(size = 12),
             legend.text = element_text(size = 12),
             legend.title = element_text(size = 12),
-            legend.key.width= unit(0.8, 'cm'))
+            legend.position = "top",
+            legend.key.width= unit(0.8, 'cm'),
+            plot.title = element_text(size = 10))
   } else if (param == "Lt") {
     gplt <- ggplot(dt_locreg, aes(x = Htrue, y = Lt, fill = t)) +
       geom_boxplot() +
-      ylim(2, max(dt_locreg[, Lt])) +
+      ylim(ylim_Lt) +
       ggtitle(latex2exp::TeX(title_exp)) +
       xlab("H true") +
       ylab(latex2exp::TeX("$L_t^2$")) +
@@ -68,12 +70,14 @@ gplot <- function(N = 400, lambda = 300, design = "d1", param = "Ht", center = F
             axis.text.y =  element_text(size = 12),
             legend.text = element_text(size = 12),
             legend.title = element_text(size = 12),
-            legend.key.width= unit(0.8, 'cm'))
+            legend.position = "top",
+            legend.key.width= unit(0.8, 'cm'),
+            plot.title = element_text(size = 10))
   }
   return(gplt)
 }
 
-## d1
+# d1
 g_d1 <- gridExtra::grid.arrange(
   gplot(N = 400, lambda = 300, design = "d1", param = "Ht"),
   gplot(N = 400, lambda = 300, design = "d1", param = "Ht", center = TRUE),
@@ -81,42 +85,31 @@ g_d1 <- gridExtra::grid.arrange(
   gplot(N = 400, lambda = 300, design = "d1", param = "Lt", center = TRUE),
   ncol = 2, nrow = 2
 )
-ggsave(
-  filename = file.path("./inst/09_mc_simulate_data/locreg_estimates/locreg_fBm_d1.png"),
-  plot = g_d1, bg = "white")
 
-## d1 bis
-g_d1_bis <- gridExtra::grid.arrange(
-  gplot(N = 400, lambda = 300, design = "d1_bis", param = "Ht"),
-  gplot(N = 400, lambda = 300, design = "d1_bis", param = "Ht", center = TRUE),
-  gplot(N = 400, lambda = 300, design = "d1_bis", param = "Lt"),
-  gplot(N = 400, lambda = 300, design = "d1_bis", param = "Lt", center = TRUE),
-  ncol = 2, nrow = 2
-)
 ggsave(
-  filename = file.path("./inst/09_mc_simulate_data/locreg_estimates/locreg_fBm_d1_bis.png"),
-  plot = g_d1_bis, bg = "white")
+  filename = file.path("./inst/11_mc_simulate_data/locreg_estimates/locreg_fma_fBm_d1.png"),
+  plot = g_d1, bg = "white")
 
 ## d2
 g_d2 <- gridExtra::grid.arrange(
   gplot(N = 400, lambda = 300, design = "d2", param = "Ht"),
-  gplot(N = 400, lambda = 300, design = "d2", param = "Ht", center = FALSE),
+  gplot(N = 400, lambda = 300, design = "d2", param = "Ht", center = TRUE),
   gplot(N = 400, lambda = 300, design = "d2", param = "Lt"),
-  gplot(N = 400, lambda = 300, design = "d2", param = "Lt", center = FALSE),
+  gplot(N = 400, lambda = 300, design = "d2", param = "Lt", center = TRUE),
   ncol = 2, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/09_mc_simulate_data/locreg_estimates/locreg_fBm_d2.png"),
+  filename = file.path("./inst/11_mc_simulate_data/locreg_estimates/locreg_fma_fBm_d2.png"),
   plot = g_d2, bg = "white")
 
 ## d3
 g_d3 <- gridExtra::grid.arrange(
   gplot(N = 400, lambda = 300, design = "d3", param = "Ht"),
-  gplot(N = 400, lambda = 300, design = "d3", param = "Ht", center = FALSE),
+  gplot(N = 400, lambda = 300, design = "d3", param = "Ht", center = TRUE),
   gplot(N = 400, lambda = 300, design = "d3", param = "Lt"),
-  gplot(N = 400, lambda = 300, design = "d3", param = "Lt", center = FALSE),
+  gplot(N = 400, lambda = 300, design = "d3", param = "Lt", center = TRUE),
   ncol = 2, nrow = 2
 )
 ggsave(
-  filename = file.path("./inst/09_mc_simulate_data/locreg_estimates/locreg_fBm_d3.png"),
-  plot = g_d2, bg = "white")
+  filename = file.path("./inst/11_mc_simulate_data/locreg_estimates/locreg_fma_fBm_d3.png"),
+  plot = g_d3, bg = "white")

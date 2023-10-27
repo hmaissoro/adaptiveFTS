@@ -10,6 +10,7 @@ estimate_mean(
   tcol = "tobs",
   ycol = "X",
   t = c(1/4, 1/2, 3/4),
+  optbw = NULL,
   bw_grid = seq(0.005, 0.15, len = 45),
   Ht = NULL,
   Lt = NULL,
@@ -57,6 +58,9 @@ Opposite, if f \code{data} is given as \code{list} of \code{data.table (or data.
 \item{ycol}{\code{character}. The name of the column that contains the observed value of the curves.}
 
 \item{t}{\code{vector (numeric)}. Observation points at which we want to estimate the mean function of the underlying process.}
+
+\item{optbw}{\code{vector (numeric)}. The optimal bandwidth parameter for mean function estimation for each \code{t}.
+Default \code{optbw = NULL} and thus it will be estimated using \link{estimate_mean_risk()} function.}
 
 \item{bw_grid}{\code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each \code{t}.}
 
@@ -122,4 +126,7 @@ DT::datatable(data = dt_mean[, lapply(.SD, function(X) round(X, 3))])
 }
 
 
+}
+\seealso{
+\code{\link[=estimate_mean_risk]{estimate_mean_risk()}}, \code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_sigma]{estimate_sigma()}}, \code{\link[=estimate_nw]{estimate_nw()}}, \code{\link[=estimate_empirical_autocov]{estimate_empirical_autocov()}}.
 }

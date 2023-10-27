@@ -223,6 +223,8 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #' Estimate mean function
 #'
 #' @inheritParams estimate_mean_risk
+#' @param optbw \code{vector (numeric)}. The optimal bandwidth parameter for mean function estimation for each \code{t}.
+#' Default \code{optbw = NULL} and thus it will be estimated using \link{estimate_mean_risk()} function.
 #'
 #' @return A \code{data.table} containing the following columns.
 #'          \itemize{
@@ -235,6 +237,8 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #'            \item{muhat :}{ The estimates of the mean function.}
 #'         }
 #' @export
+#'
+#' @seealso [estimate_mean_risk()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_empirical_autocov()].
 #'
 #' @importFrom data.table data.table rbindlist setcolorder merge.data.table
 #' @examples
@@ -268,21 +272,32 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #'
 #'
 estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                          t = c(1/4, 1/2, 3/4), bw_grid = seq(0.005, 0.15, len = 45),
+                          t = c(1/4, 1/2, 3/4), optbw = NULL, bw_grid = seq(0.005, 0.15, len = 45),
                           Ht = NULL, Lt = NULL, Delta = NULL, h = NULL,
                           smooth_ker = epanechnikov){
+  # Control on t, optbw and smooth_ker arguments
+  # NB : The remaining arguments are controlled using the .format_data and estimate_mean_risk functions, if required.
+  if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
+    stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
+  if (! methods::is(smooth_ker, "function"))
+    stop("'smooth_ker' must be a function.")
+  if ((!is.null(optbw)) & length(optbw) != length(t))
+    stop("If 'optbw' is not NULL, it must be the same length as 't'.")
 
   # Control and format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   # Estimate the risk function
-  dt_mean_risk <- estimate_mean_risk(
-    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-    t = t, bw_grid = bw_grid,
-    Ht = Ht, Lt = Lt, Delta = Delta, h = h,
-    smooth_ker = smooth_ker)
-
+  if (is.null(optbw)) {
+    dt_mean_risk <- estimate_mean_risk(
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      t = t, bw_grid = bw_grid,
+      Ht = Ht, Lt = Lt, Delta = Delta, h = h,
+      smooth_ker = smooth_ker)
+  }else {
+    dt_mean_optbw <- data.table::data.table("t" = t, "Ht" = NA, "Lt" = NA, "locreg_bw" = NA, "optbw" = optbw)
+  }
   # Take the optimum of the risk function
   dt_mean_risk[, optbw := h[which.min(mean_risk)], by = t]
   dt_mean_optbw <- unique(dt_mean_risk[, list(t, Ht, Lt, locreg_bw, optbw)])
