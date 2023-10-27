@@ -15,8 +15,7 @@ Imports:
     MASS,
     methods,
     Rdpack
-RdMacros: 
-    Rdpack
+RdMacros: Rdpack
 Suggests: 
     knitr,
     rmarkdown

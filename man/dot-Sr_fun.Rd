@@ -2,7 +2,7 @@
 % Please edit documentation in R/04_estimate_mean.R
 \name{.Sr_fun}
 \alias{.Sr_fun}
-\title{Sr function. See Rubìn and Panaretos (2020) Equation (B.1)}
+\title{\eqn{S_r} function given in equation (B.1) in \insertCite{rubin2020}{adaptiveFTS}}
 \usage{
 .Sr_fun(
   data,
@@ -65,5 +65,10 @@ Opposite, if f \code{data} is given as \code{list} of \code{data.table (or data.
 A \code{numeric} scalar.
 }
 \description{
-Sr function. See Rubìn and Panaretos (2020) Equation (B.1)
+\eqn{S_r} function given in equation (B.1) in \insertCite{rubin2020}{adaptiveFTS}
+}
+\references{
+{
+\insertRef{rubin2020}{adaptiveFTS}
+}
 }

@@ -324,7 +324,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 # mean function estimator : Rubìn et Paranaretos ----
 # Following the Rubìn and Panaretos Equation (B.1), we define Sr_fun and Qr_fun
 
-#' Sr function. See Rubìn and Panaretos (2020) Equation (B.1)
+#' \eqn{S_r} function given in equation (B.1) in \insertCite{rubin2020}{adaptiveFTS}
 #'
 #' @inheritParams .format_data
 #' @param t \code{numeric (positive scalar)}. Observation point at which we want to estimate the mean function.
@@ -334,6 +334,11 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #'
 #' @return A \code{numeric} scalar.
 #' @export
+#'
+#' @importFrom Rdpack reprompt
+#' @references{
+#'    \insertRef{rubin2020}{adaptiveFTS}
+#' }
 #'
 .Sr_fun <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                     t = 1/2, r = 1, h, smooth_ker = epanechnikov){
