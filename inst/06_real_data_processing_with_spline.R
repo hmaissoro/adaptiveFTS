@@ -101,25 +101,34 @@ ggsave(filename = file.path(figures_path, "real_data_selected_curves.png"), unit
 # Local regularity estimation ----
 # Import data
 dt <- fread(file = "../electricity_consumption_data/household_voltage_autumn2009_winter2010.csv")
+## Global parameters
 N <- length(dt[, unique(date)])
 lambda <- mean(dt[, .N, by = "date"][, N])
 date_vec <- dt[, unique(date)]
 delta <- exp(-log(lambda) ** 1/3)
 
-lambdahat <- mean(dt_gen[ttag == "trandom", .N, by = id_curve][, N])
+## Estimate bandwidth
 K <- 100
-b0 <- 1 / lambdahat
-bK <- lambdahat ** (- 1 / 3)
+b0 <- 1 / lambda
+bK <- lambda ** (- 1 / 3)
 a <- exp((log(bK) - log(b0)) / K)
 bw_grid <- b0 * a ** (seq_len(K))
 rm(b0, bK, a, K) ; gc()
 
-bw <- unlist(lapply(date_vec, function(di, data){
+bw <- unlist(lapply(date_vec, function(di, data, bw_grid){
   estimate_nw_bw(
     y = data[date == di, voltage],
     t = data[date == di, tobs],
-    bw_grid = , smooth_ker = epanechnikov)
-}, data = dt))
+    bw_grid = bw_grid, smooth_ker = epanechnikov)
+}, data = dt, bw_grid))
+
+## Estimate the local regularity parameters
+dt_locreg <- estimate_locreg(
+  data = dt, idcol = "date", tcol = "tobs", ycol = "voltage",
+  t = seq(0.1, 0.9, len = 100), Delta = delta,
+  h = bw, smooth_ker = epanechnikov)
+
+dygraphs::dygraph(data = dt_locreg[, .(t, Ht)])
 
 
 # Mean function estimation ----
@@ -127,8 +136,8 @@ bw <- unlist(lapply(date_vec, function(di, data){
 dt <- fread(file = "../electricity_consumption_data/household_voltage_autumn2009_winter2010.csv")
 
 # Estimation of the Fourier basis coefficients
-# Indeed \mu(t) is expressed in fourier basis
-# Number of basis elements : 101
+# Indeed \mu(t) is expressed in N cubic spline basis
+# Number of basis elements : 10
 
 ## Empirical mean function
 dt_mu <- dt[order(tobs), .("mu" = mean(voltage, na.rm = TRUE)), by = "tobs"]
@@ -139,13 +148,8 @@ dygraphs::dygraph(dt_mu)
 ### co-variables
 tobs <- dt[, unique(sort(tobs))]
 K <- 10
-# splines2::nsp(x = tobs, df = 6, intercept = FALSE)
-# cos_mat <- outer(X = tobs, Y = 1:K, function(t, k) sqrt(2) * cos(2 * pi * k * t))
-# colnames(cos_mat) <- paste0("cos", 1:K)
-#
-# sin_mat <- outer(X = tobs, Y = 1:K, function(t, k) sqrt(2) * sin(2 * pi * k * t))
-# colnames(sin_mat) <- paste0("sin", 1:K)
 
+## Define basis
 mat_covariable <- splines2::nsp(x = tobs, df = (K + 1 + 1), intercept = TRUE)
 
 ### LASSO regression
@@ -165,11 +169,9 @@ dygraphs::dygraph(data = data.table::data.table(tobs, mu))
 
 get_real_data_mean <- function(t = seq(0.1, 0.9, len = 10)){
   # \eta(t)
-  # cost_mat <- outer(X = t, Y = 1:50, function(ti, k) sqrt(2) * cos(2 * pi * k * ti))
-  # sint_mat <- outer(X = t, Y = 1:50, function(ti, k) sqrt(2) * sin(2 * pi * k * ti))
   eta <- splines2::nsp(x = t, df = 12, intercept = TRUE)
 
-  # Basis coeffient
+  # Basis coeffients
   basis_coef <- matrix(
     data = c(731.389571901671, -0.52006982827689, 246.098166747946,
              243.059070562643, 239.632261351878, 242.246665268361,
@@ -177,13 +179,11 @@ get_real_data_mean <- function(t = seq(0.1, 0.9, len = 10)){
              238.415397856336, -5.9613322334532, 734.400332002359),
     ncol = 1)
 
-
   # mean function estimation
   muhat <- eta %*% basis_coef
 
   # Remove objects
-  rm(eta, basis_coef)
-  gc()
+  rm(eta, basis_coef) ; gc()
 
   return(muhat[, 1])
 }
@@ -360,7 +360,7 @@ beta_coef <- coef(beta_model)
 CC1_prev <- predict(beta_model, FF)
 
 ### Build kernel function
-get_real_data_far_kenel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
+get_real_data_far_kenel <- function(s = 0.2, t = 0.3, operator_norm = 0.7){
   # Basis coefficient
   # For each fixed {\eta_k(s), k = 1,...,K} and {\theta_l(t), l = 1,...,L}, we have
   # c(b_{11}, b_{12}, ..., b_{1L},
@@ -381,22 +381,9 @@ get_real_data_far_kenel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
     -66.1910800695624, 85.8780261168699, -142.247945431835, 121.819129805756,
     9.45741883242566, 39.8753096159282, 6.85395396362438, -132.236594114549,
     128.212492255768)
-  # Transform to (K, L) matrix
-  basis_coef_mat <- t(matrix(data = basis_coef, ncol = 7))
 
-  # ker_values <- mapply(function(s,t, coef_mat){
-  #   # \eta(s)
-  #   etas <- splines2::nsp(x = s, df = 5 + 1 + 1, intercept = TRUE)
-  #   # etas <- c(1, sqrt(2) * cos(2 * pi * 1:2 * s), sqrt(2) * sin(2 * pi * 1:2 * s))
-  #
-  #   # \theta(t)
-  #   thetat <- splines2::nsp(x = t, df = 5 + 1 + 1, intercept = TRUE)
-  #   # thetat <- c(1, sqrt(2) * cos(2 * pi * 1:2 * t), sqrt(2) * sin(2 * pi * 1:2 * t))
-  #
-  #   # Basis function
-  #   ker_val <- matrix(etas, nrow = 1) %*% coef_mat %*% matrix(thetat, ncol = 1)
-  #   return(c(ker_val))
-  # }, s = s, t = t, MoreArgs = list(coef_mat = basis_coef_mat))
+  # Transform to (K, L) matrix
+  basis_coef_mat <- matrix(data = basis_coef, ncol = 1)
 
   # \eta(s)
   etas <- splines2::nsp(x = s, df = 5 + 1 + 1, intercept = TRUE)
@@ -404,16 +391,22 @@ get_real_data_far_kenel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
   # \theta(t)
   thetat <- splines2::nsp(x = t, df = 5 + 1 + 1, intercept = TRUE)
 
+  mat_basis <- lapply(1:ncol(etas), function(id_eta_col, eta_mat, theta_mat){
+    eta_mat[, id_eta_col] * theta_mat
+  }, eta_mat = etas, theta_mat = thetat)
+  mat_basis <- do.call(cbind, mat_basis)
+
   # Basis function
-  ker_values <-  diag(etas %*% basis_coef_mat %*% t(thetat))
+  ker_values <-  mat_basis %*% basis_coef_mat
+  ker_values <-  c(ker_values)
 
   # Normalize values using operator norm
-  op_norm <- 4.588783
+  op_norm <- 3.446037
   op_scale <- operator_norm / op_norm
   ker_values <- ker_values * op_scale
 
   # clean
-  rm(basis_coef_mat, basis_coef) ; gc()
+  rm(basis_coef_mat, basis_coef, etas, thetat, mat_basis) ; gc()
 
   return(ker_values)
 }
@@ -463,4 +456,31 @@ plot3D::persp3D(x = seq(0.01, 0.99, len = 200),
                 col = RColorBrewer::brewer.pal(n = 8, "Greys")[8:3],
                 xlab = "s", ylab = "t", zlab = "Θ(s,t)",
                 ticktype = 'detailed', nticks = 5)
+
+# Estimate the norm ----
+svec <- (1:1500) / 1500
+tvec <- (1:1500) / 1500
+
+dt_grid <- expand.grid(
+  s = svec, t = tvec
+)
+
+dt_far_ker <- get_real_data_far_kenel(
+  s = dt_grid$s, t = dt_grid$t, operator_norm = 0.7
+)
+mat_far_ker <- matrix(dt_far_ker, ncol = length(tvec))
+
+plot_ly(x = svec, y = tvec, z = mat_far_ker) %>%
+  add_surface() %>%
+  layout(title = "Operator kernel")
+
+## Calcul de la norm
+op_norm <- max(1 / length(tvec) * mat_far_ker %*% matrix(data = 1, nrow = length(tvec)))
+op_norm
+
+op_norm <- max(apply(X = mat_far_ker, MARGIN = 1, FUN = function(r){
+  pracma::trapz(x = (1:1500) / 1500, y = r)
+}))
+op_norm
+
 
