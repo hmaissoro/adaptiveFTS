@@ -129,10 +129,29 @@ estim_locreg_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise
 }
 
 # Estimate local regularity ----
-## FAR ----
+## design 1 ----
+### FAR ----
 estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
 estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
 
-## FMA ----
+### FMA ----
 estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1")
 estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1")
+
+## design 2 ----
+### FAR ----
+estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2")
+estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2")
+
+### FMA ----
+estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d2")
+estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d2")
+
+## design 3 ----
+### FAR ----
+estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3")
+estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3")
+
+### FMA ----
+estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d3")
+estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d3")

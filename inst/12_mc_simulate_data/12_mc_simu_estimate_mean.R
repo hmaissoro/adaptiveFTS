@@ -176,11 +176,31 @@ estim_mean_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise =
   # comming ...
 }
 
-# Estimate local regularity ----
-## FAR ----
+# Estimate mean risk function ----
+## design 1 ----
+### FAR ----
 estim_mean_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", t0 = t0)
 estim_mean_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1", t0 = t0)
 
-## FMA ----
+### FMA ----
 estim_mean_risk_fun(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1", t0 = t0)
 estim_mean_risk_fun(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1", t0 = t0)
+
+## design 2 ----
+### FAR ----
+estim_mean_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2", t0 = t0)
+estim_mean_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2", t0 = t0)
+
+### FMA ----
+estim_mean_risk_fun(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d2", t0 = t0)
+estim_mean_risk_fun(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d2", t0 = t0)
+
+## design 3 ----
+### FAR ----
+estim_mean_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3", t0 = t0)
+estim_mean_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3", t0 = t0)
+
+### FMA ----
+estim_mean_risk_fun(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d3", t0 = t0)
+estim_mean_risk_fun(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d3", t0 = t0)
+
