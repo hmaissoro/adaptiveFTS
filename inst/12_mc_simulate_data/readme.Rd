@@ -9,3 +9,10 @@ to estimate
 - The mean function
 - The lag-1 autocovariance function.
 
+The data generation strategy is :
+
+- to generate a zero-mean process
+- and add to this process the mean function.
+
+For the mean and autocovariance functions, we also estimate the MSE for each h in the bandwidth grid.
+
