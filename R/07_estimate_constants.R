@@ -140,6 +140,7 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
 #' It has to be of the same length as the \code{s}.
 #' @param cross_lag \code{integer (positive integer)}. It corresponds to the lag \eqn{\ell} in \eqn{X_0(s)X_{\ell}(t)}.
 #' @param lag \code{vector (integer)}. Lag of the autocovariance of the random variable \eqn{X_0(s)X_{\ell}(t)}.
+#' If \code{lag = NULL}, only \eqn{\mathbb{E}X_0(s)X_{\ell}(t)} is returned.
 #' @param h \code{numeric (positive vector or scalar)}. The smoothing bandwidth parameter.
 #' Default \code{h = NULL} and thus it will be estimated by Cross-Validation on a subset of curves.
 #' If \code{h} is a \code{scalar}, then all curves will be smoothed with the same bandwidth.
@@ -147,7 +148,7 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
 #' and each element of the vector must correspond to a curve given in the same order as in \code{data}.
 #' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
 #'
-#' @return A data.table with three columns: \code{s}, \code{t}, \code{cross_lag}, \code{lag} and \code{XsXt_autocov}
+#' @return A data.table with three columns: \code{s}, \code{t}, \code{cross_lag}, \code{lag}, \code{EXsXt_cross_lag} and \code{XsXt_autocov}
 #' corresponding to the estimated autocovariance of the random variable \eqn{X_0(s)X_{\ell}(t)}.
 #' @export
 #' @importFrom methods is
@@ -273,31 +274,38 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", y
   dt_gamma_cross_lag <- dt_smooth_merge[!(is.nan(Xhat_s) | is.nan(Xhat_t)),
                                         list("gamma_cross_lag" = mean(Xhat_s * Xhat_t)),
                                         by = c("s", "t")]
+  dt_gamma_cross_lag <- dt_gamma_cross_lag[order(s,t)]
 
   # Estimate autocovariance
-  dt_autocov <- data.table::rbindlist(lapply(lag, function(lg, dt_smooth_merge, dt_gamma_cross_lag){
-    data.table::rbindlist(lapply(1:length(s), function(sid, lg, dt_gamma_cross_lag, dt_smooth_merge){
-      N <- dt_smooth_merge[s == s[sid] & t == t[sid], .N]
-      gamma_cross_lag <- dt_gamma_cross_lag[s == s[sid] & t == t[sid], gamma_cross_lag]
+  if (is.null(lag)){
+    dt_res <- data.table::data.table(
+      "s" = s, "t" = t, "cross_lag" = cross_lag, "lag" = NA,
+      "EXsXt_cross_lag" = dt_gamma_cross_lag[, gamma_cross_lag], "XsXt_autocov" = NA)
+  } else {
+    dt_autocov <- data.table::rbindlist(lapply(lag, function(lg, dt_smooth_merge, dt_gamma_cross_lag){
+      data.table::rbindlist(lapply(1:length(s), function(sid, lg, dt_gamma_cross_lag, dt_smooth_merge){
+        N <- dt_smooth_merge[s == s[sid] & t == t[sid], .N]
+        gamma_cross_lag <- dt_gamma_cross_lag[s == s[sid] & t == t[sid], gamma_cross_lag]
 
-      ## For the argument s
-      Xhat_s_vec <- dt_smooth_merge[s == s[sid] & t == t[sid], Xhat_s]
-      Xhat_s_i <- Xhat_s_vec[1:(N-lg)]
-      Xhat_s_i_plus_lag <- Xhat_s_vec[(1 + lg):N]
+        ## For the argument s
+        Xhat_s_vec <- dt_smooth_merge[s == s[sid] & t == t[sid], Xhat_s]
+        Xhat_s_i <- Xhat_s_vec[1:(N-lg)]
+        Xhat_s_i_plus_lag <- Xhat_s_vec[(1 + lg):N]
 
-      ## For the argument t
-      Xhat_t_vec <- dt_smooth_merge[s == s[sid] & t == t[sid], Xhat_t]
-      Xhat_t_i_plus_cross_lag <- Xhat_t_vec[1:(N-lg)]
-      Xhat_t_i_plus_cross_lag_plus_lag <- Xhat_s_vec[(1 + lg):N]
+        ## For the argument t
+        Xhat_t_vec <- dt_smooth_merge[s == s[sid] & t == t[sid], Xhat_t]
+        Xhat_t_i_plus_cross_lag <- Xhat_t_vec[1:(N-lg)]
+        Xhat_t_i_plus_cross_lag_plus_lag <- Xhat_s_vec[(1 + lg):N]
 
-      XsXt_autocov_vec <- (Xhat_s_i * Xhat_t_i_plus_cross_lag - gamma_cross_lag) *
-        (Xhat_s_i_plus_lag * Xhat_t_i_plus_cross_lag_plus_lag - gamma_cross_lag)
+        XsXt_autocov_vec <- (Xhat_s_i * Xhat_t_i_plus_cross_lag - gamma_cross_lag) *
+          (Xhat_s_i_plus_lag * Xhat_t_i_plus_cross_lag_plus_lag - gamma_cross_lag)
 
-      XsXt_autocov_vec <- XsXt_autocov_vec[!is.nan(XsXt_autocov_vec)]
-      XsXt_autocov <- mean(XsXt_autocov_vec)
-      dt_res <- data.table::data.table("s" = s[sid], "t" = t[sid], "cross_lag" = cross_lag, "lag" = lg, "XsXt_autocov" = XsXt_autocov)
-    }, lg = lg, dt_gamma_cross_lag = dt_gamma_cross_lag, dt_smooth_merge = dt_smooth_merge))
-  }, dt_smooth_merge = dt_smooth_merge, dt_gamma_cross_lag = dt_gamma_cross_lag))
+        XsXt_autocov_vec <- XsXt_autocov_vec[!is.nan(XsXt_autocov_vec)]
+        XsXt_autocov <- mean(XsXt_autocov_vec)
+        dt_res <- data.table::data.table("s" = s[sid], "t" = t[sid], "cross_lag" = cross_lag, "lag" = lg, "EXsXt_cross_lag" = gamma_cross_lag, "XsXt_autocov" = XsXt_autocov)
+      }, lg = lg, dt_gamma_cross_lag = dt_gamma_cross_lag, dt_smooth_merge = dt_smooth_merge))
+    }, dt_smooth_merge = dt_smooth_merge, dt_gamma_cross_lag = dt_gamma_cross_lag))
+  }
   return(dt_autocov)
 }
 
