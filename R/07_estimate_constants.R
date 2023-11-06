@@ -195,7 +195,6 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", y
     }
   } else {
     # If h = NULL, choose the bandwidth by CV
-    lambdahat <- mean(data[, .N, by = "id_curve"][, N])
     if (N > 50) {
       sample_curves <- sample(x = 1:N, size = 30)
     } else {
