@@ -300,19 +300,19 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
-  # Estimate the risk function
   if (is.null(optbw)) {
+    # Estimate the risk function
     dt_mean_risk <- estimate_mean_risk(
       data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       t = t, bw_grid = bw_grid,
       Ht = Ht, Lt = Lt, Delta = Delta, h = h,
       smooth_ker = smooth_ker)
+    # Take the optimum of the risk function
+    dt_mean_risk[, optbw := h[which.min(mean_risk)], by = t]
+    dt_mean_optbw <- unique(dt_mean_risk[, list(t, Ht, Lt, locreg_bw, optbw)])
   }else {
     dt_mean_optbw <- data.table::data.table("t" = t, "Ht" = NA, "Lt" = NA, "locreg_bw" = NA, "optbw" = optbw)
   }
-  # Take the optimum of the risk function
-  dt_mean_risk[, optbw := h[which.min(mean_risk)], by = t]
-  dt_mean_optbw <- unique(dt_mean_risk[, list(t, Ht, Lt, locreg_bw, optbw)])
 
   # Smooth curves with optimal bandwidth parameters
   dt_Xhat <- data.table::rbindlist(lapply(1:N, function(curve_index, t, data, dt_mean_optbw, smooth_ker){

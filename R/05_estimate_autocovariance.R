@@ -431,6 +431,13 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 #' @inheritParams estimate_autocov_risk
 #' @param optbw \code{vector (numeric)}. The optimal bandwidth parameter for lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function estimation for each pair (\code{s}, \code{t}).
 #' Default \code{optbw = NULL} and thus it will be estimated using \link{estimate_autocov_risk()} function.
+#' @param center \code{logical (TRUE or FALSE)}. Default \code{center = TRUE} and so the curves are centred when the autocovariance is estimated: \eqn{\mathbb{E}(X_0(s) - \mu(s))(X_{\ell}(t) - \mu(t))}.
+#' Otherwise, the two parts \eqn{\mathbb{E}X_0(s)X_{\ell}(t)} and \eqn{\mu(s)\mu(t)} will be estimated separately.
+#' The first part with a bandwidth obtained with \link{estimate_autocov_risk} and the second part with a bandwidth obtained with \link{estimate_mean_risk}.
+#' @param mean_estimates_s \code{vector (numeric)}. Mean function estimates at each \code{s}.
+#' The default is \code{mean_estimates_s = NULL} and so it is estimated if \code{center = FALSE}.
+#' @param mean_estimates_t \code{vector (numeric)}. Mean function estimates at each \code{t} if \code{center = FALSE}.
+#' The default is \code{mean_estimates_t = NULL} and so it is estimated.
 #'
 #' @return A \code{data.table} containing the following columns.
 #'          \itemize{
@@ -474,7 +481,9 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
                              Hs = NULL, Ls = NULL,
                              Ht = NULL, Lt = NULL,
                              Delta = NULL, h = NULL,
-
+                             center = TRUE,
+                             mean_estimates_s = NULL,
+                             mean_estimates_t = NULL,
                              smooth_ker = epanechnikov){
   # Control easy checkable arguments
   if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
@@ -506,6 +515,20 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
     stop("'lag' must be a positive integer lower than the number of curves.")
 
+  # Control the given optimal bandwidth
+  if ((!is.null(optbw)) & length(optbw) != length(s))
+    stop("If 'optbw' is not NULL, it must be the same length as 's' and 't'.")
+
+  # If Non centered version of the autocovariance function
+  if (! center) {
+    if (((!is.null(mean_estimates_s)) & length(mean_estimates_s) != length(s)) |
+        ((!is.null(mean_estimates_t)) & length(mean_estimates_t) != length(t)))
+      stop("If 'mean_estimates_s' or 'mean_estimates_t' is not NULL, it must be the same length as 's' and 't'.")
+    if ((!is.null(mean_estimates_s) & ! methods::is(mean_estimates_s, "numeric")) |
+        (!is.null(mean_estimates_t) & ! methods::is(mean_estimates_t, "numeric")))
+      stop("If 'mean_estimates_s', 'mean_estimates_t' is not NULL, it must be numeric.")
+  }
+
   # Sort by s and t
   dt_st <- data.table::data.table("s" = s, "t" = t)
   dt_st <- dt_st[order(s,t)]
@@ -514,48 +537,132 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   rm(dt_st) ; gc()
 
   # Estimate mean function at s and at t
-  dt_mean_s <- estimate_mean(
-    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-    t = s, bw_grid = bw_grid,
-    Ht = Hs, Lt = Ls,
-    Delta = Delta, h = h,
-    smooth_ker = smooth_ker)
-  data.table::setnames(x = dt_mean_s,
-                       old = c("t", "locreg_bw", "Ht", "Lt", "optbw", "muhat"),
-                       new = c("s", "locreg_bw_s", "Hs", "Ls", "optbw_muhat_s", "muhat_s"))
-  dt_mean_t <- estimate_mean(
-    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-    t = t, bw_grid = bw_grid,
-    Ht = Ht, Lt = Lt,
-    Delta = Delta, h = h,
-    smooth_ker = smooth_ker)
-  data.table::setnames(x = dt_mean_t,
-                       old = c("t", "locreg_bw", "Ht", "Lt", "optbw", "muhat"),
-                       new = c("t", "locreg_bw_t", "Ht", "Lt", "optbw_muhat_t", "muhat_t"))
-  dt_mean <- cbind(dt_mean_s[, .SD, .SDcols = c("s", "locreg_bw_s", "Hs", "Ls", "optbw_muhat_s", "muhat_s")],
-                   dt_mean_t[, .SD, .SDcols = c("t", "locreg_bw_t", "Ht", "Lt", "optbw_muhat_t", "muhat_t")])
-  dt_mean[, locreg_bw := (locreg_bw_s + locreg_bw_t) / 2]
-  dt_mean[, c("locreg_bw_s", "locreg_bw_t") := NULL]
-  data.table::setcolorder(x = dt_mean,
-                          neworder = c("s", "t", "locreg_bw", "Hs", "Ls", "Ht", "Lt",
-                                       "optbw_muhat_s", "optbw_muhat_t", "muhat_s", "muhat_t"))
-  dt_mean <- dt_mean[order(s,t)]
-  rm(dt_mean_s, dt_mean_t) ; gc()
+  if ((! center) & (is.null(mean_estimates_s) | is.null(mean_estimates_t))) {
+    ## Estimate mean function at s
+    dt_mean_s <- estimate_mean(
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      t = s, bw_grid = bw_grid,
+      Ht = Hs, Lt = Ls,
+      Delta = Delta, h = h,
+      smooth_ker = smooth_ker)
+    data.table::setnames(x = dt_mean_s,
+                         old = c("t", "locreg_bw", "Ht", "Lt", "optbw", "muhat"),
+                         new = c("s", "locreg_bw_s", "Hs", "Ls", "optbw_muhat_s", "muhat_s"))
 
-  # Estimate the risk function
-  dt_autocov_risk <- estimate_autocov_risk(
-    data = data, idcol = idcol, tcol = tcol, ycol = ycol,
-    s = s, t = t, lag = lag,
-    bw_grid = bw_grid, smooth_ker = smooth_ker,
-    Hs = dt_mean[, Hs], Ls = dt_mean[, Ls],
-    Ht = dt_mean[, Ht], Lt = dt_mean[, Lt],
-    Delta = Delta, h = dt_mean[, unique(locreg_bw)]
-  )
+    ## Estimate mean function at s
+    dt_mean_t <- estimate_mean(
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      t = t, bw_grid = bw_grid,
+      Ht = Ht, Lt = Lt,
+      Delta = Delta, h = h,
+      smooth_ker = smooth_ker)
+    data.table::setnames(x = dt_mean_t,
+                         old = c("t", "locreg_bw", "Ht", "Lt", "optbw", "muhat"),
+                         new = c("t", "locreg_bw_t", "Ht", "Lt", "optbw_muhat_t", "muhat_t"))
+    ## Merge
+    dt_mean <- cbind(dt_mean_s[, .SD, .SDcols = c("s", "locreg_bw_s", "Hs", "Ls", "optbw_muhat_s", "muhat_s")],
+                     dt_mean_t[, .SD, .SDcols = c("t", "locreg_bw_t", "Ht", "Lt", "optbw_muhat_t", "muhat_t")])
+    dt_mean[, locreg_bw := (locreg_bw_s + locreg_bw_t) / 2]
+    dt_mean[, c("locreg_bw_s", "locreg_bw_t") := NULL]
+    data.table::setcolorder(x = dt_mean,
+                            neworder = c("s", "t", "locreg_bw", "Hs", "Ls", "Ht", "Lt",
+                                         "optbw_muhat_s", "optbw_muhat_t", "muhat_s", "muhat_t"))
 
-  # Take the optimum of the risk function
-  dt_autocov_risk[, optbw := h[which.min(autocov_risk)], by = c("s", "t")]
-  dt_autocov_optbw <- unique(dt_autocov_risk[, list(s, t, optbw)])
-  dt_autocov_optbw <- dt_autocov_optbw[order(s,t)]
+    ## Clean
+    dt_mean <- dt_mean[order(s,t)]
+    rm(dt_mean_s, dt_mean_t) ; gc()
+
+    ## Set local regularity parameters estimates
+    Hs <- dt_mean[, Hs]
+    Ls <- dt_mean[, Ls]
+    Ht <- dt_mean[, Ht]
+    Lt <- dt_mean[, Lt]
+    h <- dt_mean[, unique(locreg_bw)]
+  } else if (! center) {
+    dt_mean <- data.table::data.table(
+      "s" = s, "t" = t, "locreg_bw" = NA, "Hs" = NA, "Ls" = NA, "Ht" = NA, "Lt" = NA,
+      "optbw_muhat_s" = NA, "optbw_muhat_t" = NA,
+      "muhat_s" = mean_estimates_s, "muhat_t" = mean_estimates_t)
+  }
+
+  # If the optimal bandwidth is not given
+  if (is.null(optbw)) {
+    # Estimate the risk function
+    dt_autocov_risk <- estimate_autocov_risk(
+      data = data, idcol = idcol, tcol = tcol, ycol = ycol,
+      s = s, t = t, lag = lag,
+      bw_grid = bw_grid, smooth_ker = smooth_ker,
+      Hs = Hs, Ls = Ls,
+      Ht = Ht, Lt = Lt,
+      Delta = Delta, h = h)
+
+    # Take the optimum of the risk function
+    dt_autocov_risk[, optbw := h[which.min(autocov_risk)], by = c("s", "t")]
+    dt_autocov_optbw <- unique(dt_autocov_risk[, list(s, t, optbw)])
+    dt_autocov_optbw <- dt_autocov_optbw[order(s,t)]
+  } else {
+    # Set optimal autocovariance bandwidth function
+    dt_autocov_optbw <- data.table::data.table("s" = s, "t" = t, "optbw" = optbw)
+  }
+
+  if (center) {
+    # Estimate mean at s
+    dt_mean_s <- estimate_mean(
+      data = data, idcol = idcol, tcol = tcol, ycol = ycol,
+      t = s, optbw = dt_autocov_optbw[, optbw])
+
+    # Estimate mean at t
+    dt_mean_t <- estimate_mean(
+      data = data, idcol = idcol, tcol = tcol, ycol = ycol,
+      t = t, optbw = dt_autocov_optbw[, optbw])
+
+    # Merge and clean
+    dt_mean <- cbind(
+      dt_mean_s[, .("s" = t, "optbw_muhat_s" = optbw, "muhat_s" = muhat)],
+      dt_mean_t[, .("t" = t, "optbw_muhat_t" = optbw, "muhat_t" = muhat)]
+    )
+    rm(dt_mean_s) ; dt_mean
+  }
+
+  # If the optimal bandwidth is not given
+  if (is.null(optbw)) {
+
+    if (! center) {
+
+    } else {
+
+    }
+    # Estimate the risk function
+    dt_autocov_risk <- estimate_autocov_risk(
+      data = data, idcol = idcol, tcol = tcol, ycol = ycol,
+      s = s, t = t, lag = lag,
+      bw_grid = bw_grid, smooth_ker = smooth_ker,
+      Hs = Hs, Ls = Ls,
+      Ht = Ht, Lt = Lt,
+      Delta = Delta, h = h)
+
+    # Take the optimum of the risk function
+    dt_autocov_risk[, optbw := h[which.min(autocov_risk)], by = c("s", "t")]
+    dt_autocov_optbw <- unique(dt_autocov_risk[, list(s, t, optbw)])
+    dt_autocov_optbw <- dt_autocov_optbw[order(s,t)]
+  } else if (){
+    # Set optimal autocovariance bandwidth function
+    dt_autocov_optbw <- data.table::data.table("s" = s, "t" = t, "optbw" = optbw)
+
+    # Estimate mean at s
+    dt_mean_s <- estimate_mean(
+      data = data, idcol = idcol, tcol = tcol, ycol = ycol,
+      t = s, optbw = optbw)
+
+    # Estimate mean at t
+    dt_mean_t <- estimate_mean(
+      data = data, idcol = idcol, tcol = tcol, ycol = ycol,
+      t = t, optbw = optbw)
+    dt_mean <- cbind(
+      dt_mean_s[, .("s" = t, "optbw_muhat_s" = optbw, "muhat_s" = muhat)],
+      dt_mean_t[, .("t" = t, "optbw_muhat_t" = optbw, "muhat_t" = muhat)]
+    )
+  }
 
   # Smooth curves with optimal bandwidth parameters
   dt_Xhat <- data.table::rbindlist(lapply(1:N, function(curve_index, s, t, data, dt_autocov_optbw, smooth_ker){
