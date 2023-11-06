@@ -214,7 +214,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   ##  Transform NaN to NA
   dt_Xhat[is.nan(Xhat_s), Xhat_s := NA]
   dt_Xhat[is.nan(Xhat_t), Xhat_t := NA]
-  dt_EX2 <- dt_Xhat[, list("EX2_s" = mean(Xhat_s, na.rm = TRUE), "EX2_t" = mean(Xhat_t, na.rm = TRUE)),
+  dt_EX2 <- dt_Xhat[, list("EX2_s" = mean(Xhat_s ** 2, na.rm = TRUE), "EX2_t" = mean(Xhat_t ** 2, na.rm = TRUE)),
                     by = c("s", "t")]
   rm(dt_Xhat)
   gc()
