@@ -9,6 +9,7 @@
 #' It has to be of the same length as the \code{s}.
 #' @param lag \code{integer (positive integer)}. Lag of the autocovariance.
 #' @param bw_grid \code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each pair (\code{s}, \code{t}).
+#' It can be \code{NULL} and that way it will be defined as an exponential grid of \eqgn{N\times\lambda}.
 #' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator.
 #' Default \code{smooth_ker = epanechnikov}.
 #' @param Hs \code{vector (numeric)}. The estimates of the local exponent for each \code{s}.
@@ -119,8 +120,6 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
     stop("Arguments 's' and 't' must be of equal length.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
-  if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
-    stop("'bw_grid' must be a vector of positive values between 0 and 1.")
 
   # Control on local regularity parameters
   if (((!is.null(Hs)) & length(Hs) != length(s)) | ((!is.null(Ls)) & length(Ls) != length(s)))
@@ -136,6 +135,19 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   # Control and format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
+
+  if (! is.null(bw_grid)) {
+    if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
+      stop("If 'bw_grid' is not NULL, it must be a vector of positive values between 0 and 1.")
+  } else {
+    lambdahat <- mean(data[, .N, by = "id_curve"][, N])
+    K <- 20
+    b0 <- 4 * (N * lambdahat) ** (- 0.9)
+    bK <- 4 * (N * lambdahat) ** (- 1 / 3)
+    a <- exp((log(bK) - log(b0)) / K)
+    bw_grid <- b0 * a ** (seq_len(K))
+    rm(K, b0, bK, a, lambdahat) ; gc()
+  }
 
   if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
     stop("'lag' must be a positive integer lower than the number of curves.")
@@ -417,6 +429,8 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 #' Estimate lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function
 #'
 #' @inheritParams estimate_autocov_risk
+#' @param optbw \code{vector (numeric)}. The optimal bandwidth parameter for lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function estimation for each pair (\code{s}, \code{t}).
+#' Default \code{optbw = NULL} and thus it will be estimated using \link{estimate_autocov_risk()} function.
 #'
 #' @return A \code{data.table} containing the following columns.
 #'          \itemize{
@@ -455,10 +469,12 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
                              s = c(1/5, 2/5, 4/5),
                              t = c(1/4, 1/2, 3/4),
                              lag = 1,
+                             optbw = NULL,
                              bw_grid = seq(0.005, 0.15, len = 45),
                              Hs = NULL, Ls = NULL,
                              Ht = NULL, Lt = NULL,
                              Delta = NULL, h = NULL,
+
                              smooth_ker = epanechnikov){
   # Control easy checkable arguments
   if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))

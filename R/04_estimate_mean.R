@@ -3,6 +3,7 @@
 #' @inheritParams .format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the mean function of the underlying process.
 #' @param bw_grid \code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each \code{t}.
+#' It can be \code{NULL} and that way it will be defined as an exponential grid of \eqgn{N\times\lambda}.
 #' @param Ht \code{vector (numeric)}. The estimates of the local exponent for each \code{t}.
 #' Default \code{Ht = NULL} and thus it will be estimated.
 #' @param Lt \code{vector (numeric)}. The estimates of the Hölder constant for each \code{t}.
@@ -88,8 +89,6 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
-  if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
-    stop("'bw_grid' must be a vector of positive values between 0 and 1.")
   # Control on local regularity parameters
   if ( ((!is.null(Ht)) & length(Ht) != length(t)) | ((!is.null(Lt)) & length(Lt) != length(t)))
     stop("If 'Ht' or 'Lt' is not NULL, it must be the same length as 't'.")
@@ -100,6 +99,19 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
   # Control and format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
+
+  if (! is.null(bw_grid)) {
+    if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
+      stop("If 'bw_grid' is not NULL, it must be a vector of positive values between 0 and 1.")
+  } else {
+    lambdahat <- mean(data[, .N, by = "id_curve"][, N])
+    K <- 20
+    b0 <- 4 * (N * lambdahat) ** (- 0.9)
+    bK <- 4 * (N * lambdahat) ** (- 1 / 3)
+    a <- exp((log(bK) - log(b0)) / K)
+    bw_grid <- b0 * a ** (seq_len(K))
+    rm(K, b0, bK, a, lambdahat) ; gc()
+  }
 
   # Estimate local regularity parameters
   # This function controls the remaining arguments
