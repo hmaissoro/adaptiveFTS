@@ -150,6 +150,15 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
 #'
 #' @return A data.table with three columns: \code{s}, \code{t}, \code{cross_lag}, \code{lag}, \code{EXsXt_cross_lag} and \code{XsXt_autocov}
 #' corresponding to the estimated autocovariance of the random variable \eqn{X_0(s)X_{\ell}(t)}.
+#' @return A \code{data.table} containing the following columns.
+#'          \itemize{
+#'            \item{s :}{ The first argument in \eqn{X_0(s)X_{\ell}(t)}.}
+#'            \item{t :}{ The second argument in \eqn{X_0(s)X_{\ell}(t)}.}
+#'            \item{cross_lag :}{ The lag \eqn{\ell} in \eqn{X_0(s)X_{\ell}(t)}.}
+#'            \item{lag :}{ The lags at which the autocovariance of the random variable \eqn{X_0(s)X_{\ell}(t)} is estimated. It contains \code{NA} if \code{lag = NULL}.}
+#'            \item{EXsXt_cross_lag :}{ Mean of the random variable \eqn{X_0(s)X_{\ell}(t)}.}
+#'            \item{XsXt_autocov :}{ The estimates of the autocovariance of the random variable \eqn{X_0(s)X_{\ell}(t)} for each \code{lag}. It contains \code{NA} if \code{lag = NULL}.}
+#'         }
 #' @export
 #' @importFrom methods is
 #' @importFrom data.table data.table rbindlist merge.data.table
@@ -278,7 +287,7 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", y
 
   # Estimate autocovariance
   if (is.null(lag)){
-    dt_res <- data.table::data.table(
+    dt_autocov <- data.table::data.table(
       "s" = s, "t" = t, "cross_lag" = cross_lag, "lag" = NA,
       "EXsXt_cross_lag" = dt_gamma_cross_lag[, gamma_cross_lag], "XsXt_autocov" = NA)
   } else {

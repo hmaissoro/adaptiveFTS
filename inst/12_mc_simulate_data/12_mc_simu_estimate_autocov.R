@@ -2,10 +2,15 @@ library(data.table)
 
 # Simulation global parameters----
 t0 <- c(0.2, 0.4, 0.7, 0.8)
+dt_st <- data.table::as.data.table(expand.grid(s = t0, t = t0))
+dt_st <- dt_st[order(s,t)]
+s0 <- dt_st[, s]
+t0 <- dt_st[, t]
 
 # Mean function estimation function ----
 ## Estimate mean functions risk
-estim_autocov_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", t0 = t0){
+estim_autocov_risk_fun <- function(N = 400, lambda = 300, process = "FAR",
+                                   white_noise = "mfBm", design = "d1", s0 = s0, t0 = t0, lag = 1){
   # Load data
   data_file_name <- paste0("./inst/12_mc_simulate_data/", process, "/data/dt_mc_",
                            process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
@@ -28,22 +33,27 @@ estim_autocov_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white
   bw_grid <- b0 * a ** (seq_len(K))
   rm(K, b0, bK, a) ; gc()
 
+  # Define
+
   if (white_noise == "mfBm") {
 
     # Estimate local regularity by mc
-    dt_risk_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, dt_random, dt_common, dt_locreg, Ni, lambdai, bw_grid, t0){
+    dt_risk_mc <- data.table::rbindlist(
+      parallel::mclapply(index_mc, function(mc_i, dt_random, dt_common, dt_locreg, Ni, lambdai, bw_grid, s0, t0, lag){
       # Extract data
       dt_common_mc <- dt_common[id_mc == mc_i]
       dt_random_mc <- dt_random[id_mc == mc_i]
 
       # Estimate pseudo-true mean function risk
-      dt_risk_mutilde <- data.table::rbindlist(lapply(bw_grid, function(hi, data_common_mc, data_random_mc, bw_grid, t0){
-        dt_Xhat <- data.table::rbindlist(lapply(data_random_mc[, unique(id_curve)], function(curve_index, t0, hi, data){
+      dt_risk_gammatilde <- data.table::rbindlist(lapply(bw_grid, function(hi, data_common_mc, data_random_mc, bw_grid, s0, t0, lag){
+        dt_Xhat <- data.table::rbindlist(lapply(data_random_mc[, unique(id_curve)], function(curve_index, s0, t0, hi, data){
           Tn <- data[id_curve == curve_index, tobs]
           Yn <- data[id_curve == curve_index, X_plus_mean]
-          Xhat <- estimate_nw(y = Yn, t = Tn, tnew = t0, h = hi, smooth_ker = epanechnikov)
-          return(data.table("curve_index" = curve_index, "t" = t0, "h" = hi, "Xhat" = Xhat$yhat))
-        }, data = data_random_mc, t0 = t0, hi = hi))
+          Xhat_s <- estimate_nw(y = Yn, t = Tn, tnew = s0, h = hi, smooth_ker = epanechnikov)
+          Xhat_t <- estimate_nw(y = Yn, t = Tn, tnew = t0, h = hi, smooth_ker = epanechnikov)
+          return(data.table("curve_index" = curve_index, "s" = s0, "t" = t0, "h" = hi, "Xhat_s" = Xhat_s$yhat, "Xhat_t" = Xhat_t$yhat))
+        }, data = data_random_mc, s0 = s0, t0 = t0, hi = hi))
+        dt_Xhat
 
         # Estimate mean function and add true meanfunction
         dt_muhat <- dt_Xhat[!is.nan(Xhat), .("muhat" = mean(Xhat)), by = c("t", "h")]
@@ -53,7 +63,7 @@ estim_autocov_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white
           by.x = "t", by.y = "tobs")
         dt_muhat[, mutitle_mse := (muhat - mutilde) ** 2, by = t]
 
-      }, data_common_mc = dt_common_mc, data_random_mc = dt_random_mc, bw_grid = bw_grid, t0 = t0))
+      }, data_common_mc = dt_common_mc, data_random_mc = dt_random_mc, bw_grid = bw_grid, s0 = s0, t0 = t0, lag = lag))
 
       # Estimate the risk of the mean function
       bw <- unique(dt_random_mc[, .(id_curve, presmooth_bw_plus_mean)])[, presmooth_bw_plus_mean]
@@ -91,7 +101,8 @@ estim_autocov_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white
       dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, dt_risk)
       rm(dt_risk_muhat_res, dt_risk_mutilde, dt_risk) ; gc()
       return(dt_res)
-    }, mc.cores = 75, dt_random = dt_random, dt_common = dt_common, dt_locreg = dt_locreg, Ni = N, lambdai = lambda, bw_grid = bw_grid, t0 = t0))
+    }, mc.cores = 75, dt_random = dt_random, dt_common = dt_common, dt_locreg = dt_locreg,
+    Ni = N, lambdai = lambda, bw_grid = bw_grid, s0 = s0, t0 = t0, lag = lag))
 
   } else if (white_noise == "fBm") {
     # Estimate local regularity by mc
