@@ -159,6 +159,39 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   t <- dt_st[, t]
   rm(dt_st) ; gc()
 
+  # Control on the pre-smoothing bandwidth
+  if (! is.null(h)) {
+    # h is a vector or a scalar
+    if (! all(methods::is(h, "numeric") & data.table::between(h, 0, 1))){
+      stop("'h' must be a numeric vector or scalar value(s) between 0 and 1.")
+    } else if (length(h) > 1 & length(h) != N) {
+      stop("If 'h' is given as a vector, its length must be equal to the number of curves in 'data'.")
+    }
+  } else {
+    # If h = NULL, choose the bandwidth by CV
+    if (N > 50) {
+      sample_curves <- sample(x = 1:N, size = 30)
+    } else {
+      sample_curves <- 1:N
+    }
+    if (N > 50) {
+      dt_optbw <- get_nw_optimal_bw(
+        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+        bw_grid = NULL, nsubset = 30, smooth_ker = smooth_ker)
+      h <- dt_optbw[, median(optbw)]
+      rm(dt_optbw) ; gc()
+    } else {
+      dt_optbw <- get_nw_optimal_bw(
+        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+        bw_grid = NULL, nsubset = NULL, smooth_ker = smooth_ker)
+      h <- dt_optbw[, optbw]
+      rm(dt_optbw) ; gc()
+    }
+  }
+
+  # If the bandwidth is given as scalar or computed
+  if (length(h) == 1) h <- rep(h, N)
+
   # Estimate local regularity parameters
   # This function controls the remaining arguments
   if (is.null(Hs) | is.null(Ls)) {
@@ -169,6 +202,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
     Hs <- dt_locreg_s[, Ht]
     Ls <- dt_locreg_s[, Lt]
     hs <- dt_locreg_s[, unique(locreg_bw)]
+    rm(dt_locreg_s) ; gc()
   } else {
     hs <- h
   }
@@ -180,10 +214,10 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
     Ht <- dt_locreg_t[, Ht]
     Lt <- dt_locreg_t[, Lt]
     ht <- dt_locreg_t[, unique(locreg_bw)]
+    rm(dt_locreg_t) ; gc()
   } else {
     ht <- h
   }
-  rm(dt_locreg_s, dt_locreg_t)
   # Estimation of the observation error standard deviation
   dt_sigma_s <- estimate_sigma(
     data = data, idcol = "id_curve",
@@ -206,7 +240,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
         y = data[id_curve %in% curve_index][order(tobs), X],
         t = data[id_curve %in% curve_index][order(tobs), tobs],
         tnew = s,
-        h = presmooth_bw_s,
+        h = presmooth_bw_s[curve_index],
         smooth_ker = kernel_smooth)
       Xhat_s <- Xhat_s[, yhat]
 
@@ -214,7 +248,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
         y = data[id_curve %in% curve_index][order(tobs), X],
         t = data[id_curve %in% curve_index][order(tobs), tobs],
         tnew = t,
-        h = presmooth_bw_t,
+        h = presmooth_bw_t[curve_index],
         smooth_ker = kernel_smooth)
       Xhat_t <- Xhat_t[, yhat]
 
