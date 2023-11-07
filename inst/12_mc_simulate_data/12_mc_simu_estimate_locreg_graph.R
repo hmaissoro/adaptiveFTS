@@ -89,8 +89,8 @@ ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = 
 
   } else if (white_noise == "fBm") {
     ## define segment and set scale label
-    dt_pr <- dt_pr <- unique(dt_locreg[, .("t" = as.factor(t), "x" = as.factor(Htrue - 0.05),
-                                           "xend" = as.factor(Htrue + 0.05), Htrue)])
+    dt_pr <- unique(dt_locreg[, .("t" = as.factor(t), "x" = as.factor(Htrue - 0.05),
+                                  "xend" = as.factor(Htrue + 0.05), Htrue)])
     scale_label <- c(dt_pr[, as.factor(Htrue)], dt_pr[, x], dt_pr[, xend])
     scale_label <- sort(as.character(unique(scale_label)))
     scale_label[- which(scale_label %in% as.character(dt_pr[, as.factor(Htrue)]))] <- ""
