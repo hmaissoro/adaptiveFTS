@@ -381,7 +381,7 @@ simulate_far <- function(N = 2L, lambda = 70L,
       dt <- dt[order(tall)]
 
       # Generate and add mfBm
-      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L = L, tied = TRUE)
+      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L = L, tied = FALSE)
       dt[, eps := dt_eps[, mfBm]]
 
       # Add mean function
@@ -397,7 +397,7 @@ simulate_far <- function(N = 2L, lambda = 70L,
       dt <- dt[order(tall)]
 
       # Generate and add mfBm
-      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L = L, tied = TRUE)
+      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L = L, tied = FALSE)
       dt[, eps := dt_eps[, mfBm]]
 
       # Add mean function
@@ -553,7 +553,7 @@ simulate_fma <- function(N = 2L, lambda = 70L,
       dt <- dt[order(tall)]
 
       # Generate and add mfBm
-      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L = L, tied = TRUE)
+      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L = L, tied = FALSE)
       dt[, eps := dt_eps[, mfBm]]
 
       # Add mean function
@@ -569,7 +569,7 @@ simulate_fma <- function(N = 2L, lambda = 70L,
       dt <- dt[order(tall)]
 
       # Generate and add mfBm
-      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L = L, tied = TRUE)
+      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L = L, tied = FALSE)
       dt[, eps := dt_eps[, mfBm]]
 
       # Add mean function
