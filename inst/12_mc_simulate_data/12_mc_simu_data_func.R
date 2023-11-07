@@ -129,7 +129,7 @@ simate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
                                tdistribution = runif,
                                tcommon = t0,
                                hurst_fun = Hfun,
-                               L = 4,
+                               L = 1,
                                far_kernel = process_ker,
                                far_mean = zero_mean_func,
                                int_grid = 100L,
@@ -145,7 +145,7 @@ simate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
                                tdistribution = runif,
                                tcommon = t0,
                                hurst_fun = Hfun,
-                               L = 4,
+                               L = 1,
                                fma_kernel = process_ker,
                                fma_mean = zero_mean_func,
                                int_grid = 100L,
@@ -161,7 +161,7 @@ simate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
       ### Get pre-smoothing bandwidth
       #### Define an exponential bandwidth grid
       lambdahat <- mean(dt_gen[ttag == "trandom", .N, by = id_curve][, N])
-      K <- 100
+      K <- 100 / 2
       b0 <- 1 / lambdahat
       bK <- lambdahat ** (- 1 / 3)
       a <- exp((log(bK) - log(b0)) / K)
