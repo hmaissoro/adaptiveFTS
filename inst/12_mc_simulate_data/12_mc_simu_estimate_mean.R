@@ -207,7 +207,7 @@ estim_mean_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise =
   saveRDS(object = dt_mean_mc, file = file_name)
   rm(data_file_name, mean_risk_file_name, file_name, dt_mean_mc, dt_optbw) ; gc()
 
-  return(paste0("Done : dt_mean_estimates_", process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS"))
+  return(paste0("Done : dt_mean_estimates_", process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS at ", Sys.time()))
 }
 
 # Estimate mean risk function ----

@@ -23,9 +23,6 @@ bounded_uniform <- function(N, lambda, p = 0.2){
   )
 }
 
-# zero-mean function
-zero_mean_func <- function(t) 0 * t
-
 # Simulation function ----
 simate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
                             process = "FAR",
@@ -235,7 +232,7 @@ simate_data <- function(Nmc = mc, Ni = 400, lambdai = 300, t0, sig = 0.25,
 mean_d1 <- function(t) 4 * sin(3 * pi * t / 2)
 
 ## Autoregressive kernel
-ker_d1 <- function(s,t, operator_norm = 0.9){
+ker_d1 <- function(s,t, operator_norm = 0.5){
   # Note that : \kappa_c * k = operator_norm
   k <- sqrt(pi) / 2 * (
     pnorm(q = 2, mean = 0, sd = sqrt(1/2)) - pnorm(q = 0, mean = 0, sd = sqrt(1/2))

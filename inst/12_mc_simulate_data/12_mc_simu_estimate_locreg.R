@@ -22,7 +22,7 @@ estim_locreg_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise
       # Estimate the local regularity
       ## Delta
       lambdahat <- mean(dt_mc[, .N, by = id_curve][, N])
-      delta <- exp(- log(lambdahat) ** 0.35)
+      delta <- exp(- log(lambdahat) ** (1 / 4))
 
       ## Centered process
       dt_locreg <- estimate_locreg(
@@ -57,7 +57,7 @@ estim_locreg_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise
           data = dt_mc[Htrue == Hi], idcol = "id_curve",
           tcol = "tobs", ycol = "X",
           t = t0, Delta = delta, h = bw,
-          smooth_ker = epanechnikov, center = FALSE)
+          smooth_ker = epanechnikov, center = TRUE)
 
         ## Merge local regularity parameters estimates and return the obtained result
         dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, "lambdahat" = lambdahat, dt_locreg)

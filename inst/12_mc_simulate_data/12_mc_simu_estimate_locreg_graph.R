@@ -47,7 +47,7 @@ ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = 
     ## set t as factor
     dt_locreg[, t := as.factor(t)]
     if (param == "Ht") {
-      title_exp <- paste0("Zero-mean ", process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
+      title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
       y_lim <- c(0.2, 0.9)
       x_lab <- "t"
       y_lab <- latex2exp::TeX("$\\widehat{H}_t$")
@@ -63,7 +63,7 @@ ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = 
         data = dt_pr, mapping = aes(x = x, xend = xend, y = Htrue, yend = Htrue),
         linetype = 2)
     } else if (param == "Lt") {
-      title_exp <- paste0("Zero-mean ", process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
+      title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
       y_lim <- c(-2, 15)
       x_lab <- "t"
       geom_true_param <- geom_hline(yintercept = 4, color = "#283747", linetype = 2)
@@ -100,7 +100,7 @@ ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = 
     dt_locreg[, Htrue := as.factor(Htrue)]
 
     if (param == "Ht") {
-      title_exp <- paste0("Zero-mean ", process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
+      title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
       y_lim <- c(0.2, 0.9)
       x_lab <- latex2exp::TeX("True $H_t$")
       y_lab <- latex2exp::TeX("$\\widehat{H}_t$")
@@ -116,7 +116,7 @@ ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = 
         data = dt_pr, mapping = aes(x = x, xend = xend, y = Htrue, yend = Htrue),
         linetype = 2)
     } else if (param == "Lt") {
-      title_exp <- paste0("Zero-mean ", process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
+      title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
       y_lim <- c(-2, 15)
       x_lab <- latex2exp::TeX("True $H_t$")
       geom_true_param <- geom_hline(yintercept = 4, color = "#283747", linetype = 2)
@@ -151,9 +151,9 @@ ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = 
 ### FAR ----
 g_locreg_far_mfBm_d1 <- gridExtra::grid.arrange(
   ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", param = "Ht"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", param = "Ht_plus_mean"),
+  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1", param = "Ht"),
   ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", param = "Lt"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", param = "Lt_plus_mean"),
+  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1", param = "Lt"),
   nrow = 2, ncol = 2
 )
 ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_far_mfBm_d1.png", plot = g_locreg_far_mfBm_d1,
@@ -161,9 +161,9 @@ ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_far_mfBm_d1.png", pl
 
 g_locreg_far_fBm_d1 <- gridExtra::grid.arrange(
   ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1", param = "Ht"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1", param = "Ht_plus_mean"),
+  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1", param = "Ht"),
   ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1", param = "Lt"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1", param = "Lt_plus_mean"),
+  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1", param = "Lt"),
   nrow = 2, ncol = 2
 )
 ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_far_fBm_d1.png", plot = g_locreg_far_fBm_d1,
