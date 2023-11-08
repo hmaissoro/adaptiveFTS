@@ -40,7 +40,7 @@ estim_mean_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white_no
       dt_risk_mutilde <- data.table::rbindlist(lapply(bw_grid, function(hi, data_common_mc, data_random_mc, bw_grid, t0){
         dt_Xhat <- data.table::rbindlist(lapply(data_random_mc[, unique(id_curve)], function(curve_index, t0, hi, data){
           Tn <- data[id_curve == curve_index, tobs]
-          Yn <- data[id_curve == curve_index, X_plus_mean]
+          Yn <- data[id_curve == curve_index, X]
           Xhat <- estimate_nw(y = Yn, t = Tn, tnew = t0, h = hi, smooth_ker = epanechnikov)
           return(data.table("curve_index" = curve_index, "t" = t0, "h" = hi, "Xhat" = Xhat$yhat))
         }, data = data_random_mc, t0 = t0, hi = hi))
@@ -49,47 +49,28 @@ estim_mean_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white_no
         dt_muhat <- dt_Xhat[!is.nan(Xhat), .("muhat" = mean(Xhat)), by = c("t", "h")]
         dt_muhat <- data.table::merge.data.table(
           x = dt_muhat,
-          y = data_common_mc[, .("mutilde" = mean(X_plus_mean)), by = "tobs"],
+          y = data_common_mc[, .("mutilde" = mean(X)), by = "tobs"],
           by.x = "t", by.y = "tobs")
         dt_muhat[, mutitle_mse := (muhat - mutilde) ** 2, by = t]
 
       }, data_common_mc = dt_common_mc, data_random_mc = dt_random_mc, bw_grid = bw_grid, t0 = t0))
 
       # Estimate the risk of the mean function
-      bw <- unique(dt_random_mc[, .(id_curve, presmooth_bw_plus_mean)])[, presmooth_bw_plus_mean]
+      bw <- unique(dt_random_mc[, .(id_curve, presmooth_bw)])[, presmooth_bw]
       Ht <- dt_locreg[id_mc == mc_i & order(t), Ht]
       Lt <- dt_locreg[id_mc == mc_i & order(t), Lt]
-      Ht_plus_mean <- dt_locreg[id_mc == mc_i & order(t), Ht_plus_mean]
-      Lt_plus_mean <- dt_locreg[id_mc == mc_i & order(t), Lt_plus_mean]
 
       dt_risk_muhat <- estimate_mean_risk(
-        data = dt_random_mc, idcol = "id_curve", tcol = 'tobs', ycol = "X_plus_mean",
+        data = dt_random_mc, idcol = "id_curve", tcol = 'tobs', ycol = "X",
         t = t0, bw_grid = bw_grid, Ht = Ht, Lt = Lt, Delta = NULL, h = bw
       )
 
-      dt_risk_muhat_plus_mean <- estimate_mean_risk(
-        data = dt_random_mc, idcol = "id_curve", tcol = 'tobs', ycol = "X_plus_mean",
-        t = t0, bw_grid = bw_grid, Ht = Ht_plus_mean, Lt = Lt_plus_mean, Delta = NULL, h = bw
-      )
-      data.table::setnames(x = dt_risk_muhat_plus_mean,
-                           old = c("Ht", "Lt", "locreg_bw", "bias_term", "varriance_term", "dependence_term", "mean_risk"),
-                           new = c("Ht_plus_mean", "Lt_plus_mean", "locreg_bw_plus_mean", "bias_term_plus_mean",
-                                   "varriance_term_plus_mean", "dependence_term_plus_mean", "mean_risk_plus_mean"))
-
-      ## Merge the mean risk estimates and return the obtained result
-      dt_risk_muhat_res <- data.table::merge.data.table(
-        x = dt_risk_muhat,
-        y = dt_risk_muhat_plus_mean,
-        by = c("t", "h")
-      )
-      rm(dt_risk_muhat, dt_risk_muhat_plus_mean) ; gc()
-
       ## Add the MSE of mutilde
       dt_risk <- data.table::merge.data.table(
-        x = dt_risk_muhat_res, y = dt_risk_mutilde, by = c("t", "h")
+        x = dt_risk_muhat, y = dt_risk_mutilde, by = c("t", "h")
       )
       dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, dt_risk)
-      rm(dt_risk_muhat_res, dt_risk_mutilde, dt_risk) ; gc()
+      rm(dt_risk_muhat, dt_risk_mutilde, dt_risk) ; gc()
       return(dt_res)
     }, mc.cores = 75, dt_random = dt_random, dt_common = dt_common, dt_locreg = dt_locreg, Ni = N, lambdai = lambda, bw_grid = bw_grid, t0 = t0))
 
@@ -106,7 +87,7 @@ estim_mean_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white_no
         dt_risk_mutilde <- data.table::rbindlist(lapply(bw_grid, function(hi, data_common_mc, data_random_mc, bw_grid, t0){
           dt_Xhat <- data.table::rbindlist(lapply(data_random_mc[, unique(id_curve)], function(curve_index, t0, hi, data){
             Tn <- data[id_curve == curve_index, tobs]
-            Yn <- data[id_curve == curve_index, X_plus_mean]
+            Yn <- data[id_curve == curve_index, X]
             Xhat <- estimate_nw(y = Yn, t = Tn, tnew = t0, h = hi, smooth_ker = epanechnikov)
             return(data.table("curve_index" = curve_index, "t" = t0, "h" = hi, "Xhat" = Xhat$yhat))
           }, data = data_random_mc, t0 = t0, hi = hi))
@@ -115,46 +96,28 @@ estim_mean_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white_no
           dt_muhat <- dt_Xhat[!is.nan(Xhat), .("muhat" = mean(Xhat)), by = c("t", "h")]
           dt_muhat <- data.table::merge.data.table(
             x = dt_muhat,
-            y = data_common_mc[, .("mutilde" = mean(X_plus_mean)), by = "tobs"],
+            y = data_common_mc[, .("mutilde" = mean(X)), by = "tobs"],
             by.x = "t", by.y = "tobs")
           dt_muhat[, mutitle_mse := (muhat - mutilde) ** 2, by = t]
 
         }, data_common_mc = dt_common_mc[Htrue == Hi], data_random_mc = dt_random_mc[Htrue == Hi], bw_grid = bw_grid, t0 = t0))
 
         # Estimate the risk of the mean function
-        bw <- unique(dt_random_mc[Htrue == Hi][, .(id_curve, presmooth_bw_plus_mean)])[, presmooth_bw_plus_mean]
+        bw <- unique(dt_random_mc[Htrue == Hi][, .(id_curve, presmooth_bw)])[, presmooth_bw]
         Ht <- dt_locreg[Htrue == Hi][id_mc == mc_i & order(t), Ht]
         Lt <- dt_locreg[Htrue == Hi][id_mc == mc_i & order(t), Lt]
-        Ht_plus_mean <- dt_locreg[Htrue == Hi][id_mc == mc_i & order(t), Ht_plus_mean]
-        Lt_plus_mean <- dt_locreg[Htrue == Hi][id_mc == mc_i & order(t), Lt_plus_mean]
 
         dt_risk_muhat <- estimate_mean_risk(
-          data = dt_random_mc[Htrue == Hi], idcol = "id_curve", tcol = 'tobs', ycol = "X_plus_mean",
+          data = dt_random_mc[Htrue == Hi], idcol = "id_curve", tcol = 'tobs', ycol = "X",
           t = t0, bw_grid = bw_grid, Ht = Ht, Lt = Lt, Delta = NULL, h = bw
         )
 
-        dt_risk_muhat_plus_mean <- estimate_mean_risk(
-          data = dt_random_mc[Htrue == Hi], idcol = "id_curve", tcol = 'tobs', ycol = "X_plus_mean",
-          t = t0, bw_grid = bw_grid, Ht = Ht_plus_mean, Lt = Lt_plus_mean, Delta = NULL, h = bw
-        )
-        data.table::setnames(x = dt_risk_muhat_plus_mean,
-                             old = c("Ht", "Lt", "locreg_bw", "bias_term", "varriance_term", "dependence_term", "mean_risk"),
-                             new = c("Ht_plus_mean", "Lt_plus_mean", "locreg_bw_plus_mean", "bias_term_plus_mean",
-                                     "varriance_term_plus_mean", "dependence_term_plus_mean", "mean_risk_plus_mean"))
-        ## Merge the mean risk estimates and return the obtained result
-        dt_risk_muhat_res <- data.table::merge.data.table(
-          x = dt_risk_muhat,
-          y = dt_risk_muhat_plus_mean,
-          by = c("t", "h")
-        )
-        rm(dt_risk_muhat, dt_risk_muhat_plus_mean) ; gc()
-
         ## Add the MSE of mutilde and return
         dt_risk <- data.table::merge.data.table(
-          x = dt_risk_muhat_res, y = dt_risk_mutilde, by = c("t", "h")
+          x = dt_risk_muhat, y = dt_risk_mutilde, by = c("t", "h")
         )
         dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, "Htrue" = Hi, dt_risk)
-        rm(dt_risk_muhat_res, dt_risk_mutilde, dt_risk) ; gc()
+        rm(dt_risk_muhat, dt_risk_mutilde, dt_risk) ; gc()
         return(dt_res)
       }, dt_common_mc = dt_common_mc, dt_random_mc = dt_random_mc, dt_locreg = dt_locreg, Ni = N, lambdai = lambda, bw_grid = bw_grid, t0 = t0))
 
@@ -185,32 +148,30 @@ estim_mean_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise =
   index_mc <- dt[, unique(id_mc)]
 
   if (white_noise == "mfBm") {
-    dt_optbw <- dt_mean_risk[, .("optbw" = h[which.min(mean_risk)],
-                                 "optbw_plus_mean" = h[which.min(mean_risk_plus_mean)]),
+    dt_optbw <- dt_mean_risk[, .("optbw" = h[which.min(mean_risk)]),
                              by = c("id_mc", "t")]
 
     # Estimate local regularity by mc
     dt_mean_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, data, dt_optbw, Ni, lambdai){
       # Extract data
       dt_random_mc <- data[id_mc == mc_i]
-      optbw_plus_mean <- dt_optbw[id_mc == mc_i][order(t), optbw_plus_mean]
+      optbw <- dt_optbw[id_mc == mc_i][order(t), optbw]
       t0 <- dt_optbw[id_mc == mc_i][order(t), t]
 
       # Estimate the mean function
       dt_mean <- estimate_mean(
         data = dt_random_mc, idcol = "id_curve",
-        tcol = "tobs", ycol = "X_plus_mean",
-        t = t0, optbw = optbw_plus_mean)
+        tcol = "tobs", ycol = "X",
+        t = t0, optbw = optbw)
 
       # Return and clean
       dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, dt_mean[, .(t, optbw, PN, muhat)])
-      rm(optbw_plus_mean, dt_mean) ; gc()
+      rm(optbw, dt_mean) ; gc()
       return(dt_res)
     }, mc.cores = 75, data = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda))
 
   } else if (white_noise == "fBm") {
-    dt_optbw <- dt_mean_risk[, .("optbw" = h[which.min(mean_risk)],
-                                 "optbw_plus_mean" = h[which.min(mean_risk_plus_mean)]),
+    dt_optbw <- dt_mean_risk[, .("optbw" = h[which.min(mean_risk)]),
                              by = c("id_mc", "t", "Htrue")]
     # Estimate local regularity by mc
     dt_mean_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, dt_random, dt_optbw, Ni, lambdai){
@@ -221,18 +182,18 @@ estim_mean_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise =
       dt_by_Hvec <- data.table::rbindlist(lapply(Hvec, function(Hi, data, dt_optbw, Ni, lambdai){
         # Extract data
         dt_random_mc_Hi <- data[id_mc == mc_i & Htrue == Hi]
-        optbw_plus_mean <- dt_optbw[id_mc == mc_i & Htrue == Hi][order(t), optbw_plus_mean]
+        optbw <- dt_optbw[id_mc == mc_i & Htrue == Hi][order(t), optbw]
         t0 <- dt_optbw[id_mc == mc_i & Htrue == Hi][order(t), t]
 
         # Estimate the mean function
         dt_mean <- estimate_mean(
           data = dt_random_mc_Hi, idcol = "id_curve",
-          tcol = "tobs", ycol = "X_plus_mean",
-          t = t0, optbw = optbw_plus_mean)
+          tcol = "tobs", ycol = "X",
+          t = t0, optbw = optbw)
 
         # Return and clean
         dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, "Htrue" = Hi, dt_mean[, .(t, optbw, PN, muhat)])
-        rm(dt_mean, dt_random_mc_Hi, optbw_plus_mean) ; gc()
+        rm(dt_mean, dt_random_mc_Hi, optbw) ; gc()
         return(dt_res)
       }, data = dt_random_mc, dt_optbw = dt_optbw, Ni = Ni, lambdai = lambdai))
 

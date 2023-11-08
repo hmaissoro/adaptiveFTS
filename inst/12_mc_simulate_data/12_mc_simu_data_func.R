@@ -47,10 +47,12 @@ simate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
                              hurst_fun = hurst,
                              L = 4,
                              far_kernel = process_ker,
-                             far_mean = zero_mean_func,
+                             far_mean = process_mean,
                              int_grid = 100L,
                              burnin = 100L,
                              remove_burnin = TRUE)
+      ### Add mean function
+      dt_gen[, process_mean := far_mean]
       dt_gen[, far_mean := NULL]
 
     } else if (process == "FMA") {
@@ -63,21 +65,19 @@ simate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
                              hurst_fun = hurst,
                              L = 4,
                              fma_kernel = process_ker,
-                             fma_mean = zero_mean_func,
+                             fma_mean = process_mean,
                              int_grid = 100L,
                              burnin = 100L,
                              remove_burnin = TRUE)
-      dt_gen[, fma_mean := NULL]
+      ### Add mean function
+      dt_gen[, process_mean := fma_mean]
+      dt_gen[, far_mean := NULL]
     }
-
-    ### Add mean function
-    dt_gen[, process_mean := process_mean(tobs)]
-    dt_gen[, X_plus_mean := X + process_mean]
 
     ### Get pre-smoothing bandwidth
     #### Define and exponential bandwidth grid
     lambdahat <- mean(dt_gen[ttag == "trandom", .N, by = id_curve][, N])
-    K <- 100
+    K <- 50
     b0 <- 1 / lambdahat
     bK <- lambdahat ** (- 1 / 3)
     a <- exp((log(bK) - log(b0)) / K)
@@ -92,20 +92,17 @@ simate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
 
       # Add noise
       d[, X := X + rnorm(n = .N, mean = 0, sd = sig)]
-      d[, X_plus_mean := X_plus_mean + rnorm(n = .N, mean = 0, sd = sig)]
 
       # Get optimal bandwidth
       bw <- estimate_nw_bw(y = d[, X], t = d[, tobs], bw_grid = bw_grid)
-      bw_plus_mean <- estimate_nw_bw(y = d[, X_plus_mean], t = d[, tobs], bw_grid = bw_grid)
       d[, presmooth_bw := bw]
-      d[, presmooth_bw_plus_mean := bw_plus_mean]
       return(d)
     }, dtt = dt_gen, bw_grid = bw_grid))
 
     ### Add fix design points
     dt_tcommon <- data.table::merge.data.table(
       x = dt_gen[ttag == "tcommon"],
-      y = unique(dt[, .(id_curve, presmooth_bw, presmooth_bw_plus_mean)]),
+      y = unique(dt[, .(id_curve, presmooth_bw)]),
       by = "id_curve")
     dt_res <- rbind(dt, dt_tcommon)
     rm(dt, dt_tcommon, index, bw_grid) ; gc() ; gc()
@@ -114,8 +111,7 @@ simate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
     dt_res[, c("id_mc", "N", "lambda") := .(mc_i, Ni, lambdai)]
     data.table::setcolorder(
       x = dt_res,
-      neworder = c("id_mc", "N", "lambda", "id_curve", "tobs", "ttag", "process_mean",
-                   "X", "X_plus_mean", "presmooth_bw", "presmooth_bw_plus_mean"))
+      neworder = c("id_mc", "N", "lambda", "id_curve", "tobs", "ttag", "process_mean", "X", "presmooth_bw"))
 
   } else if (white_noise == "fBm") {
     dt_res <- data.table::rbindlist(lapply(Hvec, function(Hi, process){
@@ -129,12 +125,14 @@ simate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
                                tdistribution = runif,
                                tcommon = t0,
                                hurst_fun = Hfun,
-                               L = 1,
+                               L = 4,
                                far_kernel = process_ker,
-                               far_mean = zero_mean_func,
+                               far_mean = process_mean,
                                int_grid = 100L,
                                burnin = 100L,
                                remove_burnin = TRUE)
+        ### Add mean function
+        dt_gen[, process_mean := far_mean]
         dt_gen[, far_mean := NULL]
 
       } else if (process == "FMA") {
@@ -145,23 +143,21 @@ simate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
                                tdistribution = runif,
                                tcommon = t0,
                                hurst_fun = Hfun,
-                               L = 1,
+                               L = 4,
                                fma_kernel = process_ker,
-                               fma_mean = zero_mean_func,
+                               fma_mean = process_mean,
                                int_grid = 100L,
                                burnin = 100L,
                                remove_burnin = TRUE)
-        dt_gen[, fma_mean := NULL]
+        ### Add mean function
+        dt_gen[, process_mean := fma_mean]
+        dt_gen[, far_mean := NULL]
       }
-
-      ### Add mean function
-      dt_gen[, process_mean := process_mean(tobs)]
-      dt_gen[, X_plus_mean := X + process_mean]
 
       ### Get pre-smoothing bandwidth
       #### Define an exponential bandwidth grid
       lambdahat <- mean(dt_gen[ttag == "trandom", .N, by = id_curve][, N])
-      K <- 100 / 2
+      K <- 50
       b0 <- 1 / lambdahat
       bK <- lambdahat ** (- 1 / 3)
       a <- exp((log(bK) - log(b0)) / K)
@@ -176,20 +172,17 @@ simate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
 
         # Add noise
         d[, X := X + rnorm(n = .N, mean = 0, sd = sig)]
-        d[, X_plus_mean := X_plus_mean + rnorm(n = .N, mean = 0, sd = sig)]
 
         # Get optimal bandwidth
         bw <- estimate_nw_bw(y = d[, X], t = d[, tobs], bw_grid = bw_grid)
-        bw_plus_mean <- estimate_nw_bw(y = d[, X_plus_mean], t = d[, tobs], bw_grid = bw_grid)
         d[, presmooth_bw := bw]
-        d[, presmooth_bw_plus_mean := bw_plus_mean]
         return(d)
       }, dtt = dt_gen, bw_grid = bw_grid))
 
       ### Add fix design points
       dt_tcommon <- data.table::merge.data.table(
         x = dt_gen[ttag == "tcommon"],
-        y = unique(dt[, .(id_curve, presmooth_bw, presmooth_bw_plus_mean)]),
+        y = unique(dt[, .(id_curve, presmooth_bw)]),
         by = "id_curve")
       dt_by_H <- rbind(dt, dt_tcommon)
       rm(dt, dt_tcommon, index, bw_grid) ; gc() ; gc()
@@ -198,8 +191,7 @@ simate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
       dt_by_H[, c("id_mc", "N", "lambda", "Htrue") := .(mc_i, Ni, lambdai, Hi)]
       data.table::setcolorder(
         x = dt_by_H,
-        neworder = c("id_mc", "N", "lambda", "Htrue", "id_curve", "tobs", "ttag",
-                     "process_mean", "X", "X_plus_mean", "presmooth_bw", "presmooth_bw_plus_mean"))
+        neworder = c("id_mc", "N", "lambda", "Htrue", "id_curve", "tobs", "ttag", "process_mean", "X", "presmooth_bw"))
       return(dt_by_H)
     }, process = process))
   }
@@ -243,7 +235,7 @@ simate_data <- function(Nmc = mc, Ni = 400, lambdai = 300, t0, sig = 0.25,
 mean_d1 <- function(t) 4 * sin(3 * pi * t / 2)
 
 ## Autoregressive kernel
-ker_d1 <- function(s,t, operator_norm = 0.7){
+ker_d1 <- function(s,t, operator_norm = 0.9){
   # Note that : \kappa_c * k = operator_norm
   k <- sqrt(pi) / 2 * (
     pnorm(q = 2, mean = 0, sd = sqrt(1/2)) - pnorm(q = 0, mean = 0, sd = sqrt(1/2))
@@ -259,10 +251,10 @@ simate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
             process_mean = mean_d1, white_noise = "mfBm",
             hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
-simate_data(Nmc = 100, Ni = 400, lambdai = 50, t0, sig = 0.25,
-            process = "FAR", process_ker = ker_d1,
-            process_mean = mean_d1, white_noise = "mfBm",
-            hurst = Hlogistic, Hvec = Hvec, design = "d1")
+# simate_data(Nmc = 100, Ni = 400, lambdai = 50, t0, sig = 0.25,
+#             process = "FAR", process_ker = ker_d1,
+#             process_mean = mean_d1, white_noise = "mfBm",
+#             hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
 ## fBm
 simate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
@@ -270,10 +262,10 @@ simate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
             process_mean = mean_d1, white_noise = "fBm",
             hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
-simate_data(Nmc = 100, Ni = 400, lambdai = 50, t0, sig = 0.25,
-            process = "FAR", process_ker = ker_d1,
-            process_mean = mean_d1, white_noise = "fBm",
-            hurst = Hlogistic, Hvec = Hvec, design = "d1")
+# simate_data(Nmc = 100, Ni = 400, lambdai = 50, t0, sig = 0.25,
+#             process = "FAR", process_ker = ker_d1,
+#             process_mean = mean_d1, white_noise = "fBm",
+#             hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
 ### FMA process ----
 ## mfBm
@@ -282,10 +274,10 @@ simate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
             process_mean = mean_d1, white_noise = "mfBm",
             hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
-simate_data(Nmc = 100, Ni = 400, lambdai = 50, t0, sig = 0.25,
-            process = "FMA", process_ker = ker_d1,
-            process_mean = mean_d1, white_noise = "mfBm",
-            hurst = Hlogistic, Hvec = Hvec, design = "d1")
+# simate_data(Nmc = 100, Ni = 400, lambdai = 50, t0, sig = 0.25,
+#             process = "FMA", process_ker = ker_d1,
+#             process_mean = mean_d1, white_noise = "mfBm",
+#             hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
 ## fBm
 simate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
@@ -293,10 +285,10 @@ simate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
             process_mean = mean_d1, white_noise = "fBm",
             hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
-simate_data(Nmc = 100, Ni = 400, lambdai = 50, t0, sig = 0.25,
-            process = "FMA", process_ker = ker_d1,
-            process_mean = mean_d1, white_noise = "fBm",
-            hurst = Hlogistic, Hvec = Hvec, design = "d1")
+# simate_data(Nmc = 100, Ni = 400, lambdai = 50, t0, sig = 0.25,
+#             process = "FMA", process_ker = ker_d1,
+#             process_mean = mean_d1, white_noise = "fBm",
+#             hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
 
 ## Simulation - design 2 ----
