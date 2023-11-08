@@ -175,4 +175,146 @@ ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", de
 ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d3", param = "mean_risk_plus_mean")
 
 
+# Mean function estimates graph ----
+ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1"){
+  ## Load data
+  file_name <- paste0("./inst/12_mc_simulate_data/", process, "/mean_estimates/dt_mean_estimates_",
+                      process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
+  dt_mean <- readRDS(file_name)
+
+  ## Add process true mean
+  data_file_name <- paste0("./inst/12_mc_simulate_data/", process, "/data/dt_mc_",
+                           process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
+  dt <- readRDS(data_file_name)
+  dt_mean <- data.table::merge.data.table(x = dt_mean, y = unique(dt[, .("t" = tobs, "mutrue" = process_mean)]), by = "t")
+  rm(dt) ; gc()
+
+  ## ggplot parameters
+  geom_theme <- theme_minimal() +
+    theme(plot.title = element_text(size = 9),
+          axis.title = element_text(size = 12),
+          axis.title.x = element_text(size = 12, margin = margin(t = 10, r = 0, b = 0, l = 0)),
+          axis.title.y = element_text(size = 12, margin = margin(t = 10, r = 10, b = 0, l = 0)),
+          axis.text.x =  element_text(size = 12),
+          axis.text.y =  element_text(size = 12),
+          legend.text = element_text(size = 12),
+          legend.title = element_text(size = 12),
+          legend.key.width= unit(0.8, 'cm'),
+          legend.position = "top")
+
+  if (white_noise == "mfBm") {
+    ## define segment and set scale label
+    dt_pr <- unique(dt_mean[, .("t" = as.factor(t), "x" = as.factor(t - 0.05),
+                                  "xend" = as.factor(t + 0.05), "mutrue" =  mutrue)])
+    scale_label <- c(dt_pr[, t], dt_pr[, x], dt_pr[, xend])
+    scale_label <- sort(as.character(scale_label))
+    scale_label[- which(scale_label %in% as.character(dt_pr[, t]))] <- ""
+
+    ## set t as factor
+    dt_mean[, t := as.factor(t)]
+
+    title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
+    # y_lim <- c(0.2, 0.9)
+    x_lab <- "t"
+    y_lab <-  latex2exp::TeX("$\\widehat{\\mu}(t)$")
+    geom_true_param <- geom_segment(
+      data = dt_pr, mapping = aes(x = x, xend = xend, y = mutrue, yend = mutrue),
+      linetype = 2)
+    ggplt <- ggplot(data = dt_mean, mapping = aes(x = t, y = muhat)) +
+      geom_boxplot() +
+      # ylim(y_lim) +
+      ggtitle(latex2exp::TeX(title_exp)) +
+      xlab(x_lab) +
+      ylab(y_lab) +
+      geom_true_param +
+      scale_x_discrete(labels = scale_label) +
+      geom_theme
+
+  } else if (white_noise == "fBm") {
+
+    ## define segment and set scale label
+    dt_pr <- unique(dt_mean[, .("t" = as.factor(t), "x" = as.factor(t - 0.05),
+                                "xend" = as.factor(t + 0.05), "mutrue" =  mutrue)])
+    scale_label <- c(dt_pr[, t], dt_pr[, x], dt_pr[, xend])
+    scale_label <- sort(as.character(scale_label))
+    scale_label[- which(scale_label %in% as.character(dt_pr[, t]))] <- ""
+
+    ## set t and Htrue as factors
+    dt_mean[, t := as.factor(t)]
+    dt_mean[, Htrue := as.factor(Htrue)]
+
+    title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
+    # y_lim <- c(0.2, 0.9)
+    x_lab <- "t"
+    y_lab <-  latex2exp::TeX("$\\widehat{\\mu}(t)$")
+    geom_true_param <- geom_segment(
+      data = dt_pr, mapping = aes(x = x, xend = xend, y = mutrue, yend = mutrue),
+      linetype = 2)
+    ggplt <- ggplot(data = dt_mean, mapping = aes(x = t, y = muhat, fill = Htrue, color = Htrue)) +
+      geom_boxplot() +
+      # ylim(y_lim) +
+      ggtitle(latex2exp::TeX(title_exp)) +
+      xlab(x_lab) +
+      ylab(y_lab) +
+      geom_true_param +
+      scale_x_discrete(labels = scale_label) +
+      geom_theme
+
+    ## define segment and set scale label
+    dt_pr <- unique(dt_mean[, .("t" = as.factor(t), "x" = as.factor(t - 0.05),
+                                "xend" = as.factor(t + 0.05), Htrue)])
+    scale_label <- c(dt_pr[, as.factor(Htrue)], dt_pr[, x], dt_pr[, xend])
+    scale_label <- sort(as.character(unique(scale_label)))
+    scale_label[- which(scale_label %in% as.character(dt_pr[, as.factor(Htrue)]))] <- ""
+
+    ## set t and Htrue as factor
+    dt_mean[, t := as.factor(t)]
+    dt_mean[, Htrue := as.factor(Htrue)]
+
+    if (param == "Ht") {
+      title_exp <- paste0("Zero-mean ", process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
+      y_lim <- c(0.2, 0.9)
+      x_lab <- latex2exp::TeX("True $H_t$")
+      y_lab <- latex2exp::TeX("$\\widehat{H}_t$")
+      geom_true_param <- geom_segment(
+        data = dt_pr, mapping = aes(x = x, xend = xend, y = Htrue, yend = Htrue),
+        linetype = 2)
+    } else if (param == "Ht_plus_mean") {
+      title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
+      y_lim <- c(0.2, 0.9)
+      x_lab <- latex2exp::TeX("True $H_t$")
+      y_lab <-  latex2exp::TeX("$\\widehat{H}_t$")
+      geom_true_param <- geom_segment(
+        data = dt_pr, mapping = aes(x = x, xend = xend, y = Htrue, yend = Htrue),
+        linetype = 2)
+    } else if (param == "Lt") {
+      title_exp <- paste0("Zero-mean ", process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
+      y_lim <- c(-2, 15)
+      x_lab <- latex2exp::TeX("True $H_t$")
+      geom_true_param <- geom_hline(yintercept = 4, color = "#283747", linetype = 2)
+      y_lab <- latex2exp::TeX("$\\widehat{L}_t^2$")
+      scale_label <- scale_label[! scale_label == ""]
+    } else if (param == "Lt_plus_mean"){
+      title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
+      y_lim <- c(-2, 15)
+      x_lab <- latex2exp::TeX("True $H_t$")
+      y_lab <- latex2exp::TeX("$\\widehat{L}_t^2$")
+      geom_true_param <- geom_hline(yintercept = 4, color = "#283747", linetype = 2)
+      scale_label <- scale_label[! scale_label == ""]
+    }
+
+    ggplt <- ggplot(data = dt_mean, mapping = aes(x = Htrue, y = get(param), fill = t)) +
+      geom_boxplot() +
+      ylim(y_lim) +
+      ggtitle(latex2exp::TeX(title_exp)) +
+      xlab(x_lab) +
+      ylab(y_lab) +
+      geom_true_param +
+      scale_x_discrete(labels = scale_label) +
+      scale_fill_grey() +
+      geom_theme
+  }
+
+  return(ggplt)
+}
 
