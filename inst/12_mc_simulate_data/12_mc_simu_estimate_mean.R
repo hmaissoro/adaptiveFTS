@@ -150,17 +150,15 @@ estim_mean_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise =
   data_file_name <- paste0("./inst/12_mc_simulate_data/", process, "/data/dt_mc_",
                            process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
   dt <- readRDS(data_file_name)
-  dt <- dt[ttag == "trandom"]
   index_mc <- dt[, unique(id_mc)]
 
   if (white_noise == "mfBm") {
-    dt_optbw <- dt_mean_risk[, .("optbw" = h[which.min(mean_risk)]),
-                             by = c("id_mc", "t")]
+    dt_optbw <- dt_mean_risk[, .("optbw" = h[which.min(mean_risk)]), by = c("id_mc", "t")]
 
     # Estimate local regularity by mc
     dt_mean_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, data, dt_optbw, Ni, lambdai){
       # Extract data
-      dt_random_mc <- data[id_mc == mc_i]
+      dt_random_mc <- data[ttag == "trandom"][id_mc == mc_i]
       optbw <- dt_optbw[id_mc == mc_i][order(t), optbw]
       t0 <- dt_optbw[id_mc == mc_i][order(t), t]
 
@@ -172,7 +170,10 @@ estim_mean_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise =
 
       # Return and clean
       dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, dt_mean[, .(t, optbw, PN, muhat)])
-      dt_res <- data.table::merge.data.table(x = dt_res, y = unique(dt[, .("t" = tobs, "mutrue" = process_mean)]), by = "t")
+      dt_res <- data.table::merge.data.table(
+        x = dt_res,
+        y = unique(data[ttag == "tcommon", .("t" = tobs, "mutrue" = process_mean)]),
+        by = "t")
       rm(optbw, dt_mean) ; gc()
       return(dt_res)
     }, mc.cores = 75, data = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda))
@@ -181,14 +182,14 @@ estim_mean_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise =
     dt_optbw <- dt_mean_risk[, .("optbw" = h[which.min(mean_risk)]),
                              by = c("id_mc", "t", "Htrue")]
     # Estimate local regularity by mc
-    dt_mean_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, dt_random, dt_optbw, Ni, lambdai){
+    dt_mean_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, data, dt_optbw, Ni, lambdai){
       # Extract and sort data
-      dt_random_mc <- dt_random[id_mc == mc_i]
-      Hvec <- dt_random_mc[, sort(unique(Htrue))]
+      data_mc <- data[id_mc == mc_i]
+      Hvec <- data_mc[, sort(unique(Htrue))]
 
       dt_by_Hvec <- data.table::rbindlist(lapply(Hvec, function(Hi, data, dt_optbw, Ni, lambdai){
         # Extract data
-        dt_random_mc_Hi <- data[id_mc == mc_i & Htrue == Hi]
+        dt_random_mc_Hi <- data[ttag == "trandom"][id_mc == mc_i & Htrue == Hi]
         optbw <- dt_optbw[id_mc == mc_i & Htrue == Hi][order(t), optbw]
         t0 <- dt_optbw[id_mc == mc_i & Htrue == Hi][order(t), t]
 
@@ -200,13 +201,16 @@ estim_mean_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise =
 
         # Return and clean
         dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, "Htrue" = Hi, dt_mean[, .(t, optbw, PN, muhat)])
-        dt_res <- data.table::merge.data.table(x = dt_res, y = unique(dt[, .("t" = tobs, "Htrue" = Htrue, "mutrue" = process_mean)]), by = c("t", "Htrue"))
+        dt_res <- data.table::merge.data.table(
+          x = dt_res,
+          y = unique(data[ttag == "tcommon", .("t" = tobs, "Htrue" = Htrue, "mutrue" = process_mean)]),
+          by = c("t", "Htrue"))
         rm(dt_mean, dt_random_mc_Hi, optbw) ; gc()
         return(dt_res)
-      }, data = dt_random_mc, dt_optbw = dt_optbw, Ni = Ni, lambdai = lambdai))
+      }, data = data_mc, dt_optbw = dt_optbw, Ni = Ni, lambdai = lambdai))
 
       return(dt_by_Hvec)
-    }, mc.cores = 75, dt_random = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda))
+    }, mc.cores = 75, data = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda))
   }
 
   ## Save
