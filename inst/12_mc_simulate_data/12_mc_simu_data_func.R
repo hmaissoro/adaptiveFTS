@@ -5,6 +5,10 @@ sig <- 0.25
 mc <- 100
 t0 <- c(0.2, 0.4, 0.7, 0.8)
 
+# (N, \lambda) \in {(400, 300), (1000, 1000), (150, 40), (1000, 40)}
+# (N, \lambda) \in {(150, 40), (1000, 40)}
+# (N, \lambda) \in {150, 1000}
+
 ## Logistic constant hurst function
 Hlogistic <- function(t){
   hurst_logistic(t, h_left = 0.4, h_right = 0.6,
