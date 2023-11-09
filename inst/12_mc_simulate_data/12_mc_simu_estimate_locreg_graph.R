@@ -25,7 +25,7 @@ ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = 
 
   ## ggplot parameters
   geom_theme <- theme_minimal() +
-    theme(plot.title = element_text(size = 9),
+    theme(plot.title = element_text(size = 12),
           axis.title = element_text(size = 12),
           axis.title.x = element_text(size = 12, margin = margin(t = 10, r = 0, b = 0, l = 0)),
           axis.title.y = element_text(size = 12, margin = margin(t = 10, r = 10, b = 0, l = 0)),
@@ -142,139 +142,76 @@ ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = 
       scale_fill_grey() +
       geom_theme
   }
-
+  # Save plots
+  plot_name <- paste0("./inst/12_mc_simulate_data/graphs/locreg/locreg_estimates_",
+                      process,"_", white_noise, "_", param, "_N=", N, "_lambda=", lambda, "_", design,".png")
+  ggsave(filename = plot_name, plot = ggplt,
+         width = 7.5 / 1.5, height = 5.97 / 1.5, units = "in", dpi = 300, bg = "white")
   return(ggplt)
 }
 
 # Plot local regularity parameters ----
 ## design 1 ----
-### FAR ----
-g_locreg_far_mfBm_d1 <- gridExtra::grid.arrange(
+g_locreg_far_fma_mfBm_d1 <- gridExtra::grid.arrange(
   ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", param = "Ht"),
   ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1", param = "Ht"),
   ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", param = "Lt"),
   ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1", param = "Lt"),
   nrow = 2, ncol = 2
 )
-ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_far_mfBm_d1.png", plot = g_locreg_far_mfBm_d1,
+ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg/locreg_far_fma_mfBm_d1.png", plot = g_locreg_far_fma_mfBm_d1,
        width = 9.98, height = 8.5, units = "in", dpi = 300)
 
-g_locreg_far_fBm_d1 <- gridExtra::grid.arrange(
+g_locreg_far_fma_fBm_d1 <- gridExtra::grid.arrange(
   ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1", param = "Ht"),
   ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1", param = "Ht"),
   ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1", param = "Lt"),
   ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1", param = "Lt"),
   nrow = 2, ncol = 2
 )
-ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_far_fBm_d1.png", plot = g_locreg_far_fBm_d1,
-       width = 9.98, height = 8.5, units = "in", dpi = 300)
-
-### FMA ----
-g_locreg_fma_mfBm_d1 <- gridExtra::grid.arrange(
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1", param = "Ht"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1", param = "Ht_plus_mean"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1", param = "Lt"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1", param = "Lt_plus_mean"),
-  nrow = 2, ncol = 2
-)
-ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_fma_mfBm_d1.png", plot = g_locreg_fma_mfBm_d1,
-       width = 9.98, height = 8.5, units = "in", dpi = 300)
-
-g_locreg_fma_fBm_d1 <- gridExtra::grid.arrange(
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1", param = "Ht"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1", param = "Ht_plus_mean"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1", param = "Lt"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1", param = "Lt_plus_mean"),
-  nrow = 2, ncol = 2
-)
-ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_fma_fBm_d1.png", plot = g_locreg_fma_fBm_d1,
+ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg/locreg_far_fma_fBm_d1.png", plot = g_locreg_far_fma_fBm_d1,
        width = 9.98, height = 8.5, units = "in", dpi = 300)
 
 ## design 2 ----
-### FAR ----
-g_locreg_far_mfBm_d2 <- gridExtra::grid.arrange(
+g_locreg_far_fma_mfBm_d2 <- gridExtra::grid.arrange(
   ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2", param = "Ht"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2", param = "Ht_plus_mean"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2", param = "Lt"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2", param = "Lt_plus_mean"),
-  nrow = 2, ncol = 2
-)
-ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_far_mfBm_d2.png", plot = g_locreg_far_mfBm_d2,
-       width = 9.98, height = 8.5, units = "in", dpi = 300)
-
-g_locreg_far_fBm_d2 <- gridExtra::grid.arrange(
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2", param = "Ht"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2", param = "Ht_plus_mean"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2", param = "Lt"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2", param = "Lt_plus_mean"),
-  nrow = 2, ncol = 2
-)
-ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_far_fBm_d2.png", plot = g_locreg_far_fBm_d2,
-       width = 9.98, height = 8.5, units = "in", dpi = 300)
-
-### FMA ----
-g_locreg_fma_mfBm_d2 <- gridExtra::grid.arrange(
   ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d2", param = "Ht"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d2", param = "Ht_plus_mean"),
+  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2", param = "Lt"),
   ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d2", param = "Lt"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d2", param = "Lt_plus_mean"),
   nrow = 2, ncol = 2
 )
-ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_fma_mfBm_d2.png", plot = g_locreg_fma_mfBm_d2,
+ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg/locreg_far_fma_mfBm_d2.png", plot = g_locreg_far_fma_mfBm_d2,
        width = 9.98, height = 8.5, units = "in", dpi = 300)
 
-g_locreg_fma_fBm_d2 <- gridExtra::grid.arrange(
+g_locreg_far_fma_fBm_d2 <- gridExtra::grid.arrange(
+  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2", param = "Ht"),
   ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d2", param = "Ht"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d2", param = "Ht_plus_mean"),
+  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2", param = "Lt"),
   ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d2", param = "Lt"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d2", param = "Lt_plus_mean"),
   nrow = 2, ncol = 2
 )
-ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_fma_fBm_d2.png", plot = g_locreg_fma_fBm_d2,
+ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg/locreg_far_fma_fBm_d2.png", plot = g_locreg_far_fma_fBm_d2,
        width = 9.98, height = 8.5, units = "in", dpi = 300)
 
 ## design 3 ----
-### FAR ----
-g_locreg_far_mfBm_d3 <- gridExtra::grid.arrange(
+g_locreg_far_fma_mfBm_d3 <- gridExtra::grid.arrange(
   ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3", param = "Ht"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3", param = "Ht_plus_mean"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3", param = "Lt"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3", param = "Lt_plus_mean"),
-  nrow = 2, ncol = 2
-)
-ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_far_mfBm_d3.png", plot = g_locreg_far_mfBm_d3,
-       width = 9.98, height = 8.5, units = "in", dpi = 300)
-
-g_locreg_far_fBm_d3 <- gridExtra::grid.arrange(
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3", param = "Ht"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3", param = "Ht_plus_mean"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3", param = "Lt"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3", param = "Lt_plus_mean"),
-  nrow = 2, ncol = 2
-)
-ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_far_fBm_d3.png", plot = g_locreg_far_fBm_d3,
-       width = 9.98, height = 8.5, units = "in", dpi = 300)
-
-### FMA ----
-g_locreg_fma_mfBm_d3 <- gridExtra::grid.arrange(
   ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d3", param = "Ht"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d3", param = "Ht_plus_mean"),
+  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3", param = "Lt"),
   ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d3", param = "Lt"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d3", param = "Lt_plus_mean"),
   nrow = 2, ncol = 2
 )
-ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_fma_mfBm_d3.png", plot = g_locreg_fma_mfBm_d3,
+ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg/locreg_far_fma_mfBm_d3.png", plot = g_locreg_far_fma_mfBm_d3,
        width = 9.98, height = 8.5, units = "in", dpi = 300)
 
-g_locreg_fma_fBm_d3 <- gridExtra::grid.arrange(
+g_locreg_far_fma_fBm_d3 <- gridExtra::grid.arrange(
+  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3", param = "Ht"),
   ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d3", param = "Ht"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d3", param = "Ht_plus_mean"),
+  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3", param = "Lt"),
   ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d3", param = "Lt"),
-  ggplot_locreg(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d3", param = "Lt_plus_mean"),
   nrow = 2, ncol = 2
 )
-ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg_fma_fBm_d3.png", plot = g_locreg_fma_fBm_d3,
+ggsave(filename = "./inst/12_mc_simulate_data/graphs/locreg/locreg_far_fma_fBm_d2.png", plot = g_locreg_far_fma_fBm_d3,
        width = 9.98, height = 8.5, units = "in", dpi = 300)
-
 
 

@@ -252,10 +252,20 @@ simate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
             process_mean = mean_d1, white_noise = "mfBm",
             hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
-# simate_data(Nmc = 100, Ni = 400, lambdai = 50, t0, sig = 0.25,
-#             process = "FAR", process_ker = ker_d1,
-#             process_mean = mean_d1, white_noise = "mfBm",
-#             hurst = Hlogistic, Hvec = Hvec, design = "d1")
+simate_data(Nmc = 100, Ni = 150, lambdai = 40, t0, sig = 0.25,
+            process = "FAR", process_ker = ker_d1,
+            process_mean = mean_d1, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1")
+
+simate_data(Nmc = 100, Ni = 1000, lambdai = 40, t0, sig = 0.25,
+            process = "FAR", process_ker = ker_d1,
+            process_mean = mean_d1, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1")
+
+simate_data(Nmc = 100, Ni = 1000, lambdai = 1000, t0, sig = 0.25,
+            process = "FAR", process_ker = ker_d1,
+            process_mean = mean_d1, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
 ## fBm
 simate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
@@ -263,10 +273,20 @@ simate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
             process_mean = mean_d1, white_noise = "fBm",
             hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
-# simate_data(Nmc = 100, Ni = 400, lambdai = 50, t0, sig = 0.25,
-#             process = "FAR", process_ker = ker_d1,
-#             process_mean = mean_d1, white_noise = "fBm",
-#             hurst = Hlogistic, Hvec = Hvec, design = "d1")
+simate_data(Nmc = 100, Ni = 150, lambdai = 40, t0, sig = 0.25,
+            process = "FAR", process_ker = ker_d1,
+            process_mean = mean_d1, white_noise = "fBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1")
+
+simate_data(Nmc = 100, Ni = 1000, lambdai = 40, t0, sig = 0.25,
+            process = "FAR", process_ker = ker_d1,
+            process_mean = mean_d1, white_noise = "fBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1")
+
+simate_data(Nmc = 100, Ni = 1000, lambdai = 1000, t0, sig = 0.25,
+            process = "FAR", process_ker = ker_d1,
+            process_mean = mean_d1, white_noise = "fBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
 ### FMA process ----
 ## mfBm
@@ -275,10 +295,20 @@ simate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
             process_mean = mean_d1, white_noise = "mfBm",
             hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
-# simate_data(Nmc = 100, Ni = 400, lambdai = 50, t0, sig = 0.25,
-#             process = "FMA", process_ker = ker_d1,
-#             process_mean = mean_d1, white_noise = "mfBm",
-#             hurst = Hlogistic, Hvec = Hvec, design = "d1")
+simate_data(Nmc = 100, Ni = 150, lambdai = 40, t0, sig = 0.25,
+            process = "FAR", process_ker = ker_d1,
+            process_mean = mean_d1, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1")
+
+simate_data(Nmc = 100, Ni = 1000, lambdai = 40, t0, sig = 0.25,
+            process = "FMA", process_ker = ker_d1,
+            process_mean = mean_d1, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1")
+
+simate_data(Nmc = 100, Ni = 1000, lambdai = 1000, t0, sig = 0.25,
+            process = "FMA", process_ker = ker_d1,
+            process_mean = mean_d1, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
 ## fBm
 simate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
@@ -286,10 +316,20 @@ simate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
             process_mean = mean_d1, white_noise = "fBm",
             hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
-# simate_data(Nmc = 100, Ni = 400, lambdai = 50, t0, sig = 0.25,
-#             process = "FMA", process_ker = ker_d1,
-#             process_mean = mean_d1, white_noise = "fBm",
-#             hurst = Hlogistic, Hvec = Hvec, design = "d1")
+simate_data(Nmc = 100, Ni = 150, lambdai = 40, t0, sig = 0.25,
+            process = "FMA", process_ker = ker_d1,
+            process_mean = mean_d1, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1")
+
+simate_data(Nmc = 100, Ni = 1000, lambdai = 40, t0, sig = 0.25,
+            process = "FMA", process_ker = ker_d1,
+            process_mean = mean_d1, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1")
+
+simate_data(Nmc = 100, Ni = 1000, lambdai = 1000, t0, sig = 0.25,
+            process = "FMA", process_ker = ker_d1,
+            process_mean = mean_d1, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
 
 ## Simulation - design 2 ----

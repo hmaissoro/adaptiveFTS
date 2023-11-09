@@ -25,7 +25,7 @@ ggplot_mean_risk <- function(N = 400, lambda = 300, process = "FAR", white_noise
   ## ggplot parameters
   geom_theme <- theme_minimal() +
     theme(legend.position = "top",
-          plot.title = element_text(size = 10, hjust = 0.5, vjust = -10),
+          plot.title = element_text(size = 12, hjust = 0.5, vjust = -10),
           axis.title = element_text(size = 12),
           axis.title.x = element_text(size = 9, margin = margin(t = 10, r = 0, b = 0, l = 0)),
           axis.title.y = element_text(size = 9, margin = margin(t = , r = 10, b = 0, l = 0)),
@@ -42,17 +42,16 @@ ggplot_mean_risk <- function(N = 400, lambda = 300, process = "FAR", white_noise
     dt_risk_melt <- data.table::melt(data = dt_risk, value.name = "risk",
                                      measure.vars = c("mean_risk", "mutitle_mse"),
                                      id.vars = c("t", "h"))
-
     fplot <- function(ti){
-        ggplot(data = dt_risk_melt[variable %in% c("mutitle_mse", "mean_risk") & t == ti],
-               mapping = aes(x = h, y = risk, group = variable, linetype = variable)) +
-          geom_line(linewidth = 0.8) +
-          ylim(0, 0.3) +
-          labs(title = paste0("t = ", ti, " - H = ", round(Hlogistic(ti), 2)), y = "", x = "h") +
-          scale_linetype_manual(values = c("mutitle_mse" = "solid", "mean_risk" = "twodash"),
-                                labels = c("mutitle_mse" = "MSE", "mean_risk" = latex2exp::TeX("  $R_\\mu(h, \\widehat{H}_t, \\widehat{L_t^2})$")),
-                                name = "Risk") +
-          geom_theme
+      ggplot(data = dt_risk_melt[variable %in% c("mutitle_mse", "mean_risk") & t == ti],
+             mapping = aes(x = h, y = risk, group = variable, linetype = variable)) +
+        geom_line(linewidth = 0.8) +
+        ylim(0, 0.4) +
+        labs(title = paste0("t = ", ti, " - H = ", round(Hlogistic(ti), 2)), y = "", x = "h") +
+        scale_linetype_manual(values = c("mutitle_mse" = "solid", "mean_risk" = "twodash"),
+                              labels = c("mutitle_mse" = "MSE", "mean_risk" = latex2exp::TeX("  $R_\\mu(h, \\widehat{H}_t, \\widehat{L_t^2})$")),
+                              name = "Risk") +
+        geom_theme
     }
 
     # Builb plots
@@ -78,15 +77,15 @@ ggplot_mean_risk <- function(N = 400, lambda = 300, process = "FAR", white_noise
                                      id.vars = c("t", "h", "Htrue"))
 
     fplot <- function(ti, Hi = 0.4){
-        ggplot(data = dt_risk_melt[variable %in% c("mutitle_mse", param) & t == ti & Htrue == Hi],
-               mapping = aes(x = h, y = risk, group = variable, linetype = variable)) +
-          geom_line(linewidth = 0.8) +
-          ylim(0, 0.9) +
-          labs(title = paste0("t = ", ti, " - H = ", Hi), y = "", x = "h") +
-          scale_linetype_manual(values = c("mutitle_mse" = "solid", "mean_risk" = "twodash"),
-                                labels = c("mutitle_mse" = "MSE", "mean_risk" = latex2exp::TeX("  $R_\\mu(h, \\widehat{H}_t, \\widehat{L_t^2})$")),
-                                name = "Risk") +
-          geom_theme
+      ggplot(data = dt_risk_melt[variable %in% c("mutitle_mse", "mean_risk") & t == ti & Htrue == Hi],
+             mapping = aes(x = h, y = risk, group = variable, linetype = variable)) +
+        geom_line(linewidth = 0.8) +
+        ylim(0, 0.4) +
+        labs(title = paste0("t = ", ti, " - H = ", Hi), y = "", x = "h") +
+        scale_linetype_manual(values = c("mutitle_mse" = "solid", "mean_risk" = "twodash"),
+                              labels = c("mutitle_mse" = "MSE", "mean_risk" = latex2exp::TeX("  $R_\\mu(h, \\widehat{H}_t, \\widehat{L_t^2})$")),
+                              name = "Risk") +
+        geom_theme
     }
     for(Hi in dt_risk_melt[, unique(Htrue)]){
       # build plots
@@ -105,48 +104,48 @@ ggplot_mean_risk <- function(N = 400, lambda = 300, process = "FAR", white_noise
     }
   }
   # return(gplot)
-  return(paste0("Done : plot for ", process," with ", white_noise, " for ", "N=", N, " and lambda=", lambda, " for ", design))
+  return(paste0("Done : plot for ", process," with ", white_noise, " for ", "N=", N, " and lambda=", lambda, " for ", design, " at ", Sys.time()))
 }
 
 # Plot local regularity parameters ----
 ## design 1 ----
 ### FAR ----
 ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", param = "mean_risk_plus_mean")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1", param = "mean_risk")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1", param = "mean_risk_plus_mean")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
 
 ### FMA ----
-ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1", param = "mean_risk")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1", param = "mean_risk_plus_mean")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1", param = "mean_risk")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1", param = "mean_risk_plus_mean")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1")
 
 ## design 2 ----
 ### FAR ----
-ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2", param = "mean_risk")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2", param = "mean_risk_plus_mean")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2", param = "mean_risk")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2", param = "mean_risk_plus_mean")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2")
 
 ### FMA ----
-ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d2", param = "mean_risk")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d2", param = "mean_risk_plus_mean")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d2", param = "mean_risk")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d2", param = "mean_risk_plus_mean")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d2")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d2")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d2")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d2")
 
 ## design 3 ----
 ### FAR ----
-ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3", param = "mean_risk")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3", param = "mean_risk_plus_mean")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3", param = "mean_risk")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3", param = "mean_risk_plus_mean")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3")
 
 ### FMA ----
-ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d3", param = "mean_risk")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d3", param = "mean_risk_plus_mean")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d3", param = "mean_risk")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d3", param = "mean_risk_plus_mean")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d3")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d3")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d3")
+ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d3")
 
 
 # Mean function estimates graph ----
@@ -155,17 +154,11 @@ ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "m
   file_name <- paste0("./inst/12_mc_simulate_data/", process, "/mean_estimates/dt_mean_estimates_",
                       process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
   dt_mean <- readRDS(file_name)
-
-  ## Add process true mean
-  data_file_name <- paste0("./inst/12_mc_simulate_data/", process, "/data/dt_mc_",
-                           process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
-  dt <- readRDS(data_file_name)
-  dt_mean <- data.table::merge.data.table(x = dt_mean, y = unique(dt[, .("t" = tobs, "mutrue" = process_mean)]), by = "t")
-  rm(dt) ; gc()
+  dt_mean <- unique(dt_mean)
 
   ## ggplot parameters
   geom_theme <- theme_minimal() +
-    theme(plot.title = element_text(size = 9),
+    theme(plot.title = element_text(size = 12),
           axis.title = element_text(size = 12),
           axis.title.x = element_text(size = 12, margin = margin(t = 10, r = 0, b = 0, l = 0)),
           axis.title.y = element_text(size = 12, margin = margin(t = 10, r = 10, b = 0, l = 0)),
@@ -179,7 +172,7 @@ ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "m
   if (white_noise == "mfBm") {
     ## define segment and set scale label
     dt_pr <- unique(dt_mean[, .("t" = as.factor(t), "x" = as.factor(t - 0.05),
-                                  "xend" = as.factor(t + 0.05), "mutrue" =  mutrue)])
+                                "xend" = as.factor(t + 0.05), "mutrue" =  mutrue)])
     scale_label <- c(dt_pr[, t], dt_pr[, x], dt_pr[, xend])
     scale_label <- sort(as.character(scale_label))
     scale_label[- which(scale_label %in% as.character(dt_pr[, t]))] <- ""
@@ -188,15 +181,16 @@ ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "m
     dt_mean[, t := as.factor(t)]
 
     title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
-    # y_lim <- c(0.2, 0.9)
+    y_lim <- c(dt_mean[, min(mutrue) - 1], dt_mean[, max(mutrue) + 1])
     x_lab <- "t"
     y_lab <-  latex2exp::TeX("$\\widehat{\\mu}(t)$")
     geom_true_param <- geom_segment(
       data = dt_pr, mapping = aes(x = x, xend = xend, y = mutrue, yend = mutrue),
+      size = 0.9,
       linetype = 2)
     ggplt <- ggplot(data = dt_mean, mapping = aes(x = t, y = muhat)) +
       geom_boxplot() +
-      # ylim(y_lim) +
+      ylim(y_lim) +
       ggtitle(latex2exp::TeX(title_exp)) +
       xlab(x_lab) +
       ylab(y_lab) +
@@ -207,10 +201,12 @@ ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "m
   } else if (white_noise == "fBm") {
 
     ## define segment and set scale label
-    dt_pr <- unique(dt_mean[, .("t" = as.factor(t), "x" = as.factor(t - 0.06),
-                                "xend" = as.factor(t + 0.06), "mutrue" =  mutrue)])
+    dt_pr <- unique(dt_mean[, .("t" = as.factor(t), "Htrue" = as.factor(Htrue), "x" = as.factor(t - 0.05),
+                                "xend" = as.factor(t + 0.05), "mutrue" =  mutrue)])
+
     scale_label <- c(dt_pr[, t], dt_pr[, x], dt_pr[, xend])
     scale_label <- sort(as.character(scale_label))
+    scale_label <- unique(scale_label)
     scale_label[- which(scale_label %in% as.character(dt_pr[, t]))] <- ""
 
     ## set t and Htrue as factors
@@ -218,79 +214,53 @@ ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "m
     dt_mean[, Htrue := as.factor(Htrue)]
 
     title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
-    # y_lim <- c(0.2, 0.9)
+    y_lim <- c(dt_mean[, min(mutrue) - 1], dt_mean[, max(mutrue) + 1])
     x_lab <- "t"
     y_lab <-  latex2exp::TeX("$\\widehat{\\mu}(t)$")
     geom_true_param <- geom_segment(
       data = dt_pr, mapping = aes(x = x, xend = xend, y = mutrue, yend = mutrue),
+      size = 0.9,
       linetype = 2)
-    ggplt <- ggplot(data = dt_mean, mapping = aes(x = t, y = muhat, fill = Htrue, color = Htrue)) +
+    ggplt <- ggplot(data = dt_mean, mapping = aes(x = t, y = muhat, fill = Htrue)) +
       geom_boxplot() +
-      # ylim(y_lim) +
-      ggtitle(latex2exp::TeX(title_exp)) +
-      xlab(x_lab) +
-      ylab(y_lab) +
-      geom_true_param +
-      scale_x_discrete(labels = scale_label) +
-      geom_theme
-
-    ## define segment and set scale label
-    dt_pr <- unique(dt_mean[, .("t" = as.factor(t), "x" = as.factor(t - 0.05),
-                                "xend" = as.factor(t + 0.05), Htrue)])
-    scale_label <- c(dt_pr[, as.factor(Htrue)], dt_pr[, x], dt_pr[, xend])
-    scale_label <- sort(as.character(unique(scale_label)))
-    scale_label[- which(scale_label %in% as.character(dt_pr[, as.factor(Htrue)]))] <- ""
-
-    ## set t and Htrue as factor
-    dt_mean[, t := as.factor(t)]
-    dt_mean[, Htrue := as.factor(Htrue)]
-
-    if (param == "Ht") {
-      title_exp <- paste0("Zero-mean ", process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
-      y_lim <- c(0.2, 0.9)
-      x_lab <- latex2exp::TeX("True $H_t$")
-      y_lab <- latex2exp::TeX("$\\widehat{H}_t$")
-      geom_true_param <- geom_segment(
-        data = dt_pr, mapping = aes(x = x, xend = xend, y = Htrue, yend = Htrue),
-        linetype = 2)
-    } else if (param == "Ht_plus_mean") {
-      title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
-      y_lim <- c(0.2, 0.9)
-      x_lab <- latex2exp::TeX("True $H_t$")
-      y_lab <-  latex2exp::TeX("$\\widehat{H}_t$")
-      geom_true_param <- geom_segment(
-        data = dt_pr, mapping = aes(x = x, xend = xend, y = Htrue, yend = Htrue),
-        linetype = 2)
-    } else if (param == "Lt") {
-      title_exp <- paste0("Zero-mean ", process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
-      y_lim <- c(-2, 15)
-      x_lab <- latex2exp::TeX("True $H_t$")
-      geom_true_param <- geom_hline(yintercept = 4, color = "#283747", linetype = 2)
-      y_lab <- latex2exp::TeX("$\\widehat{L}_t^2$")
-      scale_label <- scale_label[! scale_label == ""]
-    } else if (param == "Lt_plus_mean"){
-      title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
-      y_lim <- c(-2, 15)
-      x_lab <- latex2exp::TeX("True $H_t$")
-      y_lab <- latex2exp::TeX("$\\widehat{L}_t^2$")
-      geom_true_param <- geom_hline(yintercept = 4, color = "#283747", linetype = 2)
-      scale_label <- scale_label[! scale_label == ""]
-    }
-
-    ggplt <- ggplot(data = dt_mean, mapping = aes(x = Htrue, y = get(param), fill = t)) +
-      geom_boxplot() +
+      scale_fill_grey(name = latex2exp::TeX("$H_t$")) +
       ylim(y_lim) +
       ggtitle(latex2exp::TeX(title_exp)) +
       xlab(x_lab) +
       ylab(y_lab) +
       geom_true_param +
       scale_x_discrete(labels = scale_label) +
-      scale_fill_grey() +
       geom_theme
   }
 
+  # Save plots
+  plot_name <- paste0("./inst/12_mc_simulate_data/graphs/mean/mean_estimates_",
+                      process,"_", white_noise, "_N=", N, "_lambda=", lambda, "_", design,".png")
+  ggsave(filename = plot_name, plot = ggplt,
+         width = 7.5 / 1.5, height = 5.97 / 1.5, units = "in", dpi = 300, bg = "white")
+
+  print(paste0("Done : plot for ", process," with ", white_noise, " for ", "N=", N, " and lambda=", lambda, " for ", design, " at ", Sys.time()))
+
   return(ggplt)
 }
+# Plot mean function estimates ----
+## design 1 ----
+ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
+ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
 
 ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
+ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
 
+## design 2 ----
+ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2")
+ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2")
+
+ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2")
+ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2")
+
+## design 3 ----
+ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3")
+ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3")
+
+ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3")
+ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3")
