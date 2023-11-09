@@ -47,7 +47,7 @@ estim_locreg_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise
       dt_by_Hvec <- data.table::rbindlist(lapply(Hvec, function(Hi, dt_mc, t0){
         ## Set Delta
         lambdahat <- mean(dt_mc[Htrue == Hi, .N, by = id_curve][, N])
-        delta <- exp(- log(lambdahat) ** 0.25)
+        delta <- exp(- log(lambdahat) ** (1 / 4))
 
         ## Extract bandwidth
         bw <- unique(dt_mc[Htrue == Hi, .(id_curve, presmooth_bw)])[order(id_curve), presmooth_bw]

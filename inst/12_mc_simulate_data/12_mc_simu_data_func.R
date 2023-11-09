@@ -312,7 +312,7 @@ mean_d2 <- function(t = seq(0.1, 0.9, len = 10)){
 }
 
 ## Autoregressive kernel
-ker_d1 <- function(s,t, operator_norm = 0.7){
+ker_d1 <- function(s,t, operator_norm = 0.5){
   # Note that : \kappa_c * k = operator_norm
   k <- sqrt(pi) / 2 * (
     pnorm(q = 2, mean = 0, sd = sqrt(1/2)) - pnorm(q = 0, mean = 0, sd = sqrt(1/2))
@@ -371,7 +371,7 @@ mean_d2 <- function(t = seq(0.1, 0.9, len = 10)){
 }
 
 ## Autoregressive kernel
-ker_d3 <- function(s = 0.2, t = 0.3, operator_norm = 0.7){
+ker_d3 <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
   # Basis coefficient
   # For each fixed {\eta_k(s), k = 1,...,K} and {\theta_l(t), l = 1,...,L}, we have
   # c(b_{11}, b_{12}, ..., b_{1L},

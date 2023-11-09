@@ -20,15 +20,14 @@ estim_mean_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white_no
                              process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
   dt_locreg <- readRDS(locreg_file_name)
 
-  # Define bandwidth grid
-  K <- 20
-  b0 <- 4 * (N * lambda) ** (- 0.9)
-  bK <- 4 * (N * lambda) ** (- 1 / 3)
-  a <- exp((log(bK) - log(b0)) / K)
-  bw_grid <- b0 * a ** (seq_len(K))
-  rm(K, b0, bK, a) ; gc()
-
   if (white_noise == "mfBm") {
+    # Define bandwidth grid
+    K <- 20
+    b0 <- 4 * (N * lambda) ** (- 0.9)
+    bK <- 4 * (N * lambda) ** (- 1 / (2 * 0.6 + 1))
+    a <- exp((log(bK) - log(b0)) / K)
+    bw_grid <- b0 * a ** (seq_len(K))
+    rm(K, b0, bK, a) ; gc()
 
     # Estimate local regularity by mc
     dt_risk_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, dt_random, dt_common, dt_locreg, Ni, lambdai, bw_grid, t0){
@@ -76,15 +75,22 @@ estim_mean_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white_no
 
   } else if (white_noise == "fBm") {
     # Estimate local regularity by mc
-    dt_risk_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, dt_random, dt_common, dt_locreg, Ni, lambdai, bw_grid, t0){
+    dt_risk_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, dt_random, dt_common, dt_locreg, Ni, lambdai, t0){
       # Extract and sort data
       dt_common_mc <- dt_common[id_mc == mc_i]
       dt_random_mc <- dt_random[id_mc == mc_i]
       Hvec <- dt_random_mc[, sort(unique(Htrue))]
 
-      dt_by_Hvec <- data.table::rbindlist(lapply(Hvec, function(Hi, dt_common_mc, dt_random_mc, dt_locreg, Ni, lambdai, bw_grid, t0){
+      dt_by_Hvec <- data.table::rbindlist(lapply(Hvec, function(Hi, dt_common_mc, dt_random_mc, dt_locreg, Ni, lambdai, t0){
+        # Define bandwidth grid
+        K <- 20
+        b0 <- 4 * (N * lambda) ** (- 0.9)
+        bK <- 4 * (N * lambda) ** (- 1 / (2 * (Hi + 0.05) + 1))
+        a <- exp((log(bK) - log(b0)) / K)
+        bw_grid <- b0 * a ** (seq_len(K))
+        rm(K, b0, bK, a) ; gc()
         # Estimate pseudo-true mean function risk
-        dt_risk_mutilde <- data.table::rbindlist(lapply(bw_grid, function(hi, data_common_mc, data_random_mc, bw_grid, t0){
+        dt_risk_mutilde <- data.table::rbindlist(lapply(bw_grid, function(hi, data_common_mc, data_random_mc, t0){
           dt_Xhat <- data.table::rbindlist(lapply(data_random_mc[, unique(id_curve)], function(curve_index, t0, hi, data){
             Tn <- data[id_curve == curve_index, tobs]
             Yn <- data[id_curve == curve_index, X]
@@ -100,7 +106,7 @@ estim_mean_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white_no
             by.x = "t", by.y = "tobs")
           dt_muhat[, mutitle_mse := (muhat - mutilde) ** 2, by = t]
 
-        }, data_common_mc = dt_common_mc[Htrue == Hi], data_random_mc = dt_random_mc[Htrue == Hi], bw_grid = bw_grid, t0 = t0))
+        }, data_common_mc = dt_common_mc[Htrue == Hi], data_random_mc = dt_random_mc[Htrue == Hi], t0 = t0))
 
         # Estimate the risk of the mean function
         bw <- unique(dt_random_mc[Htrue == Hi][, .(id_curve, presmooth_bw)])[, presmooth_bw]
@@ -119,10 +125,10 @@ estim_mean_risk_fun <- function(N = 400, lambda = 300, process = "FAR", white_no
         dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, "Htrue" = Hi, dt_risk)
         rm(dt_risk_muhat, dt_risk_mutilde, dt_risk) ; gc()
         return(dt_res)
-      }, dt_common_mc = dt_common_mc, dt_random_mc = dt_random_mc, dt_locreg = dt_locreg, Ni = N, lambdai = lambda, bw_grid = bw_grid, t0 = t0))
+      }, dt_common_mc = dt_common_mc, dt_random_mc = dt_random_mc, dt_locreg = dt_locreg, Ni = N, lambdai = lambda, t0 = t0))
 
       return(dt_by_Hvec)
-    }, mc.cores = 75, dt_random = dt_random, dt_common = dt_common, dt_locreg = dt_locreg, Ni = N, lambdai = lambda, bw_grid = bw_grid, t0 = t0))
+    }, mc.cores = 75, dt_random = dt_random, dt_common = dt_common, dt_locreg = dt_locreg, Ni = N, lambdai = lambda, t0 = t0))
   }
 
   ## Save
@@ -166,6 +172,7 @@ estim_mean_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise =
 
       # Return and clean
       dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, dt_mean[, .(t, optbw, PN, muhat)])
+      dt_res <- data.table::merge.data.table(x = dt_res, y = unique(dt[, .("t" = tobs, "mutrue" = process_mean)]), by = "t")
       rm(optbw, dt_mean) ; gc()
       return(dt_res)
     }, mc.cores = 75, data = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda))
@@ -193,6 +200,7 @@ estim_mean_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise =
 
         # Return and clean
         dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, "Htrue" = Hi, dt_mean[, .(t, optbw, PN, muhat)])
+        dt_res <- data.table::merge.data.table(x = dt_res, y = unique(dt[, .("t" = tobs, "Htrue" = Htrue, "mutrue" = process_mean)]), by = c("t", "Htrue"))
         rm(dt_mean, dt_random_mc_Hi, optbw) ; gc()
         return(dt_res)
       }, data = dt_random_mc, dt_optbw = dt_optbw, Ni = Ni, lambdai = lambdai))
