@@ -407,7 +407,6 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 
       ## Dependence term
       ### Compute p_k(s,t;h)
-      system.time(
       dt_p <- data.table::rbindlist(lapply(1:(N - lag - 1), function(k, dt_risk_raw, dt_risk){
         ## Extract lagged data
         dt_pi_s_i <- dt_risk_raw[id_curve %in% 1:(N - lag - k), .(id_curve, s, t, "pin_s_i" = pin_s)]
@@ -462,7 +461,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
         dt_pk[, pk := pk / PNl, by = c("s", "t")]
         dt_pk[, lag := k]
       }, dt_risk_raw = dt_risk_raw, dt_risk))
-      )
+
       dt_long_run_var <- data.table::merge.data.table(x = dt_XsXt_autocov[lag > 0], y = dt_p, by = c("s", "t", "lag"))
       dt_long_run_var <- dt_long_run_var[! is.nan(XsXt_autocov), list("long_run_var" = sum(2 * XsXt_autocov * pk)), by = c("s", "t")]
       dependence_coef <- dt_XsXt_autocov[lag == 0][order(s, t), XsXt_autocov] + dt_long_run_var[order(s, t), long_run_var]
