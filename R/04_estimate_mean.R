@@ -320,7 +320,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     Tn <- data[id_curve == curve_index, tobs]
     Yn <- data[id_curve == curve_index, X]
     pi_n <- sapply(X = t, function(ti, Tn, dt_mean_optbw){
-      as.numeric(abs(Tn - ti) <= dt_mean_optbw[t == ti, optbw])
+      as.numeric(abs(Tn - ti) <= dt_mean_optbw[t == ti, unique(optbw)])
     }, Tn = Tn, dt_mean_optbw = dt_mean_optbw)
     pi_n <- t(pi_n)
     pi_n <- as.numeric(rowSums(pi_n, na.rm = TRUE) >= 1)
