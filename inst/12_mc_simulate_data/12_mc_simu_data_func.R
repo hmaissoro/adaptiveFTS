@@ -7,7 +7,9 @@ t0 <- c(0.2, 0.4, 0.7, 0.8)
 
 # (N, \lambda) \in {(400, 300), (1000, 1000), (150, 40), (1000, 40)}
 # (N, \lambda) \in {(150, 40), (1000, 40)}
-# (N, \lambda) \in {150, 1000}
+# (N, \lambda) = (150, 1000)
+
+# Note that (N, \lambda) = (1000, 1000) for design = "d1" not computed
 
 ## Logistic constant hurst function
 Hlogistic <- function(t){

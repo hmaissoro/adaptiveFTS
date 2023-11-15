@@ -176,9 +176,11 @@ estim_mean_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise =
         by = "t")
       rm(optbw, dt_mean) ; gc()
       return(dt_res)
-    }, mc.cores = 75, data = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda))
+    }, mc.cores = 50, data = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda))
 
   } else if (white_noise == "fBm") {
+    if (N == 1000 & lambda == 1000)
+      index_mc <- index_mc[-50]
     dt_optbw <- dt_mean_risk[, .("optbw" = h[which.min(mean_risk)]),
                              by = c("id_mc", "t", "Htrue")]
     # Estimate local regularity by mc
@@ -210,7 +212,7 @@ estim_mean_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise =
       }, data = data_mc, dt_optbw = dt_optbw, Ni = Ni, lambdai = lambdai))
 
       return(dt_by_Hvec)
-    }, mc.cores = 75, data = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda))
+    }, mc.cores = 50, data = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda))
   }
 
   ## Save
@@ -227,9 +229,24 @@ estim_mean_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise =
 ### FAR ----
 estim_mean_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", t0 = t0)
 estim_mean_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1", t0 = t0)
+estim_mean_risk_fun(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1", t0 = t0)
+estim_mean_risk_fun(N = 150, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1", t0 = t0)
+estim_mean_risk_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1", t0 = t0)
+estim_mean_risk_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1", t0 = t0)
+estim_mean_risk_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d1", t0 = t0)
+estim_mean_risk_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "fBm", design = "d1", t0 = t0)
 
 estim_mean_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
 estim_mean_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
+estim_mean_fun(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1")
+estim_mean_fun(N = 150, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1")
+estim_mean_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1")
+estim_mean_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1")
+estim_mean_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d1")
+estim_mean_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "fBm", design = "d1")
+
+# estim_mean_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
+# estim_mean_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
 ### FMA ----
 estim_mean_risk_fun(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1", t0 = t0)
 estim_mean_risk_fun(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1", t0 = t0)

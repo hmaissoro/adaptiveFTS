@@ -110,10 +110,15 @@ ggplot_mean_risk <- function(N = 400, lambda = 300, process = "FAR", white_noise
 # Plot local regularity parameters ----
 ## design 1 ----
 ### FAR ----
+ggplot_mean_risk(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1")
+ggplot_mean_risk(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1")
 ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
+ggplot_mean_risk(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d1")
+
+ggplot_mean_risk(N = 150, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1")
+ggplot_mean_risk(N = 1000, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1")
 ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
-ggplot_mean_risk(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
+ggplot_mean_risk(N = 1000, lambda = 1000, process = "FAR", white_noise = "fBm", design = "d1")
 
 ### FMA ----
 ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1")
@@ -186,7 +191,7 @@ ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "m
     y_lab <-  latex2exp::TeX("$\\widehat{\\mu}(t)$")
     geom_true_param <- geom_segment(
       data = dt_pr, mapping = aes(x = x, xend = xend, y = mutrue, yend = mutrue),
-      size = 0.9,
+      linewidth = 0.9,
       linetype = 2)
     ggplt <- ggplot(data = dt_mean, mapping = aes(x = t, y = muhat)) +
       geom_boxplot() +
@@ -219,7 +224,7 @@ ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "m
     y_lab <-  latex2exp::TeX("$\\widehat{\\mu}(t)$")
     geom_true_param <- geom_segment(
       data = dt_pr, mapping = aes(x = x, xend = xend, y = mutrue, yend = mutrue),
-      size = 0.9,
+      linewidth = 0.9,
       linetype = 2)
     ggplt <- ggplot(data = dt_mean, mapping = aes(x = t, y = muhat, fill = Htrue)) +
       geom_boxplot() +
@@ -245,8 +250,15 @@ ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "m
 }
 # Plot mean function estimates ----
 ## design 1 ----
+ggplot_mean(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1")
+ggplot_mean(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1")
 ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
+ggplot_mean(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d1")
+
+ggplot_mean(N = 150, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1")
+ggplot_mean(N = 1000, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1")
 ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
+ggplot_mean(N = 1000, lambda = 1000, process = "FAR", white_noise = "fBm", design = "d1")
 
 ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
 ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")

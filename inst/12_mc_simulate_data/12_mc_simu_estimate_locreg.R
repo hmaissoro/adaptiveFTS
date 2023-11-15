@@ -22,7 +22,7 @@ estim_locreg_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise
       # Estimate the local regularity
       ## Delta
       lambdahat <- mean(dt_mc[, .N, by = id_curve][, N])
-      delta <- exp(- log(lambdahat) ** (1 / 4))
+      delta <- min(exp(- log(lambdahat) ** (1 / 3)), 0.2)
 
       ## Centered process
       dt_locreg <- estimate_locreg(
@@ -47,7 +47,8 @@ estim_locreg_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise
       dt_by_Hvec <- data.table::rbindlist(lapply(Hvec, function(Hi, dt_mc, t0){
         ## Set Delta
         lambdahat <- mean(dt_mc[Htrue == Hi, .N, by = id_curve][, N])
-        delta <- exp(- log(lambdahat) ** (1 / 4))
+        # delta <- exp(- log(lambdahat) ** (1 / 4))
+        delta <- min(exp(- log(lambdahat) ** (1 / 3)), 0.2)
 
         ## Extract bandwidth
         bw <- unique(dt_mc[Htrue == Hi, .(id_curve, presmooth_bw)])[order(id_curve), presmooth_bw]
@@ -83,11 +84,25 @@ estim_locreg_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise
 # Estimate local regularity ----
 ## design 1 ----
 ### FAR ----
+# mfBm
 estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
+estim_locreg_fun(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1")
+estim_locreg_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1")
+estim_locreg_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d1")
+
+# fBm
 estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
+estim_locreg_fun(N = 150, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1")
+estim_locreg_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1")
+estim_locreg_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "fBm", design = "d1")
 
 ### FMA ----
 estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1")
+estim_locreg_fun(N = 150, lambda = 40, process = "FMA", white_noise = "mfBm", design = "d1")
+estim_locreg_fun(N = 1000, lambda = 40, process = "FMA", white_noise = "mfBm", design = "d1")
+estim_locreg_fun(N = 1000, lambda = 1000, process = "FMA", white_noise = "mfBm", design = "d1")
+
+# fBm
 estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d1")
 
 ## design 2 ----
