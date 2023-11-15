@@ -669,7 +669,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     h <- dt_mean[, unique(locreg_bw)]
   } else if (! center) {
     dt_mean <- data.table::data.table(
-      "s" = s, "t" = t, "locreg_bw" = NA, "Hs" = NA, "Ls" = NA, "Ht" = NA, "Lt" = NA,
+      "s" = s, "t" = t, "locreg_bw_s" = NA, "locreg_bw_t" = NA, "Hs" = NA, "Ls" = NA, "Ht" = NA, "Lt" = NA,
       "optbw_muhat_s" = NA, "optbw_muhat_t" = NA,
       "muhat_s" = mean_estimates_s, "muhat_t" = mean_estimates_t)
   }
@@ -696,19 +696,20 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 
   if (center) {
     # Estimate mean at s
+    optbw_mean <- dt_autocov_optbw[order(s,t), optbw]
     dt_mean_s <- estimate_mean(
-      data = data, idcol = idcol, tcol = tcol, ycol = ycol,
-      t = s, optbw = dt_autocov_optbw[, optbw])
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      t = s, optbw = optbw_mean)
 
     # Estimate mean at t
     dt_mean_t <- estimate_mean(
-      data = data, idcol = idcol, tcol = tcol, ycol = ycol,
-      t = t, optbw = dt_autocov_optbw[, optbw])
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      t = t, optbw = optbw_mean)
 
     # Merge and clean
     dt_mean <- cbind(
-      dt_mean_s[, .("s" = t, "optbw_muhat_s" = optbw, "muhat_s" = muhat)],
-      dt_mean_t[, .("t" = t, "optbw_muhat_t" = optbw, "muhat_t" = muhat)]
+      dt_mean_s[, .("s" = t, "locreg_bw_s" = locreg_bw, "Hs" = Ht, "Ls" = Lt, "optbw_muhat_s" = optbw, "muhat_s" = muhat)],
+      dt_mean_t[, .("t" = t, "locreg_bw_t" = locreg_bw, "Ht" = Ht, "Lt" = Lt, "optbw_muhat_t" = optbw, "muhat_t" = muhat)]
     )
     rm(dt_mean_s, dt_mean_t) ; gc()
   }
@@ -720,16 +721,16 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     Yn <- data[id_curve == curve_index, X]
 
     # \pi_n(s,h)
-    pin_s <- sapply(X = s, function(si, Tn, dt_autocov_optbw){
-      as.numeric(abs(Tn - si) <= dt_autocov_optbw[s == si, optbw])
-    }, Tn = Tn, dt_autocov_optbw = dt_autocov_optbw)
+    pin_s <- sapply(X = 1:length(s), function(sidx, Tn, s, optbw_autocov){
+      as.numeric(abs(Tn - s[sidx]) <= optbw_autocov[sidx])
+    }, Tn = Tn, s, optbw_autocov = dt_autocov_optbw[order(s, t), optbw])
     pin_s <- t(pin_s)
     pin_s <- as.numeric(rowSums(pin_s, na.rm = TRUE) >= 1)
 
     # \pi_{n + \ell}(t,h)
-    pin_t <- sapply(X = t, function(ti, Tn, dt_autocov_optbw){
-      as.numeric(abs(Tn - ti) <= dt_autocov_optbw[t == ti, optbw])
-    }, Tn = Tn, dt_autocov_optbw = dt_autocov_optbw)
+    pin_t <- sapply(X = 1:length(t), function(tidx, Tn, t, optbw_autocov){
+      as.numeric(abs(Tn - t[tidx]) <= optbw_autocov[tidx])
+    }, Tn = Tn, t, optbw_autocov = dt_autocov_optbw[order(s, t), optbw])
     pin_t <- t(pin_t)
     pin_t <- as.numeric(rowSums(pin_t, na.rm = TRUE) >= 1)
 
@@ -786,7 +787,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   dt_autocov[, autocovhat := gammahat - muhat_s * muhat_t, by = c("s", "t")]
   data.table::setcolorder(
     x = dt_autocov,
-    neworder = c("s", "t", "locreg_bw", "Hs", "Ls", "Ht", "Lt", "lag",
+    neworder = c("s", "t", "locreg_bw_s", "locreg_bw_t", "Hs", "Ls", "Ht", "Lt", "lag",
                  "optbw_gamma", "optbw_muhat_s", "optbw_muhat_t",
                  "muhat_s", "muhat_t", "gammahat", "autocovhat"))
   return(dt_autocov)
