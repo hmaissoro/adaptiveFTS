@@ -258,8 +258,78 @@ estim_autocov_risk_fun <- function(N = 400, lambda = 300, process = "FAR",
 }
 
 ## Estimate mean function
-estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", t0 = t0){
-  # coming ...
+estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", s0 = s0, t0 = t0, lag = 1){
+    ## Load mean risk data
+    autocov_risk_file_name <- paste0("./inst/12_mc_simulate_data/", process, "/autocov_estimates/dt_auto_risk_",
+                                  process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
+    dt_autocov_risk <- readRDS(autocov_risk_file_name)
+
+    ## \widetilde{\mu}_N(t)
+    mean_risk_file_name <- paste0("./inst/12_mc_simulate_data/", process, "/mean_estimates/dt_mean_risk_",
+                                  process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
+    dt_mean_risk <- readRDS(mean_risk_file_name)
+
+    ## Load raw data
+    data_file_name <- paste0("./inst/12_mc_simulate_data/", process, "/data/dt_mc_",
+                             process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
+    dt <- readRDS(data_file_name)
+    index_mc <- dt[, unique(id_mc)]
+
+    if (white_noise == "mfBm") {
+      # Estimate optimal bandwidth and autocovariance proxy
+      dt_optbw <- dt_autocov_risk[, .("optbw" = h[which.min(autocov_risk)], gammatilde), by = c("id_mc", "s", "t")]
+      dt_optbw <- data.table::merge.data.table(
+        x = dt_optbw,
+        y = unique(dt_mean_risk[, .(id_mc, "s" = t, "mutilde_s" = mutilde)]),
+        by = c("id_mc", "s")
+      )
+      dt_optbw <- data.table::merge.data.table(
+        x = dt_optbw,
+        y = unique(dt_mean_risk[, .(id_mc, "t" = t, "mutilde_t" = mutilde)]),
+        by = c("id_mc", "t")
+      )
+      dt_optbw[, autocovtilde := gammatilde - mutilde_s * mutilde_t, by = c("s", "t")]
+
+      # Estimate autocovariance by mc
+      dt_autocov_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, data, dt_optbw, Ni, lambdai){
+        # Extract data
+        dt_random_mc <- data[ttag == "trandom"][id_mc == mc_i]
+        optbw <- dt_optbw[id_mc == mc_i][order(s, t), optbw]
+        s0 <- dt_optbw[id_mc == mc_i][order(s, t), s]
+        t0 <- dt_optbw[id_mc == mc_i][order(s, t), t]
+
+        # Estimate the mean function
+        dt_autocov <- estimate_autocov(
+          data = dt_random_mc, idcol = "id_curve", tcol = "tobs", ycol = "X",
+          s = s0, t = t0, lag = 1, optbw = optbw, bw_grid = seq(0.005, 0.15, len = 45),
+          Hs = NULL, Ls = NULL, Ht = NULL, Lt = NULL,
+          Delta = NULL, h = NULL, center = TRUE,
+          mean_estimates_s = NULL, mean_estimates_t = NULL,
+          smooth_ker = epanechnikov)
+
+        # Add estimate of the true gamma
+        dt_autocov <- data.table::merge.data.table(
+          x = dt_autocov,
+          y = unique(dt_optbw[id_mc == mc_i, .(s, t, mutilde_s, mutilde_t, autocovtilde)]),
+          by = c("s", "t")
+        )
+        # Return and clean
+        dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, dt_autocov)
+        rm(dt_optbw, optbw) ; gc()
+        return(dt_res)
+      }, mc.cores = 50, data = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda))
+
+    } else if (white_noise == "fBm") {
+      # Coming ...
+    }
+
+    ## Save
+    file_name <- paste0("./inst/12_mc_simulate_data/", process, "/autocov_estimates/dt_autocov_estimates_",
+                        process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
+    saveRDS(object = dt_mean_mc, file = file_name)
+    rm(data_file_name, autocov_risk_file_name, file_name, dt_mean_mc, dt_optbw) ; gc()
+
+    return(paste0("Done : dt_autocov_estimates_", process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS at ", Sys.time()))
 }
 
 # Estimate mean risk function ----
