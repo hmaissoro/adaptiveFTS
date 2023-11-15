@@ -17,7 +17,7 @@ estimate_sigma <- function(data, idcol = NULL, tcol = "tobs", ycol = "X", t = c(
     ## Get the rank i_t and j_t
     data_idx <- data[id_curve == idx]
     dif_mat <- outer(X = t, Y = data_idx[, tobs], function(ti, tobsi) abs(ti - tobsi))
-    rank_mat <- apply(X = dif_mat, MARGIN = 1, function(r) rank(r))
+    rank_mat <- apply(X = dif_mat, MARGIN = 1, function(r) rank(r, ties.method = "first"))
 
     ## Compute [Y_{n,i_t} - Y_{n,j_t}]^2 / 2 for each curve X_n and each t
     Zn <- apply(X = rank_mat, MARGIN = 2, function(c, dt){
