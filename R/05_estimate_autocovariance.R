@@ -254,7 +254,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 
       dt_res <- data.table::data.table("id_curve" = curve_index, "s" = s, "t" = t, "Xhat_s" = Xhat_s, "Xhat_t" = Xhat_t)
     }, s = s, t = t,
-    presmooth_bw_s = hs, presmooth_bw_t = ht,
+    presmooth_bw_s = h, presmooth_bw_t = h,
     kernel_smooth = smooth_ker, data = data))
 
   ##  Transform NaN to NA
