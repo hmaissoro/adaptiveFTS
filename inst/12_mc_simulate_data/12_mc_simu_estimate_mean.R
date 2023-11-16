@@ -153,7 +153,7 @@ estim_mean_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise =
   index_mc <- dt[, unique(id_mc)]
 
   if (white_noise == "mfBm") {
-    dt_optbw <- dt_mean_risk[, .("optbw" = h[which.min(mean_risk)]), by = c("id_mc", "t")]
+    dt_optbw <- dt_mean_risk[!is.nan(mean_risk), .("optbw" = h[which.min(mean_risk)]), by = c("id_mc", "t")]
 
     # Estimate local regularity by mc
     dt_mean_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, data, dt_optbw, Ni, lambdai){
