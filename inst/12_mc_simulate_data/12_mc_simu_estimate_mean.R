@@ -237,12 +237,14 @@ estim_mean_risk_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfB
 estim_mean_risk_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "fBm", design = "d1", t0 = t0)
 
 estim_mean_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
-estim_mean_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
 estim_mean_fun(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1")
-estim_mean_fun(N = 150, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1")
 estim_mean_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1")
-estim_mean_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1")
 estim_mean_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d1")
+
+
+estim_mean_fun(N = 150, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1")
+estim_mean_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
+estim_mean_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1")
 estim_mean_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "fBm", design = "d1")
 
 # estim_mean_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
