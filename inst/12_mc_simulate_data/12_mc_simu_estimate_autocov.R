@@ -258,7 +258,7 @@ estim_autocov_risk_fun <- function(N = 400, lambda = 300, process = "FAR",
 }
 
 ## Estimate mean function
-estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", s0 = s0, t0 = t0, lag = 1){
+estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1){
     ## Load mean risk data
     autocov_risk_file_name <- paste0("./inst/12_mc_simulate_data/", process, "/autocov_estimates/dt_auto_risk_",
                                   process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
@@ -277,7 +277,7 @@ estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_nois
 
     if (white_noise == "mfBm") {
       # Estimate optimal bandwidth and autocovariance proxy
-      dt_optbw <- dt_autocov_risk[, .("optbw" = h[which.min(autocov_risk)], gammatilde), by = c("id_mc", "s", "t")]
+      dt_optbw <- unique(dt_autocov_risk[, .("optbw" = h[which.min(autocov_risk)], gammatilde), by = c("id_mc", "s", "t")])
       dt_optbw <- data.table::merge.data.table(
         x = dt_optbw,
         y = unique(dt_mean_risk[, .(id_mc, "s" = t, "mutilde_s" = mutilde)]),
@@ -301,7 +301,7 @@ estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_nois
         # Estimate the mean function
         dt_autocov <- estimate_autocov(
           data = dt_random_mc, idcol = "id_curve", tcol = "tobs", ycol = "X",
-          s = s0, t = t0, lag = 1, optbw = optbw, bw_grid = seq(0.005, 0.15, len = 45),
+          s = s0, t = t0, lag = lag, optbw = optbw, bw_grid = NULL,
           Hs = NULL, Ls = NULL, Ht = NULL, Lt = NULL,
           Delta = NULL, h = NULL, center = TRUE,
           mean_estimates_s = NULL, mean_estimates_t = NULL,
@@ -315,7 +315,7 @@ estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_nois
         )
         # Return and clean
         dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, dt_autocov)
-        rm(dt_optbw, optbw) ; gc()
+        rm(optbw) ; gc()
         return(dt_res)
       }, mc.cores = 50, data = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda))
 
@@ -326,8 +326,8 @@ estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_nois
     ## Save
     file_name <- paste0("./inst/12_mc_simulate_data/", process, "/autocov_estimates/dt_autocov_estimates_",
                         process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
-    saveRDS(object = dt_mean_mc, file = file_name)
-    rm(data_file_name, autocov_risk_file_name, file_name, dt_mean_mc, dt_optbw) ; gc()
+    saveRDS(object = dt_autocov_mc, file = file_name)
+    rm(data_file_name, autocov_risk_file_name, file_name, dt_autocov_mc, dt_optbw) ; gc()
 
     return(paste0("Done : dt_autocov_estimates_", process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS at ", Sys.time()))
 }
@@ -344,6 +344,12 @@ estim_autocov_risk_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "
 estim_autocov_risk_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1", s0 = s0, t0 = t0, lag = 1)
 estim_autocov_risk_fun(N = 150, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1", s0 = s0, t0 = t0, lag = 1)
 estim_autocov_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1", s0 = s0, t0 = t0, lag = 1)
+
+# Estimate autocovariance function ----
+estim_autocov_fun(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1)
+estim_autocov_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1)
+estim_autocov_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1)
+estim_autocov_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1)
 
 # estim_autocov_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", t0 = t0)
 # estim_autocov_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1", t0 = t0)
