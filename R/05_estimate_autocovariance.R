@@ -605,7 +605,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   # Control the given optimal bandwidth and bandwidth grid
   if ((!is.null(optbw)) & length(optbw) != length(s)) {
     stop("If 'optbw' is not NULL, it must be the same length as 's' and 't'.")
-  } else {
+  } else if (is.null(optbw)) {
     if ((! is.null(bw_grid)) ) {
       if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
         stop("If 'bw_grid' is not NULL, it must be a vector of positive values between 0 and 1.")
@@ -712,18 +712,22 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     dt_mean_s <- estimate_mean(
       data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       t = s, optbw = optbw_mean)
+    dt_mean_s <- dt_mean_s[, .("s" = t, "locreg_bw_s" = locreg_bw, "Hs" = Ht, "Ls" = Lt, "muhat_s" = muhat)]
+    dt_mean_s <- unique(dt_mean_s)
 
     # Estimate mean at t
     dt_mean_t <- estimate_mean(
       data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       t = t, optbw = optbw_mean)
+    dt_mean_t <- dt_mean_t[, .("t" = t, "locreg_bw_t" = locreg_bw, "Ht" = Ht, "Lt" = Lt, "muhat_t" = muhat)]
+    dt_mean_t <- unique(dt_mean_t)
 
-    # Merge and clean
-    dt_mean <- cbind(
-      dt_mean_s[, .("s" = t, "locreg_bw_s" = locreg_bw, "Hs" = Ht, "Ls" = Lt, "optbw_muhat_s" = optbw, "muhat_s" = muhat)],
-      dt_mean_t[, .("t" = t, "locreg_bw_t" = locreg_bw, "Ht" = Ht, "Lt" = Lt, "optbw_muhat_t" = optbw, "muhat_t" = muhat)]
-    )
-    rm(dt_mean_s, dt_mean_t) ; gc()
+    # Merge the results
+    dt_mean <- data.table::data.table("s" = s, "t" = t)
+    dt_mean <- data.table::merge.data.table(x = dt_mean, y = dt_mean_s, by = "s")
+    dt_mean <- data.table::merge.data.table(x = dt_mean, y = dt_mean_t, by = "t")
+    dt_mean[, c("optbw_muhat_s", "optbw_muhat_t") := .(optbw_mean, optbw_mean)]
+    rm(dt_mean_s, dt_mean_t, optbw_mean) ; gc()
   }
 
   # Smooth curves with optimal bandwidth parameters
