@@ -258,7 +258,7 @@ estim_autocov_risk_fun <- function(N = 400, lambda = 300, process = "FAR",
 }
 
 ## Estimate mean function
-estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1){
+estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1, s0 = s0, t0 = t0){
     ## Load mean risk data
     autocov_risk_file_name <- paste0("./inst/12_mc_simulate_data/", process, "/autocov_estimates/dt_auto_risk_",
                                   process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
@@ -291,12 +291,12 @@ estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_nois
       dt_optbw[, autocovtilde := gammatilde - mutilde_s * mutilde_t, by = c("s", "t")]
 
       # Estimate autocovariance by mc
-      dt_autocov_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, data, dt_optbw, Ni, lambdai){
+      dt_autocov_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, data, dt_optbw, Ni, lambdai, s0, t0){
         # Extract data
         dt_random_mc <- data[ttag == "trandom"][id_mc == mc_i]
         optbw <- dt_optbw[id_mc == mc_i][order(s, t), optbw]
-        s0 <- dt_optbw[id_mc == mc_i][order(s, t), s]
-        t0 <- dt_optbw[id_mc == mc_i][order(s, t), t]
+        # s0 <- dt_optbw[id_mc == mc_i][order(s, t), s]
+        # t0 <- dt_optbw[id_mc == mc_i][order(s, t), t]
 
         # Estimate the mean function
         dt_autocov <- estimate_autocov(
@@ -317,7 +317,7 @@ estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_nois
         dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, dt_autocov)
         rm(optbw) ; gc()
         return(dt_res)
-      }, mc.cores = 50, data = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda))
+      }, mc.cores = 50, data = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda, s0 = s0, t0 = t0))
 
     } else if (white_noise == "fBm") {
       # Coming ...
