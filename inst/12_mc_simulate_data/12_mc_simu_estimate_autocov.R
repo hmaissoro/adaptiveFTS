@@ -291,7 +291,7 @@ estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_nois
       dt_optbw[, autocovtilde := gammatilde - mutilde_s * mutilde_t, by = c("s", "t")]
 
       # Estimate autocovariance by mc
-      dt_autocov_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, data, dt_optbw, Ni, lambdai, s0, t0){
+      dt_autocov_mc <- data.table::rbindlist(parallel::mclapply(index_mc, function(mc_i, data, dt_optbw, Ni, lambdai, lag, s0, t0){
         # Extract data
         dt_random_mc <- data[ttag == "trandom"][id_mc == mc_i]
         optbw <- dt_optbw[id_mc == mc_i][order(s, t), optbw]
@@ -317,7 +317,7 @@ estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_nois
         dt_res <- data.table::data.table("id_mc" = mc_i, "N" = Ni, "lambda" = lambdai, dt_autocov)
         rm(optbw) ; gc()
         return(dt_res)
-      }, mc.cores = 50, data = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda, s0 = s0, t0 = t0))
+      }, mc.cores = 50, data = dt, dt_optbw = dt_optbw, Ni = N, lambdai = lambda, lag = lag, s0 = s0, t0 = t0))
 
     } else if (white_noise == "fBm") {
       # Coming ...
@@ -346,10 +346,10 @@ estim_autocov_risk_fun(N = 150, lambda = 40, process = "FAR", white_noise = "fBm
 estim_autocov_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1", s0 = s0, t0 = t0, lag = 1)
 
 # Estimate autocovariance function ----
-estim_autocov_fun(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1)
-estim_autocov_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1)
-estim_autocov_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1)
-estim_autocov_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1)
+estim_autocov_fun(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1, s0 = s0, t0 = t0)
+estim_autocov_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1, s0 = s0, t0 = t0)
+estim_autocov_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1, s0 = s0, t0 = t0)
+estim_autocov_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d1", lag = 1, s0 = s0, t0 = t0)
 
 # estim_autocov_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", t0 = t0)
 # estim_autocov_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1", t0 = t0)
