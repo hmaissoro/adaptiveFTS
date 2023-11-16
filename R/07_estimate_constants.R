@@ -104,7 +104,9 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
                             tnew = t,
                             h = hvec[curve_index],
                             smooth_ker = kernel_smooth)
-    dt_res <- data.table::data.table("curve_index" = curve_index, "t" = t, "x" = x_smooth$yhat)
+    xhat <- x_smooth$yhat
+    xhat[is.nan(xhat)] <- 0
+    dt_res <- data.table::data.table("curve_index" = curve_index, "t" = t, "x" = xhat)
     return(dt_res)
   }, hvec = h, t = t, kernel_smooth = smooth_ker, data = data))
 
@@ -230,18 +232,24 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", y
 
   # Smooth curves
   dt_smooth <- data.table::rbindlist(lapply(1:N, function(curve_index, hvec, s, t, kernel_smooth, data){
+    # \widehat X_n(s,h)
     Xhat_s <- estimate_nw(y = data[id_curve == curve_index, X],
                           t = data[id_curve == curve_index, tobs],
                           tnew = s,
                           h = hvec[curve_index],
                           smooth_ker = kernel_smooth)
+    Xhat_s <- Xhat_s$yhat
+    Xhat_s[is.nan(Xhat_s)] <- 0
+
+    # \widehat X_n(t,h)
     Xhat_t <- estimate_nw(y = data[id_curve == curve_index, X],
                           t = data[id_curve == curve_index, tobs],
                           tnew = t,
                           h = hvec[curve_index],
                           smooth_ker = kernel_smooth)
-    dt_res <- data.table::data.table("id_curve" = curve_index, "s" = s, "t" = t,
-                                     "Xhat_s" = Xhat_s[, yhat], "Xhat_t" = Xhat_t[, yhat])
+    Xhat_t <- Xhat_t$yhat
+    Xhat_t[is.nan(Xhat_t)] <- 0
+    dt_res <- data.table::data.table("id_curve" = curve_index, "s" = s, "t" = t, "Xhat_s" = Xhat_s, "Xhat_t" = Xhat_t)
     return(dt_res)
   }, hvec = h, s = s, t = t, kernel_smooth = smooth_ker, data = data))
 
