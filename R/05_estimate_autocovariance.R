@@ -583,8 +583,6 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     stop("Arguments 's' and 't' must be of equal length.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
-  if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
-    stop("'bw_grid' must be a vector of positive values between 0 and 1.")
 
   # Control on local regularity parameters
   if (((!is.null(Hs)) & length(Hs) != length(s)) | ((!is.null(Ls)) & length(Ls) != length(s)))
@@ -604,9 +602,23 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
     stop("'lag' must be a positive integer lower than the number of curves.")
 
-  # Control the given optimal bandwidth
-  if ((!is.null(optbw)) & length(optbw) != length(s))
+  # Control the given optimal bandwidth and bandwidth grid
+  if ((!is.null(optbw)) & length(optbw) != length(s)) {
     stop("If 'optbw' is not NULL, it must be the same length as 's' and 't'.")
+  } else {
+    if ((! is.null(bw_grid)) ) {
+      if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
+        stop("If 'bw_grid' is not NULL, it must be a vector of positive values between 0 and 1.")
+    } else {
+      lambdahat <- mean(data[, .N, by = "id_curve"][, N])
+      K <- 20
+      b0 <- 4 * max((N * lambdahat) ** (- 0.9), (N * (lambdahat ** 2)) ** (- 0.9))
+      bK <- 4 * max((N * lambdahat) ** (- 1 / 3), (N * (lambdahat ** 2)) ** (- 1 / 3))
+      a <- exp((log(bK) - log(b0)) / K)
+      bw_grid <- b0 * a ** (seq_len(K))
+      rm(K, b0, bK, a) ; gc()
+    }
+  }
 
   # If Non centered version of the autocovariance function
   if (! center) {

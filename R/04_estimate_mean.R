@@ -293,12 +293,27 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
-  if ((!is.null(optbw)) & length(optbw) != length(t))
-    stop("If 'optbw' is not NULL, it must be the same length as 't'.")
 
   # Control and format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
+
+  if ((!is.null(optbw)) & length(optbw) != length(t)) {
+    stop("If 'optbw' is not NULL, it must be the same length as 't'.")
+  } else {
+    if ((! is.null(bw_grid)) ) {
+      if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
+        stop("If 'bw_grid' is not NULL, it must be a vector of positive values between 0 and 1.")
+    } else {
+      lambdahat <- mean(data[, .N, by = "id_curve"][, N])
+      K <- 20
+      b0 <- 4 * (N * lambdahat) ** (- 0.9)
+      bK <- 4 * (N * lambdahat) ** (- 1 / 3)
+      a <- exp((log(bK) - log(b0)) / K)
+      bw_grid <- b0 * a ** (seq_len(K))
+      rm(K, b0, bK, a) ; gc()
+    }
+  }
 
   if (is.null(optbw)) {
     # Estimate the risk function
