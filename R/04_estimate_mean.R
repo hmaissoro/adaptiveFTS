@@ -300,7 +300,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 
   if ((!is.null(optbw)) & length(optbw) != length(t)) {
     stop("If 'optbw' is not NULL, it must be the same length as 't'.")
-  } else {
+  } else if (is.null(optbw)) {
     if ((! is.null(bw_grid)) ) {
       if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
         stop("If 'bw_grid' is not NULL, it must be a vector of positive values between 0 and 1.")
