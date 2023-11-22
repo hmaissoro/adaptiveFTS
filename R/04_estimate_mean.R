@@ -364,69 +364,6 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 }
 
 # mean function estimator : Rubìn et Paranaretos ----
-# Following the Rubìn and Panaretos Equation (B.1), we define Sr_fun and Qr_fun
-
-#' \eqn{S_r} function given in equation (B.1) in \insertCite{rubin2020}{adaptiveFTS}
-#'
-#' @inheritParams .format_data
-#' @param t \code{numeric (positive scalar)}. Observation point at which we want to estimate the mean function.
-#' @param r \code{numeric (integer)}. It is used as exponent.
-#' @param h \code{numeric (positive scalar)}. The bandwidth of the estimator.
-#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
-#'
-#' @return A \code{numeric} scalar.
-#' @export
-#'
-#' @importFrom Rdpack reprompt
-#' @references{
-#'    \insertRef{rubin2020}{adaptiveFTS}
-#' }
-#'
-.Sr_fun <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                    t = 1/2, r = 1, h, smooth_ker = epanechnikov){
-
-  # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
-  N <- data[, length(unique(id_curve))]
-
-  # Extract all {T_{n,k}}
-  Tn <- data[order(tobs), tobs]
-  rm(data)
-
-  # Compute S_r
-  Sr <- sum(((Tn - t) ** r) * (1 / h) * smooth_ker((Tn - t) / h)) / N
-
-  return(Sr)
-}
-
-#' Qr function. See Rubìn and Panaretos (2020) Equation (B.1)
-#'
-#' @inheritParams .format_data
-#' @param t \code{numeric (positive scalar)}. Observation point at which we want to estimate the mean function.
-#' @param r \code{numeric (integer)}. It is used as exponent.
-#' @param h \code{numeric (positive scalar)}. The bandwidth of the estimator.
-#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
-#'
-#' @return A \code{numeric} scalar.
-#' @export
-#'
-.Qr_fun <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                    t = 1/2, r = 0, h, smooth_ker = epanechnikov){
-  # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
-  N <- data[, length(unique(id_curve))]
-
-  # Extract all {T_{n,k}} and {Y_{n,k}}
-  Tn <- data[order(tobs), tobs]
-  Yn <- data[order(tobs), X]
-  rm(data)
-
-  # Compute Q_r
-  Qr <- sum( ((Tn - t) ** r) * Yn * (1 / h) * smooth_ker((Tn - t) / h)) / N
-
-  return(Qr)
-}
-
 #' Estimate mean function using mean Rubìn et Paranaretos (2020) method
 #'
 #' @inheritParams .format_data
@@ -434,7 +371,8 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @param h \code{numeric (positive scalar)}. The bandwidth of the estimator.
 #' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
 #'
-#' @importFrom data.table data.table
+#' @import data.table data.table
+#' @importFrom fastmatrix kronecker.prod
 #'
 #' @return A \code{data.table} containing the following columns.
 #'          \itemize{
@@ -478,18 +416,47 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
                              t = c(1/4, 1/2, 3/4), h, smooth_ker = epanechnikov){
   # Format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  N <- data[, length(unique(id_curve))]
 
-  muhat <- sapply(t, function(ti, data, idcol, tcol, ycol, h, ker){
-    Q0 <- .Qr_fun(data = data, idcol = idcol, tcol = tcol, ycol = ycol, t = ti, r = 0, h = h, smooth_ker = ker)
-    Q1 <- .Qr_fun(data = data, idcol = idcol, tcol = tcol, ycol = ycol, t = ti, r = 1, h = h, smooth_ker = ker)
-    S0 <- .Sr_fun(data = data, idcol = idcol, tcol = tcol, ycol = ycol, t = ti, r = 0, h = h, smooth_ker = ker)
-    S1 <- .Sr_fun(data = data, idcol = idcol, tcol = tcol, ycol = ycol, t = ti, r = 1, h = h, smooth_ker = ker)
-    S2 <- .Sr_fun(data = data, idcol = idcol, tcol = tcol, ycol = ycol, t = ti, r = 2, h = h, smooth_ker = ker)
-    muhat_ti <- (Q0 * S2 - Q1 * S1) / (S0 * S2 - S1 ** 2)
-    return(muhat_ti)
-  }, data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", h = h, ker = smooth_ker, simplify = TRUE)
+  # Estimate mean function
+  dt_res <- data.table::rbindlist(lapply(data[, unique(id_curve)], function(curve_index, t, data, N, h){
+    Tn <- data[id_curve == curve_index][order(tobs), tobs]
+    Yn <- data[id_curve == curve_index][order(tobs), X]
+    data_curve <- fastmatrix::kronecker.prod(
+      x = matrix(data = rep(1, length(t)), ncol = 1),
+      y = cbind(Tn, Yn)
+    )
+    colnames(data_curve) <- c("Tn", "Yn")
+    data_curve <- data.table::as.data.table(data_curve)
+    tvec <- rep(t, each = length(Tn))
+    data_curve[, t := tvec]
+    rm(Yn, Tn, tvec) ; gc() ; gc()
 
-  dt_res <- data.table::data.table("t" = t, "h" = h, "muhat_RP" = muhat)
+    data_curve[, Tn_minus_t := (Tn - t)]
+    data_curve[, Tn_minus_t_over_h := Tn_minus_t / h]
+
+    # Compute mean Q and S function
+    dt_res_by_curve <- data_curve[
+      ,
+      .("Q0" = sum( (Tn_minus_t ** 0) * Yn * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
+        "Q1" = sum( (Tn_minus_t ** 1) * Yn * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
+        "S0" = sum((Tn_minus_t ** 0) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
+        "S1" = sum((Tn_minus_t ** 1) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
+        "S2" = sum((Tn_minus_t ** 2) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N),
+      by = "t"
+    ]
+    rm(data_curve) ; gc() ; gc()
+
+    # Return
+    return(dt_res_by_curve)
+  }, t = t, data = data, N = N, h = h))
+
+  dt_res <- dt_res[, .("Q0" = sum(Q0), "Q1" = sum(Q1), "S0" = sum(S0), "S1" = sum(S1), "S2" = sum(S2)), by = "t"]
+  # Estimate mean
+  dt_res <- dt_res[, .("muhat_RP" = (Q0 * S2 - Q1 * S1) / (S0 * S2 - S1 ** 2)), by = "t"]
+  dt_res[, "h" := h]
+  data.table::setcolorder(x = dt_res, neworder = c("t", "h", "muhat_RP"))
+  gc() ; g()
   return(dt_res)
 }
 
@@ -587,13 +554,14 @@ estimate_mean_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
       })
 
     # Cross-validaiton error
-    cv_err <- mean(err_fold, na.rm = TRUE)
+    cv_err <- mean(err_fold[!is.nan(err_fold)], na.rm = TRUE)
 
     # Return the result
     dt_res <- data.table::data.table("h" = Bmu0, "cv_error" = cv_err)
     return(dt_res)
 
   }, data = data, fold = fold, kernel_smooth = smooth_ker))
+  rm(data, fold) ; gc() ; gc()
 
   return(dt_bw)
 }
