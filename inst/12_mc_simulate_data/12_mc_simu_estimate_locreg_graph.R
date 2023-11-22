@@ -10,6 +10,11 @@ mc <- 100
 t0 <- c(0.2, 0.4, 0.7, 0.8)
 
 ## Logistic constant hurst function
+# Hlogistic <- function(t){
+#   hurst_logistic(t, h_left = 0.4, h_right = 0.6,
+#                  change_point_position = 0.5, slope = 50)
+# }
+
 Hlogistic <- function(t){
   hurst_logistic(t, h_left = 0.4, h_right = 0.6,
                  change_point_position = 0.5, slope = 50)

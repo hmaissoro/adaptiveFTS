@@ -22,7 +22,7 @@ estim_locreg_fun <- function(N = 400, lambda = 300, process = "FAR", white_noise
       # Estimate the local regularity
       ## Delta
       lambdahat <- mean(dt_mc[, .N, by = id_curve][, N])
-      delta <- min(exp(- log(lambdahat) ** (1 / 3)), 0.2)
+      delta <- min(exp(- log(lambdahat) ** ( 1 / 3)), 0.2)
 
       ## Centered process
       dt_locreg <- estimate_locreg(
@@ -116,9 +116,14 @@ estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", de
 
 ## design 3 ----
 ### FAR ----
-estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3")
+estim_locreg_fun(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3")
+estim_locreg_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3")
+estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3_bis")
+estim_locreg_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d3")
+
+
 estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3")
 
 ### FMA ----
-estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d3")
+estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1")
 estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", design = "d3")

@@ -46,77 +46,57 @@ ggsave(
 # Estimate mean function ----
 
 ## Risk function of the mean function
-ggplot_mean_risk_by_t <- function(N = 400, lambda = 300, ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d1"){
+ggplot_mean_risk_by_t <- function(N_vec = c(150, 1000, 400, 1000), lambda_vec = c(40, 40, 300, 1000),
+                                  ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d1"){
 
   ## Load data, remove NaN values and reshape data
-  file_name <- paste0("./inst/12_mc_simulate_data/", process, "/mean_estimates/dt_mean_risk_",
-                      process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
-  dt_mean_risk <- readRDS(file_name)
-  dt_mean_risk <- dt_mean_risk[! (is.nan(mutitle_mse) | is.nan(mean_risk))]
+  dt_risk <- data.table::rbindlist(lapply(1:length(N_vec), function(i){
+    file_name <- paste0("./inst/12_mc_simulate_data/", process, "/mean_estimates/dt_mean_risk_",
+                        process,"_", white_noise, "_", "N=", N_vec[i], "_lambda=", lambda_vec[i], "_", design,".RDS")
+    dt_mean_risk <- readRDS(file_name)
+    dt_mean_risk <- dt_mean_risk[! (is.nan(mutitle_mse) | is.nan(mean_risk))]
+    dt_mean_risk <- dt_mean_risk[, .("mean_risk" = mean(mean_risk)), by = c("N", "lambda", "t", "h")]
+    dt_mean_risk[, N_lambda := paste0("(", N, ",", lambda, ")")]
+    return(dt_mean_risk)
+  }))
 
   ## ggplot parameters
   geom_theme <- theme_minimal() +
-    theme(legend.position = "top",
-          plot.title = element_text(size = 9, hjust = 0.5, vjust = -10),
+    theme(legend.position = "bottom",
+          plot.title = element_text(size = 12, hjust = 0.5, vjust = -10),
           axis.title = element_text(size = 12),
-          axis.title.x = element_text(size = 10),
-          axis.title.y = element_text(size = 10),
-          axis.text.x =  element_text(size = 10),
-          axis.text.y =  element_text(size = 10),
-          legend.text = element_text(size = 10),
-          legend.title = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          axis.text.x =  element_text(size = 12),
+          axis.text.y =  element_text(size = 12),
+          legend.text = element_text(size = 12),
+          legend.title = element_text(size = 12),
           legend.key.width= unit(0.8, 'cm'))
 
   if (white_noise == "mfBm") {
-    dt_risk <- dt_mean_risk[, .("mean_risk" = mean(mean_risk),
-                                "mutitle_mse" = mean(mutitle_mse)),
-                            by = c("t", "h")]
-    dt_risk_melt <- data.table::melt(data = dt_risk, value.name = "risk",
-                                     measure.vars = c("mean_risk", "mutitle_mse"),
-                                     id.vars = c("t", "h"))
-      title_exp <- paste0("t=", ti, " - ", "N=", N , ", $\\lambda$=", lambda)
-      ggplt <- ggplot(data = dt_risk_melt[variable %in% c("mutitle_mse", "mean_risk") & t == ti],
-                      mapping = aes(x = h, y = risk, group = variable, linetype = variable)) +
-        geom_line(linewidth = 0.8) +
-        ylim(0, 0.4) +
-        ggtitle(latex2exp::TeX(title_exp)) +
-        labs(y = "", x = "h") +
-        scale_linetype_manual(values = c("mutitle_mse" = "solid", "mean_risk" = "twodash"),
-                              labels = c("mutitle_mse" = "MSE", "mean_risk" = latex2exp::TeX("  $R_\\mu(h, \\widehat{H}_t, \\widehat{L_t^2})$")),
-                              name = "Risk") +
-        geom_theme
-
+    title_exp <- paste0("t=", ti)
+    ggplt <- ggplot(data = dt_risk[t == ti], mapping = aes(x = h, y = mean_risk, group = N_lambda, linetype = N_lambda, color = N_lambda)) +
+      geom_line(linewidth = 0.9) +
+      ylim(0, 0.4) +
+      ggtitle(latex2exp::TeX(title_exp)) +
+      labs(y = "", x = "h") +
+      scale_linetype_manual(name = latex2exp::TeX(" $(N,\\lambda)$"),
+                            values = c("(1000,1000)" = "solid", "(400,300)" = "dotted", "(1000,40)" = "dotdash", "(150,40)" = "dashed"),
+                            labels = c("(1000,1000)" = "(1000,1000)  ", "(400,300)" = "(400,300)  ", "(1000,40)" = "(1000,40)  ", "(150,40)" = "(150,40)  ")) +
+      scale_colour_manual(name = latex2exp::TeX(" $(N,\\lambda)$"),
+                          values = c("(1000,1000)" = "#273746", "(400,300)" = "#34495E", "(1000,40)" = "#707B7C", "(150,40)" = "#909497"),
+                          labels = c("(1000,1000)" = "(1000,1000)  ", "(400,300)" = "(400,300)  ", "(1000,40)" = "(1000,40)  ", "(150,40)" = "(150,40)  ")) +
+      geom_theme
     return(ggplt)
   }
 }
-theme_bank_margin <- theme(axis.text.x = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.title.x = element_blank(),
-        plot.margin = margin(t = -3, r = 0, b = 0, l = 0, unit = "pt"))
-theme_last_plot <- theme(
-  plot.margin = unit(c(-8, 0, -30, 0), "pt"),
-  axis.title.x = element_text(size = 10, margin = margin(t = 1, r = 0, b = 18, l = 0, unit = "pt"))
-  )
-
 
 g_mean_risk_far_mfBm_d1  <- ggpubr::ggarrange(
-  ggplot_mean_risk_by_t(N = 150, lambda = 40, ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_mean_risk_by_t(N = 150, lambda = 40, ti = 0.4, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_mean_risk_by_t(N = 150, lambda = 40, ti = 0.7, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_mean_risk_by_t(N = 150, lambda = 40, ti = 0.8, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_mean_risk_by_t(N = 1000, lambda = 40, ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_mean_risk_by_t(N = 1000, lambda = 40, ti = 0.4, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_mean_risk_by_t(N = 1000, lambda = 40, ti = 0.7, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_mean_risk_by_t(N = 1000, lambda = 40, ti = 0.8, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_mean_risk_by_t(N = 400, lambda = 300, ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_mean_risk_by_t(N = 400, lambda = 300, ti = 0.4, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_mean_risk_by_t(N = 400, lambda = 300, ti = 0.7, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_mean_risk_by_t(N = 400, lambda = 300, ti = 0.8, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_mean_risk_by_t(N = 1000, lambda = 1000, ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d1") + theme_last_plot,
-  ggplot_mean_risk_by_t(N = 1000, lambda = 1000, ti = 0.4, process = "FAR", white_noise = "mfBm", design = "d1") + theme_last_plot,
-  ggplot_mean_risk_by_t(N = 1000, lambda = 1000, ti = 0.7, process = "FAR", white_noise = "mfBm", design = "d1") + theme_last_plot,
-  ggplot_mean_risk_by_t(N = 1000, lambda = 1000, ti = 0.8, process = "FAR", white_noise = "mfBm", design = "d1") + theme_last_plot,
-  nrow = 4, ncol = 4, common.legend = TRUE, legend = "bottom")
+  ggplot_mean_risk_by_t(ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d1"),
+  ggplot_mean_risk_by_t(ti = 0.4, process = "FAR", white_noise = "mfBm", design = "d1"),
+  ggplot_mean_risk_by_t(ti = 0.7, process = "FAR", white_noise = "mfBm", design = "d1"),
+  ggplot_mean_risk_by_t(ti = 0.8, process = "FAR", white_noise = "mfBm", design = "d1"),
+  nrow = 2, ncol = 2, common.legend = TRUE, legend = "bottom")
 g_mean_risk_far_mfBm_d1
 
 ggsave(filename = "./inst/12_mc_simulate_data/graphs/paper_graphs/mean_risk_far_mfBm_d1.png",
@@ -144,84 +124,142 @@ ggsave(
   filename = "./inst/12_mc_simulate_data/graphs/paper_graphs/mean_far_fBm_d1.png", plot = g_mean_far_fBm_d1,
   width = 9, height = 6, units = "in", bg = "white")
 
+
+# Mean function table ----
+table_mean <- function(N_vec = c(150, 1000, 400, 1000), lambda_vec = c(40, 40, 300, 1000),
+                       process = "FAR", white_noise = "mfBm", design = "d1"){
+
+  ## Load data, remove NaN values and reshape data
+  if (white_noise == "mfBm") {
+    dt_mean <- data.table::rbindlist(lapply(1:length(N_vec), function(i){
+      file_name <- paste0("./inst/12_mc_simulate_data/", process, "/mean_estimates/dt_mean_estimates_",
+                          process,"_", white_noise, "_", "N=", N_vec[i], "_lambda=", lambda_vec[i], "_", design,".RDS")
+      dt_mean <- readRDS(file_name)
+      dt_mean <- dt_mean[! (is.nan(muhat) | is.nan(muhat))]
+      dt_mean <- dt_mean[, .("bias" = as.character(round(mean(muhat) - mean(mutrue), 4)),
+                             "sd" = as.character(round(sd(muhat), 4))), by = c("N", "lambda", "t")]
+      dt_mean[, N_lambda := paste0("(", N, ",", lambda, ")")]
+      return(dt_mean)
+    }))
+    dt_mean_dcast <- data.table::dcast(data = dt_mean, formula = N + lambda ~ t, value.var = c("bias", "sd"))
+    data.table::setcolorder(x = dt_mean_dcast,
+                            neworder = c("N", "lambda", "bias_0.2", "sd_0.2", "bias_0.4", "sd_0.4",
+                                         "bias_0.7", "sd_0.7", "bias_0.8", "sd_0.8"))
+    dt_mean_dcast <- dt_mean_dcast[order(lambda)]
+
+    # library("Hmisc")
+    # library("htmlTable")
+    # tab <- htmlTable::htmlTable(x = dt_mean_dcast, n.cgroup = c(1, 1, 2, 2, 2, 2) ,
+    #                             cgroup = c("", "", "t = 0.2", "t = 0.4", "t = 0.7", "t = 0.8"),
+    #                             header = c("$N$", "$\\lmabda$", "$Bias(\\widehat(\\mu))$", "$Sd(\\widehat(\\mu))$", "$Bias(\\widehat(\\mu))$",
+    #                                        "$Sd(\\widehat())$", "$Bias(\\widehat(\\mu))$", "$Sd(\\widehat(\\mu))$", "$Bias(\\widehat(\\mu))$", "$Sd(\\widehat(\\mu))$"))
+    Hmisc::latex(
+      object = dt_mean_dcast,
+      file =  paste0("./inst/12_mc_simulate_data/", process, "/mean_estimates/latex_mean_estimates_", process,"_", white_noise, "_", design,".tex"),
+      n.cgroup = c(1, 1, 2, 2, 2, 2),
+      cgroup = c("", "", "t = 0.2", "t = 0.4", "t = 0.7", "t = 0.8"),
+      colheads = c("$N$", "$\\lambda$", "Bias", "Sd", "Bias", "Sd", "Bias", "Sd", "Bias", "Sd"),
+      rowname = NULL)
+  } else if (white_noise == "fBm") {
+    dt_mean <- data.table::rbindlist(lapply(1:length(N_vec), function(i){
+      file_name <- paste0("./inst/12_mc_simulate_data/", process, "/mean_estimates/dt_mean_estimates_",
+                          process,"_", white_noise, "_", "N=", N_vec[i], "_lambda=", lambda_vec[i], "_", design,".RDS")
+      dt_mean <- readRDS(file_name)
+      dt_mean <- dt_mean[! (is.nan(muhat) | is.nan(muhat))]
+      dt_mean <- dt_mean[, .("bias" = as.character(round(mean(muhat) - mean(mutrue), 4)),
+                             "sd" = as.character(round(sd(muhat), 4))), by = c("N", "lambda", "t", "Htrue")]
+      dt_mean[, N_lambda := paste0("(", N, ",", lambda, ")")]
+      return(dt_mean)
+    }))
+    dt_mean_dcast <- data.table::dcast(data = dt_mean, formula = Htrue + N + lambda ~ t, value.var = c("bias", "sd"))
+    data.table::setcolorder(x = dt_mean_dcast,
+                            neworder = c("Htrue", "N", "lambda", "bias_0.2", "sd_0.2", "bias_0.4", "sd_0.4",
+                                         "bias_0.7", "sd_0.7", "bias_0.8", "sd_0.8"))
+    dt_mean_dcast <- dt_mean_dcast[order(Htrue, lambda)]
+
+    # library("Hmisc")
+    # library("htmlTable")
+    # htmlTable::htmlTable(x = dt_mean_dcast,
+    #                      n.cgroup = c(1, 1, 1, 2, 2, 2, 2) ,
+    #                      cgroup = c("", "", "", "t = 0.2", "t = 0.4", "t = 0.7", "t = 0.8"),
+    #                      # n.rgroup = c(4, 4, 4),
+    #                      # rgoup = c("$H_t = 0.4$", "$H_t = 0.5$", "$H_t = 0.7$"),
+    #                      # rnames = c("$H_t = 0.4$", "$H_t = 0.5$", "$H_t = 0.7$"),
+    #                      header = c("$H_t$", "$N$", "$\\almbda$", "Bias", "Sd", "Bias", "Sd", "Bias", "Sd", "Bias", "Sd"))
+    Hmisc::latex(
+      object = dt_mean_dcast,
+      file =  paste0("./inst/12_mc_simulate_data/", process, "/mean_estimates/latex_mean_estimates_", process,"_", white_noise, "_", design,".tex"),
+      n.cgroup = c(1, 1, 1, 2, 2, 2, 2) ,
+      cgroup = c("", "", "", "t = 0.2", "t = 0.4", "t = 0.7", "t = 0.8"),
+      colheads = c("$H_t$", "$N$", "$\\lambda$", "Bias", "Sd", "Bias", "Sd", "Bias", "Sd", "Bias", "Sd"),
+      rowname = NULL)
+  }
+
+
+}
+
 # Estimate autocovariance function ----
 
 ## Risk function of the autocovariance function
-ggplot_autocov_risk_by_st <- function(N = 400, lambda = 300, si = 0.2, ti = 0.4, process = "FAR", white_noise = "mfBm", design = "d1"){
+ggplot_autocov_risk_by_st <- function(N_vec = c(150, 1000, 400, 1000), lambda_vec = c(40, 40, 300, 1000),
+                                      si = 0.2, ti = 0.4, process = "FAR", white_noise = "mfBm", design = "d1"){
 
   ## Load data, remove NaN values and reshape data
-  file_name <- paste0("./inst/12_mc_simulate_data/", process, "/autocov_estimates/dt_auto_risk_",
-                      process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
-  dt_autocov_risk <- readRDS(file_name)
-  dt_autocov_risk <- dt_autocov_risk[! (is.nan(gammatilde_mse) | is.nan(autocov_risk))]
+  dt_risk <- data.table::rbindlist(lapply(1:length(N_vec), function(i){
+    ## Load data, remove NaN values and reshape data
+    file_name <- paste0("./inst/12_mc_simulate_data/", process, "/autocov_estimates/dt_auto_risk_",
+                        process,"_", white_noise, "_", "N=", N_vec[i], "_lambda=", lambda_vec[i], "_", design,".RDS")
+    dt_autocov_risk <- readRDS(file_name)
+    dt_autocov_risk <- dt_autocov_risk[! (is.nan(gammatilde_mse) | is.nan(autocov_risk))]
+    dt_autocov_risk <- dt_autocov_risk[, .("autocov_risk" = mean(autocov_risk)), by = c("N", "lambda", "s", "t", "h")]
+    dt_autocov_risk[, N_lambda := paste0("(", N, ",", lambda, ")")]
+    return(dt_autocov_risk)
+  }))
 
   ## ggplot parameters
   geom_theme <- theme_minimal() +
     theme(legend.position = "bottom",
-          plot.title = element_text(size = 7, hjust = 0.7, vjust = -10),
+          plot.title = element_text(size = 12, hjust = 0.5, vjust = -10),
           axis.title = element_text(size = 12),
-          axis.title.x = element_text(size = 10),
-          axis.title.y = element_text(size = 10),
-          axis.text.x =  element_text(size = 10),
-          axis.text.y =  element_text(size = 10),
-          legend.text = element_text(size = 10),
-          legend.title = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          axis.text.x =  element_text(size = 12),
+          axis.text.y =  element_text(size = 12),
+          legend.text = element_text(size = 12),
+          legend.title = element_text(size = 12),
           legend.key.width= unit(0.8, 'cm'))
-
   if (white_noise == "mfBm") {
-    dt_risk <- dt_autocov_risk[, .("autocov_risk" = mean(autocov_risk),
-                                "gammatilde_mse" = mean(gammatilde_mse)),
-                            by = c("s", "t", "h")]
-    dt_risk_melt <- data.table::melt(data = dt_risk, value.name = "risk",
-                                     measure.vars = c("autocov_risk", "gammatilde_mse"),
-                                     id.vars = c("s", "t", "h"))
-    title_exp <- paste0("(s,t)=(", si, ",", ti, ") - ", "(N,$\\lambda$)=(", N , ",", lambda, ")")
-    # title_exp <- paste0("(N,$\\lambda$)=(", N , ",", lambda, ") $\\newline$", "(s,t)=(", si, ",", ti, ")")
-    ggplt <- ggplot(data = dt_risk_melt[variable %in% c("gammatilde_mse", "autocov_risk") & s == si & t == ti],
-                    mapping = aes(x = h, y = risk, group = variable, linetype = variable)) +
-      geom_line(linewidth = 0.8) +
+    title_exp <- paste0("(s,t)=(", si, ",", ti, ")")
+    ggplt <- ggplot(data = dt_risk[s == si & t == ti], mapping = aes(x = h, y = autocov_risk, group = N_lambda, linetype = N_lambda, color = N_lambda)) +
+      geom_line(linewidth = 0.9) +
       ylim(0, 65) +
       ggtitle(latex2exp::TeX(title_exp)) +
       labs(y = "", x = "h") +
-      scale_linetype_manual(values = c("gammatilde_mse" = "solid", "autocov_risk" = "twodash"),
-                            labels = c("gammatilde_mse" = "MSE", "autocov_risk" = latex2exp::TeX("  $R_\\gamma(h, \\widehat{H}_s, \\widehat{H}_t, \\widehat{L_t^2}, \\widehat{L_s^2})$")),
-                            name = "Risk") +
+      scale_linetype_manual(name = latex2exp::TeX(" $(N,\\lambda)$"),
+                            values = c("(1000,1000)" = "solid", "(400,300)" = "dotted", "(1000,40)" = "dotdash", "(150,40)" = "dashed"),
+                            labels = c("(1000,1000)" = "(1000,1000)  ", "(400,300)" = "(400,300)  ", "(1000,40)" = "(1000,40)  ", "(150,40)" = "(150,40)  ")) +
+      scale_colour_manual(name = latex2exp::TeX(" $(N,\\lambda)$"),
+                          values = c("(1000,1000)" = "#273746", "(400,300)" = "#34495E", "(1000,40)" = "#707B7C", "(150,40)" = "#909497"),
+                          labels = c("(1000,1000)" = "(1000,1000)  ", "(400,300)" = "(400,300)  ", "(1000,40)" = "(1000,40)  ", "(150,40)" = "(150,40)  ")) +
       geom_theme
-
-    return(ggplt)
+  } else if (white_noise == "mfBm") {
+    # comming ...
   }
-}
-theme_bank_margin <- theme(axis.text.x = element_blank(),
-                           axis.ticks.x = element_blank(),
-                           axis.title.x = element_blank(),
-                           plot.margin = margin(t = -3, r = 0, b = 0, l = 0, unit = "pt"))
-theme_last_plot <- theme(
-  plot.margin = unit(c(-8, 0, -30, 0), "pt"),
-  axis.title.x = element_text(size = 10, margin = margin(t = 1, r = 0, b = 18, l = 0, unit = "pt"))
-)
 
+  return(ggplt)
+}
 
 g_autocov_risk_far_mfBm_d1  <- ggpubr::ggarrange(
-  ggplot_autocov_risk_by_st(N = 150, lambda = 40, si = 0.2, ti = 0.4, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_autocov_risk_by_st(N = 150, lambda = 40, si = 0.8, ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_autocov_risk_by_st(N = 150, lambda = 40, si = 0.4, ti = 0.7, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_autocov_risk_by_st(N = 150, lambda = 40, si = 0.7, ti = 0.8, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_autocov_risk_by_st(N = 1000, lambda = 40, si = 0.2, ti = 0.4, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_autocov_risk_by_st(N = 1000, lambda = 40, si = 0.8, ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_autocov_risk_by_st(N = 1000, lambda = 40, si = 0.4, ti = 0.7, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_autocov_risk_by_st(N = 1000, lambda = 40, si = 0.7, ti = 0.8, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_autocov_risk_by_st(N = 400, lambda = 300, si = 0.2, ti = 0.4, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_autocov_risk_by_st(N = 400, lambda = 300, si = 0.8, ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_autocov_risk_by_st(N = 400, lambda = 300, si = 0.4, ti = 0.7, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_autocov_risk_by_st(N = 400, lambda = 300, si = 0.7, ti = 0.8, process = "FAR", white_noise = "mfBm", design = "d1") + theme_bank_margin,
-  ggplot_autocov_risk_by_st(N = 1000, lambda = 1000, si = 0.2, ti = 0.4, process = "FAR", white_noise = "mfBm", design = "d1") + theme_last_plot,
-  ggplot_autocov_risk_by_st(N = 1000, lambda = 1000, si = 0.8, ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d1") + theme_last_plot,
-  ggplot_autocov_risk_by_st(N = 1000, lambda = 1000, si = 0.4, ti = 0.7, process = "FAR", white_noise = "mfBm", design = "d1") + theme_last_plot,
-  ggplot_autocov_risk_by_st(N = 1000, lambda = 1000, si = 0.7, ti = 0.8, process = "FAR", white_noise = "mfBm", design = "d1") + theme_last_plot,
-  nrow = 4, ncol = 4, common.legend = TRUE, legend = "bottom")
+  ggplot_autocov_risk_by_st(si = 0.2, ti = 0.4, process = "FAR", white_noise = "mfBm", design = "d1"),
+  ggplot_autocov_risk_by_st(si = 0.8, ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d1"),
+  ggplot_autocov_risk_by_st(si = 0.4, ti = 0.7, process = "FAR", white_noise = "mfBm", design = "d1"),
+  ggplot_autocov_risk_by_st(si = 0.7, ti = 0.8, process = "FAR", white_noise = "mfBm", design = "d1"),
+  nrow = 2, ncol = 2, common.legend = TRUE, legend = "bottom")
 g_autocov_risk_far_mfBm_d1
 
 ggsave(filename = "./inst/12_mc_simulate_data/graphs/paper_graphs/autocov_risk_far_mfBm_d1.png",
        plot = g_autocov_risk_far_mfBm_d1, width = 9, height = 6, units = "in", bg = "white")
+
+
 
 

@@ -160,12 +160,12 @@ ggplot_mean_risk(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", de
 
 
 # Mean function estimates graph ----
-ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1"){
+ggplot_autocov <- function(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1"){
   ## Load data
-  file_name <- paste0("./inst/12_mc_simulate_data/", process, "/mean_estimates/dt_mean_estimates_",
+  file_name <- paste0("./inst/12_mc_simulate_data/", process, "/autocov_estimates/dt_autocov_estimates_",
                       process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
-  dt_mean <- readRDS(file_name)
-  dt_mean <- unique(dt_mean)
+  dt_autocov <- readRDS(file_name)
+  # dt_autocov <- unique(dt_autocov)
 
   ## ggplot parameters
   geom_theme <- theme_minimal() +
@@ -183,37 +183,46 @@ ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "m
 
   if (white_noise == "mfBm") {
     ## define segment and set scale label
-    dt_pr <- unique(dt_mean[, .("t" = as.factor(t), "x" = as.factor(t - 0.05),
-                                "xend" = as.factor(t + 0.05), "mutrue" =  mutrue)])
-    scale_label <- c(dt_pr[, t], dt_pr[, x], dt_pr[, xend])
-    scale_label <- sort(as.character(scale_label))
-    scale_label[- which(scale_label %in% as.character(dt_pr[, t]))] <- ""
+    dt_pr <- unique(dt_autocov[, .("s_t" = paste0("(", s, ",", t, ")"), "x" = as.factor(t - 0.05),
+                                   "xend" = as.factor(t + 0.05), "autocovtilde" =  autocovtilde)])
+
+    # scale_label <- c(dt_pr[, t], dt_pr[, x], dt_pr[, xend])
+    # scale_label <- sort(as.character(scale_label))
+    # scale_label[- which(scale_label %in% as.character(dt_pr[, t]))] <- ""
 
     ## set t as factor
-    dt_mean[, t := as.factor(t)]
+    # dt_autocov[, t := as.factor(t)]
+    svec <- c(0.2, 0.8, 0.4, 0.7)
+    tvec <- c(0.4, 0.2, 0.7, 0.8)
+    dt_autocov_graph <- data.table::rbindlist(lapply(1:4, function(i){
+      dt_autocov[s == svec[i] & t == tvec[i]]
+    }))
+    dt_autocov_graph[, "s_t" := paste0("(", s, ",", t, ")")]
+    dt_pr <- unique(dt_autocov_graph[, .(s_t, autocovtilde)])
+    dt_pr[, t := c(0.2, 0.4, 0.6, 0.8)]
+    dt_pr <- dt_pr[, c("x", "xend") := .(as.factor(t - 0.05),  as.factor(t + 0.05))]
 
     title_exp <- paste0("N=", N , ", $\\lambda$=", lambda)
     y_lim <- c(-4, 6)
     x_lab <- "t"
     y_lab <-  latex2exp::TeX("")
     geom_true_param <- geom_segment(
-      data = dt_pr, mapping = aes(x = x, xend = xend, y = mutrue, yend = mutrue),
-      linewidth = 0.9,
-      linetype = 2)
-    ggplt <- ggplot(data = dt_mean, mapping = aes(x = t, y = muhat)) +
+      data = dt_pr, mapping = aes(x = x, xend = xend, y = autocovtilde, yend = autocovtilde),
+      linewidth = 0.9, linetype = 2)
+    ggplt <- ggplot(data = dt_autocov_graph, mapping = aes(x = s_t, y = autocovhat)) +
       geom_boxplot() +
       ylim(y_lim) +
       ggtitle(latex2exp::TeX(title_exp)) +
       xlab(x_lab) +
       ylab(y_lab) +
       geom_true_param +
-      scale_x_discrete(labels = scale_label) +
+      # scale_x_discrete(labels = scale_label) +
       geom_theme
 
   } else if (white_noise == "fBm") {
 
     ## define segment and set scale label
-    dt_pr <- unique(dt_mean[, .("t" = as.factor(t), "Htrue" = as.factor(Htrue), "x" = as.factor(t - 0.05),
+    dt_pr <- unique(dt_autocov[, .("t" = as.factor(t), "Htrue" = as.factor(Htrue), "x" = as.factor(t - 0.05),
                                 "xend" = as.factor(t + 0.05), "mutrue" =  mutrue)])
 
     scale_label <- c(dt_pr[, t], dt_pr[, x], dt_pr[, xend])
@@ -222,8 +231,8 @@ ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "m
     scale_label[- which(scale_label %in% as.character(dt_pr[, t]))] <- ""
 
     ## set t and Htrue as factors
-    dt_mean[, t := as.factor(t)]
-    dt_mean[, Htrue := as.factor(Htrue)]
+    dt_autocov[, t := as.factor(t)]
+    dt_autocov[, Htrue := as.factor(Htrue)]
 
     title_exp <- paste0("N=", N , ", $\\lambda$=", lambda)
     y_lim <- c(-4, 6)
@@ -233,7 +242,7 @@ ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "m
       data = dt_pr, mapping = aes(x = x, xend = xend, y = mutrue, yend = mutrue),
       linewidth = 0.9,
       linetype = 2)
-    ggplt <- ggplot(data = dt_mean, mapping = aes(x = t, y = muhat, fill = Htrue)) +
+    ggplt <- ggplot(data = dt_autocov, mapping = aes(x = t, y = muhat, fill = Htrue)) +
       geom_boxplot() +
       scale_fill_grey(name = latex2exp::TeX("$H_t$")) +
       ylim(y_lim) +
@@ -246,7 +255,7 @@ ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "m
   }
 
   # Save plots
-  plot_name <- paste0("./inst/12_mc_simulate_data/graphs/mean/mean_estimates_",
+  plot_name <- paste0("./inst/12_mc_simulate_data/graphs/autocov/autocov_estimates_",
                       process,"_", white_noise, "_N=", N, "_lambda=", lambda, "_", design,".png")
   ggsave(filename = plot_name, plot = ggplt,
          width = 7.5 / 1.5, height = 5.97 / 1.5, units = "in", dpi = 300, bg = "white")
@@ -256,31 +265,9 @@ ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "m
   return(ggplt)
 }
 
-# Plot mean function estimates ----
+# Plot autocov function estimates ----
 ## design 1 ----
-ggplot_mean(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1")
-ggplot_mean(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1")
-ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
-ggplot_mean(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d1")
-
-ggplot_mean(N = 150, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1")
-ggplot_mean(N = 1000, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1")
-ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
-ggplot_mean(N = 1000, lambda = 1000, process = "FAR", white_noise = "fBm", design = "d1")
-
-ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
-ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d1")
-
-## design 2 ----
-ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2")
-ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2")
-
-ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d2")
-ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d2")
-
-## design 3 ----
-ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3")
-ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3")
-
-ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3")
-ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3")
+ggplot_autocov(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1")
+ggplot_autocov(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1")
+ggplot_autocov(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1")
+ggplot_autocov(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d1")
