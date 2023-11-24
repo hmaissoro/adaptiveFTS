@@ -4,7 +4,7 @@ library(ggplot2)
 library(latex2exp)
 
 # Import data ----
-dt_raw <- fread("../data_electricity/household_power_consumption.txt", sep = ";")
+dt_raw <- fread("../electricity_consumption_data/household_power_consumption.txt", sep = ";")
 
 # Information about the data
 names(dt_raw)
@@ -40,8 +40,7 @@ for(yyi in  yy){
 
 # Add colour and extract only Voltage curves
 dt <- data.table::merge.data.table(x = dt_raw[, .(t, date, Voltage)], y = dt_color, by = "date")
-rm(dt_raw)
-gc()
+rm(dt_raw) ; gc()
 
 # Convert voltage curve as nunmeric
 dt[, Voltage := as.numeric(Voltage)]
@@ -49,11 +48,11 @@ date_na <- dt[is.na(Voltage), unique(date)]
 dt <- dt[! date %in% date_na]
 
 # Plot curves ----
-figures_path <- "../../../report/learning-smmoothness/Learning-smoothness/figures/"
+figures_path <- "./inst/12_mc_simulate_data/graphs/paper_graphs/"
 theme_set(theme_minimal())
 
 ## All curves
-ggplot(dt, aes(x = t, y = Voltage, color = Season, group = date)) +
+g_real_data_all_curves <- ggplot(dt, aes(x = t, y = Voltage, color = Season, group = date)) +
   geom_line() +
   ylim(220, 255) +
   scale_color_grey() +
@@ -67,40 +66,16 @@ ggplot(dt, aes(x = t, y = Voltage, color = Season, group = date)) +
         legend.title = element_text(size = 16),
         legend.key.width= unit(0.8, 'cm')) +
   guides(color = guide_legend(override.aes = list(size = 2)))
-ggsave(filename = file.path(figures_path, "real_data_all_curves.png"), units = "px", dpi = 300)
 
-ggplot(dt, aes(x = t, y = Voltage, color = Season, group = date, linetype = Season)) +
-  geom_line() +
-  ylim(220, 260) +
-  scale_linetype_manual(values = c("Autumn" = "solid", "Spring" = "dotted", "Summer" = "longdash", "Winter" = "twodash")) +
-  scale_color_grey() +
-  theme(legend.position = "top")
-
-## Autumn 2009 to Winter 2010 : 167 curves
-beginning_autumn <- lubridate::as_date("2009-09-23")
-end_winter <- lubridate::as_date("2010-03-19")
-
-dt_slice <- dt[between(date, beginning_autumn, end_winter)]
-ggplot(dt_slice, aes(x = t, y = Voltage, color = Season, group = date)) +
-  geom_line() +
-  ylim(220, 255) +
-  scale_color_grey() +
-  theme(legend.position = "bottom",
-        axis.title = element_text(size = 16),
-        axis.title.x = element_text(size = 16, margin = margin(t = 10, r = 0, b = 0, l = 0)),
-        axis.title.y = element_text(size = 16, margin = margin(t = , r = 10, b = 0, l = 0)),
-        axis.text.x =  element_text(size = 16),
-        axis.text.y =  element_text(size = 16),
-        legend.text = element_text(size = 16),
-        legend.title = element_text(size = 16),
-        legend.key.width= unit(0.8, 'cm')) +
-  guides(color = guide_legend(override.aes = list(size = 2)))
-ggsave(filename = file.path(figures_path, "real_data_selected_curves.png"), units = "px", dpi = 300)
+# Save and clean
+ggsave(plot = g_real_data_all_curves, filename = file.path(figures_path, "real_data_all_curves.png"),
+       width = 7, height = 4, units = "in", dpi = 300, bg = "white")
+rm(g_real_data_all_curves) ; gc()
 
 
 # Mean function estimation ----
 # Import data
-dt <- fread(file = "../data_electricity/household_voltage_autumn2009_winter2010.csv")
+dt <- dt[, .(date, "tobs" = t, "voltage" = Voltage)]
 
 # Estimation of the Fourier basis coefficients
 # Indeed \mu(t) is expressed in fourier basis
@@ -114,7 +89,7 @@ dygraphs::dygraph(dt_mu)
 
 ### co-variables
 tobs <- dt[, unique(sort(tobs))]
-K <- 50
+K <- 5
 
 cos_mat <- outer(X = tobs, Y = 1:K, function(t, k) sqrt(2) * cos(2 * pi * k * t))
 colnames(cos_mat) <- paste0("cos", 1:K)
@@ -133,6 +108,7 @@ best_lambda <- cv_model$lambda.min
 mu_model <- glmnet::glmnet(x = mat_covariable, y = dt_mu[, mu],
                            intercept = TRUE, alpha = 1, lambda = best_lambda)
 mu_coef <- coef(mu_model)
+paste0(mu_coef, collapse = ", ")
 
 mu <- predict(mu_model, mat_covariable)
 dygraphs::dygraph(data = data.table::data.table(tobs, mu))
@@ -141,38 +117,15 @@ dygraphs::dygraph(data = data.table::data.table(tobs, mu))
 
 get_real_data_mean <- function(t = seq(0.1, 0.9, len = 10)){
   # \eta(t)
-  cost_mat <- outer(X = t, Y = 1:50, function(ti, k) sqrt(2) * cos(2 * pi * k * ti))
-  sint_mat <- outer(X = t, Y = 1:50, function(ti, k) sqrt(2) * sin(2 * pi * k * ti))
+  cost_mat <- outer(X = t, Y = 1:5, function(ti, k) sqrt(2) * cos(2 * pi * k * ti))
+  sint_mat <- outer(X = t, Y = 1:5, function(ti, k) sqrt(2) * sin(2 * pi * k * ti))
   eta <- cbind(1, cost_mat, sint_mat)
 
   # Basis coeffient
   basis_coef <- c(
-    2.424666e+02, 2.045053e-01, 1.428404e-01, 3.570635e-01,
-    1.090163e-01, 2.118234e-01, 1.301123e-01, 9.508016e-02,
-    1.379302e-01, 4.820783e-03, -6.806055e-02, -2.388833e-02,
-    -7.403338e-02, -2.313821e-02, -5.963765e-02, -2.788351e-02,
-    6.017267e-02, 4.237483e-03, 2.406135e-02, 9.984997e-03,
-    2.732683e-02, -3.947718e-02, -2.744963e-03, -5.624731e-03,
-    -7.232138e-02, 1.228444e-02, -2.983196e-02, -1.373429e-02,
-    -5.086314e-03, -5.206650e-03, 1.983353e-02, -1.671532e-02,
-    1.694785e-02, 1.663588e-02, -8.924121e-03, -1.470650e-02,
-    -1.568260e-02, -3.873785e-03, -1.642147e-02, 0.000000e+00,
-    1.706651e-04, 3.662220e-03, 3.599005e-03, 2.163418e-02,
-    2.079180e-02, -5.805163e-03, -6.198625e-03, -3.051126e-03,
-    -3.050078e-02, -2.183053e-02, -2.030866e-02, 6.524725e-01,
-    1.448886e+00, -3.113890e-01, -4.050726e-01, 1.478745e-01,
-    -1.578363e-01, -2.346072e-01, -5.265881e-02, -5.181928e-02,
-    -8.382788e-02, -5.055031e-02, 1.471149e-01, -8.402212e-03,
-    -4.316013e-02, 7.528717e-02, 3.718024e-02, -4.602782e-03,
-    -4.930040e-02, -7.104138e-03, -3.485272e-02, -5.034491e-02,
-    2.230170e-02, 5.058664e-02, -2.996308e-02, 0.000000e+00,
-    1.773518e-02, 1.664768e-03, -5.118570e-04, 2.536951e-02,
-    1.103531e-02, -3.781447e-02, -9.837124e-03, 3.219296e-03,
-    -1.163841e-02, -1.604513e-02, -8.183994e-03, 3.309498e-02,
-    7.700235e-03, 1.578432e-02, 5.755486e-03, -3.571603e-03,
-    -1.118589e-03, -1.883942e-03, -5.265843e-03, -2.892450e-02,
-    1.032219e-02, 1.451413e-02, 6.348425e-04, 1.621365e-02,
-    1.322576e-02
+    240.851203112216, 0.509378236915314, 0.0666785737279956, 0.402943145860831,
+    0.161933581079031, 0.112863126651063, 0.420525704902966, 1.00346816098248,
+    -0.242895339672357, -0.259141006436404, 0.00114630490804474
   )
 
   # mean function estimation
@@ -188,11 +141,9 @@ get_real_data_mean <- function(t = seq(0.1, 0.9, len = 10)){
 dt_smooth <- data.table("t" = tobs, "mean" = get_real_data_mean(t = tobs))
 
 ### Plot for paper
-figures_path <- "../../../report/learning-smmoothness/Learning-smoothness/figures/"
-
-ggplot(dt_mu, aes(x = tobs, y = mu)) +
+g_empirical_mean <- ggplot(dt_mu, aes(x = tobs, y = mu)) +
   geom_line() +
-  ylim(238.5, 246) +
+  ylim(238, 244) +
   xlab(label = "t") +
   ylab(label = expression(mu(t))) +
   scale_color_grey() +
@@ -202,11 +153,12 @@ ggplot(dt_mu, aes(x = tobs, y = mu)) +
         axis.title.y = element_text(size = 16, margin = margin(t = , r = 10, b = 0, l = 0)),
         axis.text.x =  element_text(size = 16),
         axis.text.y =  element_text(size = 16))
-ggsave(filename = file.path(figures_path, "empirical_mean.png"), units = "px", dpi = 300)
+ggsave(plot = g_empirical_mean, filename = file.path(figures_path, "empirical_mean.png"),
+       width = 7, height = 4, units = "in", dpi = 300, bg = "white")
 
-ggplot(dt_smooth, aes(x = t, y = mean)) +
+g_smooth_mean <- ggplot(dt_smooth, aes(x = t, y = mean)) +
   geom_line() +
-  ylim(238.5, 246) +
+  ylim(238, 244) +
   ylab(label = expression(mu(t))) +
   scale_color_grey() +
   theme_minimal() +
@@ -215,7 +167,10 @@ ggplot(dt_smooth, aes(x = t, y = mean)) +
         axis.title.y = element_text(size = 16, margin = margin(t = , r = 10, b = 0, l = 0)),
         axis.text.x =  element_text(size = 16),
         axis.text.y =  element_text(size = 16))
-ggsave(filename = file.path(figures_path, "smooth_mean.png"), units = "px", dpi = 300)
+ggsave(plot = g_smooth_mean, filename = file.path(figures_path, "smooth_mean.png"),
+       width = 7, height = 4, units = "in", dpi = 300, bg = "white")
+
+rm(g_smooth_mean, g_empirical_mean) ; gc()
 
 # Empirical covariance estimation ----
 ## E[X(s)X(t)]
@@ -234,7 +189,7 @@ mat_musmut <- mat_mu %*% t(mat_mu)
 ## C(s,t)
 mat_cov <- mat_XsXt - mat_musmut
 
-rm(mat_XsXt, mat_x, dt_x)
+rm(mat_XsXt, mat_x, dt_x) ; gc()
 
 ## Plot covariance function
 ggrid <- expand.grid(s = tobs, t = tobs)
@@ -244,8 +199,8 @@ dt_cov <- data.table::data.table(
   "cov" = c(mat_cov)
 )
 
-ggplot(dt_cov, aes(x = s, y = t, z = cov)) +
-  geom_contour_filled(breaks = c(-2, 0, 3, 6, 9, 11, 12)) +
+g_empirical_cov <- ggplot(dt_cov, aes(x = s, y = t, z = cov)) +
+  geom_contour_filled(bins = 6) +
   xlab(label = "s") +
   ylab(label = "t") +
   labs(fill = expression(C(s,t))) +
@@ -260,7 +215,9 @@ ggplot(dt_cov, aes(x = s, y = t, z = cov)) +
         legend.text = element_text(size = 16),
         legend.title = element_text(size = 16))
 # , legend.key.width= unit(0.8, 'cm')) + guides(color = guide_legend(override.aes = list(size = 2)))
-ggsave(filename = file.path(figures_path, "empirical_cov.png"), units = "px", dpi = 300)
+ggsave(plot = g_empirical_cov, filename = file.path(figures_path, "empirical_cov.png"),
+       width = 7, height = 5, units = "in", dpi = 300, bg = "white")
+rm(g_empirical_cov) ; gc()
 
 # Empirical lag-1 auto-covariance ----
 
@@ -283,8 +240,7 @@ mat_Xns_Xn_plus_1_t <- (1 / ncol(mat_xn)) * (mat_xn %*% t(mat_xn_plus_1))
 ## C_1(s,t)
 mat_autocov <- mat_Xns_Xn_plus_1_t - mat_musmut
 
-rm(mat_musmut, mat_xn, mat_xn_plus_1, dt_xn_plus_1, dt_xn, mat_Xns_Xn_plus_1_t, d, mat_mu)
-gc()
+rm(mat_musmut, mat_xn, mat_xn_plus_1, dt_xn_plus_1, dt_xn, mat_Xns_Xn_plus_1_t, d, mat_mu) ; gc()
 
 ## plot C_1(s,t)
 ggrid <- expand.grid(s = tobs, t = tobs)
@@ -294,8 +250,8 @@ dt_autocov <- data.table::data.table(
   "autocov" = c(mat_autocov)
 )
 
-ggplot(dt_autocov, aes(x = s, y = t, z = autocov)) +
-  geom_contour_filled(breaks = c(-15, -10, 0, 10, 20, 25, 30)) +
+g_empirical_lag1_autocov <- ggplot(dt_autocov, aes(x = s, y = t, z = autocov)) +
+  geom_contour_filled(bins = 6) +
   xlab(label = "s") +
   ylab(label = "t") +
   labs(fill = latex2exp::TeX("$C_1(s,t)$")) +
@@ -309,13 +265,15 @@ ggplot(dt_autocov, aes(x = s, y = t, z = autocov)) +
         axis.text.y =  element_text(size = 16),
         legend.text = element_text(size = 16),
         legend.title = element_text(size = 16))
-ggsave(filename = file.path(figures_path, "empirical_lag1_autocov.png"), units = "px", dpi = 300)
+ggsave(plot = g_empirical_lag1_autocov, filename = file.path(figures_path, "empirical_lag1_autocov.png"),
+       width = 7, height = 5, units = "in", dpi = 300, bg = "white")
+rm(g_empirical_lag1_autocov) ; gc()
 
 # Operator kernel estimation ----
 ## LASSO regression
 ### fourier basis
 tobs <- dt[, unique(sort(tobs))]
-L <- 5
+L <- 2
 
 cos_mat <- outer(X = tobs, Y = 1:L, function(t, l) sqrt(2) * cos(2 * pi * l * t))
 colnames(cos_mat) <- paste0("cos", 1:L)
@@ -359,6 +317,7 @@ beta_lambda <- beta_cv_model$lambda.min
 beta_model <- glmnet::glmnet(x = FF, y = CC1,
                              intercept = FALSE, alpha = 1, lambda = beta_lambda)
 beta_coef <- coef(beta_model)
+paste0(beta_coef, collapse = ", ")
 
 CC1_prev <- predict(beta_model, FF)
 
@@ -371,43 +330,22 @@ get_real_data_far_kenel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
   #   ...,
   #   b_{K1}, b_{K2}, ..., b_{KL})
   basis_coef <- c(
-    2.23373729709883, -4.82923610791908, 3.32335705082156, 1.79700259321478,
-    -4.72746806843297, -5.73918751872499, 2.45125518767258, 1.07367258654584,
-    -5.43802938214564, -3.51254535084025, -0.983346082229677, -0.325244044730888,
-    0.331031200463371, -0.0540202044257287, 0, 0.050670616459408, 0.245848419309361,
-    -0.0463018677073661, 0.185132606151136, -0.161785518978632, -0.114457510952933,
-    0.0820977879166196, 0.187206920919163, 0.183596326343521, 0.29799917456688,
-    0.0983572083790289, 0.0365619524514346, 0, -0.054901491867189, -0.0244962109053967,
-    0.191707201891362, 0.128801515419686, -0.224174908366066, -0.251566711879058,
-    -0.0276348680173348, -0.0715639682939576, -0.00897146114342853, 0, 0.267121966309748,
-    -0.0273091594161997, 0.067130829587406, -0.00550062556625829, 0, 0.246518722930269,
-    -0.0167644005889752, 0.140334666929821, 0.0286475855004669, 0, 0.28472302948554, 0,
-    -0.0604572008597386, -0.0756788959584134, 0.0111654607748143, -0.118712184576549, 0,
-    0.276667058786185, 0, 0.205067486705622, 0.0654171627574894, 0.012651336931906,
-    -0.0896598422692541, 0.0750983773085757, -0.0390603398328494, 0.255463915244155, 0,
-    -0.0538389230934492, 0.0615073725777393, -0.133119857316778, -0.131347879232277,
-    0.131319341474459, 0, 0.0316171381996287, 0.1366837259548, 0.191576162910903,
-    0.0821500379023849, 0.245074852934185, -0.161386348784381, 0.57160301833627,
-    -0.0895419722592298, 0.353557986549909, -0.00925462916880733, -0.0698838250503909,
-    -0.497687159750738, 0.142855565715012, -0.0250687004178898, 0.445786769743267,
-    0.20097497729795, -0.0059528113317605, -0.572809375110091, 0.00307262837101596,
-    -0.162035292129038, -0.185062678568657, 0, 0.524409493593714, -0.297541175306963,
-    0.205775044697609, -0.354321377285357, -0.302443276571187, 0.213730662847565,
-    0.0141379256684164, -0.0483508443593266, -0.0391148946905164, 0.0906326014808357,
-    0, 0, -0.0117502269372805, -0.0517597384977126, 0.0587158994889613, 0.289741051088531,
-    0, 0.0149022741092416, -0.126251329567908, -0.0459684159223364, -0.0481786322359199,
-    -0.125755965631474, 0.197938756150598, 0.0270773989392422, 0.00607347821449695,
-    -0.0962640169089107, 0, 0.192629550170813
+    0.887265486496153, -0.158284777828367, -0.433123270896265, -0.383368407909871,
+    0.145655492369033, -0.00932791858596785, 0.25405721049976, 0.0360507006945973,
+    0.0389539855934984, 0, -0.0133553863644848, 0.0177582032888235, 0.189761421268642,
+    0.0195864450427664, 0.0887495150023169, 0, 0.0347257788913602, 0, 0.298938773778208,
+    0.360062724244617, 0.00694075505838772, 0.0383993219719295, 0.0889742879270508,
+    0.108124616829882, 0.597015339786177
   )
   # Transform to (K, L) matrix
-  basis_coef_mat <- t(matrix(data = basis_coef, ncol = 11))
+  basis_coef_mat <- t(matrix(data = basis_coef, ncol = 5))
 
   ker_values <- mapply(function(s,t, coef_mat){
     # \eta(s)
-    etas <- c(1, sqrt(2) * cos(2 * pi * 1:5 * s), sqrt(2) * sin(2 * pi * 1:5 * s))
+    etas <- c(1, sqrt(2) * cos(2 * pi * 1:2 * s), sqrt(2) * sin(2 * pi * 1:2 * s))
 
     # \theta(t)
-    thetat <- c(1, sqrt(2) * cos(2 * pi * 1:5 * t), sqrt(2) * sin(2 * pi * 1:5 * t))
+    thetat <- c(1, sqrt(2) * cos(2 * pi * 1:2 * t), sqrt(2) * sin(2 * pi * 1:2 * t))
 
     # Basis function
     ker_val <- matrix(etas, nrow = 1) %*% coef_mat %*% matrix(thetat, ncol = 1)
@@ -415,7 +353,7 @@ get_real_data_far_kenel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
   }, s = s, t = t, MoreArgs = list(coef_mat = basis_coef_mat))
 
   # Normalize values using operator norm
-  op_norm <- 4.588783
+  op_norm <- 0.9128311
   op_scale <- operator_norm / op_norm
   ker_values <- ker_values * op_scale
 
@@ -426,18 +364,36 @@ get_real_data_far_kenel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
   return(ker_values)
 }
 
-### Plot of the kernel function
+### Estimate the operator norm
+svec <- (1:1500) / 1500
+tvec <- (1:1500) / 1500
 
+dt_grid <- expand.grid(s = svec, t = tvec)
+
+dt_far_ker <- get_real_data_far_kenel(s = dt_grid$s, t = dt_grid$t, operator_norm = 0.7)
+mat_far_ker <- matrix(dt_far_ker, ncol = length(tvec))
+
+plotly::plot_ly(x = svec, y = tvec, z = mat_far_ker) %>%
+  plotly::add_surface() %>%
+  plotly::layout(title = "Operator kernel")
+
+## Calcul de la norm
+op_norm <- max(apply(X = mat_far_ker, MARGIN = 1, FUN = function(r){
+  pracma::trapz(x = (1:1500) / 1500, y = r)
+}))
+op_norm
+
+### Plot of the kernel function
 ggrid <- expand.grid(s = (1:1440) / 1440, t = (1:1440) / 1440)
 dt_kernel <- data.table::data.table(
   "s" = ggrid$s,
   "t" = ggrid$t,
-  "Kernel_value" = get_real_data_far_kenel(s = ggrid$s, t = ggrid$t, operator_norm = 4.588783)
+  "Kernel_value" = get_real_data_far_kenel(s = ggrid$s, t = ggrid$t, operator_norm = 0.9128311)
 )
 
 #### Contour plot
-ggplot(dt_kernel, aes(x = s, y = t, z = Kernel_value)) +
-  geom_contour_filled(breaks = c(-35, -25, -15, -5, 5, 15, 25)) +
+g_far_kernel <- ggplot(dt_kernel, aes(x = s, y = t, z = Kernel_value)) +
+  geom_contour_filled(bins = 6) +
   xlab(label = "s") +
   ylab(label = "t") +
   labs(fill = latex2exp::TeX("$\\psi(s,t)$  ")) +
@@ -451,7 +407,8 @@ ggplot(dt_kernel, aes(x = s, y = t, z = Kernel_value)) +
         axis.text.y =  element_text(size = 16),
         legend.text = element_text(size = 16),
         legend.title = element_text(size = 16))
-ggsave(filename = file.path(figures_path, "far_kernel.png"), units = "px", dpi = 300)
+ggsave(plot = g_far_kernel, filename = file.path(figures_path, "far_kernel.png"),
+       width = 7, height = 5, units = "in", dpi = 300, bg = "white")
 
 ### Surface plot
 svec <- seq(0.01, 0.99, len = 200)
