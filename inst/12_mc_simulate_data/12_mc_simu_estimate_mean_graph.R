@@ -202,7 +202,7 @@ ggplot_mean <- function(N = 400, lambda = 300, process = "FAR", white_noise = "m
       linetype = 2)
     ggplt <- ggplot(data = dt_mean, mapping = aes(x = t, y = muhat)) +
       geom_boxplot() +
-      ylim(y_lim) +
+      # ylim(y_lim) +
       ggtitle(latex2exp::TeX(title_exp)) +
       xlab(x_lab) +
       ylab(y_lab) +

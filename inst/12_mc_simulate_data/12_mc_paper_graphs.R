@@ -13,6 +13,7 @@ t0 <- c(0.2, 0.4, 0.7, 0.8)
 
 # Local regularity parameters ----
 
+## Scenario 1
 g_locreg_far_mfBm_d1  <- ggpubr::ggarrange(
   ggplot_locreg(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1", param = "Ht"),
   ggplot_locreg(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1", param = "Ht"),
@@ -28,6 +29,7 @@ ggsave(
   filename = "./inst/12_mc_simulate_data/graphs/paper_graphs/locreg_far_mfBm_d1.png", plot = g_locreg_far_mfBm_d1,
   width = 9, height = 6, units = "in", bg = "white")
 
+## Scenario 2
 g_locreg_far_fBm_d1  <- ggpubr::ggarrange(
   ggplot_locreg(N = 150, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1", param = "Ht"),
   ggplot_locreg(N = 1000, lambda = 40, process = "FAR", white_noise = "fBm", design = "d1", param = "Ht"),
@@ -41,6 +43,26 @@ g_locreg_far_fBm_d1  <- ggpubr::ggarrange(
 
 ggsave(
   filename = "./inst/12_mc_simulate_data/graphs/paper_graphs/locreg_far_fBm_d1.png", plot = g_locreg_far_fBm_d1,
+  width = 9, height = 6, units = "in", bg = "white")
+
+## Scenario 3 :
+Hlogistic_d3 <- function(t){
+  hurst_logistic(t, h_left = 0.35, h_right = 0.65,
+                 change_point_position = 0.6, slope = 5)
+}
+g_locreg_far_mfBm_d3  <- ggpubr::ggarrange(
+  ggplot_locreg(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3", param = "Ht", Hfun = Hlogistic_d3),
+  ggplot_locreg(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3", param = "Ht", Hfun = Hlogistic_d3),
+  ggplot_locreg(N = 200, lambda = 150, process = "FAR", white_noise = "mfBm", design = "d3", param = "Ht", Hfun = Hlogistic_d3),
+  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3", param = "Ht", Hfun = Hlogistic_d3),
+  ggplot_locreg(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3", param = "Lt", Hfun = Hlogistic_d3),
+  ggplot_locreg(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3", param = "Lt", Hfun = Hlogistic_d3),
+  ggplot_locreg(N = 200, lambda = 150, process = "FAR", white_noise = "mfBm", design = "d3", param = "Lt", Hfun = Hlogistic_d3),
+  ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3", param = "Lt", Hfun = Hlogistic_d3),
+  nrow = 2, ncol = 4)
+
+ggsave(
+  filename = "./inst/12_mc_simulate_data/graphs/paper_graphs/locreg_far_mfBm_d3.png", plot = g_locreg_far_mfBm_d3,
   width = 9, height = 6, units = "in", bg = "white")
 
 # Estimate mean function ----
@@ -91,6 +113,7 @@ ggplot_mean_risk_by_t <- function(N_vec = c(150, 1000, 400, 1000), lambda_vec = 
   }
 }
 
+## Scenario 1
 g_mean_risk_far_mfBm_d1  <- ggpubr::ggarrange(
   ggplot_mean_risk_by_t(ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d1"),
   ggplot_mean_risk_by_t(ti = 0.4, process = "FAR", white_noise = "mfBm", design = "d1"),
@@ -102,7 +125,65 @@ g_mean_risk_far_mfBm_d1
 ggsave(filename = "./inst/12_mc_simulate_data/graphs/paper_graphs/mean_risk_far_mfBm_d1.png",
        plot = g_mean_risk_far_mfBm_d1, width = 9, height = 6, units = "in", bg = "white")
 
+## Scenario 3
+ggplot_mean_risk_by_t_d3 <- function(N_vec = c(150, 1000, 200, 400), lambda_vec = c(40, 40, 150, 300),
+                                  ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d3"){
+
+  ## Load data, remove NaN values and reshape data
+  dt_risk <- data.table::rbindlist(lapply(1:length(N_vec), function(i){
+    file_name <- paste0("./inst/12_mc_simulate_data/", process, "/mean_estimates/dt_mean_risk_",
+                        process,"_", white_noise, "_", "N=", N_vec[i], "_lambda=", lambda_vec[i], "_", design,".RDS")
+    dt_mean_risk <- readRDS(file_name)
+    dt_mean_risk <- dt_mean_risk[! (is.nan(mutitle_mse) | is.nan(mean_risk))]
+    dt_mean_risk <- dt_mean_risk[, .("mean_risk" = mean(mean_risk)), by = c("N", "lambda", "t", "h")]
+    dt_mean_risk[, N_lambda := paste0("(", N, ",", lambda, ")")]
+    return(dt_mean_risk)
+  }))
+
+  ## ggplot parameters
+  geom_theme <- theme_minimal() +
+    theme(legend.position = "bottom",
+          plot.title = element_text(size = 12, hjust = 0.5, vjust = -10),
+          axis.title = element_text(size = 12),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          axis.text.x =  element_text(size = 12),
+          axis.text.y =  element_text(size = 12),
+          legend.text = element_text(size = 12),
+          legend.title = element_text(size = 12),
+          legend.key.width= unit(0.8, 'cm'))
+
+  if (white_noise == "mfBm") {
+    title_exp <- paste0("t=", ti)
+    ggplt <- ggplot(data = dt_risk[t == ti], mapping = aes(x = h, y = mean_risk, group = N_lambda, linetype = N_lambda, color = N_lambda)) +
+      geom_line(linewidth = 0.9) +
+      # ylim(0, 0.4) +
+      ggtitle(latex2exp::TeX(title_exp)) +
+      labs(y = "", x = "h") +
+      scale_linetype_manual(name = latex2exp::TeX(" $(N,\\lambda)$"),
+                            values = c("(400,300)" = "solid", "(200,150)" = "dotted", "(1000,40)" = "dotdash", "(150,40)" = "dashed"),
+                            labels = c("(400,300)" = "(400,300)  ", "(200,150)" = "(200,150)  ", "(1000,40)" = "(1000,40)  ", "(150,40)" = "(150,40)  ")) +
+      scale_colour_manual(name = latex2exp::TeX(" $(N,\\lambda)$"),
+                          values = c("(400,300)" = "#273746", "(200,150)" = "#34495E", "(1000,40)" = "#707B7C", "(150,40)" = "#909497"),
+                          labels = c("(400,300)" = "(400,300)  ", "(200,150)" = "(200,150)  ", "(1000,40)" = "(1000,40)  ", "(150,40)" = "(150,40)  ")) +
+      geom_theme
+    return(ggplt)
+  }
+}
+g_mean_risk_far_mfBm_d3  <- ggpubr::ggarrange(
+  ggplot_mean_risk_by_t_d3(ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d3"),
+  ggplot_mean_risk_by_t_d3(ti = 0.4, process = "FAR", white_noise = "mfBm", design = "d3"),
+  ggplot_mean_risk_by_t_d3(ti = 0.7, process = "FAR", white_noise = "mfBm", design = "d3"),
+  ggplot_mean_risk_by_t_d3(ti = 0.8, process = "FAR", white_noise = "mfBm", design = "d3"),
+  nrow = 2, ncol = 2, common.legend = TRUE, legend = "bottom")
+g_mean_risk_far_mfBm_d3
+
+ggsave(filename = "./inst/12_mc_simulate_data/graphs/paper_graphs/mean_risk_far_mfBm_d3.png",
+       plot = g_mean_risk_far_mfBm_d3, width = 9, height = 6, units = "in", bg = "white")
+
 ## Mean estimate of the risk function
+
+## Scenario 1
 g_mean_far_mfBm_d1  <- ggpubr::ggarrange(
   ggplot_mean(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1"),
   ggplot_mean(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1"),
@@ -122,6 +203,18 @@ g_mean_far_fBm_d1  <- ggpubr::ggarrange(
   nrow = 2, ncol = 2, common.legend = TRUE, legend = "bottom")
 ggsave(
   filename = "./inst/12_mc_simulate_data/graphs/paper_graphs/mean_far_fBm_d1.png", plot = g_mean_far_fBm_d1,
+  width = 9, height = 6, units = "in", bg = "white")
+
+## Scenario 3
+g_mean_far_mfBm_d3  <- ggpubr::ggarrange(
+  ggplot_mean(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3"),
+  ggplot_mean(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3"),
+  ggplot_mean(N = 200, lambda = 150, process = "FAR", white_noise = "mfBm", design = "d3"),
+  ggplot_mean(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3"),
+  nrow = 2, ncol = 2, common.legend = TRUE, legend = "bottom")
+g_mean_far_mfBm_d3
+ggsave(
+  filename = "./inst/12_mc_simulate_data/graphs/paper_graphs/mean_far_mfBm_d3.png", plot = g_mean_far_mfBm_d3,
   width = 9, height = 6, units = "in", bg = "white")
 
 

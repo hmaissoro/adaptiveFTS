@@ -80,7 +80,7 @@ simulate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
     ### Get pre-smoothing bandwidth
     #### Define and exponential bandwidth grid
     lambdahat <- mean(dt_gen[ttag == "trandom", .N, by = id_curve][, N])
-    K <- 50
+    K <- 30
     b0 <- 1 / lambdahat
     bK <- lambdahat ** (- 1 / 3)
     a <- exp((log(bK) - log(b0)) / K)
@@ -229,6 +229,7 @@ simulate_data <- function(Nmc = mc, Ni = 400, lambdai = 300, t0, sig = 0.25,
 
   saveRDS(object = dt_res, file = file_title)
   rm(dt_res, file_title) ; gc() ; gc()
+  print(paste0("Done : dt_mc_", process,"_", white_noise, "_", "N=", Ni, "_lambda=", lambdai, "_", design,".RDS at ", Sys.time()))
 }
 
 # Data generation ----
@@ -406,10 +407,9 @@ Hlogistic_d3 <- function(t){
                  change_point_position = 0.5, slope = 50)
 }
 
-
 ### FAR process ----
 ## mfBm
-ker_d3 <- function(s,t) get_real_data_far_kenel(s = s, t = t, operator_norm = 0.7)
+ker_d3 <- function(s,t) get_real_data_far_kenel(s = s, t = t, operator_norm = 0.2)
 
 simulate_data(Nmc = 100, Ni = 150, lambdai = 40, t0, sig = 0.25,
               process = "FAR", process_ker = ker_d3,
@@ -424,7 +424,8 @@ simulate_data(Nmc = 100, Ni = 1000, lambdai = 40, t0, sig = 0.25,
 simulate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
               process = "FAR", process_ker = ker_d3,
               process_mean = get_real_data_mean, white_noise = "mfBm",
-              hurst = Hlogistic_d3, Hvec = Hvec, design = "d3_bis")
+              hurst = Hlogistic_d3, Hvec = Hvec, design = "d3")
+parallel::mckill()
 gc() ; gc() ; gc() ; gc()
 
 simulate_data(Nmc = 100, Ni = 1000, lambdai = 1000, t0, sig = 0.25,
@@ -432,11 +433,30 @@ simulate_data(Nmc = 100, Ni = 1000, lambdai = 1000, t0, sig = 0.25,
               process_mean = get_real_data_mean, white_noise = "mfBm",
               hurst = Hlogistic_d3, Hvec = Hvec, design = "d3")
 
-## fBm
-simulate_data(Nmc = 100, Ni = 400, lambdai = 300, t0, sig = 0.25,
+## d3_bis
+Hlogistic_d3_bis <- function(t){
+  0.25 + 0 * t
+}
+simulate_data(Nmc = 75, Ni = 150, lambdai = 40, t0, sig = 0.25,
               process = "FAR", process_ker = ker_d3,
-              process_mean = mean_d2, white_noise = "fBm",
-              hurst = Hlogistic_d3, Hvec = Hvec, design = "d3")
+              process_mean = get_real_data_mean, white_noise = "mfBm",
+              hurst = Hlogistic_d3_bis, Hvec = Hvec, design = "d3_bis")
+
+simulate_data(Nmc = 75, Ni = 1000, lambdai = 40, t0, sig = 0.25,
+              process = "FAR", process_ker = ker_d3,
+              process_mean = get_real_data_mean, white_noise = "mfBm",
+              hurst = Hlogistic_d3_bis, Hvec = Hvec, design = "d3_bis")
+
+simulate_data(Nmc = 75, Ni = 400, lambdai = 300, t0, sig = 0.25,
+              process = "FAR", process_ker = ker_d3,
+              process_mean = get_real_data_mean, white_noise = "mfBm",
+              hurst = Hlogistic_d3_bis, Hvec = Hvec, design = "d3_bis")
+gc() ; gc() ; gc() ; gc()
+
+simulate_data(Nmc = 75, Ni = 1000, lambdai = 1000, t0, sig = 0.25,
+              process = "FAR", process_ker = ker_d3,
+              process_mean = get_real_data_mean, white_noise = "mfBm",
+              hurst = Hlogistic_d3_bis, Hvec = Hvec, design = "d3_bis")
 
 ### FMA process ----
 ## mfBm

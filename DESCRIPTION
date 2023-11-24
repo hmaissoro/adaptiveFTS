@@ -12,7 +12,9 @@ RoxygenNote: 7.2.3
 Imports: 
     caret,
     data.table,
+    fastmatrix,
     MASS,
+    matrixStats,
     methods,
     Rdpack
 RdMacros: Rdpack

@@ -118,11 +118,15 @@ estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "fBm", de
 ### FAR ----
 estim_locreg_fun(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3")
 estim_locreg_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3")
-estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3_bis")
+estim_locreg_fun(N = 200, lambda = 150, process = "FAR", white_noise = "mfBm", design = "d3")
+estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3")
 estim_locreg_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d3")
 
+estim_locreg_fun(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3_bis")
+estim_locreg_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3_bis")
+estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3_bis")
 
-estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3")
+estim_locreg_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3_ter")
 
 ### FMA ----
 estim_locreg_fun(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d1")

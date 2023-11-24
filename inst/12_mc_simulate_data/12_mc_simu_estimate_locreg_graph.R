@@ -22,7 +22,7 @@ Hlogistic <- function(t){
 
 # Local regularity graph function ----
 
-ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", param = "Ht"){
+ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", param = "Ht", Hfun = Hlogistic){
   ## Load data
   file_name <- paste0("./inst/12_mc_simulate_data/", process, "/locreg_estimates/dt_locreg_",
                       process,"_", white_noise, "_", "N=", N, "_lambda=", lambda, "_", design,".RDS")
@@ -44,7 +44,7 @@ ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = 
   if (white_noise == "mfBm") {
     ## define segment and set scale label
     dt_pr <- unique(dt_locreg[, .("t" = as.factor(t), "x" = as.factor(t - 0.05),
-                                  "xend" = as.factor(t + 0.05), "Htrue" =  Hlogistic(t))])
+                                  "xend" = as.factor(t + 0.05), "Htrue" =  Hfun(t))])
     scale_label <- c(dt_pr[, t], dt_pr[, x], dt_pr[, xend])
     scale_label <- sort(as.character(scale_label))
     scale_label[- which(scale_label %in% as.character(dt_pr[, t]))] <- ""
@@ -54,7 +54,7 @@ ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = 
     if (param == "Ht") {
       # title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
       title_exp <- paste0("$\\widehat{H}_t$ - ", "N=", N , ", $\\lambda$=", lambda)
-      y_lim <- c(0.2, 0.9)
+      y_lim <- c(0.1, 0.9)
       x_lab <- "t"
       y_lab <- ""
       geom_true_param <- geom_segment(
@@ -95,7 +95,7 @@ ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = 
     if (param == "Ht") {
       # title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)
       title_exp <- paste0("$\\widehat{H}_t$ - ", "N=", N , ", $\\lambda$=", lambda)
-      y_lim <- c(0.2, 0.9)
+      y_lim <- c(0.1, 0.9)
       x_lab <- latex2exp::TeX("True $H_t$")
       y_lab <- ""
       geom_true_param <- geom_segment(
