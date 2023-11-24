@@ -7,7 +7,9 @@
 #' @seealso [triweight()], [tricube()], [epanechnikov()], [triangular()], and [uniform()].
 #'
 biweight <- function(u){
-  ifelse(abs(u) <= 1, (15/16) * (1 - u^2)^2, 0)
+  val <- (15/16) * (1 - u ** 2) ** 2
+  val[abs(u) <= 1] <- 0
+  return(val)
 }
 
 #' Triweight kernel function
@@ -19,7 +21,9 @@ biweight <- function(u){
 #' @seealso [biweight()], [tricube()], [epanechnikov()], [triangular()], and [uniform()].
 #'
 triweight <- function(u){
-  ifelse(abs(u) <= 1, (35/32) * (1 - u^2)^3, 0)
+  val <- (35/32) * (1 - u ** 2) ** 3
+  val[abs(u) <= 1] <- 0
+  return(val)
 }
 
 #' Tricube kernel function
@@ -31,7 +35,9 @@ triweight <- function(u){
 #' @seealso [biweight()], [triweight()], [epanechnikov()], [triangular()], and [uniform()].
 #'
 tricube <- function(u){
-  ifelse(abs(u) <= 1, (70/81) * (1 - abs(u)^3)^3, 0)
+  val <- (70/81) * (1 - abs(u) ** 3) ** 3
+  val[abs(u) <= 1] <- 0
+  return(val)
 }
 
 #' Epanechnikov kernel function
@@ -43,7 +49,9 @@ tricube <- function(u){
 #' @seealso [biweight()], [triweight()], [tricube()], [triangular()], and [uniform()].
 #'
 epanechnikov <- function(u){
-  ifelse(abs(u) <= 1, (3/4) * (1 - u ** 2), 0)
+  val <- (3/4) * (1 - u ** 2)
+  val[abs(u) <= 1] <- 0
+  return(val)
 }
 
 #' Triangular kernel function
@@ -89,6 +97,7 @@ uniform <- function(u){
 #'
 #' @importFrom methods is
 #' @importFrom data.table data.table
+#' @importFrom matrixStats rowSums2
 #'
 #' @export
 #'
@@ -157,8 +166,7 @@ estimate_nw <- function(y, t, tnew, h = NULL, smooth_ker = epanechnikov){
     sum(abs(tnewi - t) <= h)
   }, t = t, h = h))
 
-  A <- apply(A, 1, function(x) x / sum(x))
-  A <- t(A)
+  A <- A / matrixStats::rowSums2(A)
   yhat <- A %*% y
   dt <- data.table::data.table("h" = h, "inKernelSupp" = inKernelSupp, "tnew" = tnew, "yhat" = c(yhat))
   return(dt)

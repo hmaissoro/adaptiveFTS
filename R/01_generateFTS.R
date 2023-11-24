@@ -22,8 +22,9 @@
 #'
 #'
 hurst_arctan <- function(t = seq(0.2, 0.8, len = 10)){
-  if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
+  if (! all(methods::is(t, "numeric") && t > 0 && t < 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
+
   hval <- atan(t) / pi + 1/2
   return(hval)
 }
@@ -53,8 +54,13 @@ hurst_arctan <- function(t = seq(0.2, 0.8, len = 10)){
 #'
 #'
 hurst_linear <- function(t = seq(0.2, 0.8, len = 10), h_left = 0.2, h_right = 0.8) {
-  if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
+  #TODO : Contrôles sur h_left, h_right et change_point_position on peut actuellement mettre les valeurs que l'on veut
+  #TODO : Ne pas autoriser h_right < h_left
+  #TODO : Ajouter contrainte de signe sur slope
+  # if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
+  if (! all(methods::is(t, "numeric") && t > 0 && t < 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
+
 
   t1 <- 1
   t0 <- 0
@@ -94,9 +100,12 @@ hurst_linear <- function(t = seq(0.2, 0.8, len = 10), h_left = 0.2, h_right = 0.
 #'
 hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
                            change_point_position = 0.5) {
-  if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
+  #TODO : Contrôles sur h_left, h_right et change_point_position on peut actuellement mettre les valeurs que l'on veut
+  #TODO : Ne pas autoriser h_right < h_left
+  #TODO : Ajouter contrainte de signe sur slope
+  # if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
+  if (! all(methods::is(t, "numeric") && t > 0 && t < 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
-
   u <- (t - change_point_position) / (1 - 0)
   hval <- (h_right - h_left) / (1 + exp(- slope * u)) + h_left
   return(hval)
@@ -113,6 +122,7 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' @export
 #'
 .constant_d <- function(x, y) {
+  #TODO : Contrôles ?
   a <- gamma(2 * x + 1) * gamma(2 * y + 1) * sin(pi * x) * sin(pi * y)
   b <- 2 * gamma(x + y + 1) * sin(pi * (x + y) / 2)
   val <- sqrt(a) / b
@@ -129,6 +139,7 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' @export
 #'
 .covariance_mfBm <- function(t = seq(0.2, 0.8, len = 10), hurst_fun = hurst_logistic, ...) {
+  # TODO : Si contrôles dans les hurst_fun, peut-être pas besoin d'en ajouter ici (sauf sur la fct)
   tmp <- expand.grid(u = t, v = t)
   u <- tmp$u
   v <- tmp$v
@@ -253,6 +264,8 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #' @export
 #'
 .random_design <- function(N, lambda, Mdistribution = rpois, tdistribution = runif, ...) {
+  #TODO : try sur Mdistribution et tdistribution pour renvoyer une erreur parlante
+  # si l'utilisateur appelle une fonction chelou plutôt qu'une  fonction de distribution
   if (! (N - floor(N) == 0) & N > 1)
     stop("'N' must be an integer greater than 1.")
   if (! (lambda - floor(lambda) == 0) & lambda > 1)
@@ -270,7 +283,7 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 
 #' Functional Autoregressive process of order 1 (FAR(1)) simulation
 #'
-#'@param N \code{integer}. Number of curves.
+#' @param N \code{integer}. Number of curves.
 #' @param lambda \code{integer}. Mean of the number of observations per curve.
 #' @param tdesign \code{character}. Type of the design. It is either 'random' or 'common'.
 #' @param Mdistribution \code{function}. Distribution of the number of observation points per curve.
@@ -331,6 +344,9 @@ simulate_far <- function(N = 2L, lambda = 70L,
                          int_grid = 100L,
                          burnin = 100L,
                          remove_burnin = TRUE) {
+  #TODO : Ajouter une description car grosse fonction
+  #TODO : try sur farkernel ou alors une erreur spécifique si c'es lui qui fait péter, pareil pour far_mean
+  # C'est quoi la burnin period ?
   if (! (N - floor(N) == 0) & N > 1)
     stop("'N' must be an integer greater than 1.")
   if (! (lambda - floor(lambda) == 0) & lambda > 1)
@@ -370,6 +386,7 @@ simulate_far <- function(N = 2L, lambda = 70L,
 
   # If random design
   if (tdesign == "random"){
+
     dt_rdesign <- .random_design(N = n, lambda = lambda, Mdistribution = Mdistribution, tdistribution = tdistribution)
     M <- dt_rdesign[, unique(Mn), by = "id_curve"][, V1]
 
@@ -410,6 +427,7 @@ simulate_far <- function(N = 2L, lambda = 70L,
   for(i in 2:n){
     tall <- dt_far[id_curve == i, tall]
     Xold_centred <- dt_far[id_curve == i - 1 & ttag == "int_grid", X - far_mean]
+    Xold_centred <- matrix(Xold_centred, ncol = 1)
     Enew <- dt_far[id_curve == i, eps]
     far_mean_new <- dt_far[id_curve == i, far_mean]
 
@@ -417,7 +435,7 @@ simulate_far <- function(N = 2L, lambda = 70L,
     u <- tmp$u
     v <- tmp$v
     beta <- matrix(far_kernel(u,v), ncol = int_grid, byrow = FALSE)
-    Xi <- far_mean_new + as.numeric((1/int_grid) * beta %*% matrix(Xold_centred, ncol = 1) + Enew)
+    Xi <- far_mean_new + as.numeric((1/int_grid) * beta %*% Xold_centred + Enew)
     dt_far[id_curve == i, X := Xi]
   }
 

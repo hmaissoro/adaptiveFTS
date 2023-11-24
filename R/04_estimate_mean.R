@@ -417,11 +417,12 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   # Format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
+  lambdahat <- mean(data[, .N, by = "id_curve"][, N])
 
-  # Estimate mean function
-  dt_res <- data.table::rbindlist(lapply(data[, unique(id_curve)], function(curve_index, t, data, N, h){
-    Tn <- data[id_curve == curve_index][order(tobs), tobs]
-    Yn <- data[id_curve == curve_index][order(tobs), X]
+  if (N < 250 && lambdahat < 200) {
+    # Estimate mean function
+    Tn <- data[order(tobs), tobs]
+    Yn <- data[order(tobs), X]
     data_curve <- fastmatrix::kronecker.prod(
       x = matrix(data = rep(1, length(t)), ncol = 1),
       y = cbind(Tn, Yn)
@@ -430,7 +431,7 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     data_curve <- data.table::as.data.table(data_curve)
     tvec <- rep(t, each = length(Tn))
     data_curve[, t := tvec]
-    rm(Yn, Tn, tvec) ; gc() ; gc()
+    rm(Yn, Tn, tvec, data) ; gc() ; gc()
 
     data_curve[, Tn_minus_t := (Tn - t)]
     data_curve[, Tn_minus_t_over_h := Tn_minus_t / h]
@@ -438,8 +439,8 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     # Compute mean Q and S function
     dt_res_by_curve <- data_curve[
       ,
-      .("Q0" = sum( (Tn_minus_t ** 0) * Yn * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
-        "Q1" = sum( (Tn_minus_t ** 1) * Yn * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
+      .("Q0" = sum((Tn_minus_t ** 0) * Yn * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
+        "Q1" = sum((Tn_minus_t ** 1) * Yn * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
         "S0" = sum((Tn_minus_t ** 0) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
         "S1" = sum((Tn_minus_t ** 1) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
         "S2" = sum((Tn_minus_t ** 2) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N),
@@ -447,16 +448,52 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     ]
     rm(data_curve) ; gc() ; gc()
 
-    # Return
-    return(dt_res_by_curve)
-  }, t = t, data = data, N = N, h = h))
+    # Estimate mean
+    dt_res <- dt_res_by_curve[, .("muhat_RP" = (Q0 * S2 - Q1 * S1) / (S0 * S2 - S1 ** 2)), by = "t"]
+    dt_res[, "h" := h]
+    data.table::setcolorder(x = dt_res, neworder = c("t", "h", "muhat_RP"))
+    rm(dt_res_by_curve) ; gc() ; gc()
 
-  dt_res <- dt_res[, .("Q0" = sum(Q0), "Q1" = sum(Q1), "S0" = sum(S0), "S1" = sum(S1), "S2" = sum(S2)), by = "t"]
-  # Estimate mean
-  dt_res <- dt_res[, .("muhat_RP" = (Q0 * S2 - Q1 * S1) / (S0 * S2 - S1 ** 2)), by = "t"]
-  dt_res[, "h" := h]
-  data.table::setcolorder(x = dt_res, neworder = c("t", "h", "muhat_RP"))
-  gc() ; g()
+  } else {
+    # Estimate mean function
+    dt_res <- data.table::rbindlist(lapply(data[, unique(id_curve)], function(curve_index, t, data, N, h){
+      Tn <- data[id_curve == curve_index][order(tobs), tobs]
+      Yn <- data[id_curve == curve_index][order(tobs), X]
+      data_curve <- fastmatrix::kronecker.prod(
+        x = matrix(data = rep(1, length(t)), ncol = 1),
+        y = cbind(Tn, Yn)
+      )
+      colnames(data_curve) <- c("Tn", "Yn")
+      data_curve <- data.table::as.data.table(data_curve)
+      tvec <- rep(t, each = length(Tn))
+      data_curve[, t := tvec]
+      rm(Yn, Tn, tvec) ; gc() ; gc()
+
+      data_curve[, Tn_minus_t := (Tn - t)]
+      data_curve[, Tn_minus_t_over_h := Tn_minus_t / h]
+
+      # Compute mean Q and S function
+      dt_res_by_curve <- data_curve[
+        ,
+        .("Q0" = sum((Tn_minus_t ** 0) * Yn * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
+          "Q1" = sum((Tn_minus_t ** 1) * Yn * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
+          "S0" = sum((Tn_minus_t ** 0) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
+          "S1" = sum((Tn_minus_t ** 1) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
+          "S2" = sum((Tn_minus_t ** 2) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N),
+        by = "t"
+      ]
+      rm(data_curve) ; gc() ; gc()
+
+      # Return
+      return(dt_res_by_curve)
+    }, t = t, data = data, N = N, h = h))
+
+    dt_res <- dt_res[, .("Q0" = sum(Q0), "Q1" = sum(Q1), "S0" = sum(S0), "S1" = sum(S1), "S2" = sum(S2)), by = "t"]
+    # Estimate mean
+    dt_res <- dt_res[, .("muhat_RP" = (Q0 * S2 - Q1 * S1) / (S0 * S2 - S1 ** 2)), by = "t"]
+    dt_res[, "h" := h]
+    data.table::setcolorder(x = dt_res, neworder = c("t", "h", "muhat_RP"))
+  }
   return(dt_res)
 }
 
