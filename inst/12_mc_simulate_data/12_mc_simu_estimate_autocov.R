@@ -343,9 +343,9 @@ estim_autocov_fun <- function(N = 400, lambda = 300, process = "FAR", white_nois
 # Estimate mean risk function ----
 ## design 1 ----
 ### FAR ----
-estim_autocov_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", s0 = s0, t0 = t0, lag = 1)
 estim_autocov_risk_fun(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1", s0 = s0, t0 = t0, lag = 1)
 estim_autocov_risk_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d1", s0 = s0, t0 = t0, lag = 1)
+estim_autocov_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d1", s0 = s0, t0 = t0, lag = 1)
 estim_autocov_risk_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d1", s0 = s0, t0 = t0, lag = 1)
 
 estim_autocov_risk_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "fBm", design = "d1", s0 = s0, t0 = t0, lag = 1)
@@ -377,8 +377,11 @@ estim_autocov_risk_fun(N = 400, lambda = 300, process = "FMA", white_noise = "fB
 
 ## design 3 ----
 ### FAR ----
+estim_autocov_risk_fun(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3", t0 = t0)
+estim_autocov_risk_fun(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3", t0 = t0)
+estim_autocov_risk_fun(N = 200, lambda = 150, process = "FAR", white_noise = "mfBm", design = "d3", t0 = t0)
 estim_autocov_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3", t0 = t0)
-estim_autocov_risk_fun(N = 400, lambda = 300, process = "FAR", white_noise = "fBm", design = "d3", t0 = t0)
+estim_autocov_risk_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d3", t0 = t0)
 
 ### FMA ----
 estim_autocov_risk_fun(N = 400, lambda = 300, process = "FMA", white_noise = "mfBm", design = "d3", t0 = t0)

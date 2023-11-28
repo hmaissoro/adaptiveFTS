@@ -7,9 +7,7 @@
 #' @seealso [triweight()], [tricube()], [epanechnikov()], [triangular()], and [uniform()].
 #'
 biweight <- function(u){
-  val <- (15/16) * (1 - u ** 2) ** 2
-  val[abs(u) <= 1] <- 0
-  return(val)
+  ifelse(abs(u) <= 1, (15 / 16) * (1 - u ** 2) ** 2, 0)
 }
 
 #' Triweight kernel function
@@ -21,9 +19,7 @@ biweight <- function(u){
 #' @seealso [biweight()], [tricube()], [epanechnikov()], [triangular()], and [uniform()].
 #'
 triweight <- function(u){
-  val <- (35/32) * (1 - u ** 2) ** 3
-  val[abs(u) <= 1] <- 0
-  return(val)
+  ifelse(abs(u) <= 1, (35 / 32) * (1 - u ** 2) ** 3, 0)
 }
 
 #' Tricube kernel function
@@ -35,9 +31,7 @@ triweight <- function(u){
 #' @seealso [biweight()], [triweight()], [epanechnikov()], [triangular()], and [uniform()].
 #'
 tricube <- function(u){
-  val <- (70/81) * (1 - abs(u) ** 3) ** 3
-  val[abs(u) <= 1] <- 0
-  return(val)
+  ifelse(abs(u) <= 1, (70 / 81) * (1 - abs(u) ** 3) ** 3, 0)
 }
 
 #' Epanechnikov kernel function
@@ -49,9 +43,7 @@ tricube <- function(u){
 #' @seealso [biweight()], [triweight()], [tricube()], [triangular()], and [uniform()].
 #'
 epanechnikov <- function(u){
-  val <- (3/4) * (1 - u ** 2)
-  val[abs(u) <= 1] <- 0
-  return(val)
+  ifelse(abs(u) <= 1, (3 / 4) * (1 - u ** 2), 0)
 }
 
 #' Triangular kernel function
@@ -160,15 +152,19 @@ estimate_nw <- function(y, t, tnew, h = NULL, smooth_ker = epanechnikov){
   }
   h <- ifelse(is.null(h), hcv, h)
   A <- outer(tnew, t, function(u, v) smooth_ker((u - v) / h))
-
-  ## Get the number of points used to estimate y for each xout
-  inKernelSupp <- unlist(lapply(tnew, function(tnewi, t, h){
-    sum(abs(tnewi - t) <= h)
-  }, t = t, h = h))
-
   A <- A / matrixStats::rowSums2(A)
   yhat <- A %*% y
-  dt <- data.table::data.table("h" = h, "inKernelSupp" = inKernelSupp, "tnew" = tnew, "yhat" = c(yhat))
+  yhat <- c(yhat)
+
+  ## Get the number of points used to estimate y for each tnew
+  inKernelSupp <- outer(tnew, t, function(u, v) abs(u - v) <= h)
+  inKernelSupp <- matrixStats::rowSums2(inKernelSupp)
+  inKernelSupp <- c(inKernelSupp)
+  # inKernelSupp <- unlist(lapply(tnew, function(tnewi, t, h){
+  #   sum(abs(tnewi - t) <= h)
+  # }, t = t, h = h))
+
+  dt <- data.table::data.table("h" = h, "inKernelSupp" = inKernelSupp, "tnew" = tnew, "yhat" = yhat)
   return(dt)
 }
 

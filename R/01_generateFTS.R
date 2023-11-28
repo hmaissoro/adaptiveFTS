@@ -22,7 +22,7 @@
 #'
 #'
 hurst_arctan <- function(t = seq(0.2, 0.8, len = 10)){
-  if (! all(methods::is(t, "numeric") && t > 0 && t < 1))
+  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
 
   hval <- atan(t) / pi + 1/2
@@ -58,7 +58,7 @@ hurst_linear <- function(t = seq(0.2, 0.8, len = 10), h_left = 0.2, h_right = 0.
   #TODO : Ne pas autoriser h_right < h_left
   #TODO : Ajouter contrainte de signe sur slope
   # if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
-  if (! all(methods::is(t, "numeric") && t > 0 && t < 1))
+  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
 
 
@@ -104,7 +104,7 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
   #TODO : Ne pas autoriser h_right < h_left
   #TODO : Ajouter contrainte de signe sur slope
   # if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
-  if (! all(methods::is(t, "numeric") && t > 0 && t < 1))
+  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   u <- (t - change_point_position) / (1 - 0)
   hval <- (h_right - h_left) / (1 + exp(- slope * u)) + h_left

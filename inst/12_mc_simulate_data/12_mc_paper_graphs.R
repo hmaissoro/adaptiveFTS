@@ -47,23 +47,25 @@ ggsave(
 
 ## Scenario 3 :
 Hlogistic_d3 <- function(t){
-  hurst_logistic(t, h_left = 0.35, h_right = 0.65,
-                 change_point_position = 0.6, slope = 5)
+  hurst_logistic(t, h_left = 0.4, h_right = 0.6,
+                 change_point_position = 0.5, slope = 50)
 }
 g_locreg_far_mfBm_d3  <- ggpubr::ggarrange(
   ggplot_locreg(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3", param = "Ht", Hfun = Hlogistic_d3),
   ggplot_locreg(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3", param = "Ht", Hfun = Hlogistic_d3),
   ggplot_locreg(N = 200, lambda = 150, process = "FAR", white_noise = "mfBm", design = "d3", param = "Ht", Hfun = Hlogistic_d3),
   ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3", param = "Ht", Hfun = Hlogistic_d3),
+  ggplot_locreg(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d3", param = "Ht", Hfun = Hlogistic_d3),
   ggplot_locreg(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3", param = "Lt", Hfun = Hlogistic_d3),
   ggplot_locreg(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3", param = "Lt", Hfun = Hlogistic_d3),
   ggplot_locreg(N = 200, lambda = 150, process = "FAR", white_noise = "mfBm", design = "d3", param = "Lt", Hfun = Hlogistic_d3),
   ggplot_locreg(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3", param = "Lt", Hfun = Hlogistic_d3),
-  nrow = 2, ncol = 4)
+  ggplot_locreg(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d3", param = "Lt", Hfun = Hlogistic_d3),
+  nrow = 2, ncol = 5)
 
 ggsave(
   filename = "./inst/12_mc_simulate_data/graphs/paper_graphs/locreg_far_mfBm_d3.png", plot = g_locreg_far_mfBm_d3,
-  width = 9, height = 6, units = "in", bg = "white")
+  width = 12, height = 6, units = "in", bg = "white")
 
 # Estimate mean function ----
 
@@ -127,7 +129,7 @@ ggsave(filename = "./inst/12_mc_simulate_data/graphs/paper_graphs/mean_risk_far_
 
 ## Scenario 3
 ggplot_mean_risk_by_t_d3 <- function(N_vec = c(150, 1000, 200, 400), lambda_vec = c(40, 40, 150, 300),
-                                  ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d3"){
+                                     ti = 0.2, process = "FAR", white_noise = "mfBm", design = "d3"){
 
   ## Load data, remove NaN values and reshape data
   dt_risk <- data.table::rbindlist(lapply(1:length(N_vec), function(i){
@@ -229,7 +231,7 @@ table_mean <- function(N_vec = c(150, 1000, 400, 1000), lambda_vec = c(40, 40, 3
                           process,"_", white_noise, "_", "N=", N_vec[i], "_lambda=", lambda_vec[i], "_", design,".RDS")
       dt_mean <- readRDS(file_name)
       dt_mean <- dt_mean[! (is.nan(muhat) | is.nan(muhat))]
-      dt_mean <- dt_mean[, .("bias" = as.character(round(mean(muhat) - mean(mutrue), 4)),
+      dt_mean <- dt_mean[, .("bias" = as.character(round(mean(muhat - mutrue), 4)),
                              "sd" = as.character(round(sd(muhat), 4))), by = c("N", "lambda", "t")]
       dt_mean[, N_lambda := paste0("(", N, ",", lambda, ")")]
       return(dt_mean)
