@@ -93,6 +93,9 @@ estim_mean_bw_rp(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm",
 # Scenario 3 :
 estim_mean_bw_rp(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3")
 estim_mean_bw_rp(N = 200, lambda = 150, process = "FAR", white_noise = "mfBm", design = "d3")
+estim_mean_bw_rp(N = 1000, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3")
+estim_mean_bw_rp(N = 400, lambda = 300, process = "FAR", white_noise = "mfBm", design = "d3")
+estim_mean_bw_rp(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm", design = "d3")
 
 # Estimate mean RP function ----
 
@@ -143,7 +146,7 @@ estim_mean_rp_fun(N = 1000, lambda = 1000, process = "FAR", white_noise = "mfBm"
 
 # Scenario 3 :
 estim_mean_rp_fun(N = 150, lambda = 40, process = "FAR", white_noise = "mfBm", design = "d3", t0 = t0)
-
+estim_mean_rp_fun(N = 200, lambda = 150, process = "FAR", white_noise = "mfBm", design = "d3", t0 = t0)
 
 
 
