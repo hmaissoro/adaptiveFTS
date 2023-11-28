@@ -46,6 +46,7 @@ rm(dt_raw) ; gc()
 dt[, Voltage := as.numeric(Voltage)]
 date_na <- dt[is.na(Voltage), unique(date)]
 dt <- dt[! date %in% date_na]
+dt[, length(unique(date))]
 
 # Plot curves ----
 figures_path <- "./inst/12_mc_simulate_data/graphs/paper_graphs/"
@@ -69,7 +70,7 @@ g_real_data_all_curves <- ggplot(dt, aes(x = t, y = Voltage, color = Season, gro
 
 # Save and clean
 ggsave(plot = g_real_data_all_curves, filename = file.path(figures_path, "real_data_all_curves.png"),
-       width = 7, height = 4, units = "in", dpi = 300, bg = "white")
+       width = 7, height = 5, units = "in", dpi = 300, bg = "white")
 rm(g_real_data_all_curves) ; gc()
 
 
@@ -154,7 +155,7 @@ g_empirical_mean <- ggplot(dt_mu, aes(x = tobs, y = mu)) +
         axis.text.x =  element_text(size = 16),
         axis.text.y =  element_text(size = 16))
 ggsave(plot = g_empirical_mean, filename = file.path(figures_path, "empirical_mean.png"),
-       width = 7, height = 4, units = "in", dpi = 300, bg = "white")
+       width = 7, height = 5, units = "in", dpi = 300, bg = "white")
 
 g_smooth_mean <- ggplot(dt_smooth, aes(x = t, y = mean)) +
   geom_line() +
@@ -168,7 +169,7 @@ g_smooth_mean <- ggplot(dt_smooth, aes(x = t, y = mean)) +
         axis.text.x =  element_text(size = 16),
         axis.text.y =  element_text(size = 16))
 ggsave(plot = g_smooth_mean, filename = file.path(figures_path, "smooth_mean.png"),
-       width = 7, height = 4, units = "in", dpi = 300, bg = "white")
+       width = 7, height = 5, units = "in", dpi = 300, bg = "white")
 
 rm(g_smooth_mean, g_empirical_mean) ; gc()
 
@@ -428,4 +429,28 @@ plot3D::persp3D(x = seq(0.01, 0.99, len = 200),
                 col = RColorBrewer::brewer.pal(n = 8, "Greys")[8:3],
                 xlab = "s", ylab = "t", zlab = "Θ(s,t)",
                 ticktype = 'detailed', nticks = 5)
+
+# Plot hurst function ----
+# Local exponent function for the simulation
+Hlogistic <- function(t){
+  hurst_logistic(t, h_left = 0.4, h_right = 0.6,
+                 change_point_position = 0.5, slope = 50)
+}
+
+dt_local_exponent <- data.table::data.table("t" = (1:1440) / 1440, "Ht" = Hlogistic((1:1440) / 1440))
+g_local_exponent <- ggplot(data = dt_local_exponent, aes(x = t, y = Ht)) +
+  geom_line(size = 0.9)  +
+  ylim(0.35, 0.65) +
+  xlab(label = "t") +
+  labs(fill = latex2exp::TeX("$H_t$  ")) +
+  scale_color_grey() +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 16),
+        axis.title.x = element_text(size = 16, margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 16, margin = margin(t = , r = 10, b = 0, l = 0)),
+        axis.text.x =  element_text(size = 16),
+        axis.text.y =  element_text(size = 16))
+g_local_exponent
+ggsave(plot = g_local_exponent, filename = file.path(figures_path, "local_exponent.png"),
+       width = 7, height = 5, units = "in", dpi = 300, bg = "white")
 
