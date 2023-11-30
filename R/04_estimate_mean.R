@@ -137,6 +137,8 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     data = data, idcol = "id_curve",
     tcol = "tobs", ycol = "X", t = t, lag = 0:(N-1),
     h = ht, smooth_ker = smooth_ker)
+  # If the variance is NaN, set it as 0
+  dt_autocov[is.nan(autocov) & lag == 0, autocov := 0]
 
   # Estimate the risk function
   dt_mean_risk <- data.table::rbindlist(lapply(bw_grid, function(h, t, Ht, Lt, presmooth_bw, kernel_smooth, data, sig_error, N, dt_autocov){
@@ -211,7 +213,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
       y = dt_rho,
       by = c("t", "lag")
     )
-    dt_lr_var <- dt_lr_var[, list("lr_var" = sum(2 * autocov * rho)), by = t]
+    dt_lr_var <- dt_lr_var[!is.nan(autocov), list("lr_var" = sum(2 * autocov * rho)), by = t]
     dependence_coef <- dt_autocov[lag == 0][order(t), autocov] + dt_lr_var[order(t), lr_var]
     ### Note that dependence_coef <= abs(dependence_coef), thus
     dependence_coef <- abs(dependence_coef)
