@@ -565,7 +565,7 @@ estimate_mean_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
   fold <- caret::createFolds(y = unique(data[, id_curve]), k = Kfold, list = TRUE)
 
   # Get risk for each bandwidth in the grid
-  dt_bw <- data.table::rbindlist(lapply(bw_grid, function(Bmu0, data, fold, kernel_smooth){
+  dt_bw <- data.table::rbindlist(parallel::mclapply(bw_grid, function(Bmu0, data, fold, kernel_smooth){
 
     # Compute the cross-validation error for each f in fold
     err_fold <- tryCatch(
@@ -599,7 +599,7 @@ estimate_mean_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
     dt_res <- data.table::data.table("h" = Bmu0, "cv_error" = cv_err)
     return(dt_res)
 
-  }, data = data, fold = fold, kernel_smooth = smooth_ker))
+  }, mc.cores = 20, data = data, fold = fold, kernel_smooth = smooth_ker))
   rm(data, fold) ; gc() ; gc()
 
   return(dt_bw)
