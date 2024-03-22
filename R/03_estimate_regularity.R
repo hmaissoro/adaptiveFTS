@@ -210,6 +210,12 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     xt2 <- dt_smooth[t1 == t1[i] & t2 == t2[i] & t3 == t3[i], xt2]
     xt3 <- dt_smooth[t1 == t1[i] & t2 == t2[i] & t3 == t3[i], xt3]
 
+    ## Remove NA values
+    any_na <- (is.na(xt1) | is.na(xt2) | is.na(xt3))
+    xt1 <- xt1[! any_na]
+    xt2 <- xt2[! any_na]
+    xt3 <- xt3[! any_na]
+    rm(any_na)
     ## Remove NaN values
     any_nan <- (is.nan(xt1) | is.nan(xt2) | is.nan(xt3))
     xt1 <- xt1[! any_nan]

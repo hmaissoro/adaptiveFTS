@@ -267,105 +267,115 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   ## The bandwidth is taking as the presmoothing bandwidth
 
   dt_XsXt_autocov <- estimate_empirical_XsXt_autocov(
-    data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     s = s, t = t, cross_lag = lag,
     lag = 0:(N - lag - 1), h = h,
     smooth_ker = smooth_ker)
+  # If the variance is NaN, set it as 0
+  dt_XsXt_autocov[is.nan(XsXt_autocov) & lag == 0, XsXt_autocov := 0]
 
   ## compute weights p_k(s,t;h)
   ## We assume assume h is the presmoothing bandwidth
-  dt_pi_raw <- data.table::rbindlist(lapply(1:N, function(curve_index, bw_grid, s, t, data){
-    # Extract the observation points per curve
-    Tn <- data[id_curve == curve_index, tobs]
-
-    dt_pi_hi <- data.table::rbindlist(lapply(bw_grid, function(hi, Tn){
-      # \pi_n(s;h)
-      pin_s <- outer(X = s, Y = Tn, FUN = function(si, Tnm, hi) as.numeric(abs(Tnm - si) <= hi), hi = hi)
-      pin_s <- as.numeric(rowSums(pin_s) >= 1)
-
-      # \pi_n(t;h)
-      pin_t <- outer(X = t, Y = Tn, FUN = function(ti, Tnm, hi) as.numeric(abs(Tnm - ti) <= hi), hi = hi)
-      pin_t <- as.numeric(rowSums(pin_t) >= 1)
-
-      # data.table return
-      dt_res <- data.table::data.table("id_curve" = curve_index, "s" = s, "t" = t, "pin_s" = pin_s, "pin_t" = pin_t, "hi" = hi)
-    }, Tn = Tn))
-    return(dt_pi_hi)
-  }, bw_grid = bw_grid, s = s, t = t, data = data))
-
-  ## Calculate P_{N,\ell}(s,t,h)
-  dt_pin_s <- data.table::merge.data.table(
-    x = data.table::data.table("id_curve" = 1:(N - lag), "id_lag" = paste0(1:(N - lag), "_", (1 + lag):N)),
-    y = dt_pi_raw[id_curve %in% 1:(N - lag), list(id_curve, hi, s, t, pin_s)],
-    by = "id_curve")
-
-  dt_pin_t <- data.table::merge.data.table(
-    x = data.table::data.table("id_curve" = (1 + lag):N, "id_lag" = paste0(1:(N - lag), "_", (1 + lag):N)),
-    y = dt_pi_raw[id_curve %in% (1 + lag):N, list(id_curve, hi, s, t, pin_t)],
-    by = "id_curve")
-  dt_PNl <- data.table::merge.data.table(x = dt_pin_s, y = dt_pin_t, by = c("id_lag", "s", "t", "hi"))
-  dt_PNl <- dt_PNl[, .("PNl" = sum(pin_s * pin_t)), by = c("s", "t", "hi")]
-  rm(dt_pin_s, dt_pin_t) ; gc()
-
-  ## Compuet weights
-  dt_p <- data.table::rbindlist(lapply(1:(N - lag - 1), function(k, dt_pi_raw, dt_PNl){
-    ## Extract lagged data
-    dt_pi_s_i <- dt_pi_raw[id_curve %in% 1:(N - lag - k), .(id_curve, hi, s, t, "pin_s_i" = pin_s)]
-    dt_pi_s_i_plus_k <- dt_pi_raw[id_curve %in% (1 + k):(N - lag), .(id_curve, hi, s, t, "pin_s_i_plus_k" = pin_s)]
-
-    dt_pi_t_i_plus_ell <- dt_pi_raw[id_curve %in% (1 + lag):(N - k), .(id_curve, hi, s, t, "pin_t_i_plus_ell" = pin_t)]
-    dt_pi_t_i_plus_ell_plus_k <- dt_pi_raw[id_curve %in% (1 + k + lag):N, .(id_curve, hi, s, t, "pin_t_i_plus_ell_plus_k" = pin_t)]
-
-    ## Add lag id to \pi_i(s;h)
-    dt_id_lag_s_i <- data.table::data.table(
-      "id_curve" = sort(unique(dt_pi_s_i[, id_curve])),
-      "id_lag" = paste0(1:(N - lag - k), "_", (1 + k):(N - lag), "_", (1 + lag):(N - k), "_", (1 + k + lag):N)
-    )
-    dt_pi_s_i <- data.table::merge.data.table(x = dt_id_lag_s_i, y = dt_pi_s_i, by = "id_curve")
-    rm(dt_id_lag_s_i) ; gc()
-
-    ## Add lag id to \pi_{i + k}(s;h)
-    dt_id_lag_s_i_plus_k <- data.table::data.table(
-      "id_curve" = sort(unique(dt_pi_s_i_plus_k[, id_curve])),
-      "id_lag" = paste0(1:(N - lag - k), "_", (1 + k):(N - lag), "_", (1 + lag):(N - k), "_", (1 + k + lag):N)
-    )
-    dt_pi_s_i_plus_k <- data.table::merge.data.table(x = dt_id_lag_s_i_plus_k, y = dt_pi_s_i_plus_k, by = "id_curve")
-    rm(dt_id_lag_s_i_plus_k) ; gc()
-
-    ## Add lag id to \pi_{i + \ell}(t;h)
-    dt_id_lag_t_i_plus_ell <- data.table::data.table(
-      "id_curve" = sort(unique(dt_pi_t_i_plus_ell[, id_curve])),
-      "id_lag" = paste0(1:(N - lag - k), "_", (1 + k):(N - lag), "_", (1 + lag):(N - k), "_", (1 + k + lag):N)
-    )
-    dt_pi_t_i_plus_ell <- data.table::merge.data.table(x = dt_id_lag_t_i_plus_ell, y = dt_pi_t_i_plus_ell, by = "id_curve")
-    rm(dt_id_lag_t_i_plus_ell) ; gc()
-
-    ## Add lag id to \pi_{i + \ell + k}(t;h)
-    dt_id_lag_t_i_plus_ell_plus_k <- data.table::data.table(
-      "id_curve" = sort(unique(dt_pi_t_i_plus_ell_plus_k[, id_curve])),
-      "id_lag" = paste0(1:(N - lag - k), "_", (1 + k):(N - lag), "_", (1 + lag):(N - k), "_", (1 + k + lag):N)
-    )
-    dt_pi_t_i_plus_ell_plus_k <- data.table::merge.data.table(x = dt_id_lag_t_i_plus_ell_plus_k, y = dt_pi_t_i_plus_ell_plus_k, by = "id_curve")
-    rm(dt_id_lag_t_i_plus_ell_plus_k) ; gc()
-
-    ## All four weight dt
-    dt_pi <- data.table::merge.data.table(
-      x = data.table::merge.data.table(x = dt_pi_s_i, y = dt_pi_s_i_plus_k, by = c("id_lag", "s", "t", "hi")),
-      y = data.table::merge.data.table(x = dt_pi_t_i_plus_ell, y = dt_pi_t_i_plus_ell_plus_k, by = c("id_lag", "s", "t", "hi")),
-      by = c("id_lag", "s", "t", "hi")
-    )
-    rm(dt_pi_s_i, dt_pi_s_i_plus_k, dt_pi_t_i_plus_ell, dt_pi_t_i_plus_ell_plus_k) ; gc()
-
-    ## Calculate the numerator of p_k
-    dt_pk <- dt_pi[, .("pk" = sum(pin_s_i * pin_s_i_plus_k * pin_t_i_plus_ell * pin_t_i_plus_ell_plus_k)), by = c("s", "t", "hi")]
-
-    dt_pk <- data.table::merge.data.table(x = dt_pk, y = dt_PNl, by = c("s", "t", "hi"))
-    dt_pk[, pk := pk / PNl, by = c("s", "t", "hi")]
-    dt_pk[, lag := k]
-  }, dt_pi_raw = dt_pi_raw, dt_PNl = dt_PNl))
-
-  dt_long_run_var <- data.table::merge.data.table(x = dt_XsXt_autocov[lag > 0], y = dt_p, by = c("s", "t", "lag"))
-  dt_long_run_var <- dt_long_run_var[! is.nan(XsXt_autocov), list("long_run_var" = sum(2 * XsXt_autocov * pk)), by = c("s", "t", "hi")]
+  # dt_pi_raw <- data.table::rbindlist(lapply(1:N, function(curve_index, bw_grid, s, t, data){
+  #   # Extract the observation points per curve
+  #   Tn <- data[id_curve == curve_index, tobs]
+  #
+  #   dt_pi_hi <- data.table::rbindlist(lapply(bw_grid, function(hi, Tn){
+  #     # \pi_n(s;h)
+  #     pin_s <- outer(X = s, Y = Tn, FUN = function(si, Tnm, hi) as.numeric(abs(Tnm - si) <= hi), hi = hi)
+  #     pin_s <- as.numeric(rowSums(pin_s) >= 1)
+  #
+  #     # \pi_n(t;h)
+  #     pin_t <- outer(X = t, Y = Tn, FUN = function(ti, Tnm, hi) as.numeric(abs(Tnm - ti) <= hi), hi = hi)
+  #     pin_t <- as.numeric(rowSums(pin_t) >= 1)
+  #
+  #     # data.table return
+  #     dt_res <- data.table::data.table("id_curve" = curve_index, "s" = s, "t" = t, "pin_s" = pin_s, "pin_t" = pin_t, "hi" = hi)
+  #   }, Tn = Tn))
+  #   return(dt_pi_hi)
+  # }, bw_grid = bw_grid, s = s, t = t, data = data))
+  #
+  # ## Calculate P_{N,\ell}(s,t,h)
+  # dt_pin_s <- data.table::merge.data.table(
+  #   x = data.table::data.table("id_curve" = 1:(N - lag), "id_lag" = paste0(1:(N - lag), "_", (1 + lag):N)),
+  #   y = dt_pi_raw[id_curve %in% 1:(N - lag), list(id_curve, hi, s, t, pin_s)],
+  #   by = "id_curve")
+  #
+  # dt_pin_t <- data.table::merge.data.table(
+  #   x = data.table::data.table("id_curve" = (1 + lag):N, "id_lag" = paste0(1:(N - lag), "_", (1 + lag):N)),
+  #   y = dt_pi_raw[id_curve %in% (1 + lag):N, list(id_curve, hi, s, t, pin_t)],
+  #   by = "id_curve")
+  # dt_PNl <- data.table::merge.data.table(x = dt_pin_s, y = dt_pin_t, by = c("id_lag", "s", "t", "hi"))
+  # dt_PNl <- dt_PNl[, .("PNl" = sum(pin_s * pin_t)), by = c("s", "t", "hi")]
+  # rm(dt_pin_s, dt_pin_t) ; gc()
+  #
+  # ## Compuet weights
+  # dt_p <- data.table::rbindlist(lapply(1:(N - lag - 1), function(k, dt_pi_raw, dt_PNl){
+  #   ## Extract lagged data
+  #   dt_pi_s_i <- dt_pi_raw[id_curve %in% 1:(N - lag - k), .(id_curve, hi, s, t, "pin_s_i" = pin_s)]
+  #   dt_pi_s_i_plus_k <- dt_pi_raw[id_curve %in% (1 + k):(N - lag), .(id_curve, hi, s, t, "pin_s_i_plus_k" = pin_s)]
+  #
+  #   dt_pi_t_i_plus_ell <- dt_pi_raw[id_curve %in% (1 + lag):(N - k), .(id_curve, hi, s, t, "pin_t_i_plus_ell" = pin_t)]
+  #   dt_pi_t_i_plus_ell_plus_k <- dt_pi_raw[id_curve %in% (1 + k + lag):N, .(id_curve, hi, s, t, "pin_t_i_plus_ell_plus_k" = pin_t)]
+  #
+  #   ## Add lag id to \pi_i(s;h)
+  #   dt_id_lag_s_i <- data.table::data.table(
+  #     "id_curve" = sort(unique(dt_pi_s_i[, id_curve])),
+  #     "id_lag" = paste0(1:(N - lag - k), "_", (1 + k):(N - lag), "_", (1 + lag):(N - k), "_", (1 + k + lag):N)
+  #   )
+  #   dt_pi_s_i <- data.table::merge.data.table(x = dt_id_lag_s_i, y = dt_pi_s_i, by = "id_curve")
+  #   rm(dt_id_lag_s_i) ; gc()
+  #
+  #   ## Add lag id to \pi_{i + k}(s;h)
+  #   dt_id_lag_s_i_plus_k <- data.table::data.table(
+  #     "id_curve" = sort(unique(dt_pi_s_i_plus_k[, id_curve])),
+  #     "id_lag" = paste0(1:(N - lag - k), "_", (1 + k):(N - lag), "_", (1 + lag):(N - k), "_", (1 + k + lag):N)
+  #   )
+  #   dt_pi_s_i_plus_k <- data.table::merge.data.table(x = dt_id_lag_s_i_plus_k, y = dt_pi_s_i_plus_k, by = "id_curve")
+  #   rm(dt_id_lag_s_i_plus_k) ; gc()
+  #
+  #   ## Add lag id to \pi_{i + \ell}(t;h)
+  #   dt_id_lag_t_i_plus_ell <- data.table::data.table(
+  #     "id_curve" = sort(unique(dt_pi_t_i_plus_ell[, id_curve])),
+  #     "id_lag" = paste0(1:(N - lag - k), "_", (1 + k):(N - lag), "_", (1 + lag):(N - k), "_", (1 + k + lag):N)
+  #   )
+  #   dt_pi_t_i_plus_ell <- data.table::merge.data.table(x = dt_id_lag_t_i_plus_ell, y = dt_pi_t_i_plus_ell, by = "id_curve")
+  #   rm(dt_id_lag_t_i_plus_ell) ; gc()
+  #
+  #   ## Add lag id to \pi_{i + \ell + k}(t;h)
+  #   dt_id_lag_t_i_plus_ell_plus_k <- data.table::data.table(
+  #     "id_curve" = sort(unique(dt_pi_t_i_plus_ell_plus_k[, id_curve])),
+  #     "id_lag" = paste0(1:(N - lag - k), "_", (1 + k):(N - lag), "_", (1 + lag):(N - k), "_", (1 + k + lag):N)
+  #   )
+  #   dt_pi_t_i_plus_ell_plus_k <- data.table::merge.data.table(x = dt_id_lag_t_i_plus_ell_plus_k, y = dt_pi_t_i_plus_ell_plus_k, by = "id_curve")
+  #   rm(dt_id_lag_t_i_plus_ell_plus_k) ; gc()
+  #
+  #   ## All four weight dt
+  #   dt_pi <- data.table::merge.data.table(
+  #     x = data.table::merge.data.table(x = dt_pi_s_i, y = dt_pi_s_i_plus_k, by = c("id_lag", "s", "t", "hi")),
+  #     y = data.table::merge.data.table(x = dt_pi_t_i_plus_ell, y = dt_pi_t_i_plus_ell_plus_k, by = c("id_lag", "s", "t", "hi")),
+  #     by = c("id_lag", "s", "t", "hi")
+  #   )
+  #   rm(dt_pi_s_i, dt_pi_s_i_plus_k, dt_pi_t_i_plus_ell, dt_pi_t_i_plus_ell_plus_k) ; gc()
+  #
+  #   ## Calculate the numerator of p_k
+  #   dt_pk <- dt_pi[, .("pk" = sum(pin_s_i * pin_s_i_plus_k * pin_t_i_plus_ell * pin_t_i_plus_ell_plus_k)), by = c("s", "t", "hi")]
+  #
+  #   dt_pk <- data.table::merge.data.table(x = dt_pk, y = dt_PNl, by = c("s", "t", "hi"))
+  #   dt_pk[, pk := pk / PNl, by = c("s", "t", "hi")]
+  #   dt_pk[PNl == 0, pk := 0]
+  #   dt_pk[, lag := k]
+  # }, dt_pi_raw = dt_pi_raw, dt_PNl = dt_PNl))
+#
+#   dt_long_run_var <- data.table::merge.data.table(x = dt_XsXt_autocov[lag > 0], y = dt_p, by = c("s", "t", "lag"))
+#   dt_long_run_var <- dt_long_run_var[! is.nan(XsXt_autocov), list("long_run_var" = sum(2 * XsXt_autocov * pk)), by = c("s", "t", "hi")]
+#   dt_dependence_coef <- data.table::merge.data.table(
+#     x = dt_long_run_var,
+#     y = dt_XsXt_autocov[lag == 0][, .(s, t, "XsXt_var" = XsXt_autocov)],
+#     by = c("s", "t")
+#   )
+#   dt_dependence_coef[, dependence_coef := XsXt_var + long_run_var]
+  dt_long_run_var <- dt_XsXt_autocov[! is.nan(XsXt_autocov), list("long_run_var" = sum(2 * abs(XsXt_autocov))), by = c("s", "t")]
   dt_dependence_coef <- data.table::merge.data.table(
     x = dt_long_run_var,
     y = dt_XsXt_autocov[lag == 0][, .(s, t, "XsXt_var" = XsXt_autocov)],
@@ -496,7 +506,8 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
         3 * (dt_risk[, sig_error_s] ** 2) * (dt_risk[, sig_error_t] ** 2) * dt_risk[, Vgamma]
 
       ## Dependence term
-      dependence_coef <- dt_dependence_coef[hi == h][order(s,t), dependence_coef]
+      # dependence_coef <- dt_dependence_coef[hi == h][order(s,t), dependence_coef]
+      dependence_coef <- dt_dependence_coef[order(s,t), dependence_coef]
       dependence_coef <- abs(dependence_coef)
       dependence_term <- dependence_coef  / dt_risk[order(s, t), PNl]
 
@@ -631,11 +642,11 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   }
 
   # Sort by s and t
-  dt_st <- data.table::data.table("s" = s, "t" = t)
-  dt_st <- dt_st[order(s,t)]
-  s <- dt_st[, s]
-  t <- dt_st[, t]
-  rm(dt_st) ; gc()
+  # dt_st <- data.table::data.table("s" = s, "t" = t)
+  # dt_st <- dt_st[order(s,t)]
+  # s <- dt_st[, s]
+  # t <- dt_st[, t]
+  # rm(dt_st) ; gc()
 
   # Estimate mean function at s and at t
   if ((! center) & (is.null(mean_estimates_s) | is.null(mean_estimates_t))) {
@@ -706,30 +717,6 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     dt_autocov_optbw <- data.table::data.table("s" = s, "t" = t, "optbw" = optbw)
   }
 
-  if (center) {
-    # Estimate mean at s
-    optbw_mean <- dt_autocov_optbw[order(s,t), optbw]
-    dt_mean_s <- estimate_mean(
-      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-      t = s, optbw = optbw_mean)
-    dt_mean_s <- dt_mean_s[, .("s" = t, "locreg_bw_s" = locreg_bw, "Hs" = Ht, "Ls" = Lt, "muhat_s" = muhat)]
-    dt_mean_s <- unique(dt_mean_s)
-
-    # Estimate mean at t
-    dt_mean_t <- estimate_mean(
-      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-      t = t, optbw = optbw_mean)
-    dt_mean_t <- dt_mean_t[, .("t" = t, "locreg_bw_t" = locreg_bw, "Ht" = Ht, "Lt" = Lt, "muhat_t" = muhat)]
-    dt_mean_t <- unique(dt_mean_t)
-
-    # Merge the results
-    dt_mean <- data.table::data.table("s" = s, "t" = t)
-    dt_mean <- data.table::merge.data.table(x = dt_mean, y = dt_mean_s, by = "s")
-    dt_mean <- data.table::merge.data.table(x = dt_mean, y = dt_mean_t, by = "t")
-    dt_mean[, c("optbw_muhat_s", "optbw_muhat_t") := .(optbw_mean, optbw_mean)]
-    rm(dt_mean_s, dt_mean_t, optbw_mean) ; gc()
-  }
-
   # Smooth curves with optimal bandwidth parameters
   dt_Xhat <- data.table::rbindlist(lapply(1:N, function(curve_index, s, t, data, dt_autocov_optbw, smooth_ker){
     # Extract data
@@ -776,21 +763,48 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     Xhat_s_vec <- dt_Xhat[s == s[sid] & t == t[sid], Xhat_s]
     pin_s_vec <- dt_Xhat[s == s[sid] & t == t[sid], pin_s]
     Xhat_s_i <- Xhat_s_vec[1:(N - lag)]
+    Xhat_s_i[is.nan(Xhat_s_i)] <- 0
     pin_s_i <- pin_s_vec[1:(N - lag)]
 
     ## For the argument t
     Xhat_t_vec <- dt_Xhat[s == s[sid] & t == t[sid], Xhat_t]
     pin_t_vec <- dt_Xhat[s == s[sid] & t == t[sid], pin_t]
     Xhat_t_i_plus_lag <- Xhat_t_vec[(1 + lag):N]
+    Xhat_t_i_plus_lag[is.nan(Xhat_t_i_plus_lag)] <- 0
     pin_t_i_plus_lag <- pin_t_vec[(1 + lag):N]
+
+    ## Number of used points
+    PNl <- sum(pin_s_i *pin_t_i_plus_lag)
+
+    ## Estimate mean func
+    Xs_vec <- pin_s_i * pin_t_i_plus_lag * Xhat_s_i
+    Xt_vec <- pin_s_i * pin_t_i_plus_lag * Xhat_t_i_plus_lag
+    muhat_s <- sum(Xs_vec) / PNl
+    muhat_t <- sum(Xt_vec) / PNl
 
     ## Estimate gamma
     XsXt_vec <- pin_s_i * pin_t_i_plus_lag * Xhat_s_i * Xhat_t_i_plus_lag
-
-    XsXt_vec <- XsXt_vec[!is.nan(XsXt_vec)]
-    gammahat <- mean(XsXt_vec)
-    dt_res <- data.table::data.table("s" = s[sid], "t" = t[sid], "lag" = lag, "gammahat" = gammahat)
+    gammahat <- sum(XsXt_vec) / PNl
+    dt_res <- data.table::data.table("s" = s[sid], "t" = t[sid], "lag" = lag, "PNl" = PNl,
+                                     "gammahat" = gammahat, "muhat_s" = muhat_s, "muhat_t" = muhat_t)
   }, s = s, t = t, lag = lag, dt_Xhat = dt_Xhat))
+
+  ## Centered version
+  if (center) {
+    # Estimate  lag-\ell autocovariance
+    dt_gamma[, autocovhat := gammahat - muhat_s * muhat_t]
+    dt_autocov <- data.table::merge.data.table(
+      x = dt_gamma, y = dt_autocov_optbw[, list("optbw_gamma" = optbw), by = c("s", "t")],
+      by = c("s", "t")
+    )
+    dt_autocov[, c("locreg_bw_s", "locreg_bw_t", "Hs", "Ls", "Ht", "Lt", "lag", "PNl",
+                   "optbw_gamma", "optbw_muhat_s", "optbw_muhat_t") := .(NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA)]
+    data.table::setcolorder(
+      x = dt_autocov,
+      neworder = c("s", "t", "locreg_bw_s", "locreg_bw_t", "Hs", "Ls", "Ht", "Lt", "lag", "PNl",
+                   "optbw_gamma", "optbw_muhat_s", "optbw_muhat_t",
+                   "muhat_s", "muhat_t", "gammahat", "autocovhat"))
+  } else {
 
   # Estimate  lag-\ell autocovariance
   dt_autocov <- data.table::merge.data.table(
@@ -803,9 +817,10 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   dt_autocov[, autocovhat := gammahat - muhat_s * muhat_t, by = c("s", "t")]
   data.table::setcolorder(
     x = dt_autocov,
-    neworder = c("s", "t", "locreg_bw_s", "locreg_bw_t", "Hs", "Ls", "Ht", "Lt", "lag",
+    neworder = c("s", "t", "locreg_bw_s", "locreg_bw_t", "Hs", "Ls", "Ht", "Lt", "lag", "PNl",
                  "optbw_gamma", "optbw_muhat_s", "optbw_muhat_t",
                  "muhat_s", "muhat_t", "gammahat", "autocovhat"))
+  }
   return(dt_autocov)
 }
 
@@ -853,27 +868,26 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
-  # Calculate the sum
-  Spq_sum <- sum(unlist(lapply(1:(N-lag), function(curve_index, s, t, p, q, lag, h, ker, data = data){
-    # Extract observation points
-    Tn <- data[id_curve %in% curve_index, tobs]
-    Tn_plus_lag <- data[id_curve %in% (curve_index + lag), tobs]
+  # Extract observation points
+  Tn <- data[id_curve %in% 1:(N - lag), tobs]
+  Tn_plus_lag <- data[id_curve %in% (1 + lag):N, tobs]
+  rm(data); gc()
 
-    # Calculation of the elements to be summed up
-    mat_res <- outer(X = Tn, Y = Tn_plus_lag, function(xtk, xthj, s, t, p, q, h, ker){
-      res <- (((xthj - t) / h ) ** p) * (((xtk - s) / h ) ** q) *
-        (1 / (h ** 2)) * ker((xthj - t) / h) * ker((xtk - s) / h )
-      return(res)
-    },s = s, t = t, p = p, q = q, h = h, ker = ker)
+  dt_tobs <- data.table::CJ(Tn, Tn_plus_lag)
+  if (lag == 0) {
+    ind_vec <- data.table::CJ(1:length(Tn), 1:length(Tn_plus_lag))[, which(V1 != V2)]
+    dt_tobs <- dt_tobs[ind_vec]
+    rm(ind_vec) ; gc()
+  }
+  xtk_vec <- dt_tobs[, Tn]
+  xthj_vec <- dt_tobs[, Tn_plus_lag]
+  rm(dt_tobs, Tn, Tn_plus_lag) ; gc()
 
-    # If lag == 0, set the diagonal to zero
-    if (lag == 0) {
-      diag(mat_res) <- 0
-    }
-    # Sum for each curve
-    Spq_res <- sum(rowSums(mat_res))
-    return(Spq_res)
-  }, s = s, t = t, p = p, q = q, lag = lag, h = h, ker = smooth_ker, data = data)))
+  # Calculation of the elements to be summed up
+  res <- (((xthj_vec - t) / h ) ** p) * (((xtk_vec - s) / h ) ** q) *
+    (1 / (h ** 2)) * smooth_ker((xthj_vec - t) / h) * smooth_ker((xtk_vec - s) / h )
+  Spq_sum <- sum(res)
+  rm(res) ; gc()
   Spq <- Spq_sum / (N - lag)
   return(Spq)
 }
@@ -906,26 +920,26 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
                      s = 1/4, t = 1/2, lag = 1, p = 1, q = 1,
                      h, dt_mean_rp = NULL, optbw_mean = NULL, smooth_ker = epanechnikov){
   # Control easy checkable arguments
-  if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1)) & length(s) == 1))
+  if (! (methods::is(s, "numeric") && all(s > 0 & s <= 1) && length(s) == 1))
     stop("'s' must be a numeric scalar value between 0 and 1.")
-  if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))  & length(t) == 1))
+  if (! (methods::is(t, "numeric") && all(t > 0 & t <= 1)  && length(t) == 1))
     stop("'t' must be a numeric scalar value between 0 and 1.")
   if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
     stop("'lag' must be a positive integer lower than the number of curves.")
   if ((any(p < 0)| (length(p) > 1) | any(p - floor(p) > 0)) |
       any(q < 0)| (length(q) > 1) | any(q - floor(q) > 0))
     stop("'p' and 'q' must be positive integers.")
-  if (! (methods::is(h, "numeric") & all(data.table::between(h, 0, 1))  & length(h) == 1))
+  if (! (methods::is(h, "numeric") && all(h > 0 & h < 1)  && length(h) == 1))
     stop("'h' must be a numeric scalar value between 0 and 1.")
   if (is.null(dt_mean_rp)) {
-    if (is.null(optbw_mean))
+    if (is.null(optbw_mean)) {
       stop("If 'dt_mean_rp' is NULL, then optbw_mean can not be NULL")
-  } else {
-    if (! (data.table::is.data.table(dt_mean_rp) & all(c("id_curve", "tobs", "muhat_RP") %in% colnames(dt_mean_rp))))
+    } else if (! (methods::is(optbw_mean, "numeric") && all(optbw_mean > 0 & optbw_mean < 1) && length(optbw_mean) == 1)) {
+      stop("'optbw_mean' must be a numeric scalar value between 0 and 1.")
+    }
+  } else if (! (data.table::is.data.table(dt_mean_rp) & all(c("id_curve", "tobs", "muhat_RP") %in% colnames(dt_mean_rp)))) {
       stop("'dt_mean_rp' must be a data.table containing the columns : 'id_curve', 'tobs' and 'muhat_RP'.")
   }
-  if (! (methods::is(optbw_mean, "numeric") & all(data.table::between(optbw_mean, 0, 1))  & length(optbw_mean) == 1))
-    stop("'optbw_mean' must be a numeric scalar value between 0 and 1.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
 
@@ -940,47 +954,51 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
       data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       t = dt_mean_rp[, tobs], h = optbw_mean, smooth_ker = smooth_ker)
     dt_mean_rp[, muhat_RP := dt_mean[, muhat_RP]]
+    rm(dt_mean) ; gc()
   } else {
     dt_mean_rp <- dt_mean_rp[order(id_curve)]
   }
 
-  # Calculate the sum
-  Qpq_sum <- sum(unlist(lapply(1:(N - lag), function(curve_index, s, t, p, q, lag, h, ker, data = data, dt_mean_rp){
-    # Extract observation points and observed points
-    Tn <- data[id_curve %in% curve_index, tobs]
-    Tn_plus_lag <- data[id_curve %in% (curve_index + lag), tobs]
-    Yn <- data[id_curve %in% curve_index, X]
-    Yn_plus_lag <- data[id_curve %in% (curve_index + lag), X]
+  # Extract observation points and observed points
+  data <- data[order(id_curve)]
+  Tn <- data[id_curve %in% 1:(N - lag), tobs]
+  Tn_plus_lag <- data[id_curve %in% (1 + lag):N, tobs]
+  Yn <- data[id_curve %in% 1:(N - lag), X]
+  Yn_plus_lag <- data[id_curve %in% (1 + lag):N, X]
+  rm(data); gc()
 
-    # Extract mean function estimates
-    muhat_Tn <- dt_mean_rp[id_curve %in% curve_index, muhat_RP]
-    muhat_Tn_plus_lag <- dt_mean_rp[id_curve %in% (curve_index + lag), muhat_RP]
+  # Extract mean function estimates
+  dt_mean_rp <- dt_mean_rp[order(id_curve)]
+  muhat_Tn <- dt_mean_rp[id_curve %in% 1:(N - lag), muhat_RP]
+  muhat_Tn_plus_lag <- dt_mean_rp[id_curve %in% (1 + lag):N, muhat_RP]
+  rm(dt_mean_rp) ; gc()
+  # repeat data
+  dt_tobs <- data.table::CJ(Tn, Tn_plus_lag)
+  dt_Y <- data.table::CJ(Yn, Yn_plus_lag)
+  dt_mean <- data.table::CJ(muhat_Tn, muhat_Tn_plus_lag)
+  if (lag == 0) {
+    ind_vec <- data.table::CJ(1:length(Tn), 1:length(Tn_plus_lag))[, which(V1 != V2)]
+    dt_tobs <- dt_tobs[ind_vec]
+    dt_Y <- dt_Y[ind_vec]
+    dt_mean <- dt_mean[ind_vec]
+    rm(ind_vec) ; gc()
+  }
+  # Extract and clean
+  xtk_vec <- dt_tobs[, Tn]
+  xthj_vec <- dt_tobs[, Tn_plus_lag]
+  Ytk_vec <- dt_Y[, Yn]
+  Ythj_vec <- dt_Y[, Yn_plus_lag]
+  muhat_tk_vec <- dt_mean[, muhat_Tn]
+  muhat_xthj_vec <- dt_mean[, muhat_Tn_plus_lag]
+  rm(dt_tobs, dt_Y, dt_mean, Tn, Tn_plus_lag, Yn, Yn_plus_lag, muhat_Tn, muhat_Tn_plus_lag) ; gc()
 
-    # Calculation of the elements to be summed up
-    mat_res <- outer(
-      X = 1:length(Tn), Y = 1:length(Tn_plus_lag),
-      function(index_xtk, index_xthj, s, t, p, q, h, ker,
-               Tn, Tn_plus_lag, Yn, Yn_plus_lag, muhat_Tn, muhat_Tn_plus_lag){
-        # Calculate G_{h,t}(x_{t+h, j}, x_{t, k})
-        Gth <- (Yn_plus_lag[index_xthj] - muhat_Tn_plus_lag[index_xthj]) * (Yn[index_xtk] - muhat_Tn[index_xtk])
+  # Calculate Q function
+  Gth <- (Ythj_vec - muhat_xthj_vec) * (Ytk_vec - muhat_tk_vec)
+  res <- Gth * (((xthj_vec - t) / h ) ** p) * (((xtk_vec - s) / h ) ** q) *
+    (1 / (h ** 2)) * smooth_ker((xthj_vec - t) / h) * smooth_ker((xtk_vec - s) / h )
 
-        # Calculate
-        res <- Gth * (((Tn_plus_lag[index_xthj] - t) / h ) ** p) * (((Tn[index_xtk] - s) / h ) ** q) *
-          (1 / (h ** 2)) * ker((Tn_plus_lag[index_xthj] - t) / h) * ker((Tn[index_xtk] - s) / h )
-        return(res)
-      }, s = s, t = t, p = p, q = q, h = h, ker = ker,
-      Tn = Tn, Tn_plus_lag = Tn_plus_lag, Yn = Yn, Yn_plus_lag = Yn_plus_lag,
-      muhat_Tn = muhat_Tn, muhat_Tn_plus_lag = muhat_Tn_plus_lag)
-    rm(Tn, Tn_plus_lag, Yn, Yn_plus_lag, muhat_Tn, muhat_Tn_plus_lag) ; gc()
-
-    # If lag == 0, set the diagonal to zero
-    if (lag == 0) {
-      diag(mat_res) <- 0
-    }
-    # Sum for each curve
-    Qpq_res <- sum(rowSums(mat_res))
-    return(Qpq_res)
-  }, s = s, t = t, p = p, q = q, lag = lag, h = h, ker = smooth_ker, data = data, dt_mean_rp = dt_mean_rp)))
+  Qpq_sum <- sum(res)
+  rm(res) ; gc()
   Qpq <- Qpq_sum / (N - lag)
   return(Qpq)
 }
@@ -1020,25 +1038,25 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
                                 lag = 1, h, optbw_mean = NULL, dt_mean_rp = NULL,
                                 smooth_ker = epanechnikov){
   # Control easy checkable arguments
-  if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
+  if (! (methods::is(s, "numeric") && all(s > 0 & s <= 1)))
     stop("'s' must be a numeric vector or scalar value(s) between 0 and 1.")
-  if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
+  if (! (methods::is(t, "numeric") && all(t > 0 & t <= 1)))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! length(s) == length(t))
     stop("Arguments 's' and 't' must be of equal length.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
-  if (! (methods::is(h, "numeric") & all(data.table::between(h, 0, 1))  & length(h) == 1))
+  if (! (methods::is(h, "numeric") && all(h > 0 & h < 1) && length(h) == 1))
     stop("'h' must be a numeric scalar value between 0 and 1.")
   if (is.null(dt_mean_rp)) {
-    if (is.null(optbw_mean))
+    if (is.null(optbw_mean)) {
       stop("If 'dt_mean_rp' is NULL, then optbw_mean can not be NULL")
-  } else {
-    if (! (data.table::is.data.table(dt_mean_rp) & all(c("id_curve", "tobs", "muhat_RP") %in% colnames(dt_mean_rp))))
+    } else if (! (methods::is(optbw_mean, "numeric") && aall(optbw_mean > 0 & optbw_mean < 1) && length(optbw_mean) == 1)) {
+      stop("'optbw_mean' must be a numeric scalar value between 0 and 1.")
+    }
+  } else if (! (data.table::is.data.table(dt_mean_rp) && all(c("id_curve", "tobs", "muhat_RP") %in% colnames(dt_mean_rp)))) {
       stop("'dt_mean_rp' must be a data.table containing the columns : 'id_curve', 'tobs' and 'muhat_RP'.")
   }
-  if (! (methods::is(optbw_mean, "numeric") & all(data.table::between(optbw_mean, 0, 1))  & length(optbw_mean) == 1))
-    stop("'optbw_mean' must be a numeric scalar value between 0 and 1.")
   if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
     stop("'lag' must be a positive integer lower than the number of curves.")
 
@@ -1144,14 +1162,15 @@ estimate_autocov_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
   if (is.null(dt_mean_rp)) {
-    if (is.null(optbw_mean))
+    if (is.null(optbw_mean)) {
       stop("If 'dt_mean_rp' is NULL, then optbw_mean can not be NULL")
+    } else if (! (methods::is(optbw_mean, "numeric") & all(optbw_mean > 0 & optbw_mean <= 1)  & length(optbw_mean) == 1)) {
+      stop("'optbw_mean' must be a numeric scalar value between 0 and 1.")
+    }
   } else {
     if (! (data.table::is.data.table(dt_mean_rp) & all(c("id_curve", "tobs", "muhat_RP") %in% colnames(dt_mean_rp))))
       stop("'dt_mean_rp' must be a data.table containing the columns : 'id_curve', 'tobs' and 'muhat_RP'.")
   }
-  if (! (methods::is(optbw_mean, "numeric") & all(data.table::between(optbw_mean, 0, 1))  & length(optbw_mean) == 1))
-    stop("'optbw_mean' must be a numeric scalar value between 0 and 1.")
 
   # Estimate mean function is it is NULL
   if (is.null(dt_mean_rp)) {
@@ -1160,6 +1179,7 @@ estimate_autocov_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol
       data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       t = dt_mean_rp[, tobs], h = optbw_mean, smooth_ker = smooth_ker)
     dt_mean_rp[, muhat_RP := dt_mean[, muhat_RP]]
+    rm(dt_mean) ; gc()
   } else {
     dt_mean_rp <- dt_mean_rp[order(id_curve)]
   }
@@ -1168,7 +1188,7 @@ estimate_autocov_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol
   fold <- caret::createFolds(y = unique(data[, id_curve]), k = Kfold, list = TRUE)
 
   # Get risk for each bandwidth in the grid
-  dt_bw <- data.table::rbindlist(lapply(bw_grid, function(BR0, data, dt_mean_rp, fold, kernel_smooth){
+  dt_bw <- data.table::rbindlist(parallel::mclapply(bw_grid, function(BR0, data, dt_mean_rp, fold, kernel_smooth){
 
     # Compute the cross-validation error for each f in fold
     err_fold <- tryCatch(
@@ -1225,7 +1245,7 @@ estimate_autocov_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol
     dt_res <- data.table::data.table("h" = BR0, "cv_error" = cv_err)
     return(dt_res)
 
-  }, data = data, dt_mean_rp = dt_mean_rp, fold = fold, kernel_smooth = smooth_ker))
+  }, mc.cores = 20, data = data, dt_mean_rp = dt_mean_rp, fold = fold, kernel_smooth = smooth_ker))
 
   return(dt_bw)
 }

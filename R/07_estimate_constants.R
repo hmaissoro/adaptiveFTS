@@ -121,8 +121,11 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
       Xk <- Xvec[1:(N-lg)]
       Xk_plus_lag <- Xvec[(1 + lg):N]
       autocov_vec <- (Xk - muhat) * (Xk_plus_lag - muhat)
+
+      ## Remove NaN before taking the mean AND set 0 if all the values are NaNs
       autocov_vec <- autocov_vec[!is.nan(autocov_vec)]
       autocov <- mean(autocov_vec)
+      autocov[is.nan(autocov)] <- 0
       dt_res <- data.table::data.table("t" = ti, "lag" = lg, "autocov" = autocov)
     }, lg = lg, dt_mean = dt_mean, dt_smooth = dt_smooth))
   }, dt_smooth = dt_smooth, dt_mean = dt_mean))
@@ -314,8 +317,10 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", y
         XsXt_autocov_vec <- (Xhat_s_i * Xhat_t_i_plus_cross_lag - gamma_cross_lag) *
           (Xhat_s_i_plus_lag * Xhat_t_i_plus_cross_lag_plus_lag - gamma_cross_lag)
 
+        ## Remove NaN before taking the mean AND set 0 if all the values are NaN
         XsXt_autocov_vec <- XsXt_autocov_vec[!is.nan(XsXt_autocov_vec)]
         XsXt_autocov <- mean(XsXt_autocov_vec)
+        XsXt_autocov[is.nan(XsXt_autocov)] <- 0
         dt_res <- data.table::data.table("s" = s[sid], "t" = t[sid], "cross_lag" = cross_lag, "lag" = lg, "EXsXt_cross_lag" = gamma_cross_lag, "XsXt_autocov" = XsXt_autocov)
       }, lg = lg, dt_gamma_cross_lag = dt_gamma_cross_lag, dt_smooth_merge = dt_smooth_merge))
     }, dt_smooth_merge = dt_smooth_merge, dt_gamma_cross_lag = dt_gamma_cross_lag))

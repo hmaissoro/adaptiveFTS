@@ -45,7 +45,7 @@ ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = 
     ## define segment and set scale label
     dt_pr <- unique(dt_locreg[, .("t" = as.factor(t), "x" = as.factor(t - 0.05),
                                   "xend" = as.factor(t + 0.049), "Htrue" =  Hfun(t))])
-    scale_label <- c(dt_pr[, t], dt_pr[, x], dt_pr[, xend])
+    scale_label <- c(dt_pr[, as.character(t)], dt_pr[, as.character(x)], dt_pr[, as.character(xend)])
     scale_label <- sort(as.character(scale_label))
     scale_label[- which(scale_label %in% as.character(dt_pr[, t]))] <- as.character(" ")
 
@@ -59,13 +59,13 @@ ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = 
       y_lab <- ""
       geom_true_param <- geom_segment(
         data = dt_pr, mapping = aes(x = x, xend = xend, y = Htrue, yend = Htrue),
-        linetype = "twodash", linewidth = 0.9)
+        linetype = "twodash", size = 0.9)
     } else if (param == "Lt") {
       # title_exp <- paste0(process, "(1) - WN = ", white_noise, " - N = ", N , ", $\\lambda$=", lambda)*
       title_exp <- paste0("$\\widehat{L}_t^2 - $", "N=", N , ", $\\lambda$=", lambda)
       y_lim <- c(-2, 12)
       x_lab <- "t"
-      geom_true_param <- geom_hline(yintercept = 4, color = "#283747", linetype = "twodash", linewidth = 0.9)
+      geom_true_param <- geom_hline(yintercept = 4, color = "#283747", linetype = "twodash", size = 0.9)
       y_lab <- ""
       scale_label <- scale_label[! scale_label == " "]
     }
@@ -84,7 +84,7 @@ ggplot_locreg <- function(N = 400, lambda = 300, process = "FAR", white_noise = 
     ## define segment and set scale label
     dt_pr <- unique(dt_locreg[, .("t" = as.factor(t), "x" = as.factor(Htrue - 0.05),
                                   "xend" = as.factor(Htrue + 0.05), Htrue)])
-    scale_label <- c(dt_pr[, as.factor(Htrue)], dt_pr[, x], dt_pr[, xend])
+    scale_label <- c(dt_pr[, as.character(Htrue)], dt_pr[, as.character(x)], dt_pr[, as.character(xend)])
     scale_label <- sort(as.character(unique(scale_label)))
     scale_label[- which(scale_label %in% as.character(dt_pr[, as.factor(Htrue)]))] <- ""
 

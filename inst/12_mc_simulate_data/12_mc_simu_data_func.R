@@ -18,7 +18,9 @@ Hlogistic <- function(t){
 }
 
 ## Logistic constant hurst function
-Hvec <- c(0.4, 0.5, 0.7)
+Hconst <- 0.4
+# Hconst <- 0.5
+# Hconst <- 0.7
 
 ## {M_n} distribution
 bounded_uniform <- function(N, lambda, p = 0.2){
@@ -35,7 +37,7 @@ simulate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
                               process_ker = get_real_data_far_kenel,
                               process_mean = get_real_data_mean,
                               white_noise = "mfBm", Lt = 4,
-                              hurst = Hlogistic, Hvec = Hvec){
+                              hurst = Hlogistic, Hconst = 0.4){
   # Generate data according the choixe of the white noise
   if (white_noise == "mfBm") {
 
@@ -89,6 +91,85 @@ simulate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
 
     #### Add noise and get optimal bw for each curve
     index <- dt_gen[, unique(id_curve)]
+    dt <- data.table::rbindlist(parallel::mclapply(index, function(id, dtt, bw_grid){
+      # Filter data
+      d <- dtt[id_curve == id & ttag == "trandom"][order(tobs)]
+
+      # Add noise
+      d[, X := X + rnorm(n = .N, mean = 0, sd = sig)]
+
+      # Get optimal bandwidth
+      bw <- estimate_nw_bw(y = d[, X], t = d[, tobs], bw_grid = bw_grid)
+      d[, presmooth_bw := bw]
+      return(d)
+    }, mc.cores = 50, dtt = dt_gen, bw_grid = bw_grid))
+
+    ### Add fix design points
+    dt_tcommon <- data.table::merge.data.table(
+      x = dt_gen[ttag == "tcommon"],
+      y = unique(dt[, .(id_curve, presmooth_bw)]),
+      by = "id_curve")
+    dt_res <- rbind(dt, dt_tcommon)
+    rm(dt, dt_tcommon, index, bw_grid) ; gc() ; gc()
+
+    # Add MC index
+    dt_res[, c("id_mc", "N", "lambda") := .(mc_i, Ni, lambdai)]
+    data.table::setcolorder(
+      x = dt_res,
+      neworder = c("id_mc", "N", "lambda", "id_curve", "tobs", "ttag", "process_mean", "X", "presmooth_bw"))
+
+  } else if (white_noise == "fBm") {
+    Hfun <-  function(t) Hconst + 0 * t
+    ## Generate FAR(1) or FMA(1)
+    if (process == "FAR") {
+      ### Simulate mean-zero FAR(1) process
+      dt_gen <- simulate_far(N = Ni, lambda = lambdai,
+                             tdesign = "random",
+                             Mdistribution = bounded_uniform,
+                             tdistribution = runif,
+                             tcommon = t0,
+                             hurst_fun = Hfun,
+                             L = Lt,
+                             far_kernel = process_ker,
+                             far_mean = process_mean,
+                             int_grid = 100L,
+                             burnin = 100L,
+                             remove_burnin = TRUE)
+      ### Add mean function
+      dt_gen[, process_mean := far_mean]
+      dt_gen[, far_mean := NULL]
+
+    } else if (process == "FMA") {
+      ### Simulate mean-zero FMA(1) process
+      dt_gen <- simulate_fma(N = Ni, lambda = lambdai,
+                             tdesign = "random",
+                             Mdistribution = bounded_uniform,
+                             tdistribution = runif,
+                             tcommon = t0,
+                             hurst_fun = Hfun,
+                             L = Lt,
+                             fma_kernel = process_ker,
+                             fma_mean = process_mean,
+                             int_grid = 100L,
+                             burnin = 100L,
+                             remove_burnin = TRUE)
+      ### Add mean function
+      dt_gen[, process_mean := fma_mean]
+      dt_gen[, far_mean := NULL]
+    }
+
+    ### Get pre-smoothing bandwidth
+    #### Define and exponential bandwidth grid
+    lambdahat <- mean(dt_gen[ttag == "trandom", .N, by = id_curve][, N])
+    K <- 30
+    b0 <- 1 / lambdahat
+    bK <- lambdahat ** (- 1 / 3)
+    a <- exp((log(bK) - log(b0)) / K)
+    bw_grid <- b0 * a ** (seq_len(K))
+    rm(b0, bK, a, K) ; gc()
+
+    #### Add noise and get optimal bw for each curve
+    index <- dt_gen[, unique(id_curve)]
     dt <- data.table::rbindlist(lapply(index, function(id, dtt, bw_grid){
       # Filter data
       d <- dtt[id_curve == id & ttag == "trandom"][order(tobs)]
@@ -111,96 +192,20 @@ simulate_data_fun <- function(mc_i, Ni, lambdai, t0, sig = 0.25,
     rm(dt, dt_tcommon, index, bw_grid) ; gc() ; gc()
 
     # Add MC index
-    dt_res[, c("id_mc", "N", "lambda") := .(mc_i, Ni, lambdai)]
+    dt_res[, c("id_mc", "N", "lambda", "Htrue") := .(mc_i, Ni, lambdai, Hconst)]
     data.table::setcolorder(
       x = dt_res,
-      neworder = c("id_mc", "N", "lambda", "id_curve", "tobs", "ttag", "process_mean", "X", "presmooth_bw"))
+      neworder = c("id_mc", "N", "lambda", "Htrue", "id_curve", "tobs", "ttag", "process_mean", "X", "presmooth_bw")
+    )
 
-  } else if (white_noise == "fBm") {
-    dt_res <- data.table::rbindlist(lapply(Hvec, function(Hi, process){
-      ## Generate FAR(1) or FMA(1)
-      Hfun <-  function(t) Hi + 0 * t
-      if (process == "FAR") {
-        ### Simulate mean-zero FAR(1) process
-        dt_gen <- simulate_far(N = Ni, lambda = lambdai,
-                               tdesign = "random",
-                               Mdistribution = bounded_uniform,
-                               tdistribution = runif,
-                               tcommon = t0,
-                               hurst_fun = Hfun,
-                               L = Lt,
-                               far_kernel = process_ker,
-                               far_mean = process_mean,
-                               int_grid = 100L,
-                               burnin = 100L,
-                               remove_burnin = TRUE)
-        ### Add mean function
-        dt_gen[, process_mean := far_mean]
-        dt_gen[, far_mean := NULL]
-
-      } else if (process == "FMA") {
-        ### Simulate mean-zero FMA(1) process
-        dt_gen <- simulate_fma(N = Ni, lambda = lambdai,
-                               tdesign = "random",
-                               Mdistribution = bounded_uniform,
-                               tdistribution = runif,
-                               tcommon = t0,
-                               hurst_fun = Hfun,
-                               L = Lt,
-                               fma_kernel = process_ker,
-                               fma_mean = process_mean,
-                               int_grid = 100L,
-                               burnin = 100L,
-                               remove_burnin = TRUE)
-        ### Add mean function
-        dt_gen[, process_mean := fma_mean]
-        dt_gen[, far_mean := NULL]
-      }
-
-      ### Get pre-smoothing bandwidth
-      #### Define an exponential bandwidth grid
-      lambdahat <- mean(dt_gen[ttag == "trandom", .N, by = id_curve][, N])
-      K <- 50
-      b0 <- 1 / lambdahat
-      bK <- lambdahat ** (- 1 / 3)
-      a <- exp((log(bK) - log(b0)) / K)
-      bw_grid <- b0 * a ** (seq_len(K))
-      rm(b0, bK, a, K) ; gc()
-
-      #### Add noise and get optimal bw for each curve
-      index <- dt_gen[, unique(id_curve)]
-      dt <- data.table::rbindlist(lapply(index, function(id, dtt, bw_grid){
-        # Filter data
-        d <- dtt[id_curve == id & ttag == "trandom"][order(tobs)]
-
-        # Add noise
-        d[, X := X + rnorm(n = .N, mean = 0, sd = sig)]
-
-        # Get optimal bandwidth
-        bw <- estimate_nw_bw(y = d[, X], t = d[, tobs], bw_grid = bw_grid)
-        d[, presmooth_bw := bw]
-        return(d)
-      }, dtt = dt_gen, bw_grid = bw_grid))
-
-      ### Add fix design points
-      dt_tcommon <- data.table::merge.data.table(
-        x = dt_gen[ttag == "tcommon"],
-        y = unique(dt[, .(id_curve, presmooth_bw)]),
-        by = "id_curve")
-      dt_by_H <- rbind(dt, dt_tcommon)
-      rm(dt, dt_tcommon, index, bw_grid) ; gc() ; gc()
-
-      # Add MC index
-      dt_by_H[, c("id_mc", "N", "lambda", "Htrue") := .(mc_i, Ni, lambdai, Hi)]
-      data.table::setcolorder(
-        x = dt_by_H,
-        neworder = c("id_mc", "N", "lambda", "Htrue", "id_curve", "tobs", "ttag", "process_mean", "X", "presmooth_bw"))
-      return(dt_by_H)
-    }, process = process))
+    # Save RDS
+    file_title <- paste0("./inst/12_mc_simulate_data/", process, "/data/", design, "_slice/H", Hconst, "/N", Ni, "lambda", lambdai,"/dt_mc_",
+                         process,"_", white_noise, "_", "H=", Hi, "_N=", Ni, "_lambda=", lambdai, "_", design,".RDS")
+    saveRDS(object = dt_res, file = file_title)
   }
 
   # return the result
-  return(dt_res)
+  return("Done !")
 }
 
 # Simulate all MC process
@@ -210,25 +215,24 @@ simulate_data <- function(Nmc = mc, Ni = 400, lambdai = 300, t0, sig = 0.25,
                           process_ker = get_real_data_far_kenel,
                           process_mean = get_real_data_mean,
                           white_noise = "mfBm", Lt = 4,
-                          hurst = Hlogistic, Hvec = Hvec, design = "d1"){
-  dt_res <- data.table::rbindlist(
-    parallel::mclapply(seq_len(Nmc), function(mc_i, Ni, lambdai, t0, sig, process,
-                                              process_ker, process_mean, white_noise, hurst, Hvec){
-      dt_ <- simulate_data_fun(mc_i = mc_i, Ni = Ni, lambdai = lambdai, t0 = t0, sig = sig,
-                               process = process, process_ker = process_ker,
-                               process_mean = process_mean, white_noise = white_noise, Lt = Lt,
-                               hurst = hurst, Hvec = Hvec)
-      return(dt_)
-    }, Ni = Ni, lambdai = lambdai, t0 = t0, sig = sig,
-    process = process, process_ker = process_ker, process_mean = process_mean,
-    white_noise = white_noise, hurst = hurst, Hvec = Hvec, mc.cores = 75))
+                          hurst = Hlogistic, Hconst = Hconst, design = "d1"){
+  parallel::mclapply(Nmc, function(mc_i, Ni, lambdai, t0, sig, process,
+                                   process_ker, process_mean, white_noise, hurst, Hconst){
+    dt_ <- simulate_data_fun(mc_i = mc_i, Ni = Ni, lambdai = lambdai, t0 = t0, sig = sig,
+                             process = process, process_ker = process_ker,
+                             process_mean = process_mean, white_noise = white_noise, Lt = Lt,
+                             hurst = hurst, Hconst = Hconst)
+    return(dt_)
+  }, Ni = Ni, lambdai = lambdai, t0 = t0, sig = sig,
+  process = process, process_ker = process_ker, process_mean = process_mean,
+  white_noise = white_noise, hurst = hurst, Hconst = Hconst, mc.cores = 30)
 
-  ### Local Regularity
-  file_title <- paste0("./inst/12_mc_simulate_data/", process, "/data/dt_mc_",
-                       process,"_", white_noise, "_", "N=", Ni, "_lambda=", lambdai, "_", design,".RDS")
-
-  saveRDS(object = dt_res, file = file_title)
-  rm(dt_res, file_title) ; gc() ; gc()
+  # ### Local Regularity
+  # file_title <- paste0("./inst/12_mc_simulate_data/", process, "/data/dt_mc_",
+  #                      process,"_", white_noise, "_", "N=", Ni, "_lambda=", lambdai, "_", design,".RDS")
+  #
+  # saveRDS(object = dt_res, file = file_title)
+  # rm(dt_res, file_title) ; gc() ; gc()
   print(paste0("Done : dt_mc_", process,"_", white_noise, "_", "N=", Ni, "_lambda=", lambdai, "_", design,".RDS at ", Sys.time()))
 }
 

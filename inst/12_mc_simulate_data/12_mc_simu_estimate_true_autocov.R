@@ -128,7 +128,7 @@ simate_data <- function(Nmc = mc, Ni = 5000, t0,
                         process_ker = get_real_data_far_kenel,
                         process_mean = get_real_data_mean,
                         white_noise = "mfBm",
-                        hurst = Hlogistic, Hvec = Hvec, design = "d1"){
+                        hurst = Hlogistic, Hvec = Hvec, design = "d1", for_variance = FALSE){
   dt_res <- data.table::rbindlist(
     parallel::mclapply(seq_len(Nmc), function(mc_i, Ni, lambdai, t0, process,
                                               process_ker, process_mean, white_noise, hurst, Hvec){
@@ -139,11 +139,16 @@ simate_data <- function(Nmc = mc, Ni = 5000, t0,
       return(dt_)
     }, Ni = Ni, lambdai = lambdai, t0 = t0,
     process = process, process_ker = process_ker, process_mean = process_mean,
-    white_noise = white_noise, hurst = hurst, Hvec = Hvec, mc.cores = 75))
+    white_noise = white_noise, hurst = hurst, Hvec = Hvec, mc.cores = 30))
 
   ### Local Regularity
-  file_title <- paste0("./inst/12_mc_simulate_data/", process, "/data/dt_mc_common",
-                       process,"_", white_noise, "_", "N=", Ni, "_", design,".RDS")
+  if (for_variance) {
+    file_title <- paste0("./inst/12_mc_simulate_data/", process, "/data/dt_mc_common_for_variance_",
+                         process,"_", white_noise, "_", "N=", Ni, "_", design,".RDS")
+  } else {
+    file_title <- paste0("./inst/12_mc_simulate_data/", process, "/data/dt_mc_common",
+                         process,"_", white_noise, "_", "N=", Ni, "_", design,".RDS")
+  }
 
   saveRDS(object = dt_res, file = file_title)
   rm(dt_res, file_title) ; gc() ; gc()
@@ -165,22 +170,58 @@ ker_d1 <- function(s,t, operator_norm = 0.5){
   res <- kappa_c * exp(- (s - 2 * t) ** 2)
 }
 
-### FAR process ----
-## mfBm
+## For auto-covariance
 simate_data(Nmc = 100, Ni = 5000, t0,
             process = "FAR", process_ker = ker_d1,
             process_mean = mean_d1, white_noise = "mfBm",
             hurst = Hlogistic, Hvec = Hvec, design = "d1")
 
-
-## fBm
-simate_data(Nmc = 100, Ni = 5000, t0,
+## For variance
+simate_data(Nmc = 30, Ni = 5000, t0 = sort(c(t0, seq(0.1, 0.9, len = 20))),
             process = "FAR", process_ker = ker_d1,
-            process_mean = mean_d1, white_noise = "fBm",
-            hurst = Hlogistic, Hvec = Hvec, design = "d1")
+            process_mean = mean_d1, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d1", for_variance = TRUE)
 
+## For autocovariance
+zero_mean <- function(t) 0
+simate_data(Nmc = 1, Ni = 5000, t0 = seq(0.1, 0.9, len = 200),
+            process = "FAR", process_ker = ker_d1,
+            process_mean = zero_mean, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "zero_mean_d1", for_variance = TRUE)
 
-### FMA process ----
+## Simulation - design 3 ----
+## For auto-covariance
+ker_d3 <- function(s,t) get_real_data_far_kenel(s = s, t = t, operator_norm = 0.7)
+simate_data(Nmc = 100, Ni = 5000, t0,
+            process = "FAR", process_ker = ker_d3,
+            process_mean = get_real_data_mean, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d3")
+
+## For variance
+simate_data(Nmc = 30, Ni = 5000, t0 = sort(c(t0, seq(0.1, 0.9, len = 20))),
+            process = "FAR", process_ker = ker_d3,
+            process_mean = get_real_data_mean, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d3", for_variance = TRUE)
+
+## Simulation - design 4 ----
+
+## Mean function
+mean_d4 <- function(t) 0
+
+## Autoregressive kernel
+ker_d1 <- function(s,t, operator_norm = 0.5){
+  # Note that : \kappa_c * k = operator_norm
+  k <- sqrt(pi) / 2 * (
+    pnorm(q = 2, mean = 0, sd = sqrt(1/2)) - pnorm(q = 0, mean = 0, sd = sqrt(1/2))
+  )
+  kappa_c <- operator_norm / k
+  res <- kappa_c * exp(- (s - 2 * t) ** 2)
+}
+
+simate_data(Nmc = 30, Ni = 5000, t0,
+            process = "FAR", process_ker = ker_d1,
+            process_mean = mean_d4, white_noise = "mfBm",
+            hurst = Hlogistic, Hvec = Hvec, design = "d4")
 
 
 # Estimation of true autocovariance ----
@@ -383,6 +424,72 @@ estim_true_autocov_fun <- function(N = 5000, process = "FAR",
 }
 
 estim_true_autocov_fun(N = 5000, process = "FAR", white_noise = "mfBm", design = "d1", s0 = s0, t0 = t0, lag = 1)
+estim_true_autocov_fun(N = 5000, process = "FAR", white_noise = "mfBm", design = "d3", s0 = s0, t0 = t0, lag = 1)
+estim_true_autocov_fun(N = 5000, process = "FAR", white_noise = "mfBm", design = "d4", s0 = s0, t0 = t0, lag = 1)
+
+# Estimate zero_mean_d1 autocovariance ----
+t0 <- seq(0.1, 0.9, len = 200)
+dt_st <- data.table::as.data.table(expand.grid(s = t0, t = t0))
+dt_st <- dt_st[order(s,t)]
+s0 <- dt_st[, s]
+t0 <- dt_st[, t]
+
+# Load data
+dt <- readRDS("./inst/12_mc_simulate_data/FAR/data/dt_mc_common_for_variance_FAR_mfBm_N=5000_zero_mean_d1.RDS")
+N <- 5000
+## Estimate \widetilde\gamma(s,t)
+dt_gammatilde_data <- data.table::rbindlist(lapply(dt[, unique(id_curve)], function(curve_index, data, s0, t0){
+  dt_true_X <- data.table::merge.data.table(
+    x = data.table::data.table("s" = s0, "t" = t0),
+    y = data[id_curve == curve_index, .("t" = tobs, "Xt" = X)],
+    by = "t"
+  )
+  dt_true_X <- data.table::merge.data.table(
+    x = dt_true_X,
+    y = data[id_curve == curve_index, .("s" = tobs, "Xs" = X)],
+    by = "s"
+  )
+  return(data.table::data.table("id_curve" = curve_index, dt_true_X))
+}, data = dt, s0 = s0, t0 = t0))
+
+### Take into account the lag
+lag <- 1
+### The argument s is associated to the curves n = 1,..., N - lag
+dt_gammatilde_data_s <- dt_gammatilde_data[, list(id_curve, s, t, Xs)]
+dt_gammatilde_data_s <- dt_gammatilde_data_s[id_curve %in% 1:(N - lag)]
+dt_id_lag_s <- data.table::data.table(
+  "id_curve" = sort(unique(dt_gammatilde_data_s[, id_curve])),
+  "id_lag" = paste0(1:(N - lag), "_", (1 + lag):N))
+dt_gammatilde_data_s <- data.table::merge.data.table(
+  x = dt_id_lag_s,
+  y = dt_gammatilde_data_s,
+  by = "id_curve")
+
+### The argument t is associated to the curves n = 1 + lag,..., N
+dt_gammatilde_data_t <- dt_gammatilde_data[, list(id_curve, s, t, Xt)]
+dt_gammatilde_data_t <- dt_gammatilde_data_t[id_curve %in% (1 + lag):N]
+dt_id_lag_t <- data.table::data.table(
+  "id_curve" = sort(unique(dt_gammatilde_data_t[, id_curve])),
+  "id_lag" = paste0(1:(N - lag), "_", (1 + lag):N))
+dt_gammatilde_data_t <- data.table::merge.data.table(
+  x = dt_id_lag_t,
+  y = dt_gammatilde_data_t,
+  by = "id_curve")
+
+### Merge and clean
+dt_gammatilde_merge <- data.table::merge.data.table(
+  x = dt_gammatilde_data_s,
+  y = dt_gammatilde_data_t,
+  by = c("id_lag", "s", "t"))
+dt_gammatilde_merge <- dt_gammatilde_merge[order(id_curve.x)]
+rm(dt_id_lag_s, dt_id_lag_t, dt_gammatilde_data_s, dt_gammatilde_data_t, dt_gammatilde_data) ; gc()
+
+### The gamma function with true X's
+dt_gammatilde <- dt_gammatilde_merge[!(is.nan(Xs) | is.nan(Xt)), .("gammatilde" = mean(Xs * Xt)), by = c("s", "t")]
+rm(dt_gammatilde_merge) ; gc()
+
+saveRDS(dt_gammatilde, "./inst/12_mc_simulate_data/FAR/data/dt_true_gammatilde_FAR_mfBm_N=5000_zero_mean_d1.RDS")
+
 
 
 

@@ -176,7 +176,7 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' plot(x = dt_mfBm$t, y = dt_mfBm$mfBm, type = "l", col = "red")
 #'
 simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logistic, L = 1, tied = TRUE, ...) {
-  if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
+  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! methods::is(hurst_fun, "function"))
     stop("'hurst_fun' must be a function.")
@@ -217,7 +217,7 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 #' plot(x = dt_fBm$t, y = dt_fBm$fBm, type = "l", col = "red")
 #'
 simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied = TRUE) {
-  if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
+  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! (methods::is(hurst, "numeric") & (hurst >= 0 & hurst <=1) & length(hurst) == 1))
     stop("'hurst' must be a positive scalar value between 0 and 1.")
@@ -349,13 +349,13 @@ simulate_far <- function(N = 2L, lambda = 70L,
   # C'est quoi la burnin period ?
   if (! (N - floor(N) == 0) & N > 1)
     stop("'N' must be an integer greater than 1.")
-  if (! (lambda - floor(lambda) == 0) & lambda > 1)
-    stop("'lambda' must be an integer greater than 1.")
   if (! methods::is(tdesign, "character")){
     stop("'tdesign' must be a character.")
   }else{
     tdesign <- match.arg(arg = tdesign, choices = c("random", "common"))
   }
+  if ((tdesign == "random") & (! (lambda - floor(lambda) == 0) & lambda > 1))
+    stop("'lambda' must be an integer greater than 1.")
   if (( ! (methods::is(Mdistribution, "function") & methods::is(tdistribution, "function"))) & tdesign == "random")
     stop("If tdesign = 'random', then 'Mdistribution' and 'tdistribution' must be functions.")
   if ((! (is.null(Mdistribution) & is.null(tdistribution))) & tdesign == "common")

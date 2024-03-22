@@ -13,3 +13,5 @@ inst/11_mc_simulate_data/mean_estimates/
 
 *.RDS
 *.png
+*.csv
+*.tex

@@ -182,7 +182,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     dt_risk[, B := sum(pi_n * cn * bn2H) / PN, by = t]
 
     # Compute \mathbb V_mu(t,h) for each n = 1, ..., N
-    dt_risk[, Vmu := sum(pi_n * cn * wmax) / PN ** 2, by = t]
+    dt_risk[, Vmu := sum(pi_n * cn * wmax) / (PN ** 2), by = t]
 
     # Compute the risk for each h
     dt_rk <- unique(dt_risk[, list(t, B, Vmu, PN)])
@@ -217,6 +217,13 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     dependence_coef <- dt_autocov[lag == 0][order(t), autocov] + dt_lr_var[order(t), lr_var]
     ### Note that dependence_coef <= abs(dependence_coef), thus
     dependence_coef <- abs(dependence_coef)
+    dependence_term <- 2 * dependence_coef  / dt_rk[, PN]
+
+    # dt_lr_var <- dt_autocov[!is.nan(autocov) & lag != 0, list("lr_var" = sum(2 * abs(autocov))), by = "t"]
+    # dependence_coef <- dt_autocov[lag == 0][order(t), autocov] + dt_lr_var[order(t), lr_var]
+    # ### Note that dependence_coef <= abs(dependence_coef), thus
+    # # dependence_coef <- abs(dependence_coef)
+
     dependence_term <- 2 * dependence_coef  / dt_rk[, PN]
 
     ## Final risk function
@@ -338,7 +345,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     Yn <- data[id_curve == curve_index, X]
     pi_n <- sapply(X = 1:length(t), function(tidx, Tn, t, optbw_mean){
       as.numeric(abs(Tn - t[tidx]) <= optbw_mean[tidx])
-    }, Tn = Tn, t, optbw_mean = dt_mean_optbw[order(t), optbw])
+    }, Tn = Tn, t = t, optbw_mean = dt_mean_optbw[order(t), optbw])
     pi_n <- t(pi_n)
     pi_n <- as.numeric(rowSums(pi_n, na.rm = TRUE) >= 1)
 
@@ -421,7 +428,7 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   N <- data[, length(unique(id_curve))]
   lambdahat <- mean(data[, .N, by = "id_curve"][, N])
 
-  if (N < 250 && lambdahat < 200) {
+  if (N <= 250 && lambdahat < 200) {
     # Estimate mean function
     Tn <- data[order(tobs), tobs]
     Yn <- data[order(tobs), X]
@@ -457,25 +464,40 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     rm(dt_res_by_curve) ; gc() ; gc()
 
   } else {
+    # Split t if N x \lambda >> 0
+    if (N <= 450 && lambdahat <= 300) {
+      N_t_by_list <- 40 * 300 / 10
+      t_list <- split(t, ceiling(seq_along(t) / N_t_by_list))
+    } else if (N <= 1000 & lambdahat <= 50){
+      N_t_by_list <- 1000 * 40 / 50
+      t_list <- split(t, ceiling(seq_along(t) / N_t_by_list))
+    } else {
+      t_list <- t
+    }
+
     # Estimate mean function
-    dt_res <- data.table::rbindlist(lapply(data[, unique(id_curve)], function(curve_index, t, data, N, h){
-      Tn <- data[id_curve == curve_index][order(tobs), tobs]
-      Yn <- data[id_curve == curve_index][order(tobs), X]
-      data_curve <- fastmatrix::kronecker.prod(
-        x = matrix(data = rep(1, length(t)), ncol = 1),
-        y = cbind(Tn, Yn)
-      )
-      colnames(data_curve) <- c("Tn", "Yn")
-      data_curve <- data.table::as.data.table(data_curve)
-      tvec <- rep(t, each = length(Tn))
-      data_curve[, t := tvec]
-      rm(Yn, Tn, tvec) ; gc() ; gc()
+    dt_res <- data.table::rbindlist(lapply(t_list, function(t_list_i, data, N, h){
+      Tn <- data[order(tobs), tobs]
+      Yn <- data[order(tobs), X]
+      if (length(t_list_i) > 1) {
+        data_curve <- fastmatrix::kronecker.prod(
+          x = matrix(data = rep(1, length(t_list_i)), ncol = 1),
+          y = cbind(Tn, Yn)
+        )
+        colnames(data_curve) <- c("Tn", "Yn")
+        data_curve <- data.table::as.data.table(data_curve)
+        tvec <- rep(t_list_i, each = length(Tn))
+        data_curve[, t := tvec]
+        rm(Yn, Tn, tvec) ; gc() ; gc()
+      } else {
+        data_curve <- data.table::data.table("Tn" = Tn, "Yn" = Yn, "t" = t_list_i)
+      }
 
       data_curve[, Tn_minus_t := (Tn - t)]
       data_curve[, Tn_minus_t_over_h := Tn_minus_t / h]
 
       # Compute mean Q and S function
-      dt_res_by_curve <- data_curve[
+      dt_res_by_t_list_i <- data_curve[
         ,
         .("Q0" = sum((Tn_minus_t ** 0) * Yn * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
           "Q1" = sum((Tn_minus_t ** 1) * Yn * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
@@ -485,16 +507,14 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
         by = "t"
       ]
       rm(data_curve) ; gc() ; gc()
+      # Estimate mean
+      dt_res_by_t_list_i <- dt_res_by_t_list_i[, .("muhat_RP" = (Q0 * S2 - Q1 * S1) / (S0 * S2 - S1 ** 2)), by = "t"]
+      dt_res_by_t_list_i[, "h" := h]
+      data.table::setcolorder(x = dt_res_by_t_list_i, neworder = c("t", "h", "muhat_RP"))
 
       # Return
-      return(dt_res_by_curve)
-    }, t = t, data = data, N = N, h = h))
-
-    dt_res <- dt_res[, .("Q0" = sum(Q0), "Q1" = sum(Q1), "S0" = sum(S0), "S1" = sum(S1), "S2" = sum(S2)), by = "t"]
-    # Estimate mean
-    dt_res <- dt_res[, .("muhat_RP" = (Q0 * S2 - Q1 * S1) / (S0 * S2 - S1 ** 2)), by = "t"]
-    dt_res[, "h" := h]
-    data.table::setcolorder(x = dt_res, neworder = c("t", "h", "muhat_RP"))
+      return(dt_res_by_t_list_i)
+    }, data = data, N = N, h = h))
   }
   return(dt_res)
 }
