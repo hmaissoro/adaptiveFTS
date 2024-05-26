@@ -9,7 +9,7 @@
 #' It has to be of the same length as the \code{s}.
 #' @param lag \code{integer (positive integer)}. Lag of the autocovariance.
 #' @param bw_grid \code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each pair (\code{s}, \code{t}).
-#' It can be \code{NULL} and that way it will be defined as an exponential grid of \eqgn{N\times\lambda}.
+#' It can be \code{NULL} and that way it will be defined as an exponential grid of \eqn{N\times\lambda}.
 #' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator.
 #' Default \code{smooth_ker = epanechnikov}.
 #' @param Hs \code{vector (numeric)}. The estimates of the local exponent for each \code{s}.
@@ -217,16 +217,16 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   if (all(unique(s) %in% unique(t))) {
     dt_sigma <- estimate_sigma(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", t = sort(unique(s)))
     dt_sigma <- data.table::merge.data.table(
-      x = data.table::merge.data.table(x = dt_sigma[, .("s" = t, "sig_error_s" = sig)], y = data.table::data.table("s" = s, "t" = t), by = "s"),
-      y = data.table::merge.data.table(x = dt_sigma[, .("t" = t, "sig_error_t" = sig)], y = data.table::data.table("s" = s, "t" = t), by = "t"),
+      x = data.table::merge.data.table(x = dt_sigma[, list("s" = t, "sig_error_s" = sig)], y = data.table::data.table("s" = s, "t" = t), by = "s"),
+      y = data.table::merge.data.table(x = dt_sigma[, list("t" = t, "sig_error_t" = sig)], y = data.table::data.table("s" = s, "t" = t), by = "t"),
       by = c("s", "t")
     )
   } else {
     dt_sigma_s <- estimate_sigma(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", t = s)
     dt_sigma_t <- estimate_sigma(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", t = t)
     dt_sigma <- data.table::merge.data.table(
-      x = data.table::merge.data.table(x = dt_sigma_s[, .("s" = t, "sig_error_s" = sig)], y = data.table::data.table("s" = s, "t" = t), by = "s"),
-      y = data.table::merge.data.table(x = dt_sigma_t[, .("t" = t, "sig_error_t" = sig)], y = data.table::data.table("s" = s, "t" = t), by = "t"),
+      x = data.table::merge.data.table(x = dt_sigma_s[, list("s" = t, "sig_error_s" = sig)], y = data.table::data.table("s" = s, "t" = t), by = "s"),
+      y = data.table::merge.data.table(x = dt_sigma_t[, list("t" = t, "sig_error_t" = sig)], y = data.table::data.table("s" = s, "t" = t), by = "t"),
       by = c("s", "t")
     )
     rm(dt_sigma_s, dt_sigma_t) ; gc()
@@ -378,7 +378,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   dt_long_run_var <- dt_XsXt_autocov[! is.nan(XsXt_autocov), list("long_run_var" = sum(2 * abs(XsXt_autocov))), by = c("s", "t")]
   dt_dependence_coef <- data.table::merge.data.table(
     x = dt_long_run_var,
-    y = dt_XsXt_autocov[lag == 0][, .(s, t, "XsXt_var" = XsXt_autocov)],
+    y = dt_XsXt_autocov[lag == 0][, list(s, t, "XsXt_var" = XsXt_autocov)],
     by = c("s", "t")
   )
   dt_dependence_coef[, dependence_coef := XsXt_var + long_run_var]
@@ -530,7 +530,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 #'
 #' @inheritParams estimate_autocov_risk
 #' @param optbw \code{vector (numeric)}. The optimal bandwidth parameter for lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function estimation for each pair (\code{s}, \code{t}).
-#' Default \code{optbw = NULL} and thus it will be estimated using \link{estimate_autocov_risk()} function.
+#' Default \code{optbw = NULL} and thus it will be estimated using \link{estimate_autocov_risk} function.
 #' @param center \code{logical (TRUE or FALSE)}. Default \code{center = TRUE} and so the curves are centred when the autocovariance is estimated: \eqn{\mathbb{E}(X_0(s) - \mu(s))(X_{\ell}(t) - \mu(t))}.
 #' Otherwise, the two parts \eqn{\mathbb{E}X_0(s)X_{\ell}(t)} and \eqn{\mu(s)\mu(t)} will be estimated separately.
 #' The first part with a bandwidth obtained with \link{estimate_autocov_risk} and the second part with a bandwidth obtained with \link{estimate_mean_risk}.
@@ -558,7 +558,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 #'            \item{autocovhat :}{ The estimates of the lag-\eqn{\ell} autocovariance function for each (\code{s}, \code{t}).}
 #'         }
 #' @export
-#' @seealso [estimate_mean()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_autocov_risk()].
+#' @seealso [estimate_mean()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_autocov_risk()], [estimate_autocov_risk()].
 #' @export
 #'
 #' @import data.table
@@ -1051,7 +1051,7 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
   if (is.null(dt_mean_rp)) {
     if (is.null(optbw_mean)) {
       stop("If 'dt_mean_rp' is NULL, then optbw_mean can not be NULL")
-    } else if (! (methods::is(optbw_mean, "numeric") && aall(optbw_mean > 0 & optbw_mean < 1) && length(optbw_mean) == 1)) {
+    } else if (! (methods::is(optbw_mean, "numeric") && all(optbw_mean > 0 & optbw_mean < 1) && length(optbw_mean) == 1)) {
       stop("'optbw_mean' must be a numeric scalar value between 0 and 1.")
     }
   } else if (! (data.table::is.data.table(dt_mean_rp) && all(c("id_curve", "tobs", "muhat_RP") %in% colnames(dt_mean_rp)))) {

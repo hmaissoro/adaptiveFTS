@@ -70,7 +70,8 @@ It has to be of the same length as the \code{s}.}
 
 \item{lag}{\code{integer (positive integer)}. Lag of the autocovariance.}
 
-\item{bw_grid}{\code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each pair (\code{s}, \code{t}).}
+\item{bw_grid}{\code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each pair (\code{s}, \code{t}).
+It can be \code{NULL} and that way it will be defined as an exponential grid of \eqn{N\times\lambda}.}
 
 \item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator.
 Default \code{smooth_ker = epanechnikov}.}

@@ -4,19 +4,14 @@
 \alias{estimate_nw_bw}
 \title{Nadaraya-Watson Bandwidth Selection using cross validation.}
 \usage{
-estimate_nw_bw(
-  y,
-  t,
-  bw_grid = seq(1/(2 * length(t)), length(t)^(-1/3), len = 100),
-  smooth_ker = epanechnikov
-)
+estimate_nw_bw(y, t, bw_grid = NULL, smooth_ker = epanechnikov)
 }
 \arguments{
 \item{y}{\code{vector (numeric)}. A numeric vector containing the observed values of the independent variable corresponding to the observation points \code{t}.}
 
 \item{t}{\code{vector (numeric)}. A numeric vector containing the observed values of the dependent variable.}
 
-\item{bw_grid}{\code{vector (numeric)}. A grid of bandwidth to test.}
+\item{bw_grid}{\code{vector (numeric)}. A grid of bandwidth to test. Default \code{bw_grid = NULL}, so it will be set as an exponential grid of \code{length(t)}.}
 
 \item{smooth_ker}{\code{function}. The kernel function of the estimator.}
 }

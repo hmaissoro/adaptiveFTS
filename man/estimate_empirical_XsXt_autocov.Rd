@@ -65,7 +65,8 @@ It has to be of the same length as the \code{s}.}
 
 \item{cross_lag}{\code{integer (positive integer)}. It corresponds to the lag \eqn{\ell} in \eqn{X_0(s)X_{\ell}(t)}.}
 
-\item{lag}{\code{vector (integer)}. Lag of the autocovariance of the random variable \eqn{X_0(s)X_{\ell}(t)}.}
+\item{lag}{\code{vector (integer)}. Lag of the autocovariance of the random variable \eqn{X_0(s)X_{\ell}(t)}.
+If \code{lag = NULL}, only \eqn{\mathbb{E}X_0(s)X_{\ell}(t)} is returned.}
 
 \item{h}{\code{numeric (positive vector or scalar)}. The smoothing bandwidth parameter.
 Default \code{h = NULL} and thus it will be estimated by Cross-Validation on a subset of curves.
@@ -76,8 +77,18 @@ and each element of the vector must correspond to a curve given in the same orde
 \item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.}
 }
 \value{
-A data.table with three columns: \code{s}, \code{t}, \code{cross_lag}, \code{lag} and \code{XsXt_autocov}
+A data.table with three columns: \code{s}, \code{t}, \code{cross_lag}, \code{lag}, \code{EXsXt_cross_lag} and \code{XsXt_autocov}
 corresponding to the estimated autocovariance of the random variable \eqn{X_0(s)X_{\ell}(t)}.
+
+A \code{data.table} containing the following columns.
+\itemize{
+\item{s :}{ The first argument in \eqn{X_0(s)X_{\ell}(t)}.}
+\item{t :}{ The second argument in \eqn{X_0(s)X_{\ell}(t)}.}
+\item{cross_lag :}{ The lag \eqn{\ell} in \eqn{X_0(s)X_{\ell}(t)}.}
+\item{lag :}{ The lags at which the autocovariance of the random variable \eqn{X_0(s)X_{\ell}(t)} is estimated. It contains \code{NA} if \code{lag = NULL}.}
+\item{EXsXt_cross_lag :}{ Mean of the random variable \eqn{X_0(s)X_{\ell}(t)}.}
+\item{XsXt_autocov :}{ The estimates of the autocovariance of the random variable \eqn{X_0(s)X_{\ell}(t)} for each \code{lag}. It contains \code{NA} if \code{lag = NULL}.}
+}
 }
 \description{
 Estimate empirical \eqn{X_0(s)X_{\ell}(t)} autocovariance function

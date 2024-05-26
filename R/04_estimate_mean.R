@@ -1,9 +1,12 @@
 #' Estimate the risk of the mean function
 #'
+#' The risk of the mean function is the function \eqn{R_\mu(t;h)} in
+#' Section 4.1 of \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}.
+#'
 #' @inheritParams .format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the mean function of the underlying process.
 #' @param bw_grid \code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each \code{t}.
-#' It can be \code{NULL} and that way it will be defined as an exponential grid of \eqgn{N\times\lambda}.
+#' It can be \code{NULL} and that way it will be defined as an exponential grid of \eqn{N\times\lambda}.
 #' @param Ht \code{vector (numeric)}. The estimates of the local exponent for each \code{t}.
 #' Default \code{Ht = NULL} and thus it will be estimated.
 #' @param Lt \code{vector (numeric)}. The estimates of the Hölder constant for each \code{t}.
@@ -34,6 +37,10 @@
 #'
 #' @importFrom methods is
 #' @importFrom data.table data.table rbindlist between
+#' @importFrom Rdpack
+#'
+#' @references
+#'  \insertAllCited{}
 #'
 #' @examples
 #' \dontrun{
@@ -219,13 +226,6 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     dependence_coef <- abs(dependence_coef)
     dependence_term <- 2 * dependence_coef  / dt_rk[, PN]
 
-    # dt_lr_var <- dt_autocov[!is.nan(autocov) & lag != 0, list("lr_var" = sum(2 * abs(autocov))), by = "t"]
-    # dependence_coef <- dt_autocov[lag == 0][order(t), autocov] + dt_lr_var[order(t), lr_var]
-    # ### Note that dependence_coef <= abs(dependence_coef), thus
-    # # dependence_coef <- abs(dependence_coef)
-
-    dependence_term <- 2 * dependence_coef  / dt_rk[, PN]
-
     ## Final risk function
     mean_risk <- bias_term + varriance_term + dependence_term
 
@@ -243,9 +243,11 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 
 #' Estimate mean function
 #'
+#' Mean function estimation using the adaptive estimator of \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}.
+#'
 #' @inheritParams estimate_mean_risk
 #' @param optbw \code{vector (numeric)}. The optimal bandwidth parameter for mean function estimation for each \code{t}.
-#' Default \code{optbw = NULL} and thus it will be estimated using \link{estimate_mean_risk()} function.
+#' Default \code{optbw = NULL} and thus it will be estimated using \link{estimate_mean_risk} function.
 #'
 #' @return A \code{data.table} containing the following columns.
 #'          \itemize{
@@ -262,6 +264,11 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #' @seealso [estimate_mean_risk()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_empirical_autocov()].
 #'
 #' @importFrom data.table data.table rbindlist setcolorder merge.data.table
+#' @importFrom Rdpack reprompt
+#'
+#' @references
+#' insertAllCited{}
+#'
 #' @examples
 #' \dontrun{
 #' # Generate a FAR A process
@@ -373,7 +380,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 }
 
 # mean function estimator : Rubìn et Paranaretos ----
-#' Estimate mean function using mean Rubìn et Paranaretos (2020) method
+#' Estimate mean function using \insertCite{rubin2020;textual}{adaptiveFTS} method.
 #'
 #' @inheritParams .format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the mean function of the underlying process.
@@ -392,6 +399,9 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @export
 #'
 #' @seealso [estimate_mean_bw_rp()]
+#' @importFrom Rdpack reprompt
+#' @references
+#' insertAllcited{}
 #'
 #' @examples
 #' \dontrun{
@@ -519,7 +529,7 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   return(dt_res)
 }
 
-#' Bandwidth estimation using cross-validation for the Rubìn and Panaretos (2020) mean function estimator.
+#' Bandwidth estimation using cross-validation for the \insertCite{rubin2020;textual}{adaptiveFTS} mean function estimator.
 #'
 #' @inheritParams .format_data
 #' @param Kfold \code{integer (positive)}. Number of fold for the cross-validation.
@@ -535,6 +545,10 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' @importFrom caret createFolds
 #' @importFrom data.table data.table rbindlist
 #' @seealso [estimate_mean_rp()]
+#'
+#' @importFrom Rdpack reprompt
+#' @references
+#' insertAllcited{}
 #'
 #' @examples
 #' \dontrun{

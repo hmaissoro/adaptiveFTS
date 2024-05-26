@@ -2,13 +2,15 @@ Package: adaptiveFTS
 Title: Adaptive Functional Time Series analysis
 Version: 0.0.0.9000
 Authors@R: 
-    person("Hassan", "Maissoro", , "hassan.maissoro@datastorm.fr", role = c("aut", "cre"),
+    person("Hassan", "Maissoro", , "maissorohassan@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: What the package does (one paragraph).
+Description: 
+  This package contains the adaptive estimation procedure proposed by Maissoro et al. (2024) for weakly dependent functional time series. 
+  It implements the local regularity estimator, the mean function estimator and the autocovariance function estimator.
 License: AGPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 Imports: 
     caret,
     data.table,

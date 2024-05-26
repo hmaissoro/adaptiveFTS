@@ -1,4 +1,2 @@
-^adaptiveFTS\.Rproj$
+^.*\.Rproj$
 ^\.Rproj\.user$
-^LICENSE\.md$
-inst/data/

@@ -12,6 +12,7 @@ estimate_autocov(
   s = c(1/5, 2/5, 4/5),
   t = c(1/4, 1/2, 3/4),
   lag = 1,
+  optbw = NULL,
   bw_grid = seq(0.005, 0.15, len = 45),
   Hs = NULL,
   Ls = NULL,
@@ -19,6 +20,9 @@ estimate_autocov(
   Lt = NULL,
   Delta = NULL,
   h = NULL,
+  center = TRUE,
+  mean_estimates_s = NULL,
+  mean_estimates_t = NULL,
   smooth_ker = epanechnikov
 )
 }
@@ -70,7 +74,11 @@ It has to be of the same length as the \code{s}.}
 
 \item{lag}{\code{integer (positive integer)}. Lag of the autocovariance.}
 
-\item{bw_grid}{\code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each pair (\code{s}, \code{t}).}
+\item{optbw}{\code{vector (numeric)}. The optimal bandwidth parameter for lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function estimation for each pair (\code{s}, \code{t}).
+Default \code{optbw = NULL} and thus it will be estimated using \link{estimate_autocov_risk} function.}
+
+\item{bw_grid}{\code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each pair (\code{s}, \code{t}).
+It can be \code{NULL} and that way it will be defined as an exponential grid of \eqn{N\times\lambda}.}
 
 \item{Hs}{\code{vector (numeric)}. The estimates of the local exponent for each \code{s}.
 Default \code{Hs = NULL} and thus it will be estimated.}
@@ -92,6 +100,16 @@ Default \code{h = NULL} and thus it will be estimated by Cross-Validation on a s
 If \code{h} is a \code{scalar}, then all curves will be smoothed with the same bandwidth.
 Otherwise, if \code{h} is a \code{vector}, its length must be equal to the number of curves in \code{data}
 and each element of the vector must correspond to a curve given in the same order as in \code{data}.}
+
+\item{center}{\code{logical (TRUE or FALSE)}. Default \code{center = TRUE} and so the curves are centred when the autocovariance is estimated: \eqn{\mathbb{E}(X_0(s) - \mu(s))(X_{\ell}(t) - \mu(t))}.
+Otherwise, the two parts \eqn{\mathbb{E}X_0(s)X_{\ell}(t)} and \eqn{\mu(s)\mu(t)} will be estimated separately.
+The first part with a bandwidth obtained with \link{estimate_autocov_risk} and the second part with a bandwidth obtained with \link{estimate_mean_risk}.}
+
+\item{mean_estimates_s}{\code{vector (numeric)}. Mean function estimates at each \code{s}.
+The default is \code{mean_estimates_s = NULL} and so it is estimated if \code{center = FALSE}.}
+
+\item{mean_estimates_t}{\code{vector (numeric)}. Mean function estimates at each \code{t} if \code{center = FALSE}.
+The default is \code{mean_estimates_t = NULL} and so it is estimated.}
 
 \item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator.
 Default \code{smooth_ker = epanechnikov}.}
@@ -129,5 +147,5 @@ Estimate lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function
 }
 }
 \seealso{
-\code{\link[=estimate_mean]{estimate_mean()}}, \code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_sigma]{estimate_sigma()}}, \code{\link[=estimate_nw]{estimate_nw()}}, \code{\link[=estimate_autocov_risk]{estimate_autocov_risk()}}.
+\code{\link[=estimate_mean]{estimate_mean()}}, \code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_sigma]{estimate_sigma()}}, \code{\link[=estimate_nw]{estimate_nw()}}, \code{\link[=estimate_autocov_risk]{estimate_autocov_risk()}}, \code{\link[=estimate_autocov_risk]{estimate_autocov_risk()}}.
 }
