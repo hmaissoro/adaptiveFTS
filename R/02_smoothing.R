@@ -156,15 +156,17 @@ estimate_nw <- function(y, t, tnew, h = NULL, smooth_ker = epanechnikov){
   yhat <- A %*% y
   yhat <- c(yhat)
 
-  ## Get the number of points used to estimate y for each tnew
-  inKernelSupp <- outer(tnew, t, function(u, v) abs(u - v) <= h)
-  inKernelSupp <- matrixStats::rowSums2(inKernelSupp)
-  inKernelSupp <- c(inKernelSupp)
+  # ## Get the number of points used to estimate y for each tnew
+  # inKernelSupp <- outer(tnew, t, function(u, v) abs(u - v) <= h)
+  # inKernelSupp <- matrixStats::rowSums2(inKernelSupp)
+  # inKernelSupp <- c(inKernelSupp)
   # inKernelSupp <- unlist(lapply(tnew, function(tnewi, t, h){
   #   sum(abs(tnewi - t) <= h)
   # }, t = t, h = h))
 
-  dt <- data.table::data.table("h" = h, "inKernelSupp" = inKernelSupp, "tnew" = tnew, "yhat" = yhat)
+  dt <- data.table::data.table("h" = h,
+                               # "inKernelSupp" = inKernelSupp,
+                               "tnew" = tnew, "yhat" = yhat)
   return(dt)
 }
 

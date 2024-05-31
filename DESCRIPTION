@@ -16,9 +16,14 @@ Imports:
     MASS,
     matrixStats,
     methods,
+    Rcpp,
+    RcppArmadillo,
     Rdpack
 RdMacros: Rdpack
 Suggests: 
     knitr,
     rmarkdown
 VignetteBuilder: knitr
+LinkingTo: 
+    Rcpp,
+    RcppArmadillo

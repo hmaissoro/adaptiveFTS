@@ -3,7 +3,7 @@
 #' @inheritParams .format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the mean function of the underlying process.
 #' @param bw_grid \code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each \code{t}.
-#' It can be \code{NULL} and that way it will be defined as an exponential grid of \eqgn{N\times\lambda}.
+#' It can be \code{NULL}, in which case it will be defined as an exponential grid of \eqn{N\times\lambda}.
 #' @param Ht \code{vector (numeric)}. The estimates of the local exponent for each \code{t}.
 #' Default \code{Ht = NULL} and thus it will be estimated.
 #' @param Lt \code{vector (numeric)}. The estimates of the Hölder constant for each \code{t}.
@@ -132,11 +132,25 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     data = data, idcol = "id_curve",
     tcol = "tobs", ycol = "X", t = t)
 
+  # Smooth curve with presmoothing bandwidth
+  # Smooth curves
+  # dt_smooth <- data.table::rbindlist(lapply(1:N, function(curve_index, hvec, t, kernel_smooth, data){
+  #   x_smooth <- estimate_nw(y = data[id_curve == curve_index, X],
+  #                           t = data[id_curve == curve_index, tobs],
+  #                           tnew = t,
+  #                           h = hvec[curve_index],
+  #                           smooth_ker = kernel_smooth)
+  #   xhat <- x_smooth$yhat
+  #   dt_res <- data.table::data.table("id_curve" = curve_index, "t" = t, "x" = xhat)
+  #   return(dt_res)
+  # }, hvec = rep(ht, N), t = t, kernel_smooth = smooth_ker, data = data))
+
   # Estimation of the empirical autocovariance using the presmoothing bandwidth
   dt_autocov <- estimate_empirical_autocov(
     data = data, idcol = "id_curve",
     tcol = "tobs", ycol = "X", t = t, lag = 0:(N-1),
     h = ht, smooth_ker = smooth_ker)
+
   # If the variance is NaN, set it as 0
   dt_autocov[is.nan(autocov) & lag == 0, autocov := 0]
 
@@ -219,12 +233,6 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     dependence_coef <- abs(dependence_coef)
     dependence_term <- 2 * dependence_coef  / dt_rk[, PN]
 
-    # dt_lr_var <- dt_autocov[!is.nan(autocov) & lag != 0, list("lr_var" = sum(2 * abs(autocov))), by = "t"]
-    # dependence_coef <- dt_autocov[lag == 0][order(t), autocov] + dt_lr_var[order(t), lr_var]
-    # ### Note that dependence_coef <= abs(dependence_coef), thus
-    # # dependence_coef <- abs(dependence_coef)
-
-    dependence_term <- 2 * dependence_coef  / dt_rk[, PN]
 
     ## Final risk function
     mean_risk <- bias_term + varriance_term + dependence_term

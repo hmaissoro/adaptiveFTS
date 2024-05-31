@@ -224,9 +224,9 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     rm(any_nan)
 
     ## Remove extreme values
-    rxt1 <- (xt1 >= quantile(xt1, 0.025, na.rm = TRUE)) & (xt1 <= quantile(xt1, 0.975, na.rm = TRUE))
-    rxt2 <- (xt2 >= quantile(xt2, 0.025, na.rm = TRUE)) & (xt2 <= quantile(xt2, 0.975, na.rm = TRUE))
-    rxt3 <- (xt3 >= quantile(xt3, 0.025, na.rm = TRUE)) & (xt3 <= quantile(xt3, 0.975, na.rm = TRUE))
+    rxt1 <- (xt1 >= quantile(xt1, 0.025, na.rm = TRUE, type = 1)) & (xt1 <= quantile(xt1, 0.975, na.rm = TRUE, type = 1))
+    rxt2 <- (xt2 >= quantile(xt2, 0.025, na.rm = TRUE, type = 1)) & (xt2 <= quantile(xt2, 0.975, na.rm = TRUE, type = 1))
+    rxt3 <- (xt3 >= quantile(xt3, 0.025, na.rm = TRUE, type = 1)) & (xt3 <= quantile(xt3, 0.975, na.rm = TRUE, type = 1))
     xt1 <- xt1[rxt1 & rxt2 & rxt3]
     xt2 <- xt2[rxt1 & rxt2 & rxt3]
     xt3 <- xt3[rxt1 & rxt2 & rxt3]
@@ -243,7 +243,7 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     theta_t1_t2 <- mean((xt1 - xt2) ** 2, na.rm = TRUE)
     theta_t2_t3 <- mean((xt2 - xt3) ** 2, na.rm = TRUE)
     Ht <- (log(theta_t1_t3) - log(theta_t2_t3))  / (2 * log(2))
-    Lt <- theta_t2_t3 / (abs(t2[i] - t3[i])**(2 * Ht))
+    Lt <- theta_t2_t3 / (abs(t2[i] - t3[i]) ** (2 * Ht))
 
     ## Return the result
     dt_out <- data.table(t = t[i], Ht = Ht, Lt = Lt, Nused = Nused)

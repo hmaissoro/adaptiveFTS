@@ -151,6 +151,8 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
 #' Otherwise, if \code{h} is a \code{vector}, its length must be equal to the number of curves in \code{data}
 #' and each element of the vector must correspond to a curve given in the same order as in \code{data}.
 #' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
+#' @param center \code{logical (TRUE or FALSE)}. Default \code{center = FALSE} and so the curves are not centred when the autocovariance is estimated: \eqn{\mathbb{E}X_0(s)X_{\ell}(t)}.
+#' Otherwise, the curves are centred and the estimated autocovariance is: \eqn{\mathbb{E}(X_0(s) - \mu(s))(X_{\ell}(t) - \mu(t))}.
 #'
 #' @return A data.table with three columns: \code{s}, \code{t}, \code{cross_lag}, \code{lag}, \code{EXsXt_cross_lag} and \code{XsXt_autocov}
 #' corresponding to the estimated autocovariance of the random variable \eqn{X_0(s)X_{\ell}(t)}.
@@ -175,7 +177,8 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", y
                                             t = c(1/4, 1/2, 3/4),
                                             cross_lag = 1,
                                             lag = c(0, 1, 2), h = NULL,
-                                            smooth_ker = epanechnikov){
+                                            smooth_ker = epanechnikov,
+                                            center = FALSE){
   # Format data
   data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
@@ -253,6 +256,10 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", y
     return(dt_res)
   }, hvec = h, s = s, t = t, kernel_smooth = smooth_ker, data = data))
 
+  # Center the curves
+  dt_smooth[!is.nan(Xhat_s), Xhat_s := Xhat_s - center * mean(Xhat_s), by = "s"]
+  dt_smooth[!is.nan(Xhat_t), Xhat_t := Xhat_t - center * mean(Xhat_t), by = "t"]
+
   # Take into account the cross_lag
   ## The argument s is associated to the curves n = 1,..., N - cross_lag
   dt_smooth_s <- dt_smooth[, list(id_curve, s, t, Xhat_s)]
@@ -312,7 +319,7 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", y
         ## For the argument t
         Xhat_t_vec <- dt_smooth_merge[s == s[sid] & t == t[sid], Xhat_t]
         Xhat_t_i_plus_cross_lag <- Xhat_t_vec[1:(N-lg)]
-        Xhat_t_i_plus_cross_lag_plus_lag <- Xhat_s_vec[(1 + lg):N]
+        Xhat_t_i_plus_cross_lag_plus_lag <- Xhat_t_vec[(1 + lg):N]
 
         XsXt_autocov_vec <- (Xhat_s_i * Xhat_t_i_plus_cross_lag - gamma_cross_lag) *
           (Xhat_s_i_plus_lag * Xhat_t_i_plus_cross_lag_plus_lag - gamma_cross_lag)
