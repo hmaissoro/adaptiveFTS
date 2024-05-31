@@ -2,7 +2,7 @@
 % Please edit documentation in R/04_estimate_mean.R
 \name{estimate_mean_bw_rp}
 \alias{estimate_mean_bw_rp}
-\title{Bandwidth estimation using cross-validation for the Rubìn and Panaretos (2020) mean function estimator.}
+\title{Bandwidth estimation using cross-validation for the \insertCite{rubin2020;textual}{adaptiveFTS} mean function estimator.}
 \usage{
 estimate_mean_bw_rp(
   data,
@@ -66,7 +66,7 @@ A \code{data.table} containing the following columns.
 }
 }
 \description{
-Bandwidth estimation using cross-validation for the Rubìn and Panaretos (2020) mean function estimator.
+Bandwidth estimation using cross-validation for the \insertCite{rubin2020;textual}{adaptiveFTS} mean function estimator.
 }
 \examples{
 \dontrun{
@@ -108,6 +108,9 @@ DT::datatable(data = dt_mean_rp[, lapply(.SD, function(X) round(X, 5))])
 
 }
 
+}
+\references{
+insertAllcited{}
 }
 \seealso{
 \code{\link[=estimate_mean_rp]{estimate_mean_rp()}}

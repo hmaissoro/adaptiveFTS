@@ -2,7 +2,7 @@
 % Please edit documentation in R/04_estimate_mean.R
 \name{estimate_mean_rp}
 \alias{estimate_mean_rp}
-\title{Estimate mean function using mean Rubìn et Paranaretos (2020) method}
+\title{Estimate mean function using \insertCite{rubin2020;textual}{adaptiveFTS} method.}
 \usage{
 estimate_mean_rp(
   data,
@@ -67,7 +67,7 @@ A \code{data.table} containing the following columns.
 }
 }
 \description{
-Estimate mean function using mean Rubìn et Paranaretos (2020) method
+Estimate mean function using \insertCite{rubin2020;textual}{adaptiveFTS} method.
 }
 \examples{
 \dontrun{
@@ -97,6 +97,9 @@ DT::datatable(data = dt_mean_rp[, lapply(.SD, function(X) round(X, 5))])
 
 }
 
+}
+\references{
+insertAllcited{}
 }
 \seealso{
 \code{\link[=estimate_mean_bw_rp]{estimate_mean_bw_rp()}}

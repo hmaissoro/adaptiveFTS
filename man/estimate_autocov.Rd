@@ -75,7 +75,11 @@ It has to be of the same length as the \code{s}.}
 \item{lag}{\code{integer (positive integer)}. Lag of the autocovariance.}
 
 \item{optbw}{\code{vector (numeric)}. The optimal bandwidth parameter for lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function estimation for each pair (\code{s}, \code{t}).
+<<<<<<< HEAD
 Default \code{optbw = NULL} and thus it will be estimated using \link{estimate_autocov_risk()} function.}
+=======
+Default \code{optbw = NULL} and thus it will be estimated using \link{estimate_autocov_risk} function.}
+>>>>>>> d8b5dd12dee2ab3dddb7b7a432b3c5de45fbdff4
 
 \item{bw_grid}{\code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each pair (\code{s}, \code{t}).
 It can be \code{NULL} and that way it will be defined as an exponential grid of \eqn{N\times\lambda}.}
@@ -147,5 +151,5 @@ Estimate lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function
 }
 }
 \seealso{
-\code{\link[=estimate_mean]{estimate_mean()}}, \code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_sigma]{estimate_sigma()}}, \code{\link[=estimate_nw]{estimate_nw()}}, \code{\link[=estimate_autocov_risk]{estimate_autocov_risk()}}.
+\code{\link[=estimate_mean]{estimate_mean()}}, \code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_sigma]{estimate_sigma()}}, \code{\link[=estimate_nw]{estimate_nw()}}, \code{\link[=estimate_autocov_risk]{estimate_autocov_risk()}}, \code{\link[=estimate_autocov_risk]{estimate_autocov_risk()}}.
 }
