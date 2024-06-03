@@ -9,7 +9,7 @@ using namespace arma;
 
 //' Estimate the risk of the mean function
  //'
- //' This function estimates the risk function \eqn{R_mu(t;h)} of the mean function estimation proposed by Maissoro et al. (2024).
+ //' This function estimates the risk function \eqn{R_\mu(t;h)} of the mean function estimation proposed by Maissoro et al. (2024).
  //'
  //' @param data A DataFrame containing the columns "id_curve", "tobs", and "X", typically the output of the function \link{.format_data}.
  //' @param t A numeric vector of observation points at which we want to estimate the mean function of the underlying process.

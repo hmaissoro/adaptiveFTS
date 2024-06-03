@@ -371,7 +371,7 @@ using namespace arma;
 
       // Calculate the mean squared error for cross-validation
       metric = arma::pow(metric, 2);
-      cv_error(i) = mean(metric);
+      cv_error(i) = metric.is_empty() ? arma::datum::inf : mean(metric);
     }
 
     // Find the bandwidth value with the minimum cross-validation error
