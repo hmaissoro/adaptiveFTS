@@ -95,8 +95,8 @@ using namespace arma;
      double lambdahat = arma::mean(hist(data_mat.col(0), unique_id_curve));
      double b0 =  std::pow(n_curve * lambdahat, - 1 / (2 * 0.05 + 1)); // rate with minimum local exponent = 0.05
      // double bK = 4 * std::pow(n_curve * lambdahat, -1 / (2 * 1 + 1)); // rate with maximum local exponent = 1
-     double bK = 0.5; // rate with maximum local exponent = 1
-     bw_grid_to_use = arma::logspace(log10(b0), log10(bK), 30);
+     double bK = 0.2; // rate with maximum local exponent = 1
+     bw_grid_to_use = arma::logspace(log10(b0), log10(bK), 20);
    } else {
      bw_grid_to_use = as<arma::vec>(bw_grid);
    }
@@ -310,7 +310,9 @@ using namespace arma;
 
      // Smooth using Nadaraya-Watson estimator
      arma::vec Xhat = estimate_nw_cpp(Ynvec, Tnvec, t, optbw_to_use, kernel_name);
-     Xhat.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+     Xhat.replace(arma::datum::nan, 0);
+     Xhat.replace(arma::datum::inf, 0);
+     Xhat.replace(-arma::datum::inf, 0);
 
      // Compute the vector p_n(t;h) and update P_N(t;h)
      arma::vec pn = arma::regspace(0, n - 1);

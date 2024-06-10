@@ -176,7 +176,8 @@ using namespace arma;
      double theta_t1_t3 = arma::mean(arma::square(xt1_final - xt3_final));
      double theta_t1_t2 = arma::mean(arma::square(xt1_final - xt2_final));
      double theta_t2_t3 = arma::mean(arma::square(xt2_final - xt3_final));
-     double Ht = (std::log(theta_t1_t3) - std::log(theta_t2_t3)) / (2 * std::log(2));
+     double Ht_row = (std::log(theta_t1_t3) - std::log(theta_t2_t3)) / (2 * std::log(2));
+     double Ht = (Ht_row <= 0.1) ? 0.1 : (Ht_row >=1) ? 1 : Ht_row;
      double Lt = theta_t2_t3 / std::pow(std::abs(t2(j) - t3(j)), 2 * Ht);
 
      // Store the result in matrix mat_locreg initialized above
