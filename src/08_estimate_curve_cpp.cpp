@@ -130,7 +130,6 @@ using namespace arma;
  Rcpp::List estimate_curve(const Rcpp::DataFrame data,
                            const arma::vec t,
                            const Rcpp::Nullable<int> id_curve = R_NilValue,
-                           const Rcpp::Nullable<arma::vec> param_grid = R_NilValue,
                            const Rcpp::Nullable<arma::vec> optbw_s = R_NilValue,
                            const Rcpp::Nullable<arma::vec> optbw_t = R_NilValue,
                            const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
@@ -175,26 +174,15 @@ using namespace arma;
      }
    }
 
-   // Init the parameter estimation grid
-   // This grid is used to estimate the bandwidth parameters for covariance and autocovariance functions
-   arma::vec param_grid_to_use;
-   if (param_grid.isNull()) {
-     param_grid_to_use = arma::vec({0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9});
-   } else {
-     arma::vec param_grid_temp = Rcpp::as<arma::vec>(param_grid);
-     if (param_grid_temp.size() <= 3) {
-       stop("If 'param_grid_temp' is not NULL, then it must at least 3 points.");
-     } else {
-       param_grid_to_use = param_grid_temp;
-     }
-   }
-
    // Next, we extract idx_curve_pred and idx_curve_pred - 1
    // Extract the observation point, take unique values and sort them
    arma::uvec idx_cur_pred = arma::find(data_mat.col(0) == idx_curve_pred);
    arma::uvec idx_cur_lag = arma::find(data_mat.col(0) == idx_curve_pred - 1);
    arma::vec Tvec_pred = arma::sort(arma::unique(data_mat(idx_cur_pred, arma::uvec({1}))));
    arma::vec Tvec_lag = arma::sort(arma::unique(data_mat(idx_cur_lag, arma::uvec({1}))));
+   arma::vec Yvec_pred = arma::sort(arma::unique(data_mat(idx_cur_pred, arma::uvec({2}))));
+   arma::vec Yvec_lag = arma::sort(arma::unique(data_mat(idx_cur_lag, arma::uvec({2}))));
+
    Rcout << "--> Set up : ok \n ";
    // Estimate the observation error standard deviation
    arma::mat mat_sig_pred = estimate_sigma_cpp(data, Tvec_pred);
@@ -205,22 +193,22 @@ using namespace arma;
    // Estimate the covariances
    arma::mat grid_n0 = build_grid(Tvec_pred, Tvec_pred);
    arma::mat grid_n0_lag = build_grid(Tvec_lag, Tvec_lag);
-   arma::mat mat_cov_n0_all = estimate_autocov_cpp(data, grid_n0.col(0), grid_n0.col(1), 0, param_grid_to_use, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
-   arma::mat mat_cov_n0_lag_all = estimate_autocov_cpp(data, grid_n0_lag.col(0), grid_n0_lag.col(1), 0, param_grid_to_use, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
+   arma::mat mat_cov_n0_all = estimate_autocov_cpp(data, grid_n0.col(0), grid_n0.col(1), 0, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
+   arma::mat mat_cov_n0_lag_all = estimate_autocov_cpp(data, grid_n0_lag.col(0), grid_n0_lag.col(1), 0, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
    Rcout << "--> cov estimation : ok \n ";
    // Estimate the autocovariances
    arma::mat grid_n0__n0_lag = build_grid(Tvec_pred, Tvec_lag);
    arma::mat grid_n0_lag__n0 = build_grid(Tvec_lag, Tvec_pred);
-   arma::mat mat_autocov_n0__n0_lag_all = estimate_autocov_cpp(data, grid_n0__n0_lag.col(0), grid_n0__n0_lag.col(1), 1, param_grid_to_use, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
-   arma::mat mat_autocov_n0_lag__n0_all = estimate_autocov_cpp(data, grid_n0_lag__n0.col(0), grid_n0_lag__n0.col(1), 1, param_grid_to_use, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
+   arma::mat mat_autocov_n0__n0_lag_all = estimate_autocov_cpp(data, grid_n0__n0_lag.col(0), grid_n0__n0_lag.col(1), 1, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
+   arma::mat mat_autocov_n0_lag__n0_all = estimate_autocov_cpp(data, grid_n0_lag__n0.col(0), grid_n0_lag__n0.col(1), 1, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
    Rcout << "--> autocov estimation : ok \n ";
    // Estimate covariance and autocovariance related to prediction point
    arma::mat grid_n0_lag__tvec = build_grid(Tvec_lag, tvec);
    arma::mat grid_n0__tvec = build_grid(Tvec_pred, tvec);
    Rcout << "--> tvec cov and autocov estimation -- grid : ok \n ";
-   arma::mat mat_autocov_n0_lag_tvec_all = estimate_autocov_cpp(data, grid_n0_lag__tvec.col(0), grid_n0_lag__tvec.col(1), 1, param_grid_to_use, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
+   arma::mat mat_autocov_n0_lag_tvec_all = estimate_autocov_cpp(data, grid_n0_lag__tvec.col(0), grid_n0_lag__tvec.col(1), 1, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
    Rcout << "--> tvec cov and autocov estimation -- autocov : ok \n ";
-   arma::mat mat_cov_n0_tvec_all = estimate_autocov_cpp(data, grid_n0__tvec.col(0), grid_n0__tvec.col(1), 0, param_grid_to_use, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
+   arma::mat mat_cov_n0_tvec_all = estimate_autocov_cpp(data, grid_n0__tvec.col(0), grid_n0__tvec.col(1), 0, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
    Rcout << "--> tvec cov and autocov estimation : ok \n ";
    // Build the matrix VarY_mat
    arma::mat mat_cov_n0_lag = reshape_matrix(mat_cov_n0_lag_all, 0, 1, 13);
@@ -237,47 +225,29 @@ using namespace arma;
    arma::mat covY_Xn0 = arma::join_cols(mat_autocov_n0_lag_tvec, mat_cov_n0_tvec);
    Rcout << "--> covY_Xn0 build : ok \n ";
    // Build the vector Y_{n_0, 1} - M_{n_0, 1}
-   //// First put the data inside a matrix
-   int n0_lag = Tvec_lag.size();
-   int n0 = Tvec_pred.size();
+   //// Estimate mean function
+   arma::mat mat_mean_n0 = estimate_mean_cpp(data, Tvec_pred, R_NilValue, R_NilValue, kernel_name);
+   arma::mat mat_mean_n0_lag = estimate_mean_cpp(data, Tvec_lag, R_NilValue, R_NilValue, kernel_name);
+   arma::vec Yn_minus_mean_n0 = Yvec_pred - mat_mean_n0.col(5);
+   arma::vec Yn_minus_mean_n0_lag = Yvec_lag - mat_mean_n0.col(5);
 
-   arma::mat mat_Yn0_lag__Mean(n0_lag, 2);
-   for (int l = 0; l < n0_lag; ++l) {
-     arma::uvec idx_data = arma::find(data_mat.col(0) == idx_curve_pred - 1 && data_mat.col(1) == Tvec_lag(l));
-     arma::uvec idx_cov = arma::find(mat_cov_n0_lag_all.col(0) == Tvec_lag(l) && mat_cov_n0_lag_all.col(1) == Tvec_lag(l));
-     mat_Yn0_lag__Mean(l, 0) = data_mat(idx_data(0), 2);
-     mat_Yn0_lag__Mean(l, 1) = mat_cov_n0_lag_all(idx_cov(0), 9);
-   }
+   arma::vec vec_Yn0_lag = arma::join_vert(Yn_minus_mean_n0, Yn_minus_mean_n0_lag);
 
-   arma::mat mat_Yn0__Mean(n0, 2);
-   for (int i = 0; i < n0; ++i) {
-     arma::uvec idx_data_n0 = arma::find(data_mat.col(0) == idx_curve_pred && data_mat.col(1) == Tvec_pred(i));
-     arma::uvec idx_cov_n0 = arma::find(mat_cov_n0_all.col(0) == Tvec_pred(i) && mat_cov_n0_all.col(1) == Tvec_pred(i));
-     mat_Yn0__Mean(i, 0) = data_mat(idx_data_n0(0), 2);
-     mat_Yn0__Mean(i, 1) = mat_cov_n0_all(idx_cov_n0(0), 9);
-   }
-
-   arma::mat mat_Yn0__Mean_all = arma::join_cols(mat_Yn0_lag__Mean, mat_Yn0__Mean);
-
-   //// Second get the vector Yn0_lag
-   arma::vec vec_Yn0_lag = mat_Yn0__Mean_all.col(0) - mat_Yn0__Mean_all.col(1);
-   Rcout << "--> vec_Yn0_lag build : ok \n " << "The built mean : " << mat_Yn0__Mean_all.col(1) << " \n The the build YN : " << mat_Yn0__Mean_all.col(0);
    // Build the BLUP
    //// Estimate the mean function
    arma::mat mat_mean_tvec = estimate_mean_cpp(data, tvec, R_NilValue, R_NilValue, kernel_name);
-   arma::vec muhat_tvec = mat_mean_tvec.col(5);
    Rcout << "--> BULP : mean : ok \n ";
    //// Estimate Bn0
    arma::mat Bn0 = arma::solve(mat_VarY, covY_Xn0);
    Rcout << "--> BULP : Bn0 : ok \n ";
    //// Set the BLUP
-   arma::vec vec_blup = muhat_tvec + arma::trans(Bn0) * vec_Yn0_lag;
+   arma::vec vec_blup = mat_mean_tvec.col(5) + arma::trans(Bn0) * vec_Yn0_lag;
    Rcout << "--> BULP : vec_blup : ok \n ";
    // Return
    int n_res = tvec.n_elem;
    arma::mat mat_res(n_res, 3);
    mat_res.col(0) = tvec;
-   mat_res.col(1) = muhat_tvec;
+   mat_res.col(1) = mat_mean_tvec.col(5);
    mat_res.col(2) = vec_blup;
 
    Rcpp::List result;
