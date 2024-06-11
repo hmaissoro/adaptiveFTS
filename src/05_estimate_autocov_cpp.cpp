@@ -1,4 +1,6 @@
 #include <RcppArmadillo.h>
+#include <omp.h>
+
 // [[Rcpp::depends(RcppArmadillo)]]
 
 #include "02_smoothing_rcpp.h"
@@ -116,17 +118,16 @@ using namespace arma;
    if (bw_grid.isNull()) {
      // Estimate lambda
      double lambdahat = arma::mean(hist(data_mat.col(0), unique_id_curve));
-     double b0 = 2 * std::max(std::pow(n_curve * lambdahat, -1 / (2 * 0.05 + 1)),
+     double b0 = 4 * std::max(std::pow(n_curve * lambdahat, -1 / (2 * 0.1 + 1)),
                               std::pow(n_curve * lambdahat * lambdahat, -1 / (2 * 0.05 + 1))); // rate with minimum local exponent = 0.05
-     double bK = 4 * std::max(std::pow(n_curve * lambdahat, -1 / (2 * 0.8 + 1)),
-                              std::pow(n_curve * lambdahat * lambdahat, -1 / (2 * 0.8 + 1))); // rate with maximum local exponent = 0.8
+     // double bK = 4 * std::max(std::pow(n_curve * lambdahat, -1 / (2 * 0.8 + 1)),
+     //                          std::pow(n_curve * lambdahat * lambdahat, -1 / (2 * 0.8 + 1))); // rate with maximum local exponent = 0.8
+     double bK = 0.3;
      bw_grid_to_use = arma::logspace(log10(b0), log10(bK), 15);
    } else {
      bw_grid_to_use = as<arma::vec>(bw_grid);
    }
-
    int bw_size = bw_grid_to_use.size();
-
 
    // Estimate local regularity
    arma::mat mat_locreg_s = estimate_locreg_cpp(data, arma::unique(s), true, kernel_name, R_NilValue, R_NilValue);
@@ -149,16 +150,12 @@ using namespace arma;
    arma::mat mat_emp_autocov = estimate_empirical_XsXt_autocov_cpp(data, s, t, lag, arma::regspace(0, n_curve - lag - 1), h, kernel_name, center);
 
    // Definie result matrix
-   int n_rows_res = 0;
-   if (use_same_bw) {
-     n_rows_res = bw_size * n;
-   } else {
-     n_rows_res = bw_size * bw_size * n;
-   }
+   int n_rows_res = use_same_bw ? bw_size * n : bw_size * bw_size * n;
    arma::mat mat_res_risk(n_rows_res, 14);
 
    // Compute the risk for each (s,t) and each bandwidth in bw_grid
    if (use_same_bw) {
+#pragma omp parallel for
      for (int idx_bw = 0; idx_bw < bw_size; ++idx_bw) {
        // extract the bandwidth
        double bw = bw_grid_to_use[idx_bw];
@@ -173,6 +170,40 @@ using namespace arma;
          double Ht = mat_locreg_t(idx_locreg_cur_t(0), 4);
          double Lt = mat_locreg_t(idx_locreg_cur_t(0), 5);
 
+         // Compute the weight vectors for each s, t and for each bw
+         // and replace replace non-finite values with 0
+         //// For the argument s
+         arma::vec Tn_s_diff_over_bw = (data_mat.col(1) - s(k)) / bw;
+         arma::vec wvec_s = kernel_func(Tn_s_diff_over_bw);
+         wvec_s /= arma::accu(wvec_s);
+         wvec_s.replace(arma::datum::nan, 0);
+         wvec_s.replace(arma::datum::inf, 0);
+         wvec_s.replace(-arma::datum::inf, 0);
+
+         //// For the argument t
+         arma::vec Tn_t_diff_over_bw = (data_mat.col(1) - t(k)) / bw;
+         arma::vec wvec_t = kernel_func(Tn_t_diff_over_bw);
+         wvec_t /= arma::accu(wvec_t);
+         wvec_t.replace(arma::datum::nan, 0);
+         wvec_t.replace(arma::datum::inf, 0);
+         wvec_t.replace(-arma::datum::inf, 0);
+
+         // Extract moment
+         arma::uvec cur_idx_mom_s = arma::find(mat_mom_s.col(0) == s(k));
+         arma::uvec cur_idx_mom_t = arma::find(mat_mom_t.col(0) == t(k));
+         double mom_s_square = mom_vec_s(cur_idx_mom_s(0));
+         double mom_t_square = mom_vec_t(cur_idx_mom_t(0));
+
+         // Extract the estimates of the sd
+         arma::uvec cur_idx_sig_s = arma::find(mat_sig_s.col(0) == s(k));
+         arma::uvec cur_idx_sig_t = arma::find(mat_sig_t.col(0) == t(k));
+         double sig_s_square = sig2_vec_s(cur_idx_sig_s(0));
+         double sig_t_square = sig2_vec_t(cur_idx_sig_t(0));
+
+         // Compute some element of the bias term
+         arma::vec bn_s_vec = arma::pow(arma::abs(Tn_s_diff_over_bw), 2 * Hs) % arma::abs(wvec_s);
+         arma::vec bn_t_vec = arma::pow(arma::abs(Tn_t_diff_over_bw), 2 * Ht) % arma::abs(wvec_t);
+
          // Init. output
          arma::vec pn_s_vec = arma::zeros(n_curve - lag);
          arma::vec pn_lag_t_vec = arma::zeros(n_curve - lag);
@@ -180,74 +211,30 @@ using namespace arma;
          double variance_term_num = 0;
 
          for(int i = 0 ; i < n_curve - lag; ++i){
-           // Extrat the current curve index data
-           arma::mat mat_cur_s = data_mat.rows(arma::find(data_mat.col(0) == i + 1));
-           arma::mat mat_cur_t = data_mat.rows(arma::find(data_mat.col(0) == i + 1 + lag));
-           arma::vec Tnvec_s = mat_cur_s.col(1);
-           arma::vec Tnvec_t = mat_cur_t.col(1);
-           int Mn = Tnvec_s.size();
-           int Mn_lag = Tnvec_t.size();
+           // Exact the indexes : current and forward
+           arma::uvec idx_i = arma::find(data_mat.col(0) == i + 1);
+           arma::uvec idx_i_lag = arma::find(data_mat.col(0) == i + 1 + lag);
 
-           // Compute the weight vectors for each s, t and for each bw
-           // and replace replace non-finite values with 0
-           ////  For the argument s
-           arma::vec Tn_s_diff_over_bw = (Tnvec_s - s(k)) / bw;
-           arma::vec wvec_s = kernel_func(Tn_s_diff_over_bw);
-           wvec_s /= arma::accu(wvec_s);
-           wvec_s.replace(arma::datum::nan, 0);
-           wvec_s.replace(arma::datum::inf, 0);
-           wvec_s.replace(-arma::datum::inf, 0);
-
-           //// For the argument t
-           arma::vec Tn_t_diff_over_bw = (Tnvec_t - t(k)) / bw;
-           arma::vec wvec_t = kernel_func(Tn_t_diff_over_bw);
-           wvec_t /= arma::accu(wvec_t);
-           wvec_t.replace(arma::datum::nan, 0);
-           wvec_t.replace(arma::datum::inf, 0);
-           wvec_t.replace(-arma::datum::inf, 0);
-
-           // Compute the maximums and c_n(t;h) and c_n(s,h)
-           double wmax_s = wvec_s.max();
-           double wmax_t = wvec_t.max();
+           // Extract weight
+           arma::vec wvec_s_i = wvec_s(idx_i) / arma::accu(wvec_s(idx_i));
+           arma::vec wvec_t_i_lag = wvec_t(idx_i_lag) / arma::accu(wvec_t(idx_i_lag));
+           wvec_s_i.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+           wvec_t_i_lag.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
 
            // Compute and store the vector \pi_n(s;h)
-           arma::uvec idx_is_one_pi_s = arma::find(abs(Tn_s_diff_over_bw) <= 1);
-           double pn_s = 0;
-           if (!idx_is_one_pi_s.is_empty()) {
-             pn_s = 1;
-           }
-           pn_s_vec(i) = pn_s;
+           pn_s_vec(i) = arma::find(abs(Tn_s_diff_over_bw(idx_i)) <= 1).is_empty() ? 0 : 1;
 
            // Compute and store the vector \pi_n(t;h)
-           arma::uvec idx_is_one_pi_t = arma::find(abs(Tn_t_diff_over_bw) <= 1);
-           double pn_lag_t = 0;
-           if (!idx_is_one_pi_t.is_empty()) {
-             pn_lag_t = 1;
-           }
-           pn_lag_t_vec(i) = pn_lag_t;
+           pn_lag_t_vec(i) = arma::find(abs(Tn_t_diff_over_bw(idx_i_lag)) <= 1).is_empty() ? 0 : 1;
 
            // Compute bias term numerator
-           //// Extract moment
-           arma::uvec cur_idx_mom_s = arma::find(mat_mom_s.col(0) == s(k));
-           arma::uvec cur_idx_mom_t = arma::find(mat_mom_t.col(0) == t(k));
-           double mom_s_square = mom_vec_s(cur_idx_mom_s(0));
-           double mom_t_square = mom_vec_t(cur_idx_mom_t(0));
-           //// other terms
-           arma::vec Tn_s_2Hs = arma::pow(arma::abs(Tn_s_diff_over_bw), 2 * Hs);
-           arma::vec Tn_t_2Ht = arma::pow(arma::abs(Tn_t_diff_over_bw), 2 * Ht);
-           double bn_s = arma::sum(Tn_s_2Hs % arma::abs(wvec_s));
-           double bn_t = arma::sum(Tn_t_2Ht % arma::abs(wvec_t));
-           bias_term_num += 3 * mom_t_square * Ls * std::pow(bw, 2 * Hs) * pn_s * pn_lag_t * bn_s +
-             3 * mom_s_square * Lt * std::pow(bw, 2 * Ht) * pn_s * pn_lag_t * bn_t;
+           bias_term_num += 3 * mom_t_square * Ls * std::pow(bw, 2 * Hs) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_s_vec(idx_i)) +
+             3 * mom_s_square * Lt * std::pow(bw, 2 * Ht) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_t_vec(idx_i_lag));
 
            // Compute variance term numerator
-           arma::uvec cur_idx_sig_s = arma::find(mat_sig_s.col(0) == s(k));
-           arma::uvec cur_idx_sig_t = arma::find(mat_sig_t.col(0) == t(k));
-           double sig_s_square = sig2_vec_s(cur_idx_sig_s(0));
-           double sig_t_square = sig2_vec_t(cur_idx_sig_t(0));
-           variance_term_num += 3 * sig_s_square * mom_t_square * pn_s * pn_lag_t * wmax_s +
-             3 * sig_t_square * mom_s_square * pn_s * pn_lag_t * wmax_t +
-             3 * sig_s_square * sig_t_square * pn_s * pn_lag_t * wmax_s * wmax_t;
+           variance_term_num += 3 * sig_s_square * mom_t_square * pn_s_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() +
+             3 * sig_t_square * mom_s_square * pn_s_vec(i) * pn_lag_t_vec(i) * wvec_t_i_lag.max() +
+             3 * sig_s_square * sig_t_square * pn_s_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() * wvec_t_i_lag.max();
          }
 
          // Compute P_N(t;h)
@@ -306,8 +293,6 @@ using namespace arma;
              arma::mat mat_cur_t = data_mat.rows(arma::find(data_mat.col(0) == i + 1 + lag));
              arma::vec Tnvec_s = mat_cur_s.col(1);
              arma::vec Tnvec_t = mat_cur_t.col(1);
-             int Mn = Tnvec_s.size();
-             int Mn_lag = Tnvec_t.size();
 
              // Compute the weight vectors for each s, t and for each bw
              // At the we replace replace non-finite values with 0
@@ -566,15 +551,14 @@ using namespace arma;
  }
 
 
- //' Estimate the risk of the covariance or autocovariance function
+ //' Estimate the autocovariance function
  //'
- //' Estimate the risk function of the lag-\eqn{\ell}, \eqn{\ell} = 0, 1,..., autocovariance function estimator of Maissoro et al. (2024).
+ //' This function estimates the lag-\eqn{\ell}, \eqn{\ell} = 0, 1,..., autocovariance function based on the methodology of Maissoro et al. (2024).
  //'
  //' @param data A \code{DataFrame} containing the data with columns \code{"id_curve"}, \code{"tobs"}, and \code{"X"}.
  //' @param s A numeric vector specifying time points \code{s} for which to estimate autocovariance.
  //' @param t A numeric vector specifying time points \code{t} for which to estimate autocovariance.
  //' @param lag An integer specifying the lag value for autocovariance.
- //' @param param_grid A numeric vector of grid points for parameter estimation.
  //' @param optbw_s Optional numeric vector specifying optimal bandwidths for \code{s}. Default is \code{NULL}.
  //' @param optbw_t Optional numeric vector specifying optimal bandwidths for \code{t}. Default is \code{NULL}.
  //' @param bw_grid Optional numeric vector of bandwidth grid values. Default is \code{NULL}.
@@ -582,22 +566,21 @@ using namespace arma;
  //' @param center A logical value indicating if the data should be centered before estimation. Default is \code{TRUE}.
  //' @param kernel_name A string specifying the kernel to use for estimation. Supported values are \code{"epanechnikov"}, \code{"biweight"}, \code{"triweight"}, \code{"tricube"}, \code{"triangular"}, \code{"uniform"}. Default is \code{"epanechnikov"}.
  //'
- //' @return A numeric matrix with six columns: \code{s}, \code{t}, \code{optbw_s}, \code{optbw_t}, the estimated autocovariance, and additional local regression results.
  //' @return A \code{matrix} containing the following fourteen columns in order:
  //'          \itemize{
  //'            \item{s : The first argument of the autocovariance function.}
  //'            \item{t : The second argument of the autocovariance function.}
  //'            \item{optbw_s : The optimal bandwidth for the first argument of the autocovariance function. If \code{use_same_bw = TRUE}, the same bandwidth candidate is used for \code{s} and for \code{t}, so the 3rd and 4th columns contain the same values.}
  //'            \item{optbw_t : The optimal bandwidth for the second argument of the autocovariance function.}
- //'            \item{Hs : The estimates of the local exponent for each t. It corresponds to \eqn{H_s}.}
- //'            \item{Ls : The estimates of the Hölder constant for each t. It corresponds to \eqn{L_s^2}.}
- //'            \item{Ht : The estimates of the local exponent for each t. It corresponds to \eqn{H_t}.}
- //'            \item{Lt : The estimates of the Hölder constant for each t. It corresponds to \eqn{L_t^2}.}
- //'            \item{PNs : The number of curves used to estimate the mean at s. It corresponds to \eqn{P_N(s;h)}.}
- //'            \item{muhat_s : The estimates of the mean at s. It corresponds to \eqn{\widehat{\mu}_N(s;h)}.}
- //'            \item{PNt : The number of curves used to estimate the mean at t. It corresponds to \eqn{P_N(t;h)}.}
- //'            \item{muhat_t : The estimates of the mean at t. It corresponds to \eqn{\widehat{\mu}_N(t;h)}.}
- //'            \item{PNl : The number of curves used to estimate the autocovariance at (s,t). It corresponds to \eqn{P_{N,\ell}(s,t;h_s, h_t)}.}
+ //'            \item{Hs : The estimates of the local exponent for each \code{s}. It corresponds to \eqn{H_s}.}
+ //'            \item{Ls : The estimates of the Hölder constant for each \code{s}. It corresponds to \eqn{L_s^2}.}
+ //'            \item{Ht : The estimates of the local exponent for each \code{t}. It corresponds to \eqn{H_t}.}
+ //'            \item{Lt : The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
+ //'            \item{PNs : The number of curves used to estimate the mean at \code{s}. It corresponds to \eqn{P_N(s;h)}.}
+ //'            \item{muhat_s : The estimates of the mean at \code{s}. It corresponds to \eqn{\widehat{\mu}_N(s;h)}.}
+ //'            \item{PNt : The number of curves used to estimate the mean at \code{t}. It corresponds to \eqn{P_N(t;h)}.}
+ //'            \item{muhat_t : The estimates of the mean at \code{t}. It corresponds to \eqn{\widehat{\mu}_N(t;h)}.}
+ //'            \item{PNl : The number of curves used to estimate the autocovariance at \code{(s,t)}. It corresponds to \eqn{P_{N,\ell}(s,t;h_s, h_t)}.}
  //'            \item{autocov : The estimates of the covariance/autocovariance.}
  //'         }
  //'
@@ -609,8 +592,7 @@ using namespace arma;
  //'                    X = rnorm(1000))
  //' s <- seq(0, 1, length.out = 10)
  //' t <- seq(0, 1, length.out = 10)
- //' param_grid <- seq(0.1, 1, length.out = 5)
- //' result <- estimate_autocov_cpp(data, s, t, lag = 0, param_grid = param_grid)
+ //' result <- estimate_autocov_cpp(data, s, t, lag = 0)
  //' }
  //'
  //' @export
@@ -620,18 +602,18 @@ using namespace arma;
                                 const arma::vec s,
                                 const arma::vec t,
                                 const int lag,
-                                const arma::vec param_grid,
                                 const Rcpp::Nullable<arma::vec> optbw_s = R_NilValue,
                                 const Rcpp::Nullable<arma::vec> optbw_t = R_NilValue,
                                 const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
                                 const bool use_same_bw = false,
                                 const bool center = true,
-                                const std::string kernel_name = "epanechnikov"){
+                                const std::string kernel_name = "epanechnikov") {
    if (s.size() != t.size()) {
      stop("Arguments 's' and 't' must be of equal length.");
    } else if (s.size() == 0) {
-     stop("Arguments 's' and 't' must be a numeric vectors or scalar value(s) between 0 and 1.");
+     stop("Arguments 's' and 't' must be numeric vectors or scalar value(s) between 0 and 1.");
    }
+
    // Check if kernel_name is one of the supported kernels
    std::vector<std::string> supported_kernels = {"epanechnikov", "biweight", "triweight",
                                                  "tricube", "triangular", "uniform"};
@@ -650,114 +632,40 @@ using namespace arma;
    arma::vec unique_id_curve = arma::unique(data_mat.col(0));
    double n_curve = unique_id_curve.n_elem;
 
-   // the vector s and t to be used in the estimation procedure
-   arma::vec svec;
-   arma::vec tvec;
-
-   // If lag = 0, the covariance is symmetric
-   // We can use this property to speed up the computation time
-   // When we have to estimate the bandwidth parameters
+   // Vector to be used in the estimation procedure
+   arma::vec svec = s, tvec = t;
    if (lag == 0 && (optbw_s.isNull() || optbw_t.isNull())) {
      arma::mat mat_st_upper = get_upper_tri_couple(s, t);
-     // Set observation points size
-     svec.set_size(mat_st_upper.n_rows);
-     tvec.set_size(mat_st_upper.n_rows);
-     // Affect the vector
      svec = mat_st_upper.col(0);
      tvec = mat_st_upper.col(1);
-   } else {
-     svec = s;
-     tvec = t;
    }
-   // Take number of couples (s,t)
    int n = tvec.n_elem;
 
-   // Estimate optimal risk function / Vérify the
-   arma::vec optbw_s_to_use(n);
-   arma::vec optbw_t_to_use(n);
+   arma::vec optbw_s_to_use(n), optbw_t_to_use(n);
    arma::mat mat_locreg(n, 6);
 
    if (optbw_s.isNull() || optbw_t.isNull()) {
-     // Estimate the parameters on a grid if tvec.size() > param_grid.size() * param_grid.size()
-     int n_grid = param_grid.size() * param_grid.size();
+     arma::mat mat_risk = estimate_autocov_risk_cpp(data, svec, tvec, lag, bw_grid, use_same_bw, center, kernel_name);
+     for (int k = 0; k < n; ++k) {
+       arma::uvec idx_risk_cur = arma::find(mat_risk.col(0) == svec(k) && mat_risk.col(1) == tvec(k));
+       arma::vec risk = mat_risk(idx_risk_cur, arma::uvec({13}));
+       arma::uword idx_min = arma::index_min(risk.elem(arma::find_finite(risk)));
 
-     if (n >= n_grid) {
-       arma::mat grid = build_grid(param_grid, param_grid);
-       arma::vec sgrid = grid.col(0);
-       arma::vec tgrid = grid.col(1);
-
-       // Estimate the risk function on a grid
-       // And return the optimum
-       arma::mat mat_risk_grid = estimate_autocov_risk_cpp(data, sgrid, tgrid, lag, bw_grid, use_same_bw, center, kernel_name);
-       arma::mat mat_risk_min_grid(n_grid, mat_risk_grid.n_cols);
-
-       for (int g = 0; g < n_grid; ++g) {
-         // Find rows in mat_risk where the first column equals t(k)
-         arma::uvec idx_risk_cur = arma::find(mat_risk_grid.col(0) == sgrid(g) && mat_risk_grid.col(1) == tgrid(g));
-
-         // Extract the risk column for those rows
-         arma::vec risk = mat_risk_grid(idx_risk_cur, arma::uvec({13}));
-
-         // Find the minimum index in the risk column, ignoring non-finite values
-         arma::uword idx_min = arma::index_min(risk.elem(arma::find_finite(risk)));
-
-         // return the minimun matrix
-         mat_risk_min_grid.row(g) = mat_risk_grid.row(idx_risk_cur(idx_min));
-       }
-
-       // Matching using the nearest neighbour strategy
-       for (int k = 0; k < n; ++k) {
-         // Find rows in mat_risk where the first column equals t(k)
-         arma::vec dist = arma::square(mat_risk_min_grid.col(0) - svec(k)) + arma::square(mat_risk_min_grid.col(1) - tvec(k));
-
-         // Find the minimum index in the risk column
-         arma::uword idx_min_dist = arma::index_min(dist);
-
-         // Extract values corresponding to the minimum risk index
-         optbw_s_to_use(k) = mat_risk_min_grid(idx_min_dist, 2);
-         optbw_t_to_use(k) = mat_risk_min_grid(idx_min_dist, 3);
-         mat_locreg.row(k) = {svec(k), tvec(k),
-                              mat_risk_min_grid(idx_min_dist, 6), mat_risk_min_grid(idx_min_dist, 7),
-                              mat_risk_min_grid(idx_min_dist, 8), mat_risk_min_grid(idx_min_dist, 9)};
-       }
-
-     } else {
-
-       // Estimate risk function
-       arma::mat mat_risk = estimate_autocov_risk_cpp(data, svec, tvec, lag, bw_grid, use_same_bw, center, kernel_name);
-
-       for (int k = 0; k < n; ++k) {
-         // Find rows in mat_risk where the first column equals t(k)
-         arma::uvec idx_risk_cur = arma::find(mat_risk.col(0) == svec(k) && mat_risk.col(1) == tvec(k));
-
-         // Extract the risk column for those rows
-         arma::vec risk = mat_risk(idx_risk_cur, arma::uvec({13}));
-
-         // Find the minimum index in the risk column, ignoring non-finite values
-         arma::uword idx_min = arma::index_min(risk.elem(arma::find_finite(risk)));
-
-         // Extract values corresponding to the minimum risk index
-         optbw_s_to_use(k) = mat_risk(idx_risk_cur(idx_min), 2);
-         optbw_t_to_use(k) = mat_risk(idx_risk_cur(idx_min), 3);
-         mat_locreg.row(k) = {mat_risk(idx_risk_cur(idx_min), 0), mat_risk(idx_risk_cur(idx_min), 1),
-                              mat_risk(idx_risk_cur(idx_min), 6), mat_risk(idx_risk_cur(idx_min), 7),
-                              mat_risk(idx_risk_cur(idx_min), 8), mat_risk(idx_risk_cur(idx_min), 9)};
-       }
+       optbw_s_to_use(k) = mat_risk(idx_risk_cur(idx_min), 2);
+       optbw_t_to_use(k) = mat_risk(idx_risk_cur(idx_min), 3);
+       mat_locreg.row(k) = {mat_risk(idx_risk_cur(idx_min), 0), mat_risk(idx_risk_cur(idx_min), 1),
+                            mat_risk(idx_risk_cur(idx_min), 6), mat_risk(idx_risk_cur(idx_min), 7),
+                            mat_risk(idx_risk_cur(idx_min), 8), mat_risk(idx_risk_cur(idx_min), 9)};
      }
    } else {
-     arma::vec optbw_s_cur = as<arma::vec>(optbw_s);
-     arma::vec optbw_t_cur = as<arma::vec>(optbw_t);
-     if (optbw_s_cur.size() != n || optbw_t_cur.size() != n) {
+     optbw_s_to_use = as<arma::vec>(optbw_s);
+     optbw_t_to_use = as<arma::vec>(optbw_t);
+     if (optbw_s_to_use.size() != n || optbw_t_to_use.size() != n) {
        stop("If 'optbw_s' and 'optbw_t' are not NULL, they must be the same length as 's' and as 't'.");
      } else {
-       optbw_s_to_use = optbw_s_cur;
-       optbw_t_to_use = optbw_t_cur;
        mat_locreg.col(0) = svec;
        mat_locreg.col(1) = tvec;
-       mat_locreg.col(2) = arma::zeros(tvec.size());
-       mat_locreg.col(3) = arma::zeros(tvec.size());
-       mat_locreg.col(5) = arma::zeros(tvec.size());
-       mat_locreg.col(5) = arma::zeros(tvec.size());
+       mat_locreg.cols(2, 5).zeros();
      }
    }
 
@@ -768,11 +676,10 @@ using namespace arma;
    arma::vec muhat_t = mat_mean_t.col(5);
 
    // Compute the autocovariance function
-   arma::vec PN_lag(n, fill::zeros);
-   arma::vec autocov_numerator(n, fill::zeros);
+   arma::vec PN_lag(n, arma::fill::zeros);
+   arma::vec autocov_numerator(n, arma::fill::zeros);
 
-   for(int i = 0 ; i < n_curve - lag; ++i){
-     // Extrat the current curve index data
+   for (int i = 0; i < n_curve - lag; ++i) {
      arma::uvec indices_cur_s = arma::find(data_mat.col(0) == i + 1);
      arma::uvec indices_cur_t = arma::find(data_mat.col(0) == i + 1 + lag);
      arma::vec Tnvec_s = data_mat(indices_cur_s, arma::uvec({1}));
@@ -787,13 +694,11 @@ using namespace arma;
      Xhat_t.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
 
      // Compute the vector p_n(t;h) and update P_N(t;h)
-     arma::vec pn_s = arma::regspace(0, n - 1);
-     arma::vec pn_t = arma::regspace(0, n - 1);
-     pn_s.transform([svec, optbw_s_to_use, Tnvec_s](int j) { return  arma::find(abs((Tnvec_s - svec(j))) <= optbw_s_to_use(j)).is_empty() ? 0 : 1 ;});
-     pn_t.transform([tvec, optbw_t_to_use, Tnvec_t](int j) { return  arma::find(abs((Tnvec_t - tvec(j))) <= optbw_t_to_use(j)).is_empty() ? 0 : 1 ;});
+     arma::vec pn_s = arma::regspace<arma::vec>(0, n - 1).transform([&](int j) { return arma::any(arma::abs(Tnvec_s - svec(j)) <= optbw_s_to_use(j)) ? 1.0 : 0.0; });
+     arma::vec pn_t = arma::regspace<arma::vec>(0, n - 1).transform([&](int j) { return arma::any(arma::abs(Tnvec_t - tvec(j)) <= optbw_t_to_use(j)) ? 1.0 : 0.0; });
      PN_lag += pn_s % pn_t;
 
-     // Estimate the mean function numerator
+     // Estimate the numerator function numerator
      if (center) {
        autocov_numerator += pn_s % pn_t % (Xhat_s - muhat_s) % (Xhat_t - muhat_t);
      } else {
@@ -801,7 +706,7 @@ using namespace arma;
      }
    }
 
-   // Compute \widehat \Gamma_{N, \ell}(s,t;h_s, h_t)
+   // Compute autocovariance estimate
    arma::vec autocovhat;
    if (center) {
      autocovhat = autocov_numerator / PN_lag;
@@ -809,41 +714,40 @@ using namespace arma;
      autocovhat = autocov_numerator / PN_lag - muhat_s % muhat_t;
    }
 
-   // Init the output
+   // Initialize the result matrix
    int n_couple = t.size();
    arma::mat mat_res_autocov(n_couple, 14);
 
-   // Diagonal correction
+   // Diagonal correction if lag == 0
    if (lag == 0) {
-
-     // Put covariance and max(h_s, h_t) in a matrix
      arma::mat mat_cov(n, 5);
      mat_cov.col(0) = svec;
      mat_cov.col(1) = tvec;
      mat_cov.col(2) = arma::abs(svec - tvec);
-     mat_cov.col(3) = 0.5 * (optbw_s_to_use + optbw_t_to_use + arma::abs(optbw_s_to_use - optbw_t_to_use));
+     mat_cov.col(3) = 0.5 * (optbw_s_to_use + optbw_t_to_use + arma::abs(optbw_s_to_use - optbw_t_to_use)); // max(h_s, h_t)
      mat_cov.col(4) = autocovhat;
 
-     // Correct the diagnal
+     // Diagonal correction
      arma::mat mat_cov_corrected = diagonal_correct(mat_cov, 0, 1, 2, 3, 4);
-     int n_upper_tri = mat_cov_corrected.n_rows;
 
-     // Initialize the result matrix with double the number of rows
+     // replace the column containing arma::abs(svec - tvec) and max(h_s, h_t) by the bw_s and bw_t
+     mat_cov_corrected.col(2) = optbw_s_to_use;
+     mat_cov_corrected.col(3) = optbw_t_to_use;
+
+
+     // Initialize the output matrix
+     int n_upper_tri = mat_cov_corrected.n_rows;
      arma::mat res_cov(n_upper_tri * 2, 5);
 
      // Fill the upper triangular elements
-     res_cov(arma::span(0, n_upper_tri - 1), 0) = mat_cov_corrected.col(0);  // s
-     res_cov(arma::span(0, n_upper_tri - 1), 1) = mat_cov_corrected.col(1);  // t
-     res_cov(arma::span(0, n_upper_tri - 1), 2) = optbw_s_to_use;            // bw_s
-     res_cov(arma::span(0, n_upper_tri - 1), 3) = optbw_t_to_use;            // bw_t
-     res_cov(arma::span(0, n_upper_tri - 1), 4) = mat_cov_corrected.col(4);  // cov
+     res_cov(arma::span(0, n_upper_tri - 1), arma::span::all) = mat_cov_corrected;
 
      // Fill the lower triangular elements
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 0) = mat_cov_corrected.col(1);  // t
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 1) = mat_cov_corrected.col(0);  // s
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 2) = optbw_t_to_use;            // bw_t
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 3) = optbw_s_to_use;            // bw_s
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 4) = mat_cov_corrected.col(4);  // cov
+     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 0) = mat_cov_corrected.col(1);
+     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 1) = mat_cov_corrected.col(0);
+     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 2) = mat_cov_corrected.col(3);
+     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 3) = mat_cov_corrected.col(2);
+     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 4) = mat_cov_corrected.col(4);
 
      // return the covariance result
      //// P_{N, \ell}(s,t; h_s, h_t)
@@ -904,7 +808,9 @@ using namespace arma;
    }
 
    return mat_res_autocov;
+
  }
+
 
 
 

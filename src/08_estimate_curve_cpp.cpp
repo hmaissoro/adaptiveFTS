@@ -138,7 +138,8 @@ using namespace arma;
                            const bool center = true,
                            const std::string kernel_name = "epanechnikov"){
    // Take unique observation points t
-   if (t.size() == 0) {
+   int nt_pred = t.size();
+   if ( nt_pred == 0) {
      stop("'t' must be a numeric vectors or scalar value(s) between 0 and 1.");
    }
    arma::vec tvec = arma::unique(t);
@@ -178,7 +179,7 @@ using namespace arma;
    // This grid is used to estimate the bandwidth parameters for covariance and autocovariance functions
    arma::vec param_grid_to_use;
    if (param_grid.isNull()) {
-     param_grid_to_use = arma::vec({0.2, 0.4, 0.5, 0.7, 0.8});
+     param_grid_to_use = arma::vec({0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9});
    } else {
      arma::vec param_grid_temp = Rcpp::as<arma::vec>(param_grid);
      if (param_grid_temp.size() <= 3) {

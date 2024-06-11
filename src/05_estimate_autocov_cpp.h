@@ -10,7 +10,7 @@ arma::mat estimate_autocov_risk_cpp(const Rcpp::DataFrame data, const arma::vec 
 arma::mat build_grid(const arma::vec& u, const arma::vec& v);
 
 arma::mat estimate_autocov_cpp(const Rcpp::DataFrame data, const arma::vec s, const arma::vec t,
-                               const int lag, const arma::vec param_grid,
+                               const int lag,
                                const Rcpp::Nullable<arma::vec> optbw_s = R_NilValue,
                                const Rcpp::Nullable<arma::vec> optbw_t = R_NilValue,
                                const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
