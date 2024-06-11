@@ -61,13 +61,9 @@ using namespace arma;
      Rcpp::stop("Input matrix A must have at least 3 columns.");
    }
 
-   // Order by first and second column
-   arma::uvec sort_indices = arma::sort_index(A.col(idx_col_s) * 1e6 + idx_col_t);
-   arma::mat sorted_A = A.rows(sort_indices);
-
    // Unique s and t values
-   arma::vec svec = arma::unique(sorted_A.col(idx_col_s));
-   arma::vec tvec = arma::unique(sorted_A.col(idx_col_t));
+   arma::vec svec = arma::unique(A.col(idx_col_s));
+   arma::vec tvec = arma::unique(A.col(idx_col_t));
    int ns = svec.size();
    int nt = tvec.size();
 
@@ -75,10 +71,10 @@ using namespace arma;
    arma::mat reshaped(ns, nt, arma::fill::zeros);
 
    // Populate the reshaped matrix
-   for (arma::uword i = 0; i < sorted_A.n_rows; ++i) {
-     arma::uword row_idx = arma::index_min(arma::abs(svec - sorted_A(i, idx_col_s)));
-     arma::uword col_idx = arma::index_min(arma::abs(tvec - sorted_A(i, idx_col_t)));
-     reshaped(row_idx, col_idx) = sorted_A(i, idx_col_value);
+   for (arma::uword i = 0; i < A.n_rows; ++i) {
+     arma::uword row_idx = arma::index_min(arma::abs(svec - A(i, idx_col_s)));
+     arma::uword col_idx = arma::index_min(arma::abs(tvec - A(i, idx_col_t)));
+     reshaped(row_idx, col_idx) = A(i, idx_col_value);
    }
 
    return reshaped;
@@ -135,6 +131,7 @@ using namespace arma;
                            const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
                            const bool use_same_bw = false,
                            const bool center = true,
+                           const bool correct_diagonal = true,
                            const std::string kernel_name = "epanechnikov"){
    // Take unique observation points t
    int nt_pred = t.size();
@@ -162,26 +159,29 @@ using namespace arma;
    double n_curve = unique_id_curve.n_elem;
 
    // Init the index of the curve to be predicted
-   int idx_curve_pred = 0;
+   double idx_curve_pred = 0;
+   double idx_curve_lag = 0;
    if (id_curve.isNull()){
      idx_curve_pred = n_curve;
+     idx_curve_lag = idx_curve_pred - 1;
    } else {
-     int idx_temp = Rcpp::as<int>(id_curve);
+     double idx_temp = Rcpp::as<int>(id_curve);
      if (idx_curve_pred > n_curve || idx_curve_pred > 1) {
        stop("If 'id_curve' is not NULL, then it must be an integer between 2 and the total number of curves.");
      } else {
        idx_curve_pred = idx_temp;
+       idx_curve_lag = idx_curve_pred - 1;
      }
    }
 
    // Next, we extract idx_curve_pred and idx_curve_pred - 1
    // Extract the observation point, take unique values and sort them
    arma::uvec idx_cur_pred = arma::find(data_mat.col(0) == idx_curve_pred);
-   arma::uvec idx_cur_lag = arma::find(data_mat.col(0) == idx_curve_pred - 1);
-   arma::vec Tvec_pred = arma::sort(arma::unique(data_mat(idx_cur_pred, arma::uvec({1}))));
-   arma::vec Tvec_lag = arma::sort(arma::unique(data_mat(idx_cur_lag, arma::uvec({1}))));
-   arma::vec Yvec_pred = arma::sort(arma::unique(data_mat(idx_cur_pred, arma::uvec({2}))));
-   arma::vec Yvec_lag = arma::sort(arma::unique(data_mat(idx_cur_lag, arma::uvec({2}))));
+   arma::uvec idx_cur_lag = arma::find(data_mat.col(0) == idx_curve_lag);
+   arma::vec Tvec_pred = data_mat(idx_cur_pred, arma::uvec({1}));
+   arma::vec Tvec_lag = data_mat(idx_cur_lag, arma::uvec({1}));
+   arma::vec Yvec_pred = data_mat(idx_cur_pred, arma::uvec({2}));
+   arma::vec Yvec_lag = data_mat(idx_cur_lag, arma::uvec({2}));
 
    Rcout << "--> Set up : ok \n ";
    // Estimate the observation error standard deviation
@@ -193,22 +193,22 @@ using namespace arma;
    // Estimate the covariances
    arma::mat grid_n0 = build_grid(Tvec_pred, Tvec_pred);
    arma::mat grid_n0_lag = build_grid(Tvec_lag, Tvec_lag);
-   arma::mat mat_cov_n0_all = estimate_autocov_cpp(data, grid_n0.col(0), grid_n0.col(1), 0, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
-   arma::mat mat_cov_n0_lag_all = estimate_autocov_cpp(data, grid_n0_lag.col(0), grid_n0_lag.col(1), 0, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
+   arma::mat mat_cov_n0_all = estimate_autocov_cpp(data, grid_n0.col(0), grid_n0.col(1), 0, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+   arma::mat mat_cov_n0_lag_all = estimate_autocov_cpp(data, grid_n0_lag.col(0), grid_n0_lag.col(1), 0, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
    Rcout << "--> cov estimation : ok \n ";
    // Estimate the autocovariances
    arma::mat grid_n0__n0_lag = build_grid(Tvec_pred, Tvec_lag);
    arma::mat grid_n0_lag__n0 = build_grid(Tvec_lag, Tvec_pred);
-   arma::mat mat_autocov_n0__n0_lag_all = estimate_autocov_cpp(data, grid_n0__n0_lag.col(0), grid_n0__n0_lag.col(1), 1, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
-   arma::mat mat_autocov_n0_lag__n0_all = estimate_autocov_cpp(data, grid_n0_lag__n0.col(0), grid_n0_lag__n0.col(1), 1, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
+   arma::mat mat_autocov_n0__n0_lag_all = estimate_autocov_cpp(data, grid_n0__n0_lag.col(0), grid_n0__n0_lag.col(1), 1, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+   arma::mat mat_autocov_n0_lag__n0_all = estimate_autocov_cpp(data, grid_n0_lag__n0.col(0), grid_n0_lag__n0.col(1), 1, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
    Rcout << "--> autocov estimation : ok \n ";
    // Estimate covariance and autocovariance related to prediction point
    arma::mat grid_n0_lag__tvec = build_grid(Tvec_lag, tvec);
    arma::mat grid_n0__tvec = build_grid(Tvec_pred, tvec);
    Rcout << "--> tvec cov and autocov estimation -- grid : ok \n ";
-   arma::mat mat_autocov_n0_lag_tvec_all = estimate_autocov_cpp(data, grid_n0_lag__tvec.col(0), grid_n0_lag__tvec.col(1), 1, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
+   arma::mat mat_autocov_n0_lag_tvec_all = estimate_autocov_cpp(data, grid_n0_lag__tvec.col(0), grid_n0_lag__tvec.col(1), 1, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
    Rcout << "--> tvec cov and autocov estimation -- autocov : ok \n ";
-   arma::mat mat_cov_n0_tvec_all = estimate_autocov_cpp(data, grid_n0__tvec.col(0), grid_n0__tvec.col(1), 0, optbw_s, optbw_t, bw_grid, use_same_bw, center, kernel_name);
+   arma::mat mat_cov_n0_tvec_all = estimate_autocov_cpp(data, grid_n0__tvec.col(0), grid_n0__tvec.col(1), 0, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
    Rcout << "--> tvec cov and autocov estimation : ok \n ";
    // Build the matrix VarY_mat
    arma::mat mat_cov_n0_lag = reshape_matrix(mat_cov_n0_lag_all, 0, 1, 13);
@@ -229,9 +229,15 @@ using namespace arma;
    arma::mat mat_mean_n0 = estimate_mean_cpp(data, Tvec_pred, R_NilValue, R_NilValue, kernel_name);
    arma::mat mat_mean_n0_lag = estimate_mean_cpp(data, Tvec_lag, R_NilValue, R_NilValue, kernel_name);
    arma::vec Yn_minus_mean_n0 = Yvec_pred - mat_mean_n0.col(5);
-   arma::vec Yn_minus_mean_n0_lag = Yvec_lag - mat_mean_n0.col(5);
+   arma::vec Yn_minus_mean_n0_lag = Yvec_lag - mat_mean_n0_lag.col(5);
+   Rcout << "Print Yvec_pred : " << arma::trans(Yvec_pred) << "\n";
+   Rcout << "Print mean Yvec_pred : " << arma::trans(mat_mean_n0.col(5)) << "\n";
+   Rcout << "Print Yvec_pred - mean : " << arma::trans(Yn_minus_mean_n0) << "\n";
+   Rcout << "Print Yvec_lag : " << arma::trans(Yvec_lag) << "\n";
+   Rcout << "Print mean Yvec_lag : " << arma::trans(mat_mean_n0_lag.col(5)) << "\n";
+   Rcout << "Print Yvec_lag - mean : " << arma::trans(Yn_minus_mean_n0_lag) << "\n";
 
-   arma::vec vec_Yn0_lag = arma::join_vert(Yn_minus_mean_n0, Yn_minus_mean_n0_lag);
+   arma::vec vec_Yn0_lag = arma::join_vert(Yn_minus_mean_n0_lag, Yn_minus_mean_n0);
 
    // Build the BLUP
    //// Estimate the mean function
@@ -266,6 +272,10 @@ using namespace arma;
    result["autocov_n0_lag_tvec_all"] = mat_autocov_n0_lag_tvec_all;
    result["cov_n0_tvec"] = mat_cov_n0_tvec;
    result["cov_n0_tvec_all"] = mat_cov_n0_tvec_all;
+   result["mat_VarY"] = mat_VarY;
+   result["covY_Xn0"] = covY_Xn0;
+   result["muhat"] = mat_mean_tvec.col(5);
+   result["vec_Yn0_lag"] = vec_Yn0_lag;
    result["res_blup"] = mat_res;
 
    return result;

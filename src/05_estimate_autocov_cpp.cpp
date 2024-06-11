@@ -607,6 +607,7 @@ using namespace arma;
                                 const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
                                 const bool use_same_bw = false,
                                 const bool center = true,
+                                const bool correct_diagonal = true,
                                 const std::string kernel_name = "epanechnikov") {
    if (s.size() != t.size()) {
      stop("Arguments 's' and 't' must be of equal length.");
@@ -658,15 +659,22 @@ using namespace arma;
                             mat_risk(idx_risk_cur(idx_min), 8), mat_risk(idx_risk_cur(idx_min), 9)};
      }
    } else {
-     optbw_s_to_use = as<arma::vec>(optbw_s);
-     optbw_t_to_use = as<arma::vec>(optbw_t);
-     if (optbw_s_to_use.size() != n || optbw_t_to_use.size() != n) {
-       stop("If 'optbw_s' and 'optbw_t' are not NULL, they must be the same length as 's' and as 't'.");
+     arma::vec optbw_s_to_use_temp = as<arma::vec>(optbw_s);
+     arma::vec optbw_t_to_use_temp = as<arma::vec>(optbw_t);
+
+     if (optbw_s_to_use_temp.size() == n && optbw_t_to_use_temp.size() == n) {
+       optbw_s_to_use = optbw_s_to_use_temp;
+       optbw_t_to_use = optbw_t_to_use_temp;
+     } else if (optbw_s_to_use_temp.size() == 1 && optbw_t_to_use_temp.size() == 1){
+       optbw_s_to_use = arma::ones(n) * (optbw_s_to_use_temp(0));
+       optbw_t_to_use = arma::ones(n) * (optbw_t_to_use_temp(0));
      } else {
-       mat_locreg.col(0) = svec;
-       mat_locreg.col(1) = tvec;
-       mat_locreg.cols(2, 5).zeros();
+       stop("If 'optbw_s' and 'optbw_t' are not NULL, they must be the same length as 's' and as 't' or of length 1.");
      }
+
+     mat_locreg.col(0) = svec;
+     mat_locreg.col(1) = tvec;
+     mat_locreg.cols(2, 5).zeros();
    }
 
    // Estimate mean function
@@ -720,34 +728,45 @@ using namespace arma;
 
    // Diagonal correction if lag == 0
    if (lag == 0) {
-     arma::mat mat_cov(n, 5);
-     mat_cov.col(0) = svec;
-     mat_cov.col(1) = tvec;
-     mat_cov.col(2) = arma::abs(svec - tvec);
-     mat_cov.col(3) = 0.5 * (optbw_s_to_use + optbw_t_to_use + arma::abs(optbw_s_to_use - optbw_t_to_use)); // max(h_s, h_t)
-     mat_cov.col(4) = autocovhat;
+     arma::mat mat_cov_res(n, 5);
+     if (correct_diagonal) {
+       arma::mat mat_cov(n, 5);
+       mat_cov.col(0) = svec;
+       mat_cov.col(1) = tvec;
+       mat_cov.col(2) = arma::abs(svec - tvec);
+       mat_cov.col(3) = 0.5 * (optbw_s_to_use + optbw_t_to_use + arma::abs(optbw_s_to_use - optbw_t_to_use)); // max(h_s, h_t)
+       mat_cov.col(4) = autocovhat;
 
-     // Diagonal correction
-     arma::mat mat_cov_corrected = diagonal_correct(mat_cov, 0, 1, 2, 3, 4);
+       // Diagonal correction
+       arma::mat mat_cov_corrected = diagonal_correct(mat_cov, 0, 1, 2, 3, 4);
 
-     // replace the column containing arma::abs(svec - tvec) and max(h_s, h_t) by the bw_s and bw_t
-     mat_cov_corrected.col(2) = optbw_s_to_use;
-     mat_cov_corrected.col(3) = optbw_t_to_use;
+       // replace the column containing arma::abs(svec - tvec) and max(h_s, h_t) by the bw_s and bw_t
+       mat_cov_corrected.col(2) = optbw_s_to_use;
+       mat_cov_corrected.col(3) = optbw_t_to_use;
+       mat_cov_res = mat_cov_corrected;
+
+     } else {
+       mat_cov_res.col(0) = svec;
+       mat_cov_res.col(1) = tvec;
+       mat_cov_res.col(2) = optbw_s_to_use;
+       mat_cov_res.col(3) = optbw_t_to_use;
+       mat_cov_res.col(4) = autocovhat;
+     }
 
 
      // Initialize the output matrix
-     int n_upper_tri = mat_cov_corrected.n_rows;
+     int n_upper_tri = mat_cov_res.n_rows;
      arma::mat res_cov(n_upper_tri * 2, 5);
 
      // Fill the upper triangular elements
-     res_cov(arma::span(0, n_upper_tri - 1), arma::span::all) = mat_cov_corrected;
+     res_cov(arma::span(0, n_upper_tri - 1), arma::span::all) = mat_cov_res;
 
      // Fill the lower triangular elements
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 0) = mat_cov_corrected.col(1);
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 1) = mat_cov_corrected.col(0);
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 2) = mat_cov_corrected.col(3);
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 3) = mat_cov_corrected.col(2);
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 4) = mat_cov_corrected.col(4);
+     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 0) = mat_cov_res.col(1);
+     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 1) = mat_cov_res.col(0);
+     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 2) = mat_cov_res.col(3);
+     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 3) = mat_cov_res.col(2);
+     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 4) = mat_cov_res.col(4);
 
      // return the covariance result
      //// P_{N, \ell}(s,t; h_s, h_t)

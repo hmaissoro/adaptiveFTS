@@ -175,7 +175,7 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' dt_mfBm <- simulate_mfBm(t = t0, hurst_fun = hurst_logistic, L = 1, tied = TRUE)
 #' plot(x = dt_mfBm$t, y = dt_mfBm$mfBm, type = "l", col = "red")
 #'
-simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logistic, L = 1, tied = TRUE, ...) {
+simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logistic, L = 1, shift_var = 0, tied = TRUE, ...) {
   if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! methods::is(hurst_fun, "function"))
@@ -185,7 +185,7 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
   if (! methods::is(tied, "logical"))
     stop("'tied' must be a TRUE or FALSE.")
   t <- sort(t)
-  cov_mat <- .covariance_mfBm(t = t, hurst_fun = hurst_fun, ...)
+  cov_mat <- .covariance_mfBm(t = t, hurst_fun = hurst_fun, ...) + shift_var
   out <- MASS::mvrnorm(1,
                        mu = rep(0, ncol(cov_mat)),
                        Sigma = L * cov_mat)

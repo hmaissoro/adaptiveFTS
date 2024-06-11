@@ -15,6 +15,7 @@ arma::mat estimate_autocov_cpp(const Rcpp::DataFrame data, const arma::vec s, co
                                const Rcpp::Nullable<arma::vec> optbw_t = R_NilValue,
                                const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
                                const bool use_same_bw = false, const bool center = true,
+                               const bool correct_diagonal = true,
                                const std::string kernel_name = "epanechnikov");
 
 #endif
