@@ -121,6 +121,108 @@ using namespace arma;
    return result;
  }
 
+ //' Get the optimal bandwidth for given time points
+ //'
+ //' This function selects the optimal bandwidth for each pair of time points (s, t)
+ //' by finding the minimum risk value in the autocovariance risk matrix.
+ //'
+ //' @param mat_autocov_risk A numeric matrix containing the autocovariance risk estimates. The columns should include:
+ //' \itemize{
+ //'   \item \code{0}: s - The first argument of the autocovariance function.
+ //'   \item \code{1}: t - The second argument of the autocovariance function.
+ //'   \item \code{2}: hs - The candidate bandwidth for the first argument of the autocovariance function.
+ //'   \item \code{3}: ht - The candidate bandwidth for the second argument of the autocovariance function.
+ //'   \item \code{4}: PNl - The number of curves used in the estimation of the autocovariance at (s,t).
+ //'   \item \code{5}: locreg_bw - The bandwidth used to estimate the local regularity parameters.
+ //'   \item \code{6}: Hs - The estimates of the local exponent for each t, corresponding to H_s.
+ //'   \item \code{7}: Ls - The estimates of the Hölder constant for each t, corresponding to L_s^2.
+ //'   \item \code{8}: Ht - The estimates of the local exponent for each t, corresponding to H_t.
+ //'   \item \code{9}: Lt - The estimates of the Hölder constant for each t, corresponding to L_t^2.
+ //'   \item \code{10}: bias_term - The bias term of the risk function.
+ //'   \item \code{11}: variance_term - The variance term of the risk function.
+ //'   \item \code{12}: dependence_term - The dependence term of the risk function.
+ //'   \item \code{13}: autocov_risk - The estimates of the risk function of the covariance/autocovariance function.
+ //' }
+ //' @param s A numeric vector of time points for which the bandwidth needs to be optimized.
+ //' @param t A numeric vector of time points for which the bandwidth needs to be optimized.
+ //' @return A numeric matrix with 8 columns:
+ //' \itemize{
+ //'   \item \code{s}: The input time point \code{s}.
+ //'   \item \code{t}: The input time point \code{t}.
+ //'   \item \code{Hs}: The local regularity estimate for \code{s}.
+ //'   \item \code{Ls^2}: The local Hölder constant estimate for \code{s}.
+ //'   \item \code{Ht}: The local regularity estimate for \code{t}.
+ //'   \item \code{Lt^2}: The local Hölder constant estimate for \code{t}.
+ //'   \item \code{optbw_s}: The optimal bandwidth for \code{s}.
+ //'   \item \code{optbw_t}: The optimal bandwidth for \code{t}.
+ //' }
+ //'
+ //' @examples
+ //' \dontrun{
+ //'   mat_autocov_risk <- matrix(runif(14 * 100), ncol = 14)
+ //'   s <- seq(0, 1, length.out = 10)
+ //'   t <- seq(0, 1, length.out = 10)
+ //'   best_bw <- get_best_bw(mat_autocov_risk, s, t)
+ //' }
+ //' @export
+ // [[Rcpp::export]]
+ arma::mat get_best_bw(const arma::mat& mat_autocov_risk, const arma::vec s, const arma::vec t) {
+   int n = s.size();
+   arma::mat mat_res(n, 8);
+   mat_res.col(0) = s;
+   mat_res.col(1) = t;
+
+   for (int k = 0; k < n; ++k) {
+     arma::uvec idx_risk_cur = arma::find(mat_autocov_risk.col(0) == s(k) && mat_autocov_risk.col(1) == t(k));
+     arma::vec risk = mat_autocov_risk(idx_risk_cur, arma::uvec({13}));
+     arma::uword idx_min = arma::index_min(risk.elem(arma::find_finite(risk)));
+
+     mat_res(k, 2) = mat_autocov_risk(idx_risk_cur(idx_min), 6); // H_s
+     mat_res(k, 3) = mat_autocov_risk(idx_risk_cur(idx_min), 7); // L_s^2
+     mat_res(k, 4) = mat_autocov_risk(idx_risk_cur(idx_min), 8); // H_t
+     mat_res(k, 5) = mat_autocov_risk(idx_risk_cur(idx_min), 9); // L_t^2
+     mat_res(k, 6) = mat_autocov_risk(idx_risk_cur(idx_min), 2); // optbw_s
+     mat_res(k, 7) = mat_autocov_risk(idx_risk_cur(idx_min), 3); // optbw_t
+   }
+
+   return mat_res;
+ }
+
+ //' Get Nearest Best Bandwidth
+ //'
+ //' This function finds the nearest optimal bandwidth parameters for new time points using a nearest neighbor strategy.
+ //'
+ //' @param mat_opt_param A \code{matrix} containing the optimal parameters, typically the output of the \code{get_best_bw} function.
+ //' The matrix should have columns representing \code{s}, \code{t}, \code{Hs}, \code{Ls^2}, \code{Ht}, \code{Lt^2}, \code{optbw_s}, and \code{optbw_t}.
+ //' @param snew A numeric vector specifying the new \code{s} time points.
+ //' @param tnew A numeric vector specifying the new \code{t} time points.
+ //' @return A \code{matrix} with four columns: \code{snew}, \code{tnew}, \code{optbw_s}, and \code{optbw_t} for the nearest optimal bandwidths.
+ //' @export
+ // [[Rcpp::export]]
+ arma::mat get_nearest_best_bw(const arma::mat& mat_opt_param, const arma::vec snew, const arma::vec tnew) {
+   int n = snew.size();
+   arma::mat mat_res(n, 4);
+
+   mat_res.col(0) = snew;
+   mat_res.col(1) = tnew;
+
+   for (int k = 0; k < n; ++k) {
+     // Calculate squared distances from (snew[k], tnew[k]) to all (s, t) in mat_opt_param
+     arma::vec dist = arma::square(mat_opt_param.col(0) - snew(k)) + arma::square(mat_opt_param.col(1) - tnew(k));
+
+     // Find the index of the minimum distance
+     arma::uword idx_min_dist = arma::index_min(dist);
+
+     // Extract optimal bandwidths corresponding to the minimum distance index
+     mat_res(k, 2) = mat_opt_param(idx_min_dist, 6);
+     mat_res(k, 3) = mat_opt_param(idx_min_dist, 7);
+   }
+
+   return mat_res;
+ }
+
+
+
 
  // [[Rcpp::export]]
  Rcpp::List estimate_curve(const Rcpp::DataFrame data,
@@ -187,56 +289,81 @@ using namespace arma;
    // Estimate the observation error standard deviation
    arma::mat mat_sig_pred = estimate_sigma_cpp(data, Tvec_pred);
    arma::mat mat_sig_lag = estimate_sigma_cpp(data, Tvec_lag);
-   arma::mat Sigma_n0 = arma::diagmat(arma::pow(mat_sig_pred.col(1), 2));
-   arma::mat Sigma_n0_lag = arma::diagmat(arma::pow(mat_sig_lag.col(1), 2));
+   arma::mat Sigma_pred = arma::diagmat(arma::pow(mat_sig_pred.col(1), 2));
+   arma::mat Sigma_lag = arma::diagmat(arma::pow(mat_sig_lag.col(1), 2));
    Rcout << "--> Sigma estimation : ok \n ";
+
+   // Estimate bandwidth parameters on a grid
+   // // Estimate cov and autocovariance on the grid
+   arma::vec vec_grid = arma::vec({0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95});
+   arma::mat grid_fixe = build_grid(vec_grid, vec_grid);
+   arma::mat mat_cov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 0, R_NilValue, use_same_bw, center, kernel_name);
+   arma::mat mat_autocov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 1, R_NilValue, use_same_bw, center, kernel_name);
+
+   // // get optimal cov and autocov variance parameters
+   mat mat_opt_cov_param = get_best_bw(mat_cov_risk, grid_fixe.col(0), grid_fixe.col(1));
+   mat mat_opt_autocov_param = get_best_bw(mat_autocov_risk, grid_fixe.col(0), grid_fixe.col(1));
+
+
    // Estimate the covariances
-   arma::mat grid_n0 = build_grid(Tvec_pred, Tvec_pred);
-   arma::mat grid_n0_lag = build_grid(Tvec_lag, Tvec_lag);
-   arma::mat mat_cov_n0_all = estimate_autocov_cpp(data, grid_n0.col(0), grid_n0.col(1), 0, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
-   arma::mat mat_cov_n0_lag_all = estimate_autocov_cpp(data, grid_n0_lag.col(0), grid_n0_lag.col(1), 0, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
-   Rcout << "--> cov estimation : ok \n ";
-   // Estimate the autocovariances
-   arma::mat grid_n0__n0_lag = build_grid(Tvec_pred, Tvec_lag);
-   arma::mat grid_n0_lag__n0 = build_grid(Tvec_lag, Tvec_pred);
-   arma::mat mat_autocov_n0__n0_lag_all = estimate_autocov_cpp(data, grid_n0__n0_lag.col(0), grid_n0__n0_lag.col(1), 1, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
-   arma::mat mat_autocov_n0_lag__n0_all = estimate_autocov_cpp(data, grid_n0_lag__n0.col(0), grid_n0_lag__n0.col(1), 1, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+   // // Get optimal bandwidth parameter
+   arma::mat grid_pred_pred = build_grid(Tvec_pred, Tvec_pred);
+   arma::mat grid_lag_lag = build_grid(Tvec_lag, Tvec_lag);
+   arma::mat grid_pred_lag = build_grid(Tvec_pred, Tvec_lag);
+   arma::mat grid_lag_pred = build_grid(Tvec_lag, Tvec_pred);
+   arma::mat grid_lag_tvec = build_grid(Tvec_lag, tvec);
+   arma::mat grid_pred_tvec = build_grid(Tvec_pred, tvec);
+
+   arma::mat grid_pred_pred_optbw = get_nearest_best_bw(mat_opt_cov_param, grid_pred_pred.col(0), grid_pred_pred.col(1));
+   arma::mat grid_lag_lag_optbw = get_nearest_best_bw(mat_opt_cov_param, grid_lag_lag.col(0), grid_lag_lag.col(1));
+   arma::mat grid_pred_lag_optbw = get_nearest_best_bw(mat_opt_autocov_param, grid_pred_lag.col(0), grid_pred_lag.col(1));
+   arma::mat grid_lag_pred_optbw = get_nearest_best_bw(mat_opt_autocov_param, grid_lag_pred.col(0), grid_lag_pred.col(1));
+   arma::mat grid_lag_tvec_optbw = get_nearest_best_bw(mat_opt_autocov_param, grid_lag_tvec.col(0), grid_lag_tvec.col(1));
+   arma::mat grid_pred_tvec_optbw = get_nearest_best_bw(mat_opt_cov_param, grid_pred_tvec.col(0), grid_pred_tvec.col(1));
+
+   // // estimate covariances and autocovariances
+   arma::mat mat_cov_pred_pred_all = estimate_autocov_cpp(data, grid_pred_pred_optbw.col(0), grid_pred_pred_optbw.col(1), 0,
+                                                          Rcpp::wrap(grid_pred_pred_optbw.col(2)), Rcpp::wrap(grid_pred_pred_optbw.col(3)),
+                                                          bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+   arma::mat mat_cov_lag_lag_all = estimate_autocov_cpp(data, grid_lag_lag_optbw.col(0), grid_lag_lag_optbw.col(1), 0,
+                                                        Rcpp::wrap(grid_lag_lag_optbw.col(2)), Rcpp::wrap(grid_lag_lag_optbw.col(3)),
+                                                        bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+   arma::mat mat_autocov_pred_lag_all = estimate_autocov_cpp(data, grid_pred_lag_optbw.col(0), grid_pred_lag_optbw.col(1), 0,
+                                                             Rcpp::wrap(grid_pred_lag_optbw.col(2)), Rcpp::wrap(grid_pred_lag_optbw.col(3)),
+                                                             bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+   arma::mat mat_autocov_lag_pred_all = estimate_autocov_cpp(data, grid_lag_pred_optbw.col(0), grid_lag_pred_optbw.col(1), 0,
+                                                             Rcpp::wrap(grid_lag_pred_optbw.col(2)), Rcpp::wrap(grid_lag_pred_optbw.col(3)),
+                                                             bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+   arma::mat mat_autocov_lag_tvec_all = estimate_autocov_cpp(data, grid_lag_tvec_optbw.col(0), grid_lag_tvec_optbw.col(1), 0,
+                                                             Rcpp::wrap(grid_lag_tvec_optbw.col(2)), Rcpp::wrap(grid_lag_tvec_optbw.col(3)),
+                                                             bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+   arma::mat mat_cov_pred_tvec_all = estimate_autocov_cpp(data, grid_pred_tvec_optbw.col(0), grid_pred_tvec_optbw.col(1), 0,
+                                                          Rcpp::wrap(grid_pred_tvec_optbw.col(2)), Rcpp::wrap(grid_pred_tvec_optbw.col(3)),
+                                                          bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
    Rcout << "--> autocov estimation : ok \n ";
-   // Estimate covariance and autocovariance related to prediction point
-   arma::mat grid_n0_lag__tvec = build_grid(Tvec_lag, tvec);
-   arma::mat grid_n0__tvec = build_grid(Tvec_pred, tvec);
-   Rcout << "--> tvec cov and autocov estimation -- grid : ok \n ";
-   arma::mat mat_autocov_n0_lag_tvec_all = estimate_autocov_cpp(data, grid_n0_lag__tvec.col(0), grid_n0_lag__tvec.col(1), 1, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
-   Rcout << "--> tvec cov and autocov estimation -- autocov : ok \n ";
-   arma::mat mat_cov_n0_tvec_all = estimate_autocov_cpp(data, grid_n0__tvec.col(0), grid_n0__tvec.col(1), 0, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
-   Rcout << "--> tvec cov and autocov estimation : ok \n ";
-   // Build the matrix VarY_mat
-   arma::mat mat_cov_n0_lag = reshape_matrix(mat_cov_n0_lag_all, 0, 1, 13);
-   arma::mat mat_cov_n0 = reshape_matrix(mat_cov_n0_all, 0, 1, 13);
-   arma::mat mat_autocov_n0__n0_lag = reshape_matrix(mat_autocov_n0__n0_lag_all, 0, 1, 13);
-   arma::mat mat_autocov_n0_lag__n0 = reshape_matrix(mat_autocov_n0_lag__n0_all, 0, 1, 13);
-   arma::mat G_n0_lag = mat_cov_n0_lag + Sigma_n0_lag;
-   arma::mat G_n0 = mat_cov_n0 + Sigma_n0;
-   arma::mat mat_VarY = combine_matrices(G_n0_lag, mat_autocov_n0_lag__n0, mat_autocov_n0__n0_lag, G_n0) ;
+
+
+   // // Build the matrix VarY_mat
+   arma::mat mat_cov_lag_lag = reshape_matrix(mat_cov_lag_lag_all, 0, 1, 13);
+   arma::mat G0_lag_lag = mat_cov_lag_lag + Sigma_lag;
+   arma::mat mat_autocov_lag_pred = reshape_matrix(mat_autocov_lag_pred_all, 0, 1, 13);
+   arma::mat mat_autocov_pred_lag = reshape_matrix(mat_autocov_pred_lag_all, 0, 1, 13);
+   arma::mat mat_cov_pred_pred = reshape_matrix(mat_cov_pred_pred_all, 0, 1, 13);
+   arma::mat G0_pred_pred = mat_cov_pred_pred + Sigma_pred;
+   arma::mat mat_VarY = combine_matrices(G0_lag_lag, mat_autocov_lag_pred, mat_autocov_pred_lag, G0_pred_pred) ;
    Rcout << "--> mat_VarY build : ok \n ";
    // Build the matrix covY_Xn0
-   arma::mat mat_autocov_n0_lag_tvec = reshape_matrix(mat_autocov_n0_lag_tvec_all, 0, 1, 13);
-   arma::mat mat_cov_n0_tvec = reshape_matrix(mat_cov_n0_tvec_all, 0, 1, 13);
-   arma::mat covY_Xn0 = arma::join_cols(mat_autocov_n0_lag_tvec, mat_cov_n0_tvec);
+   arma::mat mat_autocov_lag_tvec = reshape_matrix(mat_autocov_lag_tvec_all, 0, 1, 13);
+   arma::mat mat_cov_pred_tvec = reshape_matrix(mat_cov_pred_tvec_all, 0, 1, 13);
+   arma::mat covY_Xn0 = arma::join_cols(mat_autocov_lag_tvec, mat_cov_pred_tvec);
    Rcout << "--> covY_Xn0 build : ok \n ";
+
    // Build the vector Y_{n_0, 1} - M_{n_0, 1}
    //// Estimate mean function
    arma::mat mat_mean_n0 = estimate_mean_cpp(data, Tvec_pred, R_NilValue, R_NilValue, kernel_name);
    arma::mat mat_mean_n0_lag = estimate_mean_cpp(data, Tvec_lag, R_NilValue, R_NilValue, kernel_name);
    arma::vec Yn_minus_mean_n0 = Yvec_pred - mat_mean_n0.col(5);
    arma::vec Yn_minus_mean_n0_lag = Yvec_lag - mat_mean_n0_lag.col(5);
-   Rcout << "Print Yvec_pred : " << arma::trans(Yvec_pred) << "\n";
-   Rcout << "Print mean Yvec_pred : " << arma::trans(mat_mean_n0.col(5)) << "\n";
-   Rcout << "Print Yvec_pred - mean : " << arma::trans(Yn_minus_mean_n0) << "\n";
-   Rcout << "Print Yvec_lag : " << arma::trans(Yvec_lag) << "\n";
-   Rcout << "Print mean Yvec_lag : " << arma::trans(mat_mean_n0_lag.col(5)) << "\n";
-   Rcout << "Print Yvec_lag - mean : " << arma::trans(Yn_minus_mean_n0_lag) << "\n";
-
    arma::vec vec_Yn0_lag = arma::join_vert(Yn_minus_mean_n0_lag, Yn_minus_mean_n0);
 
    // Build the BLUP
@@ -258,20 +385,22 @@ using namespace arma;
 
    Rcpp::List result;
 
-   result["Cov_n0"] = mat_cov_n0;
-   result["Sigma_n0"] = Sigma_n0;
-   result["cov_n0_all"] = mat_cov_n0_all;
-   result["cov_n0_lag"] = mat_cov_n0_lag;
-   result["Sigma_n0_lag"] = Sigma_n0_lag;
-   result["cov_n0_lag_all"] = mat_cov_n0_lag_all;
-   result["autocov_n0_lag__n0"] = mat_autocov_n0_lag__n0;
-   result["autocov_n0_lag__n0_all"] = mat_autocov_n0_lag__n0_all;
-   result["autocov_n0__n0_lag"] = mat_autocov_n0__n0_lag;
-   result["autocov_n0__n0_lag_all"] = mat_autocov_n0__n0_lag_all;
-   result["autocov_n0_lag_tvec"] = mat_autocov_n0_lag_tvec;
-   result["autocov_n0_lag_tvec_all"] = mat_autocov_n0_lag_tvec_all;
-   result["cov_n0_tvec"] = mat_cov_n0_tvec;
-   result["cov_n0_tvec_all"] = mat_cov_n0_tvec_all;
+   result["opt_cov_param"] = mat_opt_cov_param;
+   result["opt_autocov_param"] = mat_opt_autocov_param;
+   result["cov_pred_pred"] = mat_cov_pred_pred;
+   result["Sigma_pred"] = Sigma_pred;
+   result["cov_pred_pred_all"] = mat_cov_pred_pred_all;
+   result["cov_lag_lag"] = mat_cov_lag_lag;
+   result["Sigma_lag"] = Sigma_lag;
+   result["cov_lag_lag_all"] = mat_cov_lag_lag_all;
+   result["autocov_lag_pred"] = mat_autocov_lag_pred;
+   result["autocov_lag_pred_all"] = mat_autocov_lag_pred_all;
+   result["autocov_pred_lag"] = mat_autocov_pred_lag;
+   result["autocov_pred_lag_all"] = mat_autocov_pred_lag_all;
+   result["autocov_lag_tvec"] = mat_autocov_lag_tvec;
+   result["autocov_lag_tvec_all"] = mat_autocov_lag_tvec_all;
+   result["cov_pred_tvec"] = mat_cov_pred_tvec;
+   result["cov_pred_tvec_all"] = mat_cov_pred_tvec_all;
    result["mat_VarY"] = mat_VarY;
    result["covY_Xn0"] = covY_Xn0;
    result["muhat"] = mat_mean_tvec.col(5);
