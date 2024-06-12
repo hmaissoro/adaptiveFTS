@@ -118,11 +118,11 @@ using namespace arma;
    if (bw_grid.isNull()) {
      // Estimate lambda
      double lambdahat = arma::mean(hist(data_mat.col(0), unique_id_curve));
-     double b0 = 4 * std::max(std::pow(n_curve * lambdahat, -1 / (2 * 0.1 + 1)),
-                              std::pow(n_curve * lambdahat * lambdahat, -1 / (2 * 0.05 + 1))); // rate with minimum local exponent = 0.05
+     double b0 = 5 * std::max(std::pow(n_curve * lambdahat, -1 / (2 * 0.1 + 1)),
+                              std::pow(n_curve * lambdahat * lambdahat, -1 / (2 * 0.1 + 1))); // rate with minimum local exponent = 0.05
      // double bK = 4 * std::max(std::pow(n_curve * lambdahat, -1 / (2 * 0.8 + 1)),
      //                          std::pow(n_curve * lambdahat * lambdahat, -1 / (2 * 0.8 + 1))); // rate with maximum local exponent = 0.8
-     double bK = 0.3;
+     double bK = 0.2;
      bw_grid_to_use = arma::logspace(log10(b0), log10(bK), 15);
    } else {
      bw_grid_to_use = as<arma::vec>(bw_grid);

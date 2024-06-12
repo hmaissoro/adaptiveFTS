@@ -96,9 +96,9 @@ using namespace arma;
    if (bw_grid.isNull()) {
      // Estimate lambda
      double lambdahat = arma::mean(arma::hist(data_mat.col(0), unique_id_curve));
-     double b0 = std::pow(n_curve * lambdahat, -1 / (2 * 0.1 + 1)); // rate with minimum local exponent = 0.05
+     double b0 = std::pow(n_curve * lambdahat, -1 / (2 * 0.05 + 1)); // rate with minimum local exponent = 0.05
      // double bK = 4 * std::pow(n_curve * lambdahat, -1 / (2 * 1 + 1)); // rate with maximum local exponent = 1
-     double bK = 0.3; // rate with maximum local exponent = 1
+     double bK = 0.2; // rate with maximum local exponent = 1
      bw_grid_to_use = arma::logspace(log10(b0), log10(bK), 20);
    } else {
      bw_grid_to_use = Rcpp::as<arma::vec>(bw_grid);
@@ -156,10 +156,6 @@ using namespace arma;
 
          // Compute and store the vector \pi_n(t;h)
          pn_vec(i) = arma::find(abs(Tn_t_diff_over_bw(idx_i)) <= 1).is_empty() ? 0 : 1;
-
-         // Compute the vector p_n(t;h)
-         arma::uvec idx_is_one_pi = arma::find(arma::abs(Tn_t_diff_over_bw) <= 1);
-         pn_vec(i) = idx_is_one_pi.is_empty() ? 0 : 1;
 
          // Compute bias term numerator
          bias_term_num += Lt * std::pow(bw_grid_to_use(idx_bw), 2 * Ht) * pn_vec(i) * arma::sum(bn_vec(idx_i));
