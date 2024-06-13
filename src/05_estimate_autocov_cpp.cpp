@@ -378,67 +378,47 @@ using namespace arma;
    return mat_res_risk;
  }
 
- //' Get Unique Pairs of Elements in Upper Triangular Form
+ //' Get Upper Triangular Couples
  //'
- //' This function takes two vectors `s` and `t` of the same length and generates
- //' unique pairs (s(k), t(k)) in an upper triangular form. This means for each
- //' pair, the smaller element is the first component and the larger element is
- //' the second component. Duplicate pairs are removed, and the result is sorted
- //'  by the first and then the second column.
+ //' This function constructs a matrix of upper triangular couples from vectors s and t,
+ //' ensuring that if max(s) < max(t), the missing values from t are included in s.
  //'
- //' @param s A numeric vector.
- //' @param t A numeric vector of the same length as `s`.
- //'
- //' @return A matrix where each row contains a unique pair (s(k), t(k)) in
- //' upper triangular form, sorted by the first and then
- //' the second column.
- //'
- //' @examples
- //' \dontrun{
- //'   library(RcppArmadillo)
- //'   s <- c(0.2, 0.4, 0.6, 0.4)
- //'   t <- c(0.4, 0.2, 0.6, 0.6)
- //'   get_upper_tri_couple(s, t)
- //' }
- //'
+ //' @param s A vector of values.
+ //' @param t A vector of values.
+ //' @return A matrix with unique (s, t) pairs where s >= t, sorted by s in descending order and t in ascending order.
+ //' @export
+ // [[Rcpp::export]]
  arma::mat get_upper_tri_couple(const arma::vec& s, const arma::vec& t) {
-   int n = t.size();
-   arma::mat mat_st(n, 2);
-   for (int k = 0; k < n; ++k) {
-     mat_st.row(k) = {std::min(s(k), t(k)), std::max(s(k), t(k))};
+   // Sort unique values of s in descending order and t in ascending order
+   arma::vec s_unique = arma::sort(arma::unique(s), "descend");
+   arma::vec t_unique = arma::sort(arma::unique(t), "ascend");
+
+   // If max(s) < max(t), include the missing values from t_unique in s_unique
+   double max_s = s_unique.max();
+   double max_t = t_unique.max();
+   if (max_s < max_t) {
+     arma::uvec t_indices = arma::find(t_unique > max_s);
+     s_unique = arma::join_vert(s_unique, t_unique.elem(t_indices));
+     s_unique = arma::sort(s_unique, "descend");
    }
 
-   // Remove duplicated rows
-   std::unordered_set<std::string> seen;
-   std::vector<arma::uword> unique_indices;
-
-   for (arma::uword i = 0; i < mat_st.n_rows; ++i) {
-     std::string row_str = "";
-     for (arma::uword j = 0; j < mat_st.n_cols; ++j) {
-       row_str += std::to_string(mat_st(i, j)) + ",";
+   // Generate pairs
+   arma::mat mat_st(s_unique.n_elem * t_unique.n_elem, 2);
+   int idx = 0;
+   for (arma::uword i = 0; i < s_unique.n_elem; ++i) {
+     for (arma::uword j = 0; j < t_unique.n_elem; ++j) {
+       if (s_unique(i) >= t_unique(j)) {
+         mat_st(idx, 0) = s_unique(i);
+         mat_st(idx, 1) = t_unique(j);
+         ++idx;
+       }
      }
-     if (seen.find(row_str) == seen.end()) {
-       seen.insert(row_str);
-       unique_indices.push_back(i);
-     }
    }
 
-   arma::mat unique_mat(unique_indices.size(), mat_st.n_cols);
-   for (arma::uword i = 0; i < unique_indices.size(); ++i) {
-     unique_mat.row(i) = mat_st.row(unique_indices[i]);
-   }
+   // Resize matrix to remove unused rows
+   mat_st.resize(idx, 2);
 
-   // Order by first and second column
-   // Step 1: Create a combined key
-   arma::uvec combined_key = arma::conv_to<arma::uvec>::from(unique_mat.col(0) * 1e6 + unique_mat.col(1));
-
-   // Step 2: Get the sort indices based on the combined key
-   arma::uvec sort_indices = arma::sort_index(combined_key);
-
-   // Step 3: Reorder the rows of the matrix using the sort indices
-   arma::mat sorted_mat = unique_mat.rows(sort_indices);
-
-   return sorted_mat;
+   return mat_st;
  }
 
  //' Diagonal Correction of a Matrix
