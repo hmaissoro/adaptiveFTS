@@ -281,14 +281,6 @@ using namespace arma;
            double Ht = mat_locreg_t(idx_locreg_cur_t(0), 4);
            double Lt = mat_locreg_t(idx_locreg_cur_t(0), 5);
 
-           // Extract local regularity parameters
-           arma::uvec idx_locreg_cur_s = arma::find(mat_locreg_s.col(0) == s(k));
-           arma::uvec idx_locreg_cur_t = arma::find(mat_locreg_t.col(0) == t(k));
-           double Hs = mat_locreg_s(idx_locreg_cur_s(0), 4);
-           double Ls = mat_locreg_s(idx_locreg_cur_s(0), 5);
-           double Ht = mat_locreg_t(idx_locreg_cur_t(0), 4);
-           double Lt = mat_locreg_t(idx_locreg_cur_t(0), 5);
-
            // Compute the weight vectors for each s, t and for each bw
            // and replace replace non-finite values with 0
            //// For the argument s
@@ -351,10 +343,6 @@ using namespace arma;
                4 * mom_s_square * Lt * std::pow(bw_t, 2 * Ht) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_t_vec(idx_i_lag));
 
              // Compute variance term numerator
-             arma::uvec cur_idx_sig_s = arma::find(mat_sig_s.col(0) == s(k));
-             arma::uvec cur_idx_sig_t = arma::find(mat_sig_t.col(0) == t(k));
-             double sig_s_square = sig2_vec_s(cur_idx_sig_s(0));
-             double sig_t_square = sig2_vec_t(cur_idx_sig_t(0));
              variance_term_num += 4 * sig_s_square * mom_t_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() +
                4 * sig_t_square * mom_s_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_t_i_lag.max() +
                4 * sig_s_square * sig_t_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() * wvec_t_i_lag.max();
