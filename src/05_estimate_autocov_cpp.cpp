@@ -263,7 +263,7 @@ using namespace arma;
 
    } else {
      // If two bandwidth are used
-     // arma::mat mat_res_risk(bw_size * bw_size * n, 8);
+#pragma omp parallel for
      for (int idx_bw_s = 0; idx_bw_s < bw_size; ++idx_bw_s) {
        arma::mat mat_res_risk_cur_bw(bw_size * n, 14);
        for (int idx_bw_t = 0; idx_bw_t < bw_size; ++idx_bw_t) {
@@ -281,79 +281,83 @@ using namespace arma;
            double Ht = mat_locreg_t(idx_locreg_cur_t(0), 4);
            double Lt = mat_locreg_t(idx_locreg_cur_t(0), 5);
 
+           // Extract local regularity parameters
+           arma::uvec idx_locreg_cur_s = arma::find(mat_locreg_s.col(0) == s(k));
+           arma::uvec idx_locreg_cur_t = arma::find(mat_locreg_t.col(0) == t(k));
+           double Hs = mat_locreg_s(idx_locreg_cur_s(0), 4);
+           double Ls = mat_locreg_s(idx_locreg_cur_s(0), 5);
+           double Ht = mat_locreg_t(idx_locreg_cur_t(0), 4);
+           double Lt = mat_locreg_t(idx_locreg_cur_t(0), 5);
+
+           // Compute the weight vectors for each s, t and for each bw
+           // and replace replace non-finite values with 0
+           //// For the argument s
+           arma::vec Tn_s_diff_over_bw = (data_mat.col(1) - s(k)) / bw_s;
+           arma::vec wvec_s = kernel_func(Tn_s_diff_over_bw);
+           wvec_s /= arma::accu(wvec_s);
+           wvec_s.replace(arma::datum::nan, 0);
+           wvec_s.replace(arma::datum::inf, 0);
+           wvec_s.replace(-arma::datum::inf, 0);
+
+           //// For the argument t
+           arma::vec Tn_t_diff_over_bw = (data_mat.col(1) - t(k)) / bw_t;
+           arma::vec wvec_t = kernel_func(Tn_t_diff_over_bw);
+           wvec_t /= arma::accu(wvec_t);
+           wvec_t.replace(arma::datum::nan, 0);
+           wvec_t.replace(arma::datum::inf, 0);
+           wvec_t.replace(-arma::datum::inf, 0);
+
+           // Extract moment
+           arma::uvec cur_idx_mom_s = arma::find(mat_mom_s.col(0) == s(k));
+           arma::uvec cur_idx_mom_t = arma::find(mat_mom_t.col(0) == t(k));
+           double mom_s_square = mom_vec_s(cur_idx_mom_s(0));
+           double mom_t_square = mom_vec_t(cur_idx_mom_t(0));
+
+           // Extract the estimates of the sd
+           arma::uvec cur_idx_sig_s = arma::find(mat_sig_s.col(0) == s(k));
+           arma::uvec cur_idx_sig_t = arma::find(mat_sig_t.col(0) == t(k));
+           double sig_s_square = sig2_vec_s(cur_idx_sig_s(0));
+           double sig_t_square = sig2_vec_t(cur_idx_sig_t(0));
+
+           // Compute some element of the bias term
+           arma::vec bn_s_vec = arma::pow(arma::abs(Tn_s_diff_over_bw), 2 * Hs) % arma::abs(wvec_s);
+           arma::vec bn_t_vec = arma::pow(arma::abs(Tn_t_diff_over_bw), 2 * Ht) % arma::abs(wvec_t);
+
            // Init. output
-           arma::vec pn_s_vec(n_curve - lag);
-           arma::vec pn_lag_t_vec(n_curve - lag);
+           arma::vec pn_s_vec = arma::zeros(n_curve - lag);
+           arma::vec pn_lag_t_vec = arma::zeros(n_curve - lag);
            double bias_term_num = 0;
            double variance_term_num = 0;
 
            for(int i = 0 ; i < n_curve - lag; ++i){
-             // Extrat the current curve index data
-             arma::mat mat_cur_s = data_mat.rows(arma::find(data_mat.col(0) == i + 1));
-             arma::mat mat_cur_t = data_mat.rows(arma::find(data_mat.col(0) == i + 1 + lag));
-             arma::vec Tnvec_s = mat_cur_s.col(1);
-             arma::vec Tnvec_t = mat_cur_t.col(1);
+             // Exact the indexes : current and forward
+             arma::uvec idx_i = arma::find(data_mat.col(0) == i + 1);
+             arma::uvec idx_i_lag = arma::find(data_mat.col(0) == i + 1 + lag);
 
-             // Compute the weight vectors for each s, t and for each bw
-             // At the we replace replace non-finite values with 0
-             ////  For the argument s
-             arma::vec Tn_s_diff_over_bw = (Tnvec_s - s(k)) / bw_s;
-             arma::vec wvec_s = kernel_func(Tn_s_diff_over_bw);
-             wvec_s /= arma::accu(wvec_s);
-             wvec_s.replace(arma::datum::nan, 0);
-             wvec_s.replace(arma::datum::inf, 0);
-             wvec_s.replace(-arma::datum::inf, 0);
-
-             //// For the argument t
-             arma::vec Tn_t_diff_over_bw = (Tnvec_t - t(k)) / bw_t;
-             arma::vec wvec_t = kernel_func(Tn_t_diff_over_bw);
-             wvec_t /= arma::accu(wvec_t);
-             wvec_t.replace(arma::datum::nan, 0);
-             wvec_t.replace(arma::datum::inf, 0);
-             wvec_t.replace(-arma::datum::inf, 0);
-
-             // Compute the maximums and c_n(t;h) and c_n(s,h)
-             double wmax_s = wvec_s.max();
-             double wmax_t = wvec_t.max();
+             // Extract weight
+             arma::vec wvec_s_i = wvec_s(idx_i) / arma::accu(wvec_s(idx_i));
+             arma::vec wvec_t_i_lag = wvec_t(idx_i_lag) / arma::accu(wvec_t(idx_i_lag));
+             wvec_s_i.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+             wvec_t_i_lag.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
 
              // Compute and store the vector \pi_n(s;h)
-             arma::uvec idx_is_one_pi_s = arma::find(abs(Tn_s_diff_over_bw) <= 1);
-             double pn_s = 0;
-             if (!idx_is_one_pi_s.is_empty()) {
-               pn_s = 1;
-             }
-             pn_s_vec(i) = pn_s;
+             pn_s_vec(i) = arma::find(abs(Tn_s_diff_over_bw(idx_i)) <= 1).is_empty() ? 0 : 1;
 
              // Compute and store the vector \pi_n(t;h)
-             arma::uvec idx_is_one_pi_t = arma::find(abs(Tn_t_diff_over_bw) <= 1);
-             double pn_lag_t = 0;
-             if (!idx_is_one_pi_t.is_empty()) {
-               pn_lag_t = 1;
-             }
-             pn_lag_t_vec(i) = pn_lag_t;
+             pn_lag_t_vec(i) = arma::find(abs(Tn_t_diff_over_bw(idx_i_lag)) <= 1).is_empty() ? 0 : 1;
 
              // Compute bias term numerator
-             //// Extract moment
-             arma::uvec cur_idx_mom_s = arma::find(mat_mom_s.col(0) == s(k));
-             arma::uvec cur_idx_mom_t = arma::find(mat_mom_t.col(0) == t(k));
-             double mom_s_square = mom_vec_s(cur_idx_mom_s(0));
-             double mom_t_square = mom_vec_t(cur_idx_mom_t(0));
-             //// other terms
-             arma::vec Tn_s_2Hs = arma::pow(arma::abs(Tn_s_diff_over_bw), 2 * Hs);
-             arma::vec Tn_t_2Ht = arma::pow(arma::abs(Tn_t_diff_over_bw), 2 * Ht);
-             double bn_s = arma::sum(Tn_s_2Hs % arma::abs(wvec_s));
-             double bn_t = arma::sum(Tn_t_2Ht % arma::abs(wvec_t));
-             bias_term_num += 4 * mom_t_square * Ls * std::pow(bw_s, 2 * Hs) * pn_s * pn_lag_t * bn_s +
-               4 * mom_s_square * Lt * std::pow(bw_t, 2 * Ht) * pn_s * pn_lag_t * bn_t;
+             bias_term_num += 4 * mom_t_square * Ls * std::pow(bw_s, 2 * Hs) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_s_vec(idx_i)) +
+               4 * mom_s_square * Lt * std::pow(bw_t, 2 * Ht) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_t_vec(idx_i_lag));
 
              // Compute variance term numerator
              arma::uvec cur_idx_sig_s = arma::find(mat_sig_s.col(0) == s(k));
              arma::uvec cur_idx_sig_t = arma::find(mat_sig_t.col(0) == t(k));
              double sig_s_square = sig2_vec_s(cur_idx_sig_s(0));
              double sig_t_square = sig2_vec_t(cur_idx_sig_t(0));
-             variance_term_num += 4 * sig_s_square * mom_t_square * pn_s * pn_lag_t * wmax_s +
-               4 * sig_t_square * mom_s_square * pn_s * pn_lag_t * wmax_t +
-               4 * sig_s_square * sig_t_square * pn_s * pn_lag_t * wmax_s * wmax_t;
+             variance_term_num += 4 * sig_s_square * mom_t_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() +
+               4 * sig_t_square * mom_s_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_t_i_lag.max() +
+               4 * sig_s_square * sig_t_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() * wvec_t_i_lag.max();
            }
 
            // Compute P_N(t;h)
