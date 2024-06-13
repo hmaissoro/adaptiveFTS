@@ -277,7 +277,7 @@ using namespace arma;
 
    for (int k = 0; k < n; ++k) {
      arma::uvec idx_risk_cur = arma::find(mat_mean_risk.col(0) == t(k));
-     arma::vec risk = mat_mean_risk(idx_risk_cur, 9); // mean_risk is in the 10th column
+     arma::vec risk = mat_mean_risk(idx_risk_cur, arma::uvec({9})); // mean_risk is in the 10th column
      arma::uword idx_min = arma::index_min(risk.elem(arma::find_finite(risk)));
 
      mat_res(k, 1) = mat_mean_risk(idx_risk_cur(idx_min), 4); // Ht
@@ -362,7 +362,6 @@ using namespace arma;
      stop("'t' must be a numeric vectors or scalar value(s) between 0 and 1.");
    }
    arma::vec tvec = arma::unique(t);
-   int n = tvec.size();
 
    // Check if kernel_name is one of the supported kernels
    // and select the kernel function
