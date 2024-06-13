@@ -5,28 +5,20 @@ using namespace Rcpp;
 using namespace arma;
 
 // [[Rcpp::export]]
-arma::mat get_nearest_best_bw(const arma::mat& mat_mat_opt_param,
-                      const arma::vec snew,
-                      const arma::vec tnew) {
-
-  int n = snew.size();
+arma::mat get_best_mean_bw(const arma::mat& mat_mean_risk, const arma::vec t) {
+  int n = t.size();
   arma::mat mat_res(n, 4);
-  mat_res.col(0) = snew;
-  mat_res.col(1) = tnew;
+  mat_res.col(0) = t;
 
-  // Matching using the nearest neighbour strategy
   for (int k = 0; k < n; ++k) {
-    // Find rows in mat_risk where the first column equals t(k)
-    arma::vec dist = arma::square(mat_mat_opt_param.col(0) - snew(k)) + arma::square(mat_mat_opt_param.col(1) - tnew(k));
+    arma::uvec idx_risk_cur = arma::find(mat_mean_risk.col(0) == t(k));
+    arma::vec risk = mat_mean_risk(idx_risk_cur, arma::uvec({9}));
+    arma::uword idx_min = arma::index_min(risk.elem(arma::find_finite(risk)));
 
-    // Find the minimum index in the risk column
-    arma::uword idx_min_dist = arma::index_min(dist);
-
-    // Extract values corresponding to the minimum risk index
-    mat_res(k, 2) = mat_mat_opt_param(idx_min_dist, 6);
-    mat_res(k, 3) = mat_mat_opt_param(idx_min_dist, 7);
+    mat_res(k, 1) = mat_autocov_risk(idx_risk_cur(idx_min), 4); // H_t
+    mat_res(k, 2) = mat_autocov_risk(idx_risk_cur(idx_min), 5); // L_t^2
+    mat_res(k, 3) = mat_autocov_risk(idx_risk_cur(idx_min), 1); // optbw_t
   }
-
   return mat_res;
 }
 

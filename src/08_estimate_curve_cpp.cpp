@@ -162,11 +162,11 @@ using namespace arma;
  //'   mat_autocov_risk <- matrix(runif(14 * 100), ncol = 14)
  //'   s <- seq(0, 1, length.out = 10)
  //'   t <- seq(0, 1, length.out = 10)
- //'   best_bw <- get_best_bw(mat_autocov_risk, s, t)
+ //'   best_bw <- get_best_autocov_bw(mat_autocov_risk, s, t)
  //' }
  //' @export
  // [[Rcpp::export]]
- arma::mat get_best_bw(const arma::mat& mat_autocov_risk, const arma::vec s, const arma::vec t) {
+ arma::mat get_best_autocov_bw(const arma::mat& mat_autocov_risk, const arma::vec s, const arma::vec t) {
    int n = s.size();
    arma::mat mat_res(n, 8);
    mat_res.col(0) = s;
@@ -192,14 +192,14 @@ using namespace arma;
  //'
  //' This function finds the nearest optimal bandwidth parameters for new time points using a nearest neighbor strategy.
  //'
- //' @param mat_opt_param A \code{matrix} containing the optimal parameters, typically the output of the \code{get_best_bw} function.
+ //' @param mat_opt_param A \code{matrix} containing the optimal parameters, typically the output of the \code{get_best_autocov_bw} function.
  //' The matrix should have columns representing \code{s}, \code{t}, \code{Hs}, \code{Ls^2}, \code{Ht}, \code{Lt^2}, \code{optbw_s}, and \code{optbw_t}.
  //' @param snew A numeric vector specifying the new \code{s} time points.
  //' @param tnew A numeric vector specifying the new \code{t} time points.
  //' @return A \code{matrix} with four columns: \code{snew}, \code{tnew}, \code{optbw_s}, and \code{optbw_t} for the nearest optimal bandwidths.
  //' @export
  // [[Rcpp::export]]
- arma::mat get_nearest_best_bw(const arma::mat& mat_opt_param, const arma::vec snew, const arma::vec tnew) {
+ arma::mat get_nearest_best_autocov_bw(const arma::mat& mat_opt_param, const arma::vec snew, const arma::vec tnew) {
    int n = snew.size();
    arma::mat mat_res(n, 4);
 
@@ -221,6 +221,127 @@ using namespace arma;
    return mat_res;
  }
 
+ //' Get the best bandwidth for mean estimation
+ //'
+ //' This function retrieves the optimal bandwidth for mean estimation based on the minimum risk from the provided risk matrix.
+ //'
+ //' @param mat_mean_risk A \code{matrix} containing risk estimates for different bandwidths. The matrix should have the following columns:
+ //' \itemize{
+ //'   \item{t : The points at which the risk function is estimated.}
+ //'   \item{h : The candidate bandwidth.}
+ //'   \item{PN : The number of curves used to estimate the mean at t.}
+ //'   \item{locreg_bw : The bandwidth used to estimate the local regularity parameters.}
+ //'   \item{Ht : The estimates of the local exponent for each t.}
+ //'   \item{Lt : The estimates of the Hölder constant for each t.}
+ //'   \item{bias_term : The bias term of the risk function.}
+ //'   \item{variance_term : The variance term of the risk function.}
+ //'   \item{dependence_term : The dependence term of the risk function.}
+ //'   \item{mean_risk : The estimates of the risk function of the mean.}
+ //' }
+ //' @param t A numeric vector specifying time points \code{t} for which to get the optimal bandwidth.
+ //'
+ //' @return A \code{matrix} with the following columns:
+ //' \itemize{
+ //'   \item{t : The time points.}
+ //'   \item{Ht : The estimates of the local exponent for each time point.}
+ //'   \item{Lt : The estimates of the Hölder constant for each time point.}
+ //'   \item{optbw_t : The optimal bandwidth for the time point.}
+ //' }
+ //'
+ //' @examples
+ //' \dontrun{
+ //' mat_mean_risk <- matrix(c(
+ //'   rep(seq(0, 1, length.out = 10), each = 3),  # t
+ //'   rep(seq(0.1, 0.3, by = 0.1), times = 10),  # h
+ //'   rnorm(30, mean = 0.5),                    # PN
+ //'   rnorm(30, mean = 0.5),                    # locreg_bw
+ //'   rnorm(30, mean = 0.5),                    # Ht
+ //'   rnorm(30, mean = 0.5),                    # Lt
+ //'   rnorm(30, mean = 0.5),                    # bias_term
+ //'   rnorm(30, mean = 0.5),                    # variance_term
+ //'   rnorm(30, mean = 0.5),                    # dependence_term
+ //'   runif(30)                                 # mean_risk
+ //' ), ncol = 10, byrow = FALSE)
+ //'
+ //' t <- seq(0, 1, length.out = 10)
+ //'
+ //' get_best_mean_bw(mat_mean_risk, t)
+ //' }
+ //'
+ //' @export
+ // [[Rcpp::export]]
+ arma::mat get_best_mean_bw(const arma::mat& mat_mean_risk, const arma::vec& t) {
+   int n = t.size();
+   arma::mat mat_res(n, 4);
+   mat_res.col(0) = t;
+
+   for (int k = 0; k < n; ++k) {
+     arma::uvec idx_risk_cur = arma::find(mat_mean_risk.col(0) == t(k));
+     arma::vec risk = mat_mean_risk(idx_risk_cur, 9); // mean_risk is in the 10th column
+     arma::uword idx_min = arma::index_min(risk.elem(arma::find_finite(risk)));
+
+     mat_res(k, 1) = mat_mean_risk(idx_risk_cur(idx_min), 4); // Ht
+     mat_res(k, 2) = mat_mean_risk(idx_risk_cur(idx_min), 5); // Lt
+     mat_res(k, 3) = mat_mean_risk(idx_risk_cur(idx_min), 1); // optbw_t
+   }
+   return mat_res;
+ }
+
+
+ //' Get the nearest optimal bandwidth for mean estimation
+ //'
+ //' This function retrieves the optimal bandwidth for mean estimation for new time points \code{tnew} by finding the nearest time points in the provided optimal parameter matrix.
+ //'
+ //' @param mat_opt_param A \code{matrix} containing optimal parameters from \code{get_best_mean_bw}, with the following columns:
+ //' \itemize{
+ //'   \item{t : The time points.}
+ //'   \item{Ht : The estimates of the local exponent for each time point.}
+ //'   \item{Lt : The estimates of the Hölder constant for each time point.}
+ //'   \item{optbw_t : The optimal bandwidth for each time point.}
+ //' }
+ //' @param tnew A numeric vector specifying new time points \code{tnew} for which to get the optimal bandwidth.
+ //'
+ //' @return A \code{matrix} with the following columns:
+ //' \itemize{
+ //'   \item{tnew : The new time points.}
+ //'   \item{optbw_t : The optimal bandwidth for each new time point.}
+ //' }
+ //'
+ //' @examples
+ //' \dontrun{
+ //' mat_opt_param <- matrix(c(
+ //'   seq(0, 1, length.out = 10),  # t
+ //'   rnorm(10, mean = 0.5),       # Ht
+ //'   rnorm(10, mean = 0.5),       # Lt
+ //'   runif(10, min = 0.1, max = 0.5)  # optbw_t
+ //' ), ncol = 4, byrow = FALSE)
+ //'
+ //' tnew <- seq(0, 1, length.out = 5)
+ //'
+ //' get_nearest_mean_bw(mat_opt_param, tnew)
+ //' }
+ //'
+ //' @export
+ // [[Rcpp::export]]
+ arma::mat get_nearest_mean_bw(const arma::mat& mat_opt_param, const arma::vec& tnew) {
+   int n = tnew.size();
+   arma::mat mat_res(n, 2);
+
+   mat_res.col(0) = tnew;
+
+   for (int k = 0; k < n; ++k) {
+     // Calculate squared distances from tnew[k] to all t in mat_opt_param
+     arma::vec dist = arma::square(mat_opt_param.col(0) - tnew(k));
+
+     // Find the index of the minimum distance
+     arma::uword idx_min_dist = arma::index_min(dist);
+
+     // Extract optimal bandwidth corresponding to the minimum distance index
+     mat_res(k, 1) = mat_opt_param(idx_min_dist, 3);
+   }
+
+   return mat_res;
+ }
 
 
 
@@ -301,8 +422,8 @@ using namespace arma;
    arma::mat mat_autocov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 1, R_NilValue, use_same_bw, center, kernel_name);
 
    // // get optimal cov and autocov variance parameters
-   mat mat_opt_cov_param = get_best_bw(mat_cov_risk, grid_fixe.col(0), grid_fixe.col(1));
-   mat mat_opt_autocov_param = get_best_bw(mat_autocov_risk, grid_fixe.col(0), grid_fixe.col(1));
+   mat mat_opt_cov_param = get_best_autocov_bw(mat_cov_risk, grid_fixe.col(0), grid_fixe.col(1));
+   mat mat_opt_autocov_param = get_best_autocov_bw(mat_autocov_risk, grid_fixe.col(0), grid_fixe.col(1));
 
 
    // Estimate the covariances
@@ -314,12 +435,12 @@ using namespace arma;
    arma::mat grid_lag_tvec = build_grid(Tvec_lag, tvec);
    arma::mat grid_pred_tvec = build_grid(Tvec_pred, tvec);
 
-   arma::mat grid_pred_pred_optbw = get_nearest_best_bw(mat_opt_cov_param, grid_pred_pred.col(0), grid_pred_pred.col(1));
-   arma::mat grid_lag_lag_optbw = get_nearest_best_bw(mat_opt_cov_param, grid_lag_lag.col(0), grid_lag_lag.col(1));
-   arma::mat grid_pred_lag_optbw = get_nearest_best_bw(mat_opt_autocov_param, grid_pred_lag.col(0), grid_pred_lag.col(1));
-   arma::mat grid_lag_pred_optbw = get_nearest_best_bw(mat_opt_autocov_param, grid_lag_pred.col(0), grid_lag_pred.col(1));
-   arma::mat grid_lag_tvec_optbw = get_nearest_best_bw(mat_opt_autocov_param, grid_lag_tvec.col(0), grid_lag_tvec.col(1));
-   arma::mat grid_pred_tvec_optbw = get_nearest_best_bw(mat_opt_cov_param, grid_pred_tvec.col(0), grid_pred_tvec.col(1));
+   arma::mat grid_pred_pred_optbw = get_nearest_best_autocov_bw(mat_opt_cov_param, grid_pred_pred.col(0), grid_pred_pred.col(1));
+   arma::mat grid_lag_lag_optbw = get_nearest_best_autocov_bw(mat_opt_cov_param, grid_lag_lag.col(0), grid_lag_lag.col(1));
+   arma::mat grid_pred_lag_optbw = get_nearest_best_autocov_bw(mat_opt_autocov_param, grid_pred_lag.col(0), grid_pred_lag.col(1));
+   arma::mat grid_lag_pred_optbw = get_nearest_best_autocov_bw(mat_opt_autocov_param, grid_lag_pred.col(0), grid_lag_pred.col(1));
+   arma::mat grid_lag_tvec_optbw = get_nearest_best_autocov_bw(mat_opt_autocov_param, grid_lag_tvec.col(0), grid_lag_tvec.col(1));
+   arma::mat grid_pred_tvec_optbw = get_nearest_best_autocov_bw(mat_opt_cov_param, grid_pred_tvec.col(0), grid_pred_tvec.col(1));
 
    // // estimate covariances and autocovariances
    arma::mat mat_cov_pred_pred_all = estimate_autocov_cpp(data, grid_pred_pred_optbw.col(0), grid_pred_pred_optbw.col(1), 0,
@@ -342,8 +463,7 @@ using namespace arma;
                                                           bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
    Rcout << "--> autocov estimation : ok \n ";
 
-
-   // // Build the matrix VarY_mat
+   // Build the matrix VarY_mat
    arma::mat mat_cov_lag_lag = reshape_matrix(mat_cov_lag_lag_all, 0, 1, 13);
    arma::mat G0_lag_lag = mat_cov_lag_lag + Sigma_lag;
    arma::mat mat_autocov_lag_pred = reshape_matrix(mat_autocov_lag_pred_all, 0, 1, 13);
@@ -358,25 +478,32 @@ using namespace arma;
    arma::mat covY_Xn0 = arma::join_cols(mat_autocov_lag_tvec, mat_cov_pred_tvec);
    Rcout << "--> covY_Xn0 build : ok \n ";
 
+   // Estimate mean functions
+   // // Estimate bandwidth for mean function estimation on a grid
+   arma::vec grid_mean = arma::linspace(0.01, 0.99, 40);
+   arma::mat mat_mean_risk = estimate_mean_risk_cpp(data, grid_mean, R_NilValue, kernel_name);
+   arma::mat mat_opt_mean_param = get_best_mean_bw(mat_mean_risk, grid_mean);
+
+   // // Get optimal mean bandwidth parameters
+   arma::mat mat_opt_mean_bw_lag = get_nearest_mean_bw(mat_opt_mean_param, Tvec_lag);
+   arma::mat mat_opt_mean_bw_pred = get_nearest_mean_bw(mat_opt_mean_param, Tvec_pred);
+   arma::mat mat_opt_mean_bw_tvec = get_nearest_mean_bw(mat_opt_mean_param, tvec);
+
+   // // Estimate mean functions
+   arma::mat mat_mean_lag = estimate_mean_cpp(data, mat_opt_mean_bw_lag.col(0), Rcpp::wrap(mat_opt_mean_bw_lag.col(1)), R_NilValue, kernel_name);
+   arma::mat mat_mean_pred = estimate_mean_cpp(data, mat_opt_mean_bw_pred.col(0), Rcpp::wrap(mat_opt_mean_bw_pred.col(1)), R_NilValue, kernel_name);
+   arma::mat mat_mean_tvec = estimate_mean_cpp(data, mat_opt_mean_bw_tvec.col(0), Rcpp::wrap(mat_opt_mean_bw_tvec.col(1)), R_NilValue, kernel_name);
+
    // Build the vector Y_{n_0, 1} - M_{n_0, 1}
-   //// Estimate mean function
-   arma::mat mat_mean_n0 = estimate_mean_cpp(data, Tvec_pred, R_NilValue, R_NilValue, kernel_name);
-   arma::mat mat_mean_n0_lag = estimate_mean_cpp(data, Tvec_lag, R_NilValue, R_NilValue, kernel_name);
-   arma::vec Yn_minus_mean_n0 = Yvec_pred - mat_mean_n0.col(5);
-   arma::vec Yn_minus_mean_n0_lag = Yvec_lag - mat_mean_n0_lag.col(5);
-   arma::vec vec_Yn0_lag = arma::join_vert(Yn_minus_mean_n0_lag, Yn_minus_mean_n0);
+   arma::vec Yn_minus_mean_lag = Yvec_lag - mat_mean_lag.col(5);
+   arma::vec Yn_minus_mean_pred = Yvec_pred - mat_mean_pred.col(5);
+   arma::vec vec_Yn0_lag = arma::join_vert(Yn_minus_mean_lag, Yn_minus_mean_pred);
 
    // Build the BLUP
-   //// Estimate the mean function
-   arma::mat mat_mean_tvec = estimate_mean_cpp(data, tvec, R_NilValue, R_NilValue, kernel_name);
-   Rcout << "--> BULP : mean : ok \n ";
-   //// Estimate Bn0
    arma::mat Bn0 = arma::solve(mat_VarY, covY_Xn0);
-   Rcout << "--> BULP : Bn0 : ok \n ";
-   //// Set the BLUP
    arma::vec vec_blup = mat_mean_tvec.col(5) + arma::trans(Bn0) * vec_Yn0_lag;
-   Rcout << "--> BULP : vec_blup : ok \n ";
-   // Return
+
+   // result of BLUP
    int n_res = tvec.n_elem;
    arma::mat mat_res(n_res, 3);
    mat_res.col(0) = tvec;
@@ -386,6 +513,7 @@ using namespace arma;
    Rcpp::List result;
 
    result["opt_cov_param"] = mat_opt_cov_param;
+   result["opt_mean_param"] = mat_opt_mean_param;
    result["opt_autocov_param"] = mat_opt_autocov_param;
    result["cov_pred_pred"] = mat_cov_pred_pred;
    result["Sigma_pred"] = Sigma_pred;
