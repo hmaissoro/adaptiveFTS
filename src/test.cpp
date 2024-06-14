@@ -23,9 +23,6 @@ using namespace arma;
                             const arma::uword idx_col_diff_st,
                             const arma::uword idx_col_bw,
                             const arma::uword idx_col_cov) {
-   // Initialize the result matrix
-   // arma::mat result = mat_cov;
-
    // Get unique sorted values of s and t
    arma::vec s_unique = arma::sort(arma::unique(mat_cov.col(idx_col_s)), "descend");
    arma::vec t_unique = arma::sort(arma::unique(mat_cov.col(idx_col_t)), "ascend");
@@ -35,10 +32,12 @@ using namespace arma;
    arma::mat mat_diff = arma::zeros(ns, nt);
    arma::mat mat_bw = arma::zeros(ns, nt);
    arma::mat mat_cov_reshape = arma::zeros(ns, nt);
+
+   // Fill matrices with values from mat_cov
    for (int i = 0; i < ns; ++i) {
-     for (int j = 0; j < nt ; ++j) {
+     for (int j = 0; j < nt; ++j) {
        arma::uvec idx = arma::find(mat_cov.col(idx_col_s) == s_unique(i) && mat_cov.col(idx_col_t) == t_unique(j));
-       if( ! idx.is_empty()) {
+       if (!idx.is_empty()) {
          mat_diff(i, j) = mat_cov(idx(0), idx_col_diff_st);
          mat_bw(i, j) = mat_cov(idx(0), idx_col_bw);
          mat_cov_reshape(i, j) = mat_cov(idx(0), idx_col_cov);
@@ -54,20 +53,21 @@ using namespace arma;
        }
      }
      double replace_cov = mat_cov_reshape(ids, idt_replace);
-     // case ids = 0
+
+     // Replace diagonal and above diagonal values
+     int n_diag_step = ns - ids - idt_replace;
+     for (int idx_step = 0; idx_step < n_diag_step; ++idx_step) {
+       mat_cov_reshape(ids + idx_step, idt_replace + idx_step) = replace_cov;
+     }
+
+     // Handle case when ids is 0
      if (ids == 0) {
        for (int idx_rep = idt_replace; idx_rep < ns - ids; ++idx_rep) {
          mat_cov_reshape(ids, idx_rep) = replace_cov;
        }
      }
 
-     // Replace the diagonal
-     int n_diag_step = ns - ids - idt_replace;
-     for (int idx_step = 0; idx_step < n_diag_step; ++idx_step) {
-       mat_cov_reshape(ids + idx_step, idt_replace + idx_step) = replace_cov;
-     }
-
-     // case ids = ns-1
+     // Handle case when ids is ns - 1
      if (ids == ns - 1) {
        int ids_replace_backward = 0;
        for (int ids_backward = 0; ids_backward < ns; ++ids_backward) {
@@ -76,19 +76,18 @@ using namespace arma;
          }
        }
        for (int idx_rep = ids_replace_backward; idx_rep < ns; ++idx_rep) {
-         Rcout << "idx_rep : " << idx_rep <<"\n";
          mat_cov_reshape(idx_rep, 0) = mat_cov_reshape(ids_replace_backward, 0);
        }
      }
    }
-   // Remove the data after the anti-diagonale
+
+   // Remove the data after the anti-diagonal
    arma::mat mat_cov_res = arma::zeros(ns, nt);
    for (int i = 0; i < ns; ++i) {
-     for (int j = 0; j < ns - i ; ++j) {
+     for (int j = 0; j < ns - i; ++j) {
        mat_cov_res(i, j) = mat_cov_reshape(i, j);
      }
    }
-   // Rcout << mat_cov_res;
 
    // Initialize the result matrix
    arma::mat result((ns * (ns + 1)) / 2, 5);
@@ -108,6 +107,7 @@ using namespace arma;
 
    return result;
  }
+
 
 
 
