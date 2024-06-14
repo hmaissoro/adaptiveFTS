@@ -725,7 +725,7 @@ using namespace arma;
        mat_cov.col(0) = svec;
        mat_cov.col(1) = tvec;
        mat_cov.col(2) = arma::abs(svec - tvec);
-       mat_cov.col(3) = 0.5 * (optbw_s_to_use + optbw_t_to_use + arma::abs(optbw_s_to_use - optbw_t_to_use)); // max(h_s, h_t)
+       mat_cov.col(3) = optbw_s_to_use + optbw_t_to_use // max(h_s, h_t)
        mat_cov.col(4) = autocovhat;
 
        // Diagonal correction

@@ -24,7 +24,7 @@ using namespace arma;
                             const arma::uword idx_col_bw,
                             const arma::uword idx_col_cov) {
    // Initialize the result matrix
-   arma::mat result = mat_cov;
+   // arma::mat result = mat_cov;
 
    // Get unique sorted values of s and t
    arma::vec s_unique = arma::sort(arma::unique(mat_cov.col(idx_col_s)), "descend");
@@ -67,14 +67,51 @@ using namespace arma;
        mat_cov_reshape(ids + idx_step, idt_replace + idx_step) = replace_cov;
      }
 
+     // case ids = ns-1
+     if (ids == ns - 1) {
+       int ids_replace_backward = 0;
+       for (int ids_backward = 0; ids_backward < ns; ++ids_backward) {
+         if (mat_diff(ids_backward, 0) > mat_bw(ids_backward, 0)) {
+           ids_replace_backward++;
+         }
+       }
+       for (int idx_rep = ids_replace_backward; idx_rep < ns; ++idx_rep) {
+         Rcout << "idx_rep : " << idx_rep <<"\n";
+         mat_cov_reshape(idx_rep, 0) = mat_cov_reshape(ids_replace_backward, 0);
+       }
+     }
+   }
+   // Remove the data after the anti-diagonale
+   arma::mat mat_cov_res = arma::zeros(ns, nt);
+   for (int i = 0; i < ns; ++i) {
+     for (int j = 0; j < ns - i ; ++j) {
+       mat_cov_res(i, j) = mat_cov_reshape(i, j);
+     }
+   }
+   // Rcout << mat_cov_res;
+
+   // Initialize the result matrix
+   arma::mat result((ns * (ns + 1)) / 2, 5);
+
+   // Fill the result matrix
+   arma::uword idx = 0;
+   for (arma::uword i = 0; i < ns; ++i) {
+     for (arma::uword j = 0; j < ns - i; ++j) {
+       result(idx, 0) = s_unique(i);
+       result(idx, 1) = t_unique(j);
+       result(idx, 2) = mat_diff(i, j);
+       result(idx, 3) = mat_bw(i, j);
+       result(idx, 4) = mat_cov_res(i, j);
+       ++idx;
+     }
    }
 
-   return mat_cov_reshape;
+   return result;
  }
 
 
 
-//' Get Upper Triangular Couples
+ //' Get Upper Triangular Couples
  //'
  //' This function constructs a matrix of upper triangular couples from vectors s and t,
  //' ensuring that if max(s) < max(t), the missing values from t are included in s.
