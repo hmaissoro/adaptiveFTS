@@ -425,7 +425,7 @@ using namespace arma;
  //'
  //' This function corrects the diagonal elements of a matrix based on specified columns.
  //'
- //' @param mat Input matrix.
+ //' @param mat_cov Input matrix.
  //' @param idx_col_s Column index for 's'.
  //' @param idx_col_t Column index for 't'.
  //' @param idx_col_diff_st Column index for the difference between 's' and 't'.
@@ -433,58 +433,77 @@ using namespace arma;
  //' @param idx_col_cov Column index for the covariance.
  //' @return A matrix with corrected diagonal elements.
  //' @export
- //'
- arma::mat diagonal_correct(const arma::mat& mat,
+ // [[Rcpp::export]]
+ arma::mat diagonal_correct(const arma::mat& mat_cov,
                             const arma::uword idx_col_s,
                             const arma::uword idx_col_t,
                             const arma::uword idx_col_diff_st,
                             const arma::uword idx_col_bw,
                             const arma::uword idx_col_cov) {
    // Initialize the result matrix
-   arma::mat result = mat;
+   arma::mat result = mat_cov;
 
-   // Function to process each unique value in a given column
-   auto process_unique_column = [&](const arma::vec& col, const arma::vec& unique_values) {
-     for (arma::uword v = 0; v < unique_values.n_elem; ++v) {
-       double current_value = unique_values(v);
+   // Get unique sorted values of s and t
+   arma::vec s_unique = arma::sort(arma::unique(mat_cov.col(idx_col_s)), "descend");
+   arma::vec t_unique = arma::sort(arma::unique(mat_cov.col(idx_col_t)), "ascend");
 
-       // Subset the matrix for the current group
-       arma::uvec indices = arma::find(col == current_value);
-       arma::mat group_mat = mat.rows(indices);
+   int ns = s_unique.size();
+   int nt = t_unique.size();
 
-       // Sort group_mat in decreasing order of the idx_col_diff_st column
-       arma::uvec sort_indices = arma::sort_index(group_mat.col(idx_col_diff_st), "descend");
-       group_mat = group_mat.rows(sort_indices);
-
-       // Find the last occurrence where the idx_col_diff_st column is greater than or equal to the idx_col_bw column
-       arma::uword last_occurrence = group_mat.n_rows;
-       for (arma::uword i = 0; i < group_mat.n_rows; ++i) {
-         float d = group_mat(i, idx_col_diff_st);
-         float bw_d = group_mat(i, idx_col_bw);
-         if (d >= bw_d) {
-           last_occurrence = i;
+   for (int idx_s = 0; idx_s < ns; ++idx_s) {
+     int idx_t_replace = 0;
+     for (int idx_t = 0; idx_t < nt; ++idx_t) {
+       arma::uvec idx_srow_tcol = arma::find(result.col(idx_col_s) == s_unique(idx_s) && result.col(idx_col_t) == t_unique(idx_t));
+       if (!idx_srow_tcol.is_empty()) {
+         double d = mat_cov(idx_srow_tcol(0), idx_col_diff_st);
+         double bw = mat_cov(idx_srow_tcol(0), idx_col_bw);
+         if (d > bw) {
+           idx_t_replace++;
          }
        }
+     }
 
-       // If such an occurrence is found, replace the idx_col_cov column values for the group
-       if (last_occurrence < group_mat.n_rows) {
-         double replacement_value = group_mat(last_occurrence, idx_col_cov);
-         arma::uvec indices_to_be_replaced = indices.elem(arma::find(mat(indices, arma::uvec({idx_col_diff_st})) < mat(indices, arma::uvec({idx_col_bw}))));
-         result(indices_to_be_replaced, arma::uvec({idx_col_cov})).fill(replacement_value);
+     arma::uvec idx_cov_replace = arma::find(mat_cov.col(idx_col_s) == s_unique(idx_s) && mat_cov.col(idx_col_t) == t_unique(idx_t_replace));
+     if (idx_cov_replace.is_empty()) continue;
+     double cov_replace = mat_cov(idx_cov_replace(0), idx_col_cov);
+
+     int n_replace = std::min(nt - idx_t_replace, ns - idx_s);
+     for (int step = 0; step < n_replace; ++step) {
+       arma::uvec idx_to_replace = arma::find(mat_cov.col(idx_col_s) == s_unique(idx_s + step) && mat_cov.col(idx_col_t) == t_unique(idx_t_replace + step));
+       if (!idx_to_replace.is_empty()) {
+         result(idx_to_replace(0), idx_col_cov) = cov_replace;
+       }
+
+       if (idx_s == 0) {
+         arma::uvec idx_to_replace = arma::find(mat_cov.col(idx_col_s) == s_unique(idx_s) && mat_cov.col(idx_col_t) == t_unique(idx_t_replace + step));
+         if (!idx_to_replace.is_empty()) {
+           result(idx_to_replace(0), idx_col_cov) = cov_replace;
+         }
        }
      }
-   };
+   }
 
-   // Upper triangular correction for idx_col_t
-   arma::vec tvec_unique = arma::unique(mat.col(idx_col_t));
-   process_unique_column(mat.col(idx_col_t), tvec_unique);
+   // Handle the case where idx_s == ns - 1
+   arma::uvec idx_tcol = arma::sort(arma::find(result.col(idx_col_t) == t_unique(0)));
+   int idx_replace = 0;
+   for (arma::uword i = 0; i < idx_tcol.size(); ++i) {
+     double d = mat_cov(idx_tcol(i), idx_col_diff_st);
+     double bw = mat_cov(idx_tcol(i), idx_col_bw);
+     if (d > bw) {
+       idx_replace = idx_tcol(i);
+     }
+   }
 
-   // Lower triangular correction for idx_col_s
-   arma::vec svec_unique = arma::unique(mat.col(idx_col_s));
-   process_unique_column(mat.col(idx_col_s), svec_unique);
+   double cov_replace = mat_cov(idx_replace, idx_col_cov);
+   for (arma::uword i = 0; i < idx_tcol.size(); ++i) {
+     if (idx_tcol(i) > idx_replace) {
+       result(idx_tcol(i), idx_col_cov) = cov_replace;
+     }
+   }
 
    return result;
  }
+
 
  //' Build a full grid of pairs
  //'
