@@ -419,7 +419,7 @@ using namespace arma;
    arma::mat grid_fixe = build_grid(vec_grid, vec_grid);
    arma::mat mat_cov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 0, R_NilValue, use_same_bw, center, kernel_name);
    arma::mat mat_autocov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 1, R_NilValue, use_same_bw, center, kernel_name);
-
+   Rcout << "--> Set cov and autocov : ok \n ";
    // // get optimal cov and autocov variance parameters
    mat mat_opt_cov_param = get_best_autocov_bw(mat_cov_risk, grid_fixe.col(0), grid_fixe.col(1));
    mat mat_opt_autocov_param = get_best_autocov_bw(mat_autocov_risk, grid_fixe.col(0), grid_fixe.col(1));
@@ -448,18 +448,19 @@ using namespace arma;
    arma::mat mat_cov_lag_lag_all = estimate_autocov_cpp(data, grid_lag_lag_optbw.col(0), grid_lag_lag_optbw.col(1), 0,
                                                         Rcpp::wrap(grid_lag_lag_optbw.col(2)), Rcpp::wrap(grid_lag_lag_optbw.col(3)),
                                                         bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
-   arma::mat mat_autocov_pred_lag_all = estimate_autocov_cpp(data, grid_pred_lag_optbw.col(0), grid_pred_lag_optbw.col(1), 0,
+   arma::mat mat_autocov_pred_lag_all = estimate_autocov_cpp(data, grid_pred_lag_optbw.col(0), grid_pred_lag_optbw.col(1), 1,
                                                              Rcpp::wrap(grid_pred_lag_optbw.col(2)), Rcpp::wrap(grid_pred_lag_optbw.col(3)),
                                                              bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
-   arma::mat mat_autocov_lag_pred_all = estimate_autocov_cpp(data, grid_lag_pred_optbw.col(0), grid_lag_pred_optbw.col(1), 0,
+   arma::mat mat_autocov_lag_pred_all = estimate_autocov_cpp(data, grid_lag_pred_optbw.col(0), grid_lag_pred_optbw.col(1), 1,
                                                              Rcpp::wrap(grid_lag_pred_optbw.col(2)), Rcpp::wrap(grid_lag_pred_optbw.col(3)),
                                                              bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
-   arma::mat mat_autocov_lag_tvec_all = estimate_autocov_cpp(data, grid_lag_tvec_optbw.col(0), grid_lag_tvec_optbw.col(1), 0,
+   arma::mat mat_autocov_lag_tvec_all = estimate_autocov_cpp(data, grid_lag_tvec_optbw.col(0), grid_lag_tvec_optbw.col(1), 1,
                                                              Rcpp::wrap(grid_lag_tvec_optbw.col(2)), Rcpp::wrap(grid_lag_tvec_optbw.col(3)),
                                                              bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
    arma::mat mat_cov_pred_tvec_all = estimate_autocov_cpp(data, grid_pred_tvec_optbw.col(0), grid_pred_tvec_optbw.col(1), 0,
                                                           Rcpp::wrap(grid_pred_tvec_optbw.col(2)), Rcpp::wrap(grid_pred_tvec_optbw.col(3)),
                                                           bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+   Rcout << "--> mat_cov_pred_tvec_all : ok \n ";
    Rcout << "--> autocov estimation : ok \n ";
 
    // Build the matrix VarY_mat
