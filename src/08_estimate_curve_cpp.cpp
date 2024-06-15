@@ -460,7 +460,6 @@ using namespace arma;
    arma::mat mat_cov_pred_tvec_all = estimate_autocov_cpp(data, grid_pred_tvec_optbw.col(0), grid_pred_tvec_optbw.col(1), 0,
                                                           Rcpp::wrap(grid_pred_tvec_optbw.col(2)), Rcpp::wrap(grid_pred_tvec_optbw.col(3)),
                                                           bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
-   Rcout << "--> mat_cov_pred_tvec_all : ok \n ";
    Rcout << "--> autocov estimation : ok \n ";
 
    // Build the matrix VarY_mat

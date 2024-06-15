@@ -421,17 +421,19 @@ using namespace arma;
    return mat_st;
  }
 
- //' Diagonal Correction of a Matrix
+ //' Corrects the covariance matrix by ensuring the diagonal and above-diagonal values meet specific conditions.
  //'
- //' This function corrects the diagonal elements of a matrix based on specified columns.
+ //' This function reshapes the covariance matrix based on unique values of s and t, fills matrices for differences
+ //' and bandwidths, and performs corrections on diagonal and above-diagonal values. The final corrected matrix
+ //' replaces the original values based on these conditions.
  //'
- //' @param mat_cov Input matrix.
- //' @param idx_col_s Column index for 's'.
- //' @param idx_col_t Column index for 't'.
- //' @param idx_col_diff_st Column index for the difference between 's' and 't'.
- //' @param idx_col_bw Column index for the bandwidth.
- //' @param idx_col_cov Column index for the covariance.
- //' @return A matrix with corrected diagonal elements.
+ //' @param mat_cov The input covariance matrix.
+ //' @param idx_col_s The index of the column representing 's' values.
+ //' @param idx_col_t The index of the column representing 't' values.
+ //' @param idx_col_diff_st The index of the column representing differences between s and t.
+ //' @param idx_col_bw The index of the column representing bandwidth values.
+ //' @param idx_col_cov The index of the column representing covariance values.
+ //' @return A corrected covariance matrix.
  //' @export
  // [[Rcpp::export]]
  arma::mat diagonal_correct(const arma::mat& mat_cov,
@@ -452,9 +454,9 @@ using namespace arma;
 
    // Fill matrices with values from mat_cov
    for (int i = 0; i < ns; ++i) {
-     for (int j = 0; j < nt; ++j) {
+     for (int j = 0; j < ns - i; ++j) {
        arma::uvec idx = arma::find(mat_cov.col(idx_col_s) == s_unique(i) && mat_cov.col(idx_col_t) == t_unique(j));
-       if (!idx.is_empty()) {
+       if (!idx.is_empty() && idx(0) < mat_cov.n_rows) {
          mat_diff(i, j) = mat_cov(idx(0), idx_col_diff_st);
          mat_bw(i, j) = mat_cov(idx(0), idx_col_bw);
          mat_cov_reshape(i, j) = mat_cov(idx(0), idx_col_cov);
@@ -462,10 +464,9 @@ using namespace arma;
      }
    }
 
-   // Correct the matrix values based on the given conditions
    for (int ids = 0; ids < ns; ++ids) {
      int idt_replace = 0;
-     for (int idt = 0; idt < nt - ids; ++idt) {
+     for (int idt = 0; idt < ns - ids; ++idt) {
        if (mat_diff(ids, idt) > mat_bw(ids, idt)) {
          idt_replace = idt;
        }
@@ -473,7 +474,7 @@ using namespace arma;
      double replace_cov = mat_cov_reshape(ids, idt_replace);
 
      // Replace diagonal and above diagonal values
-     int n_diag_step = nt - ids - idt_replace;
+     int n_diag_step = ns - ids - idt_replace;
      for (int idx_step = 0; idx_step < n_diag_step; ++idx_step) {
        if ((ids + idx_step) < ns && (idt_replace + idx_step) < nt) {
          mat_cov_reshape(ids + idx_step, idt_replace + idx_step) = replace_cov;
@@ -482,9 +483,15 @@ using namespace arma;
 
      // Handle case when ids is 0
      if (ids == 0) {
-       for (int idx_rep = idt_replace; idx_rep < nt - ids; ++idx_rep) {
+       for (int idx_rep = idt_replace; idx_rep < ns - ids; ++idx_rep) {
          if (idx_rep < nt) {
            mat_cov_reshape(ids, idx_rep) = replace_cov;
+         }
+       }
+     } else {
+       for (int idx_row = idt_replace + 1; idx_row < ns - ids; ++idx_row) {
+         if ((ids - 1) < ns && (idx_row - 1) < nt) {
+           mat_cov_reshape(ids, idx_row) = mat_cov_reshape(ids - 1, idx_row - 1);
          }
        }
      }
@@ -498,7 +505,7 @@ using namespace arma;
          }
        }
        for (int idx_rep = ids_replace_backward; idx_rep < ns; ++idx_rep) {
-         if (idx_rep < ns) {
+         if (ids_replace_backward < ns) {
            mat_cov_reshape(idx_rep, 0) = mat_cov_reshape(ids_replace_backward, 0);
          }
        }
@@ -508,7 +515,7 @@ using namespace arma;
    // Remove the data after the anti-diagonal
    arma::mat mat_cov_res = arma::zeros(ns, nt);
    for (int i = 0; i < ns; ++i) {
-     for (int j = 0; j < nt - i; ++j) {
+     for (int j = 0; j < ns - i; ++j) {
        if (j < nt) {
          mat_cov_res(i, j) = mat_cov_reshape(i, j);
        }
@@ -520,9 +527,10 @@ using namespace arma;
 
    // Fill the result matrix
    for (arma::uword i = 0; i < ns; ++i) {
-     for (arma::uword j = 0; j < nt - i; ++j) {
-       arma::uvec idx_to_set = arma::find(mat_cov.col(idx_col_s) == s_unique(i) && mat_cov.col(idx_col_t) == t_unique(j));
-       if (!idx_to_set.is_empty()) {
+     for (arma::uword j = 0; j < ns - i; ++j) {
+       arma::uvec idx_to_set = arma::find((mat_cov.col(idx_col_s) == s_unique(i) && mat_cov.col(idx_col_t) == t_unique(j)) ||
+         (mat_cov.col(idx_col_t) == s_unique(i) && mat_cov.col(idx_col_s) == t_unique(j)));
+       if (!idx_to_set.is_empty() && idx_to_set(0) < mat_cov.n_rows) {
          result(idx_to_set, arma::uvec({idx_col_cov})).fill(mat_cov_res(i, j));
        }
      }
@@ -530,8 +538,6 @@ using namespace arma;
 
    return result;
  }
-
-
 
  //' Build a full grid of pairs
  //'
@@ -755,17 +761,15 @@ using namespace arma;
        mat_cov.col(2) = arma::abs(svec - tvec);
        mat_cov.col(3) = optbw_s_to_use + optbw_t_to_use; // h_s h_t
        mat_cov.col(4) = autocovhat;
-       Rcout << "Before matrix cov ---> \n";
-       Rcout << mat_cov;
+
        // Diagonal correction
        arma::mat mat_cov_corrected = diagonal_correct(mat_cov, 0, 1, 2, 3, 4);
-       Rcout << "Ok diagonal correction ---> \n";
+
        // replace the column containing arma::abs(svec - tvec) and max(h_s, h_t) by the bw_s and bw_t
        mat_cov_corrected.col(2) = optbw_s_to_use;
        mat_cov_corrected.col(3) = optbw_t_to_use;
-       Rcout << "Ok optbw_t_to_use -> \n";
+
        mat_cov_res = mat_cov_corrected;
-       Rcout << "Ok mat_cov_res -> \n";
 
      } else {
        mat_cov_res.col(0) = svec;
@@ -789,7 +793,7 @@ using namespace arma;
      res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 2) = mat_cov_res.col(3);
      res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 3) = mat_cov_res.col(2);
      res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 4) = mat_cov_res.col(4);
-     Rcout << "Ok res_cov -> \n";
+
      // return the covariance result
      //// P_{N, \ell}(s,t; h_s, h_t)
      arma::mat mat_PN_lag(n, 3);
@@ -814,11 +818,7 @@ using namespace arma;
          (mat_PN_lag.col(0) == t(k) && mat_PN_lag.col(1) == s(k)));  // For the transpose
        arma::uvec idx_muhat_st = arma::find((mat_mean.col(0) == s(k) && mat_mean.col(1) == t(k)) ||
          (mat_mean.col(0) == t(k) && mat_mean.col(1) == s(k)));
-       // Rcout << "Ok index ------> " << k << " - idx_cov_st = " << idx_cov_st << " \n";
-       // Rcout << "Ok index ------> " << k << " - idx_locreg_st = " << idx_locreg_st << " \n";
-       // Rcout << "Ok index ------> " << k << " - idx_PN_st = " << idx_PN_st << " \n";
-       // Rcout << "Ok index ------> " << k << " - idx_muhat_st = " << idx_muhat_st << " \n";
-       // Rcout << "Ok index ------> " << k << " - n_couple = " << n_couple << " \n";
+
        mat_res_autocov.row(k) = {res_cov(idx_cov_st(0), 0),
                                  res_cov(idx_cov_st(0), 1),
                                  res_cov(idx_cov_st(0), 2),
@@ -834,7 +834,6 @@ using namespace arma;
                                  mat_PN_lag(idx_PN_st(0), 2),
                                  res_cov(idx_cov_st(0), 4)};
      }
-     Rcout << "Ok for the loop ---> \n";
    } else {
      // return the result
      mat_res_autocov.col(0) = svec;
