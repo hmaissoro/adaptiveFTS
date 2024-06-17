@@ -155,44 +155,51 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 
 #' Draw a multifractional Brownian motion sample path.
 #'
-#' @param t \code{vector (float)}. Grid of points between 0 and 1 where we want to generate the sample path.
-#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}.
-#' @param L \code{float (positive)}. Hölder constant.
-#' @param tied \code{boolean}. If \code{TRUE}, the sample path is tied-down.
-#' @param ... Hurst function additional arguments.
+#' This function generates a sample path of a multifractional Brownian motion (mfBm) based on the provided Hurst function and other parameters.
 #'
-#' @return A \code{data.table} containing 2 column : \code{t} and \code{mfBm}, the sample path.
+#' @param t \code{vector (float)}. Grid of points between 0 and 1 where the sample path will be generated.
+#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}, or any custom Hurst function.
+#' @param L \code{float (positive)}. Hölder constant.
+#' @param shift_var \code{float (positive)}. The variance of the shift Gaussian random variable. Default is \code{shift_var = 1}, meaning a normal random variable with mean 0 and variance 1 is added.
+#' @param tied \code{boolean}. If \code{TRUE}, the sample path is tied down.
+#' @param ... Additional arguments for the Hurst function.
+#'
+#' @return A \code{data.table} containing 2 columns: \code{t} and \code{mfBm}, representing the grid points and the corresponding values of the mfBm sample path.
 #'
 #' @importFrom MASS mvrnorm
-#' @importFrom data.table data.table between
+#' @importFrom data.table data.table
 #' @importFrom methods is
 #'
 #' @export
 #'
 #' @examples
-#'
 #' t0 <- seq(0.2, 0.8, len = 20)
 #' dt_mfBm <- simulate_mfBm(t = t0, hurst_fun = hurst_logistic, L = 1, tied = TRUE)
 #' plot(x = dt_mfBm$t, y = dt_mfBm$mfBm, type = "l", col = "red")
 #'
-simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logistic, L = 1, shift_var = 0, tied = TRUE, ...) {
-  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
-    stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
-  if (! methods::is(hurst_fun, "function"))
+simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logistic, L = 1, shift_var = 1, tied = TRUE, ...) {
+  if (!methods::is(t, "numeric") || any(t <= 0) || any(t >= 1)) {
+    stop("'t' must be a numeric vector with values between 0 and 1.")
+  }
+  if (!methods::is(hurst_fun, "function")) {
     stop("'hurst_fun' must be a function.")
-  if (! (methods::is(L, "numeric") & L > 0 & length(L) == 1))
+  }
+  if (! (methods::is(L, "numeric") && L > 0 && length(L) == 1)) {
     stop("'L' must be a positive scalar value.")
-  if (! methods::is(tied, "logical"))
-    stop("'tied' must be a TRUE or FALSE.")
+  }
+  if (!methods::is(tied, "logical")) {
+    stop("'tied' must be TRUE or FALSE.")
+  }
+
   t <- sort(t)
   cov_mat <- .covariance_mfBm(t = t, hurst_fun = hurst_fun, ...) + shift_var
-  out <- MASS::mvrnorm(1,
-                       mu = rep(0, ncol(cov_mat)),
-                       Sigma = L * cov_mat)
+  out <- MASS::mvrnorm(1, mu = rep(0, ncol(cov_mat)), Sigma = L * cov_mat)
   mfBm_path <- out - tied * t * out[length(out)]
   dt <- data.table::data.table("t" = t, mfBm = mfBm_path)
+
   return(dt)
 }
+
 
 
 #' Draw a fractional Brownian motion sample path.
