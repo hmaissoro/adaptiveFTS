@@ -269,7 +269,7 @@ using namespace arma;
        for (int idx_bw_t = 0; idx_bw_t < bw_size; ++idx_bw_t) {
          // extract the bandwidth
          double bw_s = bw_grid_to_use[idx_bw_s];
-         double bw_t = bw_grid_to_use[idx_bw_s];
+         double bw_t = bw_grid_to_use[idx_bw_t];
 
          // Do the computation for each s, t
          for (int k = 0; k < n; ++k) {
