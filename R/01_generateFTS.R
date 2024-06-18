@@ -22,7 +22,7 @@
 #'
 #'
 hurst_arctan <- function(t = seq(0.2, 0.8, len = 10)){
-  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
+  if (! methods::is(t, "numeric") && all(t >= 0 & t <= 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
 
   hval <- atan(t) / pi + 1/2
@@ -55,7 +55,7 @@ hurst_arctan <- function(t = seq(0.2, 0.8, len = 10)){
 #'
 hurst_linear <- function(t = seq(0.2, 0.8, len = 10), h_left = 0.2, h_right = 0.8) {
 
-  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
+  if (! (methods::is(t, "numeric") && all(t >= 0 & t <= 1)))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
 
   if (!(methods::is(h_left, "numeric") && methods::is(h_right, "numeric") &&
@@ -101,7 +101,7 @@ hurst_linear <- function(t = seq(0.2, 0.8, len = 10), h_left = 0.2, h_right = 0.
 #'
 hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
                            change_point_position = 0.5) {
-  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
+  if (! (methods::is(t, "numeric") && all(t >= 0 & t <= 1)))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
 
   if (!(methods::is(h_left, "numeric") && methods::is(h_right, "numeric") &&
@@ -116,7 +116,7 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
     stop("'change_point_position' must be scalar value between 0 and 1.")
   }
 
-  if (! (methods::is(slope, "numeric") && shift_var > 0 && length(slope) == 1)) {
+  if (! (methods::is(slope, "numeric") && slope > 0 && length(slope) == 1)) {
     stop("'slope' must be a positive scalar value.")
   }
 
@@ -188,7 +188,7 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' plot(x = dt_mfBm$t, y = dt_mfBm$mfBm, type = "l", col = "red")
 #'
 simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logistic, L = 1, shift_var = 1, tied = TRUE, ...) {
-  if (!methods::is(t, "numeric") || any(t <= 0) || any(t >= 1)) {
+  if (! (methods::is(t, "numeric") && all(t >= 0 & t <= 1))) {
     stop("'t' must be a numeric vector with values between 0 and 1.")
   }
   if (!methods::is(hurst_fun, "function")) {
@@ -238,7 +238,7 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 #' plot(x = dt_fBm$t, y = dt_fBm$fBm, type = "l", col = "red")
 #'
 simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied = TRUE) {
-  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
+  if (! methods::is(t, "numeric") && all(t >= 0 & t <= 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! (methods::is(hurst, "numeric") & (hurst >= 0 & hurst <=1) & length(hurst) == 1))
     stop("'hurst' must be a positive scalar value between 0 and 1.")
