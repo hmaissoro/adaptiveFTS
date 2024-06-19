@@ -22,7 +22,7 @@
 #'
 #'
 hurst_arctan <- function(t = seq(0.2, 0.8, len = 10)){
-  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
+  if (! methods::is(t, "numeric") && all(t >= 0 & t <= 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
 
   hval <- atan(t) / pi + 1/2
@@ -54,13 +54,15 @@ hurst_arctan <- function(t = seq(0.2, 0.8, len = 10)){
 #'
 #'
 hurst_linear <- function(t = seq(0.2, 0.8, len = 10), h_left = 0.2, h_right = 0.8) {
-  #TODO : Contrôles sur h_left, h_right et change_point_position on peut actuellement mettre les valeurs que l'on veut
-  #TODO : Ne pas autoriser h_right < h_left
-  #TODO : Ajouter contrainte de signe sur slope
-  # if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
-  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
+
+  if (! (methods::is(t, "numeric") && all(t >= 0 & t <= 1)))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
 
+  if (!(methods::is(h_left, "numeric") && methods::is(h_right, "numeric") &&
+        (h_left > 0 && h_left < 1) && (h_right > 0 && h_right < 1) &&
+        (h_left < h_right))) {
+    stop("'h_left' and 'h_right' must be scalar values between 0 and 1 with h_left < h_right")
+  }
 
   t1 <- 1
   t0 <- 0
@@ -86,7 +88,6 @@ hurst_linear <- function(t = seq(0.2, 0.8, len = 10), h_left = 0.2, h_right = 0.
 #' @export
 #'
 #' @importFrom methods is
-#' @importFrom data.table between
 #'
 #' @seealso [hurst_arctan()], [hurst_linear()].
 #'
@@ -100,12 +101,25 @@ hurst_linear <- function(t = seq(0.2, 0.8, len = 10), h_left = 0.2, h_right = 0.
 #'
 hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
                            change_point_position = 0.5) {
-  #TODO : Contrôles sur h_left, h_right et change_point_position on peut actuellement mettre les valeurs que l'on veut
-  #TODO : Ne pas autoriser h_right < h_left
-  #TODO : Ajouter contrainte de signe sur slope
-  # if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
-  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
+  if (! (methods::is(t, "numeric") && all(t >= 0 & t <= 1)))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
+
+  if (!(methods::is(h_left, "numeric") && methods::is(h_right, "numeric") &&
+        (h_left > 0 && h_left < 1) && (h_right > 0 && h_right < 1) &&
+        (h_left < h_right) && (length(h_left) == 1) && (length(h_right) == 1))) {
+    stop("'h_left' and 'h_right' must be scalar values between 0 and 1 with h_left < h_right")
+  }
+
+  if (!(methods::is(change_point_position, "numeric") &&
+        (change_point_position > 0 && change_point_position < 1) &&
+        length(change_point_position) == 1)) {
+    stop("'change_point_position' must be scalar value between 0 and 1.")
+  }
+
+  if (! (methods::is(slope, "numeric") && slope > 0 && length(slope) == 1)) {
+    stop("'slope' must be a positive scalar value.")
+  }
+
   u <- (t - change_point_position) / (1 - 0)
   hval <- (h_right - h_left) / (1 + exp(- slope * u)) + h_left
   return(hval)
@@ -119,10 +133,8 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' @param y \code{Float (positive)}. Second argument of the function.
 #'
 #' @return A positive \code{Float} corresponding to the value the function evaluate at (x,y).
-#' @export
 #'
 .constant_d <- function(x, y) {
-  #TODO : Contrôles ?
   a <- gamma(2 * x + 1) * gamma(2 * y + 1) * sin(pi * x) * sin(pi * y)
   b <- 2 * gamma(x + y + 1) * sin(pi * (x + y) / 2)
   val <- sqrt(a) / b
@@ -136,10 +148,8 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' @param ... Hurst function additional arguments.
 #'
 #' @return a \code{matrix} of \code{t} x \code{t} covariance.
-#' @export
 #'
 .covariance_mfBm <- function(t = seq(0.2, 0.8, len = 10), hurst_fun = hurst_logistic, ...) {
-  # TODO : Si contrôles dans les hurst_fun, peut-être pas besoin d'en ajouter ici (sauf sur la fct)
   tmp <- expand.grid(u = t, v = t)
   u <- tmp$u
   v <- tmp$v
@@ -155,44 +165,55 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 
 #' Draw a multifractional Brownian motion sample path.
 #'
-#' @param t \code{vector (float)}. Grid of points between 0 and 1 where we want to generate the sample path.
-#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}.
-#' @param L \code{float (positive)}. Hölder constant.
-#' @param tied \code{boolean}. If \code{TRUE}, the sample path is tied-down.
-#' @param ... Hurst function additional arguments.
+#' This function generates a sample path of a multifractional Brownian motion (mfBm) based on the provided Hurst function and other parameters.
 #'
-#' @return A \code{data.table} containing 2 column : \code{t} and \code{mfBm}, the sample path.
+#' @param t \code{vector (float)}. Grid of points between 0 and 1 where the sample path will be generated.
+#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}, or any custom Hurst function.
+#' @param L \code{float (positive)}. Hölder constant.
+#' @param shift_var \code{float (positive)}. The variance of the shift Gaussian random variable. Default is \code{shift_var = 1}, meaning a normal random variable with mean 0 and variance 1 is added.
+#' @param tied \code{boolean}. If \code{TRUE}, the sample path is tied down.
+#' @param ... Additional arguments for the Hurst function.
+#'
+#' @return A \code{data.table} containing 2 columns: \code{t} and \code{mfBm}, representing the grid points and the corresponding values of the mfBm sample path.
 #'
 #' @importFrom MASS mvrnorm
-#' @importFrom data.table data.table between
+#' @importFrom data.table data.table
 #' @importFrom methods is
 #'
 #' @export
 #'
 #' @examples
-#'
 #' t0 <- seq(0.2, 0.8, len = 20)
 #' dt_mfBm <- simulate_mfBm(t = t0, hurst_fun = hurst_logistic, L = 1, tied = TRUE)
 #' plot(x = dt_mfBm$t, y = dt_mfBm$mfBm, type = "l", col = "red")
 #'
-simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logistic, L = 1, shift_var = 0, tied = TRUE, ...) {
-  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
-    stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
-  if (! methods::is(hurst_fun, "function"))
+simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logistic, L = 1, shift_var = 1, tied = TRUE, ...) {
+  if (! (methods::is(t, "numeric") && all(t >= 0 & t <= 1))) {
+    stop("'t' must be a numeric vector with values between 0 and 1.")
+  }
+  if (!methods::is(hurst_fun, "function")) {
     stop("'hurst_fun' must be a function.")
-  if (! (methods::is(L, "numeric") & L > 0 & length(L) == 1))
+  }
+  if (! (methods::is(L, "numeric") && L > 0 && length(L) == 1)) {
     stop("'L' must be a positive scalar value.")
-  if (! methods::is(tied, "logical"))
-    stop("'tied' must be a TRUE or FALSE.")
+  }
+  if (! (methods::is(shift_var, "numeric") && shift_var > 0 && length(shift_var) == 1)) {
+    stop("'shift_var' must be a positive scalar value.")
+  }
+
+  if (!methods::is(tied, "logical")) {
+    stop("'tied' must be TRUE or FALSE.")
+  }
+
   t <- sort(t)
   cov_mat <- .covariance_mfBm(t = t, hurst_fun = hurst_fun, ...) + shift_var
-  out <- MASS::mvrnorm(1,
-                       mu = rep(0, ncol(cov_mat)),
-                       Sigma = L * cov_mat)
+  out <- MASS::mvrnorm(1, mu = rep(0, ncol(cov_mat)), Sigma = L * cov_mat)
   mfBm_path <- out - tied * t * out[length(out)]
   dt <- data.table::data.table("t" = t, mfBm = mfBm_path)
+
   return(dt)
 }
+
 
 
 #' Draw a fractional Brownian motion sample path.
@@ -217,7 +238,7 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 #' plot(x = dt_fBm$t, y = dt_fBm$fBm, type = "l", col = "red")
 #'
 simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied = TRUE) {
-  if (! methods::is(t, "numeric") && all(t > 0 && t < 1))
+  if (! methods::is(t, "numeric") && all(t >= 0 & t <= 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! (methods::is(hurst, "numeric") & (hurst >= 0 & hurst <=1) & length(hurst) == 1))
     stop("'hurst' must be a positive scalar value between 0 and 1.")
@@ -261,11 +282,8 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #' @importFrom methods is
 #' @importFrom stats rpois runif
 #'
-#' @export
 #'
 .random_design <- function(N, lambda, Mdistribution = rpois, tdistribution = runif, ...) {
-  #TODO : try sur Mdistribution et tdistribution pour renvoyer une erreur parlante
-  # si l'utilisateur appelle une fonction chelou plutôt qu'une  fonction de distribution
   if (! (N - floor(N) == 0) & N > 1)
     stop("'N' must be an integer greater than 1.")
   if (! (lambda - floor(lambda) == 0) & lambda > 1)

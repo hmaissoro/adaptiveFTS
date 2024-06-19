@@ -134,9 +134,6 @@ using namespace arma;
        arma::vec wvec = kernel_func(Tn_t_diff_over_bw);
        wvec.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
 
-       // Compute some element of the bias term
-       arma::vec bn_vec = arma::pow(arma::abs(Tn_t_diff_over_bw), 2 * Ht) % arma::abs(wvec);
-
        // Extract the sd
        arma::uvec cur_idx_sig = arma::find(mat_sig.col(0) == t(k));
        double sig_square = sig_vec(cur_idx_sig(0)) * sig_vec(cur_idx_sig(0));
@@ -158,7 +155,11 @@ using namespace arma;
          pn_vec(i) = arma::find(abs(Tn_t_diff_over_bw(idx_i)) <= 1).is_empty() ? 0 : 1;
 
          // Compute bias term numerator
-         bias_term_num += Lt * std::pow(bw_grid_to_use(idx_bw), 2 * Ht) * pn_vec(i) * arma::sum(bn_vec(idx_i));
+         // // compute and b_n(t;h)
+         arma::vec bn_vec = arma::pow(arma::abs(Tn_t_diff_over_bw(idx_i)), 2 * Ht) % arma::abs(wvec_i);
+
+         // // Compute bias term numerator
+         bias_term_num += Lt * std::pow(bw_grid_to_use(idx_bw), 2 * Ht) * pn_vec(i) * arma::sum(bn_vec);
 
          // Compute variance term numerator
          variance_term_num += sig_square * pn_vec(i) * wvec_i.max();
