@@ -331,7 +331,8 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       stop("The specified column name 'idcol' or 'tcol' or 'ycol' is incorrect.")
     } else {
       data <- data.table::as.data.table(data)
-      data.table::setnames(x = data, old = c(idcol, tcol, ycol), new = c("id_curve", "tobs", "X"))
+      data <- data[, .SD, .SDcols = c(idcol, tcol, ycol)]
+      names(data) <- c("id_curve", "tobs", "X")
       data <- data[, list(id_curve, tobs, X)]
       Mn <- data[, .N, by = id_curve][, N]
       N <- length(Mn)
