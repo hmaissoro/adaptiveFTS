@@ -175,18 +175,12 @@ using namespace arma;
          //// For the argument s
          arma::vec Tn_s_diff_over_bw = (data_mat.col(1) - s(k)) / bw;
          arma::vec wvec_s = kernel_func(Tn_s_diff_over_bw);
-         wvec_s /= arma::accu(wvec_s);
-         wvec_s.replace(arma::datum::nan, 0);
-         wvec_s.replace(arma::datum::inf, 0);
-         wvec_s.replace(-arma::datum::inf, 0);
+         wvec_s.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
 
          //// For the argument t
          arma::vec Tn_t_diff_over_bw = (data_mat.col(1) - t(k)) / bw;
          arma::vec wvec_t = kernel_func(Tn_t_diff_over_bw);
-         wvec_t /= arma::accu(wvec_t);
-         wvec_t.replace(arma::datum::nan, 0);
-         wvec_t.replace(arma::datum::inf, 0);
-         wvec_t.replace(-arma::datum::inf, 0);
+         wvec_t.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
 
          // Extract moment
          arma::uvec cur_idx_mom_s = arma::find(mat_mom_s.col(0) == s(k));
@@ -200,9 +194,6 @@ using namespace arma;
          double sig_s_square = sig2_vec_s(cur_idx_sig_s(0));
          double sig_t_square = sig2_vec_t(cur_idx_sig_t(0));
 
-         // Compute some element of the bias term
-         arma::vec bn_s_vec = arma::pow(arma::abs(Tn_s_diff_over_bw), 2 * Hs) % arma::abs(wvec_s);
-         arma::vec bn_t_vec = arma::pow(arma::abs(Tn_t_diff_over_bw), 2 * Ht) % arma::abs(wvec_t);
 
          // Init. output
          arma::vec pn_s_vec = arma::zeros(n_curve - lag);
@@ -228,13 +219,18 @@ using namespace arma;
            pn_lag_t_vec(i) = arma::find(abs(Tn_t_diff_over_bw(idx_i_lag)) <= 1).is_empty() ? 0 : 1;
 
            // Compute bias term numerator
-           bias_term_num += 3 * mom_t_square * Ls * std::pow(bw, 2 * Hs) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_s_vec(idx_i)) +
-             3 * mom_s_square * Lt * std::pow(bw, 2 * Ht) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_t_vec(idx_i_lag));
+           // // compute b_n(s;h_s) and b_n(t;h_t)
+           arma::vec bn_s_vec = arma::pow(arma::abs(Tn_s_diff_over_bw(idx_i)), 2 * Hs) % arma::abs(wvec_s_i);
+           arma::vec bn_t_vec = arma::pow(arma::abs(Tn_t_diff_over_bw(idx_i_lag)), 2 * Ht) % arma::abs(wvec_t_i_lag);
+
+           // // Compute bias term numerator
+           bias_term_num += mom_t_square * Ls * std::pow(bw, 2 * Hs) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_s_vec) +
+             mom_s_square * Lt * std::pow(bw, 2 * Ht) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_t_vec);
 
            // Compute variance term numerator
-           variance_term_num += 3 * sig_s_square * mom_t_square * pn_s_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() +
-             3 * sig_t_square * mom_s_square * pn_s_vec(i) * pn_lag_t_vec(i) * wvec_t_i_lag.max() +
-             3 * sig_s_square * sig_t_square * pn_s_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() * wvec_t_i_lag.max();
+           variance_term_num += sig_s_square * mom_t_square * pn_s_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() +
+             sig_t_square * mom_s_square * pn_s_vec(i) * pn_lag_t_vec(i) * wvec_t_i_lag.max() +
+             sig_s_square * sig_t_square * pn_s_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() * wvec_t_i_lag.max();
          }
 
          // Compute P_N(t;h)
@@ -253,10 +249,10 @@ using namespace arma;
          double XsXt_var = mat_emp_autocov(idx_lag0(0), 5);
          arma::mat XsXt_mat_lr_var = mat_emp_autocov.rows(idx_lag);
          double dependence_term_num = XsXt_var + arma::accu(arma::abs(2 * XsXt_mat_lr_var.col(5)));
-         double dependence_term = dependence_term_num  / PN_lag;
+         double dependence_term = (dependence_term_num  / PN_lag) / 3;
 
          // Autocovariance risk
-         double autocov_risk = 2 * (bias_term + variance_term + dependence_term);
+         double autocov_risk = bias_term + variance_term + dependence_term;
          mat_res_risk.row(idx_bw * n + k) = {s(k), t(k), bw, bw, PN_lag, h(0), Hs, Ls, Ht, Lt, bias_term, variance_term, dependence_term, autocov_risk};
        }
      }
@@ -286,18 +282,12 @@ using namespace arma;
            //// For the argument s
            arma::vec Tn_s_diff_over_bw = (data_mat.col(1) - s(k)) / bw_s;
            arma::vec wvec_s = kernel_func(Tn_s_diff_over_bw);
-           wvec_s /= arma::accu(wvec_s);
-           wvec_s.replace(arma::datum::nan, 0);
-           wvec_s.replace(arma::datum::inf, 0);
-           wvec_s.replace(-arma::datum::inf, 0);
+           wvec_s.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
 
            //// For the argument t
            arma::vec Tn_t_diff_over_bw = (data_mat.col(1) - t(k)) / bw_t;
            arma::vec wvec_t = kernel_func(Tn_t_diff_over_bw);
-           wvec_t /= arma::accu(wvec_t);
-           wvec_t.replace(arma::datum::nan, 0);
-           wvec_t.replace(arma::datum::inf, 0);
-           wvec_t.replace(-arma::datum::inf, 0);
+           wvec_t.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
 
            // Extract moment
            arma::uvec cur_idx_mom_s = arma::find(mat_mom_s.col(0) == s(k));
@@ -310,10 +300,6 @@ using namespace arma;
            arma::uvec cur_idx_sig_t = arma::find(mat_sig_t.col(0) == t(k));
            double sig_s_square = sig2_vec_s(cur_idx_sig_s(0));
            double sig_t_square = sig2_vec_t(cur_idx_sig_t(0));
-
-           // Compute some element of the bias term
-           arma::vec bn_s_vec = arma::pow(arma::abs(Tn_s_diff_over_bw), 2 * Hs) % arma::abs(wvec_s);
-           arma::vec bn_t_vec = arma::pow(arma::abs(Tn_t_diff_over_bw), 2 * Ht) % arma::abs(wvec_t);
 
            // Init. output
            arma::vec pn_s_vec = arma::zeros(n_curve - lag);
@@ -339,13 +325,18 @@ using namespace arma;
              pn_lag_t_vec(i) = arma::find(abs(Tn_t_diff_over_bw(idx_i_lag)) <= 1).is_empty() ? 0 : 1;
 
              // Compute bias term numerator
-             bias_term_num += 4 * mom_t_square * Ls * std::pow(bw_s, 2 * Hs) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_s_vec(idx_i)) +
-               4 * mom_s_square * Lt * std::pow(bw_t, 2 * Ht) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_t_vec(idx_i_lag));
+             // // compute b_n(s;h_s) and b_n(t;h_t)
+             arma::vec bn_s_vec = arma::pow(arma::abs(Tn_s_diff_over_bw(idx_i)), 2 * Hs) % arma::abs(wvec_s_i);
+             arma::vec bn_t_vec = arma::pow(arma::abs(Tn_t_diff_over_bw(idx_i_lag)), 2 * Ht) % arma::abs(wvec_t_i_lag);
+
+             // // Compute bias term numerator
+             bias_term_num += mom_t_square * Ls * std::pow(bw_s, 2 * Hs) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_s_vec) +
+               mom_s_square * Lt * std::pow(bw_t, 2 * Ht) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_t_vec);
 
              // Compute variance term numerator
-             variance_term_num += 4 * sig_s_square * mom_t_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() +
-               4 * sig_t_square * mom_s_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_t_i_lag.max() +
-               4 * sig_s_square * sig_t_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() * wvec_t_i_lag.max();
+             variance_term_num += sig_s_square * mom_t_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() +
+               sig_t_square * mom_s_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_t_i_lag.max() +
+               sig_s_square * sig_t_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() * wvec_t_i_lag.max();
            }
 
            // Compute P_N(t;h)
@@ -364,10 +355,10 @@ using namespace arma;
            double XsXt_var = mat_emp_autocov(idx_lag0(0), 5);
            arma::mat XsXt_mat_lr_var = mat_emp_autocov.rows(idx_lag);
            double dependence_term_num = XsXt_var + arma::accu(2 * arma::abs(XsXt_mat_lr_var.col(5)));
-           double dependence_term = dependence_term_num  / PN_lag;
+           double dependence_term = (dependence_term_num  / PN_lag) / 4;
 
            // Autocovariance risk
-           double autocov_risk = 2 * (bias_term + variance_term + dependence_term);
+           double autocov_risk = bias_term + variance_term + dependence_term;
            mat_res_risk_cur_bw.row(idx_bw_t * n + k) = {s(k), t(k), bw_s, bw_t, PN_lag, h(0), Hs, Ls, Ht, Lt, bias_term, variance_term, dependence_term, autocov_risk};
          }
        }
