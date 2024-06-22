@@ -59,9 +59,8 @@ hurst_linear <- function(t = seq(0.2, 0.8, len = 10), h_left = 0.2, h_right = 0.
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
 
   if (!(methods::is(h_left, "numeric") && methods::is(h_right, "numeric") &&
-        (h_left > 0 && h_left < 1) && (h_right > 0 && h_right < 1) &&
-        (h_left < h_right))) {
-    stop("'h_left' and 'h_right' must be scalar values between 0 and 1 with h_left < h_right")
+        (h_left > 0 && h_left < 1) && (h_right > 0 && h_right < 1))) {
+    stop("'h_left' and 'h_right' must be scalar values between 0 and 1")
   }
 
   t1 <- 1
@@ -106,8 +105,8 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 
   if (!(methods::is(h_left, "numeric") && methods::is(h_right, "numeric") &&
         (h_left > 0 && h_left < 1) && (h_right > 0 && h_right < 1) &&
-        (h_left < h_right) && (length(h_left) == 1) && (length(h_right) == 1))) {
-    stop("'h_left' and 'h_right' must be scalar values between 0 and 1 with h_left < h_right")
+        (length(h_left) == 1) && (length(h_right) == 1))) {
+    stop("'h_left' and 'h_right' must be scalar values between 0 and 1.")
   }
 
   if (!(methods::is(change_point_position, "numeric") &&
