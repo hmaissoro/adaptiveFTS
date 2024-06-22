@@ -662,7 +662,7 @@ using namespace arma;
 
    // Vector to be used in the estimation procedure
    arma::vec svec, tvec;
-   if (lag == 0 && (optbw_s.isNull() || optbw_t.isNull())) {
+   if (lag == 0) {
      arma::mat mat_st_upper = get_upper_tri_couple(s, t);
      svec = mat_st_upper.col(0);
      tvec = mat_st_upper.col(1);
@@ -693,12 +693,24 @@ using namespace arma;
      arma::vec optbw_t_to_use_temp = as<arma::vec>(optbw_t);
      int optbw_s_to_use_temp_size = optbw_s_to_use_temp.size();
      int optbw_t_to_use_temp_size = optbw_t_to_use_temp.size();
+
      if (optbw_s_to_use_temp_size == n && optbw_t_to_use_temp_size == n) {
        optbw_s_to_use = optbw_s_to_use_temp;
        optbw_t_to_use = optbw_t_to_use_temp;
      } else if (optbw_s_to_use_temp_size == 1 && optbw_t_to_use_temp_size == 1){
        optbw_s_to_use = arma::ones(n) * (optbw_s_to_use_temp(0));
        optbw_t_to_use = arma::ones(n) * (optbw_t_to_use_temp(0));
+     } else if (lag == 0) {
+       arma::vec optbw_svec(n);
+       arma::vec optbw_tvec(n);
+       for (int j = 0; j < n; ++j) {
+         arma::uvec idx_optbw_svecj = arma::find(s  == svec(j));
+         arma::uvec idx_optbw_tvecj = arma::find(t  == tvec(j));
+         optbw_svec(j) = optbw_s_to_use_temp(idx_optbw_svecj(0));
+         optbw_tvec(j) = optbw_t_to_use_temp(idx_optbw_tvecj(0));
+       }
+       optbw_s_to_use = optbw_svec;
+       optbw_t_to_use = optbw_tvec;
      } else {
        stop("If 'optbw_s' and 'optbw_t' are not NULL, they must be the same length as 's' and as 't' or of length 1.");
      }
@@ -786,7 +798,6 @@ using namespace arma;
        // Diagonal correction
        if (lag == 0 && correct_diagonal) {
          // Compute the weight product
-         arma::vec weight_product = arma::regspace<arma::vec>(0, n - 1);
          arma::vec weight_s = kernel_func((Tnvec_s - svec(k)) / optbw_s_to_use(k));
          arma::vec weight_t = kernel_func((Tnvec_t - tvec(k)) / optbw_t_to_use(k));
          weight_s /= arma::accu(weight_s);
@@ -829,23 +840,32 @@ using namespace arma;
 
    // Diagonal correction if lag == 0
    if (lag == 0) {
+     // arma::uvec idx_no_diag = arma::find(res_autocov_bis.col(0) != res_autocov_bis.col(1));
+     // mat_res_autocov = remove_duplicates(arma::join_cols(res_autocov, res_autocov_bis.rows(idx_no_diag)));
      for (int k = 0; k < n_couple ; ++k) {
-       arma::uvec idx_cov_st_upper = arma::find(res_autocov.col(0) == s(k) && res_autocov.col(1) == t(k));
+       arma::uvec idx_cov_st_upper = arma::find((res_autocov.col(0) == s(k)) && (res_autocov.col(1) == t(k)));
        if (! idx_cov_st_upper.is_empty()) {
          mat_res_autocov.row(k) = res_autocov.row(idx_cov_st_upper(0));
        } else {
-         arma::uvec idx_cov_st_lower = arma::find(res_autocov_bis.col(0) == s(k) && res_autocov_bis.col(1) == t(k));
-         mat_res_autocov.row(k) = res_autocov_bis.row(idx_cov_st_lower(0));
+         // arma::uvec idx_cov_st_lower = arma::find(res_autocov_bis.col(0) == s(k) && res_autocov_bis.col(1) == t(k));
+         // mat_res_autocov.row(k) = res_autocov_bis.row(idx_cov_st_lower(0));
+         arma::uvec idx_cov_st_lower = arma::find((res_autocov.col(1) == s(k)) && (res_autocov.col(0) == t(k)));
+         mat_res_autocov.row(k) = {res_autocov(idx_cov_st_lower(0), 1), res_autocov(idx_cov_st_lower(0), 0),
+                                   res_autocov(idx_cov_st_lower(0), 3), res_autocov(idx_cov_st_lower(0), 2),
+                                   res_autocov(idx_cov_st_lower(0), 6), res_autocov(idx_cov_st_lower(0), 7),
+                                   res_autocov(idx_cov_st_lower(0), 4), res_autocov(idx_cov_st_lower(0), 5),
+                                   res_autocov(idx_cov_st_lower(0), 10), res_autocov(idx_cov_st_lower(0), 11),
+                                   res_autocov(idx_cov_st_lower(0), 8), res_autocov(idx_cov_st_lower(0), 9),
+                                   res_autocov(idx_cov_st_lower(0), 12), res_autocov(idx_cov_st_lower(0), 13)};
        }
 
      }
-
    } else {
      // return the result
      mat_res_autocov = res_autocov;
    }
-
    return sort_by_columns(mat_res_autocov, 0, 1);
+
 
  }
 

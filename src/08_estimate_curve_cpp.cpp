@@ -470,11 +470,8 @@ using namespace arma;
    arma::mat G0_pred_pred = mat_cov_pred_pred + Sigma_pred;
    arma::mat mat_VarY = combine_matrices(G0_lag_lag, mat_autocov_lag_pred, arma::trans(mat_autocov_lag_pred), G0_pred_pred) ;
    Rcout << "--> mat_VarY build : ok \n ";
-   // Build the matrix covY_Xn0
    arma::mat mat_autocov_lag_tvec = reshape_matrix(mat_autocov_lag_tvec_all, 0, 1, 13);
    arma::mat mat_cov_pred_tvec = reshape_matrix(mat_cov_pred_tvec_all, 0, 1, 13);
-   Rcout << "mat_autocov_lag_tvec dim = " << size(mat_autocov_lag_tvec);
-   Rcout << "mat_cov_pred_tvec dim = " << size(mat_cov_pred_tvec);
    arma::mat covY_Xn0 = arma::join_cols(mat_autocov_lag_tvec, mat_cov_pred_tvec);
    Rcout << "--> covY_Xn0 build : ok \n ";
 
