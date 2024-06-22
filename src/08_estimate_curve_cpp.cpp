@@ -62,19 +62,18 @@ using namespace arma;
    }
 
    // Unique s and t values
-   arma::vec svec = arma::unique(A.col(idx_col_s));
-   arma::vec tvec = arma::unique(A.col(idx_col_t));
+   arma::vec svec = arma::sort(arma::unique(A.col(idx_col_s)), "ascend");
+   arma::vec tvec = arma::sort(arma::unique(A.col(idx_col_t)), "ascend");
    int ns = svec.size();
    int nt = tvec.size();
 
    // Initialize the reshaped matrix
    arma::mat reshaped(ns, nt, arma::fill::zeros);
-
-   // Populate the reshaped matrix
-   for (arma::uword i = 0; i < A.n_rows; ++i) {
-     arma::uword row_idx = arma::index_min(arma::abs(svec - A(i, idx_col_s)));
-     arma::uword col_idx = arma::index_min(arma::abs(tvec - A(i, idx_col_t)));
-     reshaped(row_idx, col_idx) = A(i, idx_col_value);
+   for (int i = 0; i < ns; ++i) {
+     for (int j = 0; j < nt; ++j) {
+       arma::uvec idx_ij = arma::find(A.col(idx_col_s) == svec(i) && A.col(idx_col_t) == tvec(j));
+       reshaped(i, j) = A(idx_ij(0), idx_col_value);
+     }
    }
 
    return reshaped;
@@ -405,7 +404,7 @@ using namespace arma;
    arma::vec Yvec_pred = data_mat(idx_cur_pred, arma::uvec({2}));
    arma::vec Yvec_lag = data_mat(idx_cur_lag, arma::uvec({2}));
 
-   Rcout << "--> Set up : ok \n ";
+   Rcout << " --> Set up : ok \n ";
    // Estimate the observation error standard deviation
    arma::mat mat_sig_pred = estimate_sigma_cpp(data, Tvec_pred);
    arma::mat mat_sig_lag = estimate_sigma_cpp(data, Tvec_lag);
@@ -429,14 +428,14 @@ using namespace arma;
    // // Get optimal bandwidth parameter
    arma::mat grid_pred_pred = build_grid(Tvec_pred, Tvec_pred);
    arma::mat grid_lag_lag = build_grid(Tvec_lag, Tvec_lag);
-   arma::mat grid_pred_lag = build_grid(Tvec_pred, Tvec_lag);
+   // arma::mat grid_pred_lag = build_grid(Tvec_pred, Tvec_lag);
    arma::mat grid_lag_pred = build_grid(Tvec_lag, Tvec_pred);
    arma::mat grid_lag_tvec = build_grid(Tvec_lag, tvec);
    arma::mat grid_pred_tvec = build_grid(Tvec_pred, tvec);
 
    arma::mat grid_pred_pred_optbw = get_nearest_best_autocov_bw(mat_opt_cov_param, grid_pred_pred.col(0), grid_pred_pred.col(1));
    arma::mat grid_lag_lag_optbw = get_nearest_best_autocov_bw(mat_opt_cov_param, grid_lag_lag.col(0), grid_lag_lag.col(1));
-   arma::mat grid_pred_lag_optbw = get_nearest_best_autocov_bw(mat_opt_autocov_param, grid_pred_lag.col(0), grid_pred_lag.col(1));
+   // arma::mat grid_pred_lag_optbw = get_nearest_best_autocov_bw(mat_opt_autocov_param, grid_pred_lag.col(0), grid_pred_lag.col(1));
    arma::mat grid_lag_pred_optbw = get_nearest_best_autocov_bw(mat_opt_autocov_param, grid_lag_pred.col(0), grid_lag_pred.col(1));
    arma::mat grid_lag_tvec_optbw = get_nearest_best_autocov_bw(mat_opt_autocov_param, grid_lag_tvec.col(0), grid_lag_tvec.col(1));
    arma::mat grid_pred_tvec_optbw = get_nearest_best_autocov_bw(mat_opt_cov_param, grid_pred_tvec.col(0), grid_pred_tvec.col(1));
@@ -448,9 +447,9 @@ using namespace arma;
    arma::mat mat_cov_lag_lag_all = estimate_autocov_cpp(data, grid_lag_lag_optbw.col(0), grid_lag_lag_optbw.col(1), 0,
                                                         Rcpp::wrap(grid_lag_lag_optbw.col(2)), Rcpp::wrap(grid_lag_lag_optbw.col(3)),
                                                         bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
-   arma::mat mat_autocov_pred_lag_all = estimate_autocov_cpp(data, grid_pred_lag_optbw.col(0), grid_pred_lag_optbw.col(1), 1,
-                                                             Rcpp::wrap(grid_pred_lag_optbw.col(2)), Rcpp::wrap(grid_pred_lag_optbw.col(3)),
-                                                             bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+   //arma::mat mat_autocov_pred_lag_all = estimate_autocov_cpp(data, grid_pred_lag_optbw.col(0), grid_pred_lag_optbw.col(1), 1,
+   //                                                          Rcpp::wrap(grid_pred_lag_optbw.col(2)), Rcpp::wrap(grid_pred_lag_optbw.col(3)),
+   //                                                          bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
    arma::mat mat_autocov_lag_pred_all = estimate_autocov_cpp(data, grid_lag_pred_optbw.col(0), grid_lag_pred_optbw.col(1), 1,
                                                              Rcpp::wrap(grid_lag_pred_optbw.col(2)), Rcpp::wrap(grid_lag_pred_optbw.col(3)),
                                                              bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
@@ -466,14 +465,16 @@ using namespace arma;
    arma::mat mat_cov_lag_lag = reshape_matrix(mat_cov_lag_lag_all, 0, 1, 13);
    arma::mat G0_lag_lag = mat_cov_lag_lag + Sigma_lag;
    arma::mat mat_autocov_lag_pred = reshape_matrix(mat_autocov_lag_pred_all, 0, 1, 13);
-   arma::mat mat_autocov_pred_lag = reshape_matrix(mat_autocov_pred_lag_all, 0, 1, 13);
+   // arma::mat mat_autocov_pred_lag = reshape_matrix(mat_autocov_pred_lag_all, 0, 1, 13);
    arma::mat mat_cov_pred_pred = reshape_matrix(mat_cov_pred_pred_all, 0, 1, 13);
    arma::mat G0_pred_pred = mat_cov_pred_pred + Sigma_pred;
-   arma::mat mat_VarY = combine_matrices(G0_lag_lag, mat_autocov_lag_pred, mat_autocov_pred_lag, G0_pred_pred) ;
+   arma::mat mat_VarY = combine_matrices(G0_lag_lag, mat_autocov_lag_pred, arma::trans(mat_autocov_lag_pred), G0_pred_pred) ;
    Rcout << "--> mat_VarY build : ok \n ";
    // Build the matrix covY_Xn0
    arma::mat mat_autocov_lag_tvec = reshape_matrix(mat_autocov_lag_tvec_all, 0, 1, 13);
    arma::mat mat_cov_pred_tvec = reshape_matrix(mat_cov_pred_tvec_all, 0, 1, 13);
+   Rcout << "mat_autocov_lag_tvec dim = " << size(mat_autocov_lag_tvec);
+   Rcout << "mat_cov_pred_tvec dim = " << size(mat_cov_pred_tvec);
    arma::mat covY_Xn0 = arma::join_cols(mat_autocov_lag_tvec, mat_cov_pred_tvec);
    Rcout << "--> covY_Xn0 build : ok \n ";
 
@@ -522,8 +523,8 @@ using namespace arma;
    result["cov_lag_lag_all"] = mat_cov_lag_lag_all;
    result["autocov_lag_pred"] = mat_autocov_lag_pred;
    result["autocov_lag_pred_all"] = mat_autocov_lag_pred_all;
-   result["autocov_pred_lag"] = mat_autocov_pred_lag;
-   result["autocov_pred_lag_all"] = mat_autocov_pred_lag_all;
+   // result["autocov_pred_lag"] = mat_autocov_pred_lag;
+   // result["autocov_pred_lag_all"] = mat_autocov_pred_lag_all;
    result["autocov_lag_tvec"] = mat_autocov_lag_tvec;
    result["autocov_lag_tvec_all"] = mat_autocov_lag_tvec_all;
    result["cov_pred_tvec"] = mat_cov_pred_tvec;

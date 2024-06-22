@@ -369,6 +369,74 @@ using namespace arma;
    return mat_res_risk;
  }
 
+ //' Get Unique Pairs of Elements in Upper Triangular Form
+ //'
+ //' This function takes two vectors `s` and `t` of the same length and generates
+ //' unique pairs (s(k), t(k)) in an upper triangular form. This means for each
+ //' pair, the smaller element is the first component and the larger element is
+ //' the second component. Duplicate pairs are removed, and the result is sorted
+ //' by the first and then the second column.
+ //'
+ //' @param s A numeric vector.
+ //' @param t A numeric vector of the same length as `s`.
+ //'
+ //' @return A matrix where each row contains a unique pair (s(k), t(k)) in
+ //' upper triangular form, sorted by the first and then the second column.
+ //'
+ //' @examples
+ //' \dontrun{
+ //'   library(RcppArmadillo)
+ //'   s <- c(0.2, 0.4, 0.6, 0.4)
+ //'   t <- c(0.4, 0.2, 0.6, 0.6)
+ //'   get_upper_tri_couple(s, t)
+ //' }
+ //'
+ // [[Rcpp::export]]
+ arma::mat get_upper_tri_couple(const arma::vec& s, const arma::vec& t) {
+   // Ensure vectors s and t have the same length
+   if (s.size() != t.size()) {
+     Rcpp::stop("Vectors s and t must have the same length.");
+   }
+
+   int n = s.size();
+   arma::mat mat_st(n, 2);
+
+   // Construct the matrix of pairs (s(k), t(k))
+   for (int k = 0; k < n; ++k) {
+     mat_st.row(k) = {std::min(s(k), t(k)), std::max(s(k), t(k))};
+   }
+
+   // Remove duplicated rows
+   std::unordered_set<std::string> seen;
+   std::vector<arma::uword> unique_indices;
+
+   for (arma::uword i = 0; i < mat_st.n_rows; ++i) {
+     std::string row_str = std::to_string(mat_st(i, 0)) + "," + std::to_string(mat_st(i, 1));
+     if (seen.find(row_str) == seen.end()) {
+       seen.insert(row_str);
+       unique_indices.push_back(i);
+     }
+   }
+
+   arma::mat unique_mat(unique_indices.size(), mat_st.n_cols);
+   for (arma::uword i = 0; i < unique_indices.size(); ++i) {
+     unique_mat.row(i) = mat_st.row(unique_indices[i]);
+   }
+
+   // Order by first and second column
+   // Step 1: Create a combined key for sorting
+   arma::vec combined_key = unique_mat.col(0) * 1e6 + unique_mat.col(1);
+
+   // Step 2: Get the sort indices based on the combined key
+   arma::uvec sort_indices = arma::sort_index(combined_key);
+
+   // Step 3: Reorder the rows of the matrix using the sort indices
+   arma::mat sorted_mat = unique_mat.rows(sort_indices);
+
+   return sorted_mat;
+ }
+
+
  //' Get Upper Triangular Couples
  //'
  //' This function constructs a matrix of upper triangular couples from vectors s and t,
@@ -379,7 +447,7 @@ using namespace arma;
  //' @return A matrix with unique (s, t) pairs where s >= t, sorted by s in descending order and t in ascending order.
  //' @export
  // [[Rcpp::export]]
- arma::mat get_upper_tri_couple(const arma::vec& s, const arma::vec& t) {
+ arma::mat get_upper_tri_couple_old(const arma::vec& s, const arma::vec& t) {
    // Sort unique values of s in descending order and t in ascending order
    arma::vec s_unique = arma::sort(arma::unique(s), "descend");
    arma::vec t_unique = arma::sort(arma::unique(t), "ascend");
@@ -410,124 +478,6 @@ using namespace arma;
    mat_st.resize(idx, 2);
 
    return mat_st;
- }
-
- //' Corrects the covariance matrix by ensuring the diagonal and above-diagonal values meet specific conditions.
- //'
- //' This function reshapes the covariance matrix based on unique values of s and t, fills matrices for differences
- //' and bandwidths, and performs corrections on diagonal and above-diagonal values. The final corrected matrix
- //' replaces the original values based on these conditions.
- //'
- //' @param mat_cov The input covariance matrix.
- //' @param idx_col_s The index of the column representing 's' values.
- //' @param idx_col_t The index of the column representing 't' values.
- //' @param idx_col_diff_st The index of the column representing differences between s and t.
- //' @param idx_col_bw The index of the column representing bandwidth values.
- //' @param idx_col_cov The index of the column representing covariance values.
- //' @return A corrected covariance matrix.
- //' @export
- // [[Rcpp::export]]
- arma::mat diagonal_correct(const arma::mat& mat_cov,
-                            const arma::uword idx_col_s,
-                            const arma::uword idx_col_t,
-                            const arma::uword idx_col_diff_st,
-                            const arma::uword idx_col_bw,
-                            const arma::uword idx_col_cov) {
-   // Get unique sorted values of s and t
-   arma::vec s_unique = arma::sort(arma::unique(mat_cov.col(idx_col_s)), "descend");
-   arma::vec t_unique = arma::sort(arma::unique(mat_cov.col(idx_col_t)), "ascend");
-
-   int ns = s_unique.size();
-   int nt = t_unique.size();
-   arma::mat mat_diff = arma::zeros(ns, nt);
-   arma::mat mat_bw = arma::zeros(ns, nt);
-   arma::mat mat_cov_reshape = arma::zeros(ns, nt);
-
-   // Fill matrices with values from mat_cov
-   for (int i = 0; i < ns; ++i) {
-     for (int j = 0; j < ns - i; ++j) {
-       arma::uvec idx = arma::find(mat_cov.col(idx_col_s) == s_unique(i) && mat_cov.col(idx_col_t) == t_unique(j));
-       if (!idx.is_empty() && idx(0) < mat_cov.n_rows) {
-         mat_diff(i, j) = mat_cov(idx(0), idx_col_diff_st);
-         mat_bw(i, j) = mat_cov(idx(0), idx_col_bw);
-         mat_cov_reshape(i, j) = mat_cov(idx(0), idx_col_cov);
-       }
-     }
-   }
-
-   for (int ids = 0; ids < ns; ++ids) {
-     int idt_replace = 0;
-     for (int idt = 0; idt < ns - ids; ++idt) {
-       if (mat_diff(ids, idt) > mat_bw(ids, idt)) {
-         idt_replace = idt;
-       }
-     }
-     double replace_cov = mat_cov_reshape(ids, idt_replace);
-
-     // Replace diagonal and above diagonal values
-     int n_diag_step = ns - ids - idt_replace;
-     for (int idx_step = 0; idx_step < n_diag_step; ++idx_step) {
-       if ((ids + idx_step) < ns && (idt_replace + idx_step) < nt) {
-         mat_cov_reshape(ids + idx_step, idt_replace + idx_step) = replace_cov;
-       }
-     }
-
-     // Handle case when ids is 0
-     if (ids == 0) {
-       for (int idx_rep = idt_replace; idx_rep < ns - ids; ++idx_rep) {
-         if (idx_rep < nt) {
-           mat_cov_reshape(ids, idx_rep) = replace_cov;
-         }
-       }
-     } else {
-       for (int idx_row = idt_replace + 1; idx_row < ns - ids; ++idx_row) {
-         if ((ids - 1) < ns && (idx_row - 1) < nt) {
-           mat_cov_reshape(ids, idx_row) = mat_cov_reshape(ids - 1, idx_row - 1);
-         }
-       }
-     }
-
-     // Handle case when ids is ns - 1
-     if (ids == ns - 1) {
-       int ids_replace_backward = 0;
-       for (int ids_backward = 0; ids_backward < ns; ++ids_backward) {
-         if (mat_diff(ids_backward, 0) > mat_bw(ids_backward, 0)) {
-           ids_replace_backward++;
-         }
-       }
-       for (int idx_rep = ids_replace_backward; idx_rep < ns; ++idx_rep) {
-         if (ids_replace_backward < ns) {
-           mat_cov_reshape(idx_rep, 0) = mat_cov_reshape(ids_replace_backward, 0);
-         }
-       }
-     }
-   }
-
-   // Remove the data after the anti-diagonal
-   arma::mat mat_cov_res = arma::zeros(ns, nt);
-   for (int i = 0; i < ns; ++i) {
-     for (int j = 0; j < ns - i; ++j) {
-       if (j < nt) {
-         mat_cov_res(i, j) = mat_cov_reshape(i, j);
-       }
-     }
-   }
-
-   // Initialize the result matrix
-   arma::mat result = mat_cov;
-
-   // Fill the result matrix
-   for (arma::uword i = 0; i < ns; ++i) {
-     for (arma::uword j = 0; j < ns - i; ++j) {
-       arma::uvec idx_to_set = arma::find((mat_cov.col(idx_col_s) == s_unique(i) && mat_cov.col(idx_col_t) == t_unique(j)) ||
-         (mat_cov.col(idx_col_t) == s_unique(i) && mat_cov.col(idx_col_s) == t_unique(j)));
-       if (!idx_to_set.is_empty() && idx_to_set(0) < mat_cov.n_rows) {
-         result(idx_to_set, arma::uvec({idx_col_cov})).fill(mat_cov_res(i, j));
-       }
-     }
-   }
-
-   return result;
  }
 
  //' Build a full grid of pairs
@@ -564,6 +514,67 @@ using namespace arma;
    }
 
    return grid;
+ }
+
+ //' Sort Matrix by Specified Columns
+ //'
+ //' This function sorts a matrix by two specified columns in sequence.
+ //'
+ //' @param mat A numeric matrix to be sorted.
+ //' @param first_col_idx An integer indicating the first column index to sort by.
+ //' @param second_col_idx An integer indicating the second column index to sort by.
+ //' @return A matrix sorted first by the column indicated by \code{first_col_idx} and then by the column indicated by \code{second_col_idx}.
+ //' @export
+ //'
+ //' @examples
+ //' \dontrun{
+ //' mat <- matrix(c(3, 2, 5, 1, 3, 4, 2, 2, 3, 1, 1, 2), ncol = 3, byrow = TRUE)
+ //' sorted_mat <- sort_by_columns(mat, 1, 2)
+ //' print(sorted_mat)
+ //' }
+ // [[Rcpp::export]]
+ arma::mat sort_by_columns(const arma::mat& mat, arma::uword first_col_idx, arma::uword second_col_idx) {
+   // Order by first and second column
+   // Step 1: Create a combined key for sorting
+   arma::vec combined_key = mat.col(first_col_idx) * 1e6 + mat.col(second_col_idx);
+
+   // Step 2: Get the sort indices based on the combined key
+   arma::uvec sort_indices = arma::sort_index(combined_key);
+
+   // Step 3: Reorder the rows of the matrix using the sort indices
+   arma::mat sorted_mat = mat.rows(sort_indices);
+
+   return sorted_mat;
+ }
+
+ //' Remove Duplicate Rows from an Armadillo Matrix
+ //'
+ //' This function removes duplicate rows from an Armadillo matrix.
+ //'
+ //' @param mat An Armadillo matrix.
+ //' @return A matrix with duplicate rows removed.
+ //'
+ //' @export
+ // [[Rcpp::export]]
+ arma::mat remove_duplicates(const arma::mat& mat) {
+   // Step 1: Create a set of unique rows
+   std::set<std::vector<double>> unique_rows_set;
+
+   // Step 2: Populate the set with rows of mat
+   for (arma::uword i = 0; i < mat.n_rows; ++i) {
+     std::vector<double> row_vec(mat.row(i).begin(), mat.row(i).end());
+     unique_rows_set.insert(row_vec);
+   }
+
+   // Step 3: Convert set back to Armadillo matrix
+   arma::mat unique_mat(unique_rows_set.size(), mat.n_cols);
+   arma::uword row_idx = 0;
+   for (auto it = unique_rows_set.begin(); it != unique_rows_set.end(); ++it) {
+     unique_mat.row(row_idx) = arma::rowvec(*it);
+     ++row_idx;
+   }
+
+   return unique_mat;
  }
 
 
@@ -650,11 +661,14 @@ using namespace arma;
    double n_curve = unique_id_curve.n_elem;
 
    // Vector to be used in the estimation procedure
-   arma::vec svec = s, tvec = t;
+   arma::vec svec, tvec;
    if (lag == 0 && (optbw_s.isNull() || optbw_t.isNull())) {
      arma::mat mat_st_upper = get_upper_tri_couple(s, t);
      svec = mat_st_upper.col(0);
      tvec = mat_st_upper.col(1);
+   } else {
+     svec = s;
+     tvec = t;
    }
    int n = tvec.n_elem;
 
@@ -677,11 +691,12 @@ using namespace arma;
    } else {
      arma::vec optbw_s_to_use_temp = as<arma::vec>(optbw_s);
      arma::vec optbw_t_to_use_temp = as<arma::vec>(optbw_t);
-
-     if (optbw_s_to_use_temp.size() == n && optbw_t_to_use_temp.size() == n) {
+     int optbw_s_to_use_temp_size = optbw_s_to_use_temp.size();
+     int optbw_t_to_use_temp_size = optbw_t_to_use_temp.size();
+     if (optbw_s_to_use_temp_size == n && optbw_t_to_use_temp_size == n) {
        optbw_s_to_use = optbw_s_to_use_temp;
        optbw_t_to_use = optbw_t_to_use_temp;
-     } else if (optbw_s_to_use_temp.size() == 1 && optbw_t_to_use_temp.size() == 1){
+     } else if (optbw_s_to_use_temp_size == 1 && optbw_t_to_use_temp_size == 1){
        optbw_s_to_use = arma::ones(n) * (optbw_s_to_use_temp(0));
        optbw_t_to_use = arma::ones(n) * (optbw_t_to_use_temp(0));
      } else {
@@ -693,49 +708,119 @@ using namespace arma;
      mat_locreg.cols(2, 5).zeros();
    }
 
+   // Take unique svec and tvec
+   arma::vec unique_svec = arma::unique(svec);
+   arma::vec unique_tvec = arma::unique(tvec);
+
    // Estimate mean function
    arma::mat mat_mean_s = estimate_mean_cpp(data, svec, Rcpp::wrap(optbw_s_to_use), R_NilValue, kernel_name);
    arma::mat mat_mean_t = estimate_mean_cpp(data, tvec, Rcpp::wrap(optbw_t_to_use), R_NilValue, kernel_name);
-   arma::vec muhat_s = mat_mean_s.col(5);
-   arma::vec muhat_t = mat_mean_t.col(5);
 
-   // Compute the autocovariance function
-   arma::vec PN_lag(n, arma::fill::zeros);
-   arma::vec autocov_numerator(n, arma::fill::zeros);
-
-   for (int i = 0; i < n_curve - lag; ++i) {
-     arma::uvec indices_cur_s = arma::find(data_mat.col(0) == unique_id_curve(i));
-     arma::uvec indices_cur_t = arma::find(data_mat.col(0) == unique_id_curve(i + lag));
-     arma::vec Tnvec_s = data_mat(indices_cur_s, arma::uvec({1}));
-     arma::vec Ynvec_s = data_mat(indices_cur_s, arma::uvec({2}));
-     arma::vec Tnvec_t = data_mat(indices_cur_t, arma::uvec({1}));
-     arma::vec Ynvec_t = data_mat(indices_cur_t, arma::uvec({2}));
-
-     // Smooth using Nadaraya-Watson estimator
-     arma::vec Xhat_s = estimate_nw_cpp(Ynvec_s, Tnvec_s, svec, optbw_s_to_use, kernel_name);
-     arma::vec Xhat_t = estimate_nw_cpp(Ynvec_t, Tnvec_t, tvec, optbw_t_to_use, kernel_name);
-     Xhat_s.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-     Xhat_t.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-
-     // Compute the vector p_n(t;h) and update P_N(t;h)
-     arma::vec pn_s = arma::regspace<arma::vec>(0, n - 1).transform([&](int j) { return arma::any(arma::abs(Tnvec_s - svec(j)) <= optbw_s_to_use(j)) ? 1.0 : 0.0; });
-     arma::vec pn_t = arma::regspace<arma::vec>(0, n - 1).transform([&](int j) { return arma::any(arma::abs(Tnvec_t - tvec(j)) <= optbw_t_to_use(j)) ? 1.0 : 0.0; });
-     PN_lag += pn_s % pn_t;
-
-     // Estimate the numerator function numerator
-     if (center) {
-       autocov_numerator += pn_s % pn_t % (Xhat_s - muhat_s) % (Xhat_t - muhat_t);
-     } else {
-       autocov_numerator += pn_s % pn_t % Xhat_s % Xhat_t;
-     }
+   // For diagonal correction
+   arma::mat mat_sig_s(unique_svec.size(), 2, arma::fill::zeros);
+   arma::mat mat_sig_t(unique_tvec.size(), 2, arma::fill::zeros);
+   if (lag == 0 && correct_diagonal) {
+     // // Estimate the error sd :
+     mat_sig_s = estimate_sigma_cpp(data, arma::unique(svec));
+     mat_sig_t = estimate_sigma_cpp(data, arma::unique(tvec));
    }
 
-   // Compute autocovariance estimate
-   arma::vec autocovhat;
-   if (center) {
-     autocovhat = autocov_numerator / PN_lag;
-   } else {
-     autocovhat = autocov_numerator / PN_lag - muhat_s % muhat_t;
+   // Init output
+   // // For autocovariance Or the upper part of the coavraince
+   arma::mat res_autocov(n, 14);
+
+   // // For lower part of the covariance if lag = 0
+   arma::mat res_autocov_bis(n, 14);
+
+   // Estimate autocovariance
+   for (int k = 0; k < n; ++k) {
+     // Extract the estimates of the mean function
+     arma::uvec cur_idx_mean_s = arma::find(mat_mean_s.col(0) == svec(k));
+     arma::uvec cur_idx_mean_t = arma::find(mat_mean_t.col(0) == tvec(k));
+     double PN_muhat_s = mat_mean_s(cur_idx_mean_s(0), 4);
+     double muhat_s = mat_mean_s(cur_idx_mean_s(0), 5);
+     double PN_muhat_t = mat_mean_t(cur_idx_mean_t(0), 4);
+     double muhat_t = mat_mean_t(cur_idx_mean_t(0), 5);
+
+     // if diagonal correction, Extract the estimates of the sd
+     double sig_s = 0;
+     double sig_t = 0;
+     if (lag == 0 && correct_diagonal) {
+       arma::uvec cur_idx_sig_s = arma::find(mat_sig_s.col(0) == svec(k));
+       arma::uvec cur_idx_sig_t = arma::find(mat_sig_t.col(0) == tvec(k));
+       sig_s = mat_sig_s(cur_idx_sig_s(0), 1);
+       sig_t = mat_sig_t(cur_idx_sig_t(0), 1);
+     }
+
+     // Compute the autocovariance function
+     double PN_lag = 0;
+     double autocov_numerator = 0;
+     double diag_correct_numerator = 0;
+
+     for (int i = 0; i < n_curve - lag; ++i) {
+       arma::uvec indices_cur_s = arma::find(data_mat.col(0) == unique_id_curve(i));
+       arma::uvec indices_cur_t = arma::find(data_mat.col(0) == unique_id_curve(i + lag));
+       arma::vec Tnvec_s = data_mat(indices_cur_s, arma::uvec({1}));
+       arma::vec Ynvec_s = data_mat(indices_cur_s, arma::uvec({2}));
+       arma::vec Tnvec_t = data_mat(indices_cur_t, arma::uvec({1}));
+       arma::vec Ynvec_t = data_mat(indices_cur_t, arma::uvec({2}));
+
+       // Smooth using Nadaraya-Watson estimator
+       arma::vec Xhat_s = estimate_nw_cpp(Ynvec_s, Tnvec_s, arma::vec({svec(k)}), arma::vec({optbw_s_to_use(k)}), kernel_name);
+       arma::vec Xhat_t = estimate_nw_cpp(Ynvec_t, Tnvec_t, arma::vec({tvec(k)}), arma::vec({optbw_t_to_use(k)}), kernel_name);
+       Xhat_s.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+       Xhat_t.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+
+       // Compute the vector p_n(t;h) and update P_N(t;h)
+       double pn_s = arma::any(arma::abs(Tnvec_s - svec(k)) <= optbw_s_to_use(k)) ? 1.0 : 0.0;
+       double pn_t = arma::any(arma::abs(Tnvec_t - tvec(k)) <= optbw_t_to_use(k)) ? 1.0 : 0.0;
+       PN_lag += pn_s * pn_t;
+
+       // Estimate the numerator of the autocovariance function
+       if (center) {
+         autocov_numerator += pn_s * pn_t * (Xhat_s(0) - muhat_s) * (Xhat_t(0) - muhat_t);
+       } else {
+         autocov_numerator += pn_s * pn_t * Xhat_s(0) * Xhat_t(0);
+       }
+
+       // Diagonal correction
+       if (lag == 0 && correct_diagonal) {
+         // Compute the weight product
+         arma::vec weight_product = arma::regspace<arma::vec>(0, n - 1);
+         arma::vec weight_s = kernel_func((Tnvec_s - svec(k)) / optbw_s_to_use(k));
+         arma::vec weight_t = kernel_func((Tnvec_t - tvec(k)) / optbw_t_to_use(k));
+         weight_s /= arma::accu(weight_s);
+         weight_t /= arma::accu(weight_t);
+         weight_s.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+         weight_t.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+
+         // Estimate the numerator of the diagonal part
+         diag_correct_numerator += sig_s * sig_t * pn_s * pn_t * arma::accu(weight_s % weight_t);
+       }
+     }
+
+     // Compute autocovariance estimate
+     // // Note that if lag = 0 or correct_diagonal = FALSE, Then diag_correct_numerator = 0
+     double autocovhat;
+     if (center) {
+       autocovhat = autocov_numerator / PN_lag - diag_correct_numerator / PN_lag;
+     } else {
+       autocovhat = autocov_numerator / PN_lag - muhat_s * muhat_t - diag_correct_numerator / PN_lag;
+     }
+
+     // Return the result
+     // // Extract local regularity parameters
+     arma::uvec idx_locreg_cur = arma::find(mat_locreg.col(0) == svec(k) && mat_locreg.col(1) == tvec(k));
+     res_autocov.row(k) = {svec(k), tvec(k), optbw_s_to_use(k), optbw_t_to_use(k),
+                           mat_locreg(idx_locreg_cur(0), 2), mat_locreg(idx_locreg_cur(0), 3),
+                           mat_locreg(idx_locreg_cur(0), 4), mat_locreg(idx_locreg_cur(0), 5),
+                           PN_muhat_s, muhat_s, PN_muhat_t, muhat_t, PN_lag, autocovhat};
+     if (lag == 0) {
+       res_autocov_bis.row(k) = {tvec(k), svec(k), optbw_t_to_use(k), optbw_s_to_use(k),
+                                 mat_locreg(idx_locreg_cur(0), 4), mat_locreg(idx_locreg_cur(0), 5),
+                                 mat_locreg(idx_locreg_cur(0), 2), mat_locreg(idx_locreg_cur(0), 3),
+                                 PN_muhat_t, muhat_t, PN_muhat_s, muhat_s, PN_lag, autocovhat};
+     }
    }
 
    // Initialize the result matrix
@@ -744,106 +829,23 @@ using namespace arma;
 
    // Diagonal correction if lag == 0
    if (lag == 0) {
-     arma::mat mat_cov_res(n, 5);
-     if (correct_diagonal) {
-       arma::mat mat_cov(n, 5);
-       mat_cov.col(0) = svec;
-       mat_cov.col(1) = tvec;
-       mat_cov.col(2) = arma::abs(svec - tvec);
-       mat_cov.col(3) = optbw_s_to_use + optbw_t_to_use; // h_s h_t
-       mat_cov.col(4) = autocovhat;
-
-       // Diagonal correction
-       arma::mat mat_cov_corrected = diagonal_correct(mat_cov, 0, 1, 2, 3, 4);
-
-       // replace the column containing arma::abs(svec - tvec) and max(h_s, h_t) by the bw_s and bw_t
-       mat_cov_corrected.col(2) = optbw_s_to_use;
-       mat_cov_corrected.col(3) = optbw_t_to_use;
-
-       mat_cov_res = mat_cov_corrected;
-
-     } else {
-       mat_cov_res.col(0) = svec;
-       mat_cov_res.col(1) = tvec;
-       mat_cov_res.col(2) = optbw_s_to_use;
-       mat_cov_res.col(3) = optbw_t_to_use;
-       mat_cov_res.col(4) = autocovhat;
-     }
-
-
-     // Initialize the output matrix
-     int n_upper_tri = mat_cov_res.n_rows;
-     arma::mat res_cov(n_upper_tri * 2, 5);
-
-     // Fill the upper triangular elements
-     res_cov(arma::span(0, n_upper_tri - 1), arma::span::all) = mat_cov_res;
-
-     // Fill the lower triangular elements
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 0) = mat_cov_res.col(1);
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 1) = mat_cov_res.col(0);
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 2) = mat_cov_res.col(3);
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 3) = mat_cov_res.col(2);
-     res_cov(arma::span(n_upper_tri, 2 * n_upper_tri - 1), 4) = mat_cov_res.col(4);
-
-     // return the covariance result
-     //// P_{N, \ell}(s,t; h_s, h_t)
-     arma::mat mat_PN_lag(n, 3);
-     mat_PN_lag.col(0) = svec;
-     mat_PN_lag.col(1) = tvec;
-     mat_PN_lag.col(2) = PN_lag;
-
-     //// Mean matrix
-     arma::mat mat_mean(n, 6);
-     mat_mean.col(0) = svec;
-     mat_mean.col(1) = tvec;
-     mat_mean.col(2) = mat_mean_s.col(4);
-     mat_mean.col(3) = mat_mean_s.col(5);
-     mat_mean.col(4) = mat_mean_t.col(4);
-     mat_mean.col(5) = mat_mean_t.col(5);
-
      for (int k = 0; k < n_couple ; ++k) {
-       arma::uvec idx_cov_st = arma::find(res_cov.col(0) == s(k) && res_cov.col(1) == t(k));
-       arma::uvec idx_locreg_st = arma::find((mat_locreg.col(0) == s(k) && mat_locreg.col(1) == t(k)) ||
-         (mat_locreg.col(0) == t(k) && mat_locreg.col(1) == s(k))); // For the transpose
-       arma::uvec idx_PN_st = arma::find((mat_PN_lag.col(0) == s(k) && mat_PN_lag.col(1) == t(k)) ||
-         (mat_PN_lag.col(0) == t(k) && mat_PN_lag.col(1) == s(k)));  // For the transpose
-       arma::uvec idx_muhat_st = arma::find((mat_mean.col(0) == s(k) && mat_mean.col(1) == t(k)) ||
-         (mat_mean.col(0) == t(k) && mat_mean.col(1) == s(k)));
+       arma::uvec idx_cov_st_upper = arma::find(res_autocov.col(0) == s(k) && res_autocov.col(1) == t(k));
+       if (! idx_cov_st_upper.is_empty()) {
+         mat_res_autocov.row(k) = res_autocov.row(idx_cov_st_upper(0));
+       } else {
+         arma::uvec idx_cov_st_lower = arma::find(res_autocov_bis.col(0) == s(k) && res_autocov_bis.col(1) == t(k));
+         mat_res_autocov.row(k) = res_autocov_bis.row(idx_cov_st_lower(0));
+       }
 
-       mat_res_autocov.row(k) = {res_cov(idx_cov_st(0), 0),
-                                 res_cov(idx_cov_st(0), 1),
-                                 res_cov(idx_cov_st(0), 2),
-                                 res_cov(idx_cov_st(0), 3),
-                                 mat_locreg(idx_locreg_st(0), 2),
-                                 mat_locreg(idx_locreg_st(0), 3),
-                                 mat_locreg(idx_locreg_st(0), 4),
-                                 mat_locreg(idx_locreg_st(0), 5),
-                                 mat_mean(idx_muhat_st(0), 2),
-                                 mat_mean(idx_muhat_st(0), 3),
-                                 mat_mean(idx_muhat_st(0), 4),
-                                 mat_mean(idx_muhat_st(0), 5),
-                                 mat_PN_lag(idx_PN_st(0), 2),
-                                 res_cov(idx_cov_st(0), 4)};
      }
+
    } else {
      // return the result
-     mat_res_autocov.col(0) = svec;
-     mat_res_autocov.col(1) = tvec;
-     mat_res_autocov.col(2) = optbw_s_to_use;
-     mat_res_autocov.col(3) = optbw_t_to_use;
-     mat_res_autocov.col(4) = mat_locreg.col(2);
-     mat_res_autocov.col(5) = mat_locreg.col(3);
-     mat_res_autocov.col(6) = mat_locreg.col(4);
-     mat_res_autocov.col(7) = mat_locreg.col(5);
-     mat_res_autocov.col(8) = mat_mean_s.col(4);
-     mat_res_autocov.col(9) = mat_mean_s.col(5);
-     mat_res_autocov.col(10) = mat_mean_t.col(4);
-     mat_res_autocov.col(11) = mat_mean_t.col(5);
-     mat_res_autocov.col(12) = PN_lag;
-     mat_res_autocov.col(13) = autocovhat;
+     mat_res_autocov = res_autocov;
    }
 
-   return mat_res_autocov;
+   return sort_by_columns(mat_res_autocov, 0, 1);
 
  }
 
