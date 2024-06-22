@@ -110,7 +110,7 @@ using namespace arma;
    data_mat.col(0) = as<arma::vec>(data["id_curve"]);
    data_mat.col(1) = as<arma::vec>(data["tobs"]);
    data_mat.col(2) = as<arma::vec>(data["X"]);
-   arma::vec unique_id_curve = arma::unique(data_mat.col(0));
+   arma::vec unique_id_curve = arma::sort(arma::unique(data_mat.col(0)), "ascend");
    double n_curve = unique_id_curve.n_elem;
 
    // Set the bandwidth grid
@@ -203,8 +203,8 @@ using namespace arma;
 
          for(int i = 0 ; i < n_curve - lag; ++i){
            // Exact the indexes : current and forward
-           arma::uvec idx_i = arma::find(data_mat.col(0) == i + 1);
-           arma::uvec idx_i_lag = arma::find(data_mat.col(0) == i + 1 + lag);
+           arma::uvec idx_i = arma::find(data_mat.col(0) == unique_id_curve(i));
+           arma::uvec idx_i_lag = arma::find(data_mat.col(0) == unique_id_curve(i + lag));
 
            // Extract weight
            arma::vec wvec_s_i = wvec_s(idx_i) / arma::accu(wvec_s(idx_i));
@@ -309,8 +309,8 @@ using namespace arma;
 
            for(int i = 0 ; i < n_curve - lag; ++i){
              // Exact the indexes : current and forward
-             arma::uvec idx_i = arma::find(data_mat.col(0) == i + 1);
-             arma::uvec idx_i_lag = arma::find(data_mat.col(0) == i + 1 + lag);
+             arma::uvec idx_i = arma::find(data_mat.col(0) == unique_id_curve(i));
+             arma::uvec idx_i_lag = arma::find(data_mat.col(0) == unique_id_curve(i + lag));
 
              // Extract weight
              arma::vec wvec_s_i = wvec_s(idx_i) / arma::accu(wvec_s(idx_i));
@@ -646,7 +646,7 @@ using namespace arma;
    data_mat.col(0) = as<arma::vec>(data["id_curve"]);
    data_mat.col(1) = as<arma::vec>(data["tobs"]);
    data_mat.col(2) = as<arma::vec>(data["X"]);
-   arma::vec unique_id_curve = arma::unique(data_mat.col(0));
+   arma::vec unique_id_curve = arma::sort(arma::unique(data_mat.col(0)), "ascend");
    double n_curve = unique_id_curve.n_elem;
 
    // Vector to be used in the estimation procedure
@@ -704,8 +704,8 @@ using namespace arma;
    arma::vec autocov_numerator(n, arma::fill::zeros);
 
    for (int i = 0; i < n_curve - lag; ++i) {
-     arma::uvec indices_cur_s = arma::find(data_mat.col(0) == i + 1);
-     arma::uvec indices_cur_t = arma::find(data_mat.col(0) == i + 1 + lag);
+     arma::uvec indices_cur_s = arma::find(data_mat.col(0) == unique_id_curve(i));
+     arma::uvec indices_cur_t = arma::find(data_mat.col(0) == unique_id_curve(i + lag));
      arma::vec Tnvec_s = data_mat(indices_cur_s, arma::uvec({1}));
      arma::vec Ynvec_s = data_mat(indices_cur_s, arma::uvec({2}));
      arma::vec Tnvec_t = data_mat(indices_cur_t, arma::uvec({1}));
