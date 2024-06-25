@@ -420,18 +420,15 @@ using namespace arma;
     int n_curve = unique_id_curve.n_elem;
 
     // Set the number of subset of curves to be used to determine the best N-W bandwidth
-    int nsubset_val = 0;
+    double nsubset_val = 0;
     if (nsubset.isNotNull()) {
       nsubset_val = as<int>(nsubset);
     } else {
-      nsubset_val = 30;
+      nsubset_val = std::min(70.0, std::floor(n_curve * 0.5));
     }
     if (nsubset.isNotNull() && (nsubset_val > n_curve)) {
       stop("If 'nsubset' is not NULL, it must be a positive integer less than or equal to the number of curves.");
     }
-
-    // Get random indexes
-    arma::vec idx_rand = arma::randi<arma::vec>(nsubset_val, arma::distr_param(1, n_curve));
 
     // Set the bandwidth grid
     arma::vec bw_grid_used;
@@ -439,9 +436,9 @@ using namespace arma;
 
       //// Estimate lambda
       double lambdahat = arma::mean(hist(data_mat.col(0), unique_id_curve));
-      double b0 = 2 / lambdahat;
+      double b0 = 1 / lambdahat;
       double bK = std::pow(lambdahat, -1 / 3.0);
-      bw_grid_used = arma::logspace(log10(b0), log10(bK), 30);
+      bw_grid_used = arma::logspace(log10(b0), log10(bK), 15);
     } else {
       bw_grid_used = as<arma::vec>(bw_grid);
     }
@@ -451,7 +448,7 @@ using namespace arma;
 
     // Estimate the best bandwidth
     for (int i = 0; i < nsubset_val; ++i) {
-      arma::uvec indices_cur = arma::find(data_mat.col(0) == idx_rand(i));
+      arma::uvec indices_cur = arma::find(data_mat.col(0) == unique_id_curve(n_curve - 1 - i));
       double hbest = estimate_nw_bw_cpp(data_mat(indices_cur, arma::uvec({2})), data_mat(indices_cur, arma::uvec({1})), bw_grid_used, kernel_name);
       res_opt_bw(i) = hbest;
     }

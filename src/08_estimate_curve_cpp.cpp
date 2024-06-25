@@ -498,19 +498,30 @@ using namespace arma;
 
    // Build the BLUP
    // // Perform SVD
-   arma::mat U, V;
-   arma::vec s;
-   arma::svd(U, s, V, mat_VarY, "std");
-   Rcout << " The s before : " << s << "\n";
-   // // Replace negative singular values with zero
-   double min_svalue_positive = arma::min(s.elem(arma::find(s > 0)));
-   s.elem(arma::find(s <= 0)).fill(min_svalue_positive / 2);
-   Rcout << " The s after : " << s << "\n";
-   // // Reconstruct the matrix
-   arma::mat S = arma::diagmat(s);
-   arma::mat mat_VarY_reconstructed = U * S * V.t();
+   // arma::mat U, V;
+   // arma::vec s;
+   // arma::svd(U, s, V, mat_VarY, "std");
+   // Rcout << " The s before : " << s << "\n";
+   // // // Replace negative singular values with zero
+   // double min_svalue_positive = arma::min(s.elem(arma::find(s > 0)));
+   // s.elem(arma::find(s <= 0)).fill(min_svalue_positive / 2);
+   // Rcout << " The s after : " << s << "\n";
+   // // // Reconstruct the matrix
+   // arma::mat S = arma::diagmat(s);
+   // arma::mat mat_VarY_reconstructed = U * S * V.t();
    // // Estimate Bn0
-   arma::mat Bn0 = arma::solve(mat_VarY_reconstructed, covY_Xn0, solve_opts::refine);
+   // arma::mat Bn0 = arma::solve(mat_VarY, covY_Xn0, solve_opts::fast + solve_opts::no_approx);
+   Rcout << " arma::rcond(mat_VarY) : " << arma::rcond(mat_VarY) << "\n";
+   Rcout << " arma::rcond(mat_VarY) : " << arma::rcond(mat_VarY) << "\n";
+   Rcout << " arma::rcond(mat_VarY) : " << arma::rcond(mat_VarY) << "\n";
+   // Add regularization term to the diagonal
+   double lambda = 1e-8; // Regularization parameter
+   arma::mat I = arma::eye<arma::mat>(mat_VarY.n_rows, mat_VarY.n_cols);
+   arma::mat mat_VarY_reg = mat_VarY + lambda * I;
+   Rcout << " arma::rcond(mat_VarY_reg) : " << arma::rcond(mat_VarY_reg) << "\n";
+   Rcout << " arma::rcond(mat_VarY_reg) : " << arma::rcond(mat_VarY_reg) << "\n";
+   Rcout << " arma::rcond(mat_VarY_reg) : " << arma::rcond(mat_VarY_reg) << "\n";
+   arma::mat Bn0 = arma::inv(mat_VarY_reg) * covY_Xn0;
    arma::vec vec_blup = mat_mean_tvec.col(5) + arma::trans(Bn0) * vec_Yn0_lag;
 
    // result of BLUP
@@ -540,7 +551,7 @@ using namespace arma;
    result["cov_pred_tvec"] = mat_cov_pred_tvec;
    result["cov_pred_tvec_all"] = mat_cov_pred_tvec_all;
    result["mat_VarY"] = mat_VarY;
-   result["mat_VarY_reconstructed"] = mat_VarY_reconstructed;
+   // result["mat_VarY_reconstructed"] = mat_VarY_reconstructed;
    result["covY_Xn0"] = covY_Xn0;
    result["muhat"] = mat_mean_tvec.col(5);
    result["vec_Yn0_lag"] = vec_Yn0_lag;
