@@ -342,6 +342,58 @@ using namespace arma;
    return mat_res;
  }
 
+ //' Ensure Positive Definite Matrix
+ //'
+ //' This function takes a matrix `A` and ensures that it is positive definite.
+ //' It performs eigenvalue decomposition, replaces any negative eigenvalues
+ //' with the minimum positive eigenvalue multiplied by a constant `c`, and
+ //' reconstructs the matrix.
+ //'
+ //' @param A A numeric matrix to be ensured positive definite.
+ //' @param c A small positive constant to multiply the minimum positive eigenvalue for replacing negative eigenvalues. Default is \code{1e-6}.
+ //'
+ //' @return A positive definite matrix that is symmetric.
+ //'
+ //' @examples
+ //' \dontrun{
+ //'   library(RcppArmadillo)
+ //'   A <- matrix(c(4, 1, 1, 3), nrow = 2)
+ //'   ensure_positive_definite(A, 1e-6)
+ //' }
+ //' @export
+ // [[Rcpp::export]]
+ arma::mat ensure_positive_definite(arma::mat A, double c = 1e-6) {
+
+   // Step 1: Eigenvalue decomposition
+   arma::vec eigval;
+   arma::mat eigvec;
+   arma::eig_sym(eigval, eigvec, A, "std");
+
+   // Step 2: Replace negative eigenvalues with the minimum positive eigenvalue multiplied by a constant
+   // Find the indexes of positive eigenvalues
+   arma::uvec idx_positive_eigenval = arma::find(eigval > 0);
+   if (idx_positive_eigenval.size() == eigval.size()) {
+     return A;
+   } else {
+     // Find the minimum positive eigenvalue
+     double min_positive = arma::min(eigval(idx_positive_eigenval));
+     if (min_positive == arma::datum::inf) {
+       throw std::runtime_error("All eigenvalues are non-positive.");
+     }
+
+     eigval.transform([&](double val){ return val <= 0 ? min_positive * c : val; });
+
+     // Step 3: Reconstruct the matrix
+     arma::mat A_recons = eigvec * arma::diagmat(eigval) * eigvec.t();
+
+     // Ensure the matrix is symmetric
+     A_recons = 0.5 * (A_recons + A_recons.t());
+
+     return A_recons;
+   }
+ }
+
+
 
 
  // [[Rcpp::export]]
@@ -408,8 +460,8 @@ using namespace arma;
    // Estimate the observation error standard deviation
    arma::mat mat_sig_pred = estimate_sigma_cpp(data, Tvec_pred);
    arma::mat mat_sig_lag = estimate_sigma_cpp(data, Tvec_lag);
-   arma::mat Sigma_pred = arma::diagmat(arma::pow(mat_sig_pred.col(1), 2));
-   arma::mat Sigma_lag = arma::diagmat(arma::pow(mat_sig_lag.col(1), 2));
+   arma::vec sig_all = arma::join_cols(mat_sig_lag.col(1), mat_sig_pred.col(1));
+   arma::mat Sigma_all = arma::diagmat(arma::pow(sig_all, 2));
    Rcout << "--> Sigma estimation : ok \n ";
 
    // Estimate bandwidth parameters on a grid
@@ -428,14 +480,12 @@ using namespace arma;
    // // Get optimal bandwidth parameter
    arma::mat grid_pred_pred = build_grid(Tvec_pred, Tvec_pred);
    arma::mat grid_lag_lag = build_grid(Tvec_lag, Tvec_lag);
-   // arma::mat grid_pred_lag = build_grid(Tvec_pred, Tvec_lag);
    arma::mat grid_lag_pred = build_grid(Tvec_lag, Tvec_pred);
    arma::mat grid_lag_tvec = build_grid(Tvec_lag, tvec);
    arma::mat grid_pred_tvec = build_grid(Tvec_pred, tvec);
 
    arma::mat grid_pred_pred_optbw = get_nearest_best_autocov_bw(mat_opt_cov_param, grid_pred_pred.col(0), grid_pred_pred.col(1));
    arma::mat grid_lag_lag_optbw = get_nearest_best_autocov_bw(mat_opt_cov_param, grid_lag_lag.col(0), grid_lag_lag.col(1));
-   // arma::mat grid_pred_lag_optbw = get_nearest_best_autocov_bw(mat_opt_autocov_param, grid_pred_lag.col(0), grid_pred_lag.col(1));
    arma::mat grid_lag_pred_optbw = get_nearest_best_autocov_bw(mat_opt_autocov_param, grid_lag_pred.col(0), grid_lag_pred.col(1));
    arma::mat grid_lag_tvec_optbw = get_nearest_best_autocov_bw(mat_opt_autocov_param, grid_lag_tvec.col(0), grid_lag_tvec.col(1));
    arma::mat grid_pred_tvec_optbw = get_nearest_best_autocov_bw(mat_opt_cov_param, grid_pred_tvec.col(0), grid_pred_tvec.col(1));
@@ -447,9 +497,6 @@ using namespace arma;
    arma::mat mat_cov_lag_lag_all = estimate_autocov_cpp(data, grid_lag_lag_optbw.col(0), grid_lag_lag_optbw.col(1), 0,
                                                         Rcpp::wrap(grid_lag_lag_optbw.col(2)), Rcpp::wrap(grid_lag_lag_optbw.col(3)),
                                                         bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
-   //arma::mat mat_autocov_pred_lag_all = estimate_autocov_cpp(data, grid_pred_lag_optbw.col(0), grid_pred_lag_optbw.col(1), 1,
-   //                                                          Rcpp::wrap(grid_pred_lag_optbw.col(2)), Rcpp::wrap(grid_pred_lag_optbw.col(3)),
-   //                                                          bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
    arma::mat mat_autocov_lag_pred_all = estimate_autocov_cpp(data, grid_lag_pred_optbw.col(0), grid_lag_pred_optbw.col(1), 1,
                                                              Rcpp::wrap(grid_lag_pred_optbw.col(2)), Rcpp::wrap(grid_lag_pred_optbw.col(3)),
                                                              bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
@@ -462,13 +509,14 @@ using namespace arma;
    Rcout << "--> autocov estimation : ok \n ";
 
    // Build the matrix VarY_mat
+   // and ensure that mat_VarY is positive definite
+   double correction_const = 1 / std::log(n_curve * Tvec_lag.size());
    arma::mat mat_cov_lag_lag = reshape_matrix(mat_cov_lag_lag_all, 0, 1, 13);
-   arma::mat G0_lag_lag = mat_cov_lag_lag + Sigma_lag;
    arma::mat mat_autocov_lag_pred = reshape_matrix(mat_autocov_lag_pred_all, 0, 1, 13);
-   // arma::mat mat_autocov_pred_lag = reshape_matrix(mat_autocov_pred_lag_all, 0, 1, 13);
    arma::mat mat_cov_pred_pred = reshape_matrix(mat_cov_pred_pred_all, 0, 1, 13);
-   arma::mat G0_pred_pred = mat_cov_pred_pred + Sigma_pred;
-   arma::mat mat_VarY = combine_matrices(G0_lag_lag, mat_autocov_lag_pred, arma::trans(mat_autocov_lag_pred), G0_pred_pred) ;
+   arma::mat mat_VarY_init = combine_matrices(mat_cov_lag_lag, mat_autocov_lag_pred, arma::trans(mat_autocov_lag_pred), mat_cov_pred_pred) ;
+   arma::mat mat_VarY_corrected = ensure_positive_definite(mat_VarY_init, correction_const);
+   arma::mat mat_VarY = mat_VarY_corrected + Sigma_all;
    Rcout << "--> mat_VarY build : ok \n ";
    arma::mat mat_autocov_lag_tvec = reshape_matrix(mat_autocov_lag_tvec_all, 0, 1, 13);
    arma::mat mat_cov_pred_tvec = reshape_matrix(mat_cov_pred_tvec_all, 0, 1, 13);
@@ -497,31 +545,7 @@ using namespace arma;
    arma::vec vec_Yn0_lag = arma::join_vert(Yn_minus_mean_lag, Yn_minus_mean_pred);
 
    // Build the BLUP
-   // // Perform SVD
-   // arma::mat U, V;
-   // arma::vec s;
-   // arma::svd(U, s, V, mat_VarY, "std");
-   // Rcout << " The s before : " << s << "\n";
-   // // // Replace negative singular values with zero
-   // double min_svalue_positive = arma::min(s.elem(arma::find(s > 0)));
-   // s.elem(arma::find(s <= 0)).fill(min_svalue_positive / 2);
-   // Rcout << " The s after : " << s << "\n";
-   // // // Reconstruct the matrix
-   // arma::mat S = arma::diagmat(s);
-   // arma::mat mat_VarY_reconstructed = U * S * V.t();
-   // // Estimate Bn0
-   // arma::mat Bn0 = arma::solve(mat_VarY, covY_Xn0, solve_opts::fast + solve_opts::no_approx);
-   Rcout << " arma::rcond(mat_VarY) : " << arma::rcond(mat_VarY) << "\n";
-   Rcout << " arma::rcond(mat_VarY) : " << arma::rcond(mat_VarY) << "\n";
-   Rcout << " arma::rcond(mat_VarY) : " << arma::rcond(mat_VarY) << "\n";
-   // Add regularization term to the diagonal
-   double lambda = 1e-8; // Regularization parameter
-   arma::mat I = arma::eye<arma::mat>(mat_VarY.n_rows, mat_VarY.n_cols);
-   arma::mat mat_VarY_reg = mat_VarY + lambda * I;
-   Rcout << " arma::rcond(mat_VarY_reg) : " << arma::rcond(mat_VarY_reg) << "\n";
-   Rcout << " arma::rcond(mat_VarY_reg) : " << arma::rcond(mat_VarY_reg) << "\n";
-   Rcout << " arma::rcond(mat_VarY_reg) : " << arma::rcond(mat_VarY_reg) << "\n";
-   arma::mat Bn0 = arma::inv(mat_VarY_reg) * covY_Xn0;
+   arma::mat Bn0 = arma::inv(mat_VarY) * covY_Xn0;
    arma::vec vec_blup = mat_mean_tvec.col(5) + arma::trans(Bn0) * vec_Yn0_lag;
 
    // result of BLUP
