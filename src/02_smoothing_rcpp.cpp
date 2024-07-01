@@ -208,7 +208,7 @@ using namespace arma;
  //' plot(x = tnew, y = yhat)
  //'
  // [[Rcpp::export]]
- arma::mat estimate_nw_cpp(const arma::vec y, const arma::vec t,
+ arma::vec estimate_nw_cpp(const arma::vec y, const arma::vec t,
                            const arma::vec tnew, const arma::vec h,
                            const std::string kernel_name = "epanechnikov") {
    // Check if y and t are numeric vectors and not empty

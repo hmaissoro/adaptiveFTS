@@ -342,6 +342,35 @@ using namespace arma;
    return mat_res;
  }
 
+ arma::vec modify_eigenvalues(const arma::vec& eigval, double threshold = 0.90) {
+   // Step 1: Sort the eigenvalues in decreasing order
+   arma::vec sorted_eigval = arma::sort(eigval, "descend");
+
+   // Step 2: Compute the cumulative sum of the proportions of the eigenvalues
+   arma::vec proportions = sorted_eigval / arma::sum(sorted_eigval);
+   arma::vec cumsum_proportions = arma::cumsum(proportions);
+
+   // Step 3: Find the index where the cumulative sum exceeds the threshold
+   arma::uvec idx = arma::find(cumsum_proportions > threshold, 1, "first");
+
+   // If no index is found, return the original eigenvalues sorted in ascending order
+   if (idx.is_empty()) {
+     return arma::sort(eigval, "ascend");
+   }
+
+   double replacement_value = sorted_eigval(idx(0));
+
+   // Replace eigenvalues where the cumulative sum is greater than the threshold
+   for (arma::uword i = idx(0); i < sorted_eigval.n_elem; ++i) {
+     sorted_eigval(i) = replacement_value;
+   }
+
+   // Sort the modified eigenvalues back into increasing order
+   arma::vec modified_eigval = arma::sort(sorted_eigval, "ascend");
+
+   return modified_eigval;
+ }
+
  //' Ensure Positive Definite Matrix
  //'
  //' This function takes a matrix `A` and ensures that it is positive definite.
@@ -383,8 +412,11 @@ using namespace arma;
 
      eigval.transform([&](double val){ return val <= 0 ? min_positive * c : val; });
 
+     // If the eigenvalues is too small
+     arma::vec eigval_final = modify_eigenvalues(eigval, 0.80);
+
      // Step 3: Reconstruct the matrix
-     arma::mat A_recons = eigvec * arma::diagmat(eigval) * eigvec.t();
+     arma::mat A_recons = eigvec * arma::diagmat(eigval_final) * eigvec.t();
 
      // Ensure the matrix is symmetric
      A_recons = 0.5 * (A_recons + A_recons.t());
@@ -461,7 +493,7 @@ using namespace arma;
    arma::mat mat_sig_pred = estimate_sigma_cpp(data, Tvec_pred);
    arma::mat mat_sig_lag = estimate_sigma_cpp(data, Tvec_lag);
    arma::vec sig_all = arma::join_cols(mat_sig_lag.col(1), mat_sig_pred.col(1));
-   arma::mat Sigma_all = arma::diagmat(arma::pow(sig_all, 2));
+   arma::mat Sigma_all = arma::diagmat(arma::square(sig_all));
    Rcout << "--> Sigma estimation : ok \n ";
 
    // Estimate bandwidth parameters on a grid
@@ -508,45 +540,60 @@ using namespace arma;
                                                           bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
    Rcout << "--> autocov estimation : ok \n ";
 
-   // Build the matrix VarY_mat
-   // and ensure that mat_VarY is positive definite
-   double correction_const = 1 / std::log(n_curve * Tvec_lag.size());
-   arma::mat mat_cov_lag_lag = reshape_matrix(mat_cov_lag_lag_all, 0, 1, 13);
-   arma::mat mat_autocov_lag_pred = reshape_matrix(mat_autocov_lag_pred_all, 0, 1, 13);
-   arma::mat mat_cov_pred_pred = reshape_matrix(mat_cov_pred_pred_all, 0, 1, 13);
-   arma::mat mat_VarY_init = combine_matrices(mat_cov_lag_lag, mat_autocov_lag_pred, arma::trans(mat_autocov_lag_pred), mat_cov_pred_pred) ;
-   arma::mat mat_VarY_corrected = ensure_positive_definite(mat_VarY_init, correction_const);
-   // arma::mat mat_VarY = mat_VarY_corrected + Sigma_all;
-   arma::mat mat_VarY = mat_VarY_corrected + arma::diagmat(0.0625 * arma::ones(Tvec_lag.size() + Tvec_pred.size()));
-   Rcout << "--> mat_VarY build : ok \n ";
-   arma::mat mat_autocov_lag_tvec = reshape_matrix(mat_autocov_lag_tvec_all, 0, 1, 13);
-   arma::mat mat_cov_pred_tvec = reshape_matrix(mat_cov_pred_tvec_all, 0, 1, 13);
-   arma::mat covY_Xn0 = arma::join_cols(mat_autocov_lag_tvec, mat_cov_pred_tvec);
-   Rcout << "--> covY_Xn0 build : ok \n ";
-
    // Estimate mean functions
    // // Estimate bandwidth for mean function estimation on a grid
    arma::vec grid_mean = arma::linspace(0.01, 0.99, 40);
    arma::mat mat_mean_risk = estimate_mean_risk_cpp(data, grid_mean, R_NilValue, kernel_name);
    arma::mat mat_opt_mean_param = get_best_mean_bw(mat_mean_risk, grid_mean);
-
    // // Get optimal mean bandwidth parameters
-   arma::mat mat_opt_mean_bw_lag = get_nearest_best_mean_bw(mat_opt_mean_param, Tvec_lag);
-   arma::mat mat_opt_mean_bw_pred = get_nearest_best_mean_bw(mat_opt_mean_param, Tvec_pred);
+   arma::vec vec_Tn0_raw = arma::join_vert(Tvec_lag, Tvec_pred);
+   arma::vec vec_Yn0_raw = arma::join_vert(Yvec_lag, Yvec_pred);
+   arma::mat mat_opt_mean_bw_lag_pred = get_nearest_best_mean_bw(mat_opt_mean_param, vec_Tn0_raw);
    arma::mat mat_opt_mean_bw_tvec = get_nearest_best_mean_bw(mat_opt_mean_param, tvec);
-
    // // Estimate mean functions
-   arma::mat mat_mean_lag = estimate_mean_cpp(data, mat_opt_mean_bw_lag.col(0), Rcpp::wrap(mat_opt_mean_bw_lag.col(1)), R_NilValue, kernel_name);
-   arma::mat mat_mean_pred = estimate_mean_cpp(data, mat_opt_mean_bw_pred.col(0), Rcpp::wrap(mat_opt_mean_bw_pred.col(1)), R_NilValue, kernel_name);
+   arma::mat mat_mean_lag_pred = estimate_mean_cpp(data, mat_opt_mean_bw_lag_pred.col(0), Rcpp::wrap(mat_opt_mean_bw_lag_pred.col(1)), R_NilValue, kernel_name);
    arma::mat mat_mean_tvec = estimate_mean_cpp(data, mat_opt_mean_bw_tvec.col(0), Rcpp::wrap(mat_opt_mean_bw_tvec.col(1)), R_NilValue, kernel_name);
 
    // Build the vector Y_{n_0, 1} - M_{n_0, 1}
-   arma::vec Yn_minus_mean_lag = Yvec_lag - mat_mean_lag.col(5);
-   arma::vec Yn_minus_mean_pred = Yvec_pred - mat_mean_pred.col(5);
-   arma::vec vec_Yn0_lag = arma::join_vert(Yn_minus_mean_lag, Yn_minus_mean_pred);
+   arma::vec vec_Yn0_lag = vec_Yn0_raw - mat_mean_lag_pred.col(5);
+
+   // Build the matrix VarY_mat
+   // // Build the raw varY_mat
+   arma::mat mat_cov_lag_lag = reshape_matrix(mat_cov_lag_lag_all, 0, 1, 13);
+   arma::mat mat_autocov_lag_pred = reshape_matrix(mat_autocov_lag_pred_all, 0, 1, 13);
+   arma::mat mat_cov_pred_pred = reshape_matrix(mat_cov_pred_pred_all, 0, 1, 13);
+   arma::mat mat_VarY_init = combine_matrices(mat_cov_lag_lag, mat_autocov_lag_pred,arma::trans(mat_autocov_lag_pred), mat_cov_pred_pred) ;
+   mat_VarY_init = mat_VarY_init + Sigma_all;
+   // // Estimate the Diagonal
+   arma::mat mat_opt_mean_bw_all_tobs = get_nearest_best_mean_bw(mat_opt_mean_param, data_mat.col(1));
+   arma::mat mat_mean_all_tobs = estimate_mean_cpp(data, mat_opt_mean_bw_all_tobs.col(0), Rcpp::wrap(mat_opt_mean_bw_all_tobs.col(1)), R_NilValue, kernel_name);
+   arma::vec vec_all_Yobs_centred_squared = arma::square(data_mat.col(2) - mat_mean_all_tobs.col(5));
+   Rcpp::DataFrame df_Yobs_centred_squared = Rcpp::DataFrame::create(
+     Rcpp::Named("id_curve") = data_mat.col(0),
+     Rcpp::Named("tobs") = data_mat.col(1),
+     Rcpp::Named("X") = vec_all_Yobs_centred_squared
+   );
+   double hbest_diag = get_nw_optimal_bw_cpp(df_Yobs_centred_squared, R_NilValue, R_NilValue, kernel_name);
+   arma::vec vec_diag_varY = estimate_nw_cpp(vec_all_Yobs_centred_squared, data_mat.col(1), vec_Tn0_raw, arma::vec({hbest_diag}), kernel_name);
+   Rcout << "--> hbest_diag = " << hbest_diag << "\n";
+   Rcout << "--> vec_diag_varY = " << arma::trans(vec_diag_varY) << "\n";
+   // // Replace the diagonal and ensure that mat_VarY is positive definite
+   arma::mat mat_VarY = mat_VarY_init;
+   mat_VarY.diag() = vec_diag_varY;
+   double correction_const = 1 / std::log(n_curve * Tvec_lag.size());
+
+   arma::mat mat_VarY_corrected = ensure_positive_definite(mat_VarY, correction_const);
+   // mat_VarY_corrected.diag() = vec_diag_varY;
+   Rcout << "--> mat_VarY build : ok \n ";
+
+   // Build the matrix Cov(Y_N, X_n0(t))
+   arma::mat mat_autocov_lag_tvec = reshape_matrix(mat_autocov_lag_tvec_all, 0, 1, 13);
+   arma::mat mat_cov_pred_tvec = reshape_matrix(mat_cov_pred_tvec_all, 0, 1, 13);
+   arma::mat covY_Xn0 = arma::join_cols(mat_autocov_lag_tvec, mat_cov_pred_tvec);
+   Rcout << "--> covY_Xn0 build : ok \n ";
 
    // Build the BLUP
-   arma::mat Bn0 = arma::inv(mat_VarY) * covY_Xn0;
+   arma::mat Bn0 = arma::inv(mat_VarY_corrected) * covY_Xn0;
    arma::vec vec_blup = mat_mean_tvec.col(5) + arma::trans(Bn0) * vec_Yn0_lag;
 
    // result of BLUP
@@ -572,13 +619,17 @@ using namespace arma;
    result["autocov_lag_tvec_all"] = mat_autocov_lag_tvec_all;
    result["cov_pred_tvec"] = mat_cov_pred_tvec;
    result["cov_pred_tvec_all"] = mat_cov_pred_tvec_all;
-   result["mat_VarY"] = mat_VarY;
+   result["mat_VarY"] = mat_VarY_corrected;
+   result["mat_VarY_init"] = mat_VarY_init;
    result["covY_Xn0"] = covY_Xn0;
    result["muhat"] = mat_mean_tvec.col(5);
    result["vec_Yn0_lag"] = vec_Yn0_lag;
-   result["vec_Tn0_raw"] = arma::join_vert(Tvec_lag, Tvec_pred);
-   result["vec_Yn0_raw"] = arma::join_vert(Yvec_lag, Yvec_pred);
-   result["vec_MM"] = arma::join_vert(mat_mean_lag.col(5), mat_mean_pred.col(5));
+   result["vec_Tn0_raw"] = vec_Tn0_raw;
+   result["vec_Yn0_raw"] = vec_Yn0_raw;
+   result["vec_diag_varY"] = vec_diag_varY;
+   result["vec_all_Yobs_centred_squared"] = vec_all_Yobs_centred_squared;
+   result["vec_mat_mean_all_tobs"] = mat_mean_all_tobs.col(5);
+   result["vec_MM"] = mat_mean_lag_pred.col(5);
    result["res_blup"] = mat_res;
 
    return result;
