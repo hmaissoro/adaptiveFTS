@@ -317,12 +317,12 @@ using namespace arma;
  //'
  //' tnew <- seq(0, 1, length.out = 5)
  //'
- //' get_nearest_mean_bw(mat_opt_param, tnew)
+ //' get_nearest_best_mean_bw(mat_opt_param, tnew)
  //' }
  //'
  //' @export
  // [[Rcpp::export]]
- arma::mat get_nearest_mean_bw(const arma::mat& mat_opt_param, const arma::vec& tnew) {
+ arma::mat get_nearest_best_mean_bw(const arma::mat& mat_opt_param, const arma::vec& tnew) {
    int n = tnew.size();
    arma::mat mat_res(n, 2);
 
@@ -516,7 +516,8 @@ using namespace arma;
    arma::mat mat_cov_pred_pred = reshape_matrix(mat_cov_pred_pred_all, 0, 1, 13);
    arma::mat mat_VarY_init = combine_matrices(mat_cov_lag_lag, mat_autocov_lag_pred, arma::trans(mat_autocov_lag_pred), mat_cov_pred_pred) ;
    arma::mat mat_VarY_corrected = ensure_positive_definite(mat_VarY_init, correction_const);
-   arma::mat mat_VarY = mat_VarY_corrected + Sigma_all;
+   // arma::mat mat_VarY = mat_VarY_corrected + Sigma_all;
+   arma::mat mat_VarY = mat_VarY_corrected + arma::diagmat(0.0625 * arma::ones(Tvec_lag.size() + Tvec_pred.size()));
    Rcout << "--> mat_VarY build : ok \n ";
    arma::mat mat_autocov_lag_tvec = reshape_matrix(mat_autocov_lag_tvec_all, 0, 1, 13);
    arma::mat mat_cov_pred_tvec = reshape_matrix(mat_cov_pred_tvec_all, 0, 1, 13);
@@ -530,9 +531,9 @@ using namespace arma;
    arma::mat mat_opt_mean_param = get_best_mean_bw(mat_mean_risk, grid_mean);
 
    // // Get optimal mean bandwidth parameters
-   arma::mat mat_opt_mean_bw_lag = get_nearest_mean_bw(mat_opt_mean_param, Tvec_lag);
-   arma::mat mat_opt_mean_bw_pred = get_nearest_mean_bw(mat_opt_mean_param, Tvec_pred);
-   arma::mat mat_opt_mean_bw_tvec = get_nearest_mean_bw(mat_opt_mean_param, tvec);
+   arma::mat mat_opt_mean_bw_lag = get_nearest_best_mean_bw(mat_opt_mean_param, Tvec_lag);
+   arma::mat mat_opt_mean_bw_pred = get_nearest_best_mean_bw(mat_opt_mean_param, Tvec_pred);
+   arma::mat mat_opt_mean_bw_tvec = get_nearest_best_mean_bw(mat_opt_mean_param, tvec);
 
    // // Estimate mean functions
    arma::mat mat_mean_lag = estimate_mean_cpp(data, mat_opt_mean_bw_lag.col(0), Rcpp::wrap(mat_opt_mean_bw_lag.col(1)), R_NilValue, kernel_name);
@@ -575,6 +576,9 @@ using namespace arma;
    result["covY_Xn0"] = covY_Xn0;
    result["muhat"] = mat_mean_tvec.col(5);
    result["vec_Yn0_lag"] = vec_Yn0_lag;
+   result["vec_Tn0_raw"] = arma::join_vert(Tvec_lag, Tvec_pred);
+   result["vec_Yn0_raw"] = arma::join_vert(Yvec_lag, Yvec_pred);
+   result["vec_MM"] = arma::join_vert(mat_mean_lag.col(5), mat_mean_pred.col(5));
    result["res_blup"] = mat_res;
 
    return result;
