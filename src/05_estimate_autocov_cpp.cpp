@@ -799,7 +799,8 @@ using namespace arma;
 
    // Return the result
    // // Init output
-   arma::mat mat_res_autocov(n, 14);
+   int n_couple = t.size();
+   arma::mat mat_res_autocov(n_couple, 14);
 
    // // For autocovariance Or the upper part of the coavariance
    arma::mat res_autocov(n, 14);
