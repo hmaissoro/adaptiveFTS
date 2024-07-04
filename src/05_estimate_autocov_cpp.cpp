@@ -720,135 +720,111 @@ using namespace arma;
      mat_locreg.cols(2, 5).zeros();
    }
 
-   // Take unique svec and tvec
-   arma::vec unique_svec = arma::unique(svec);
-   arma::vec unique_tvec = arma::unique(tvec);
-
    // Estimate mean function
    arma::mat mat_mean_s = estimate_mean_cpp(data, svec, Rcpp::wrap(optbw_s_to_use), R_NilValue, kernel_name);
    arma::mat mat_mean_t = estimate_mean_cpp(data, tvec, Rcpp::wrap(optbw_t_to_use), R_NilValue, kernel_name);
+   arma::vec muhat_s = mat_mean_s.col(5);
+   arma::vec muhat_t = mat_mean_t.col(5);
 
-   // For diagonal correction
-   arma::mat mat_sig_s(unique_svec.size(), 2, arma::fill::zeros);
-   arma::mat mat_sig_t(unique_tvec.size(), 2, arma::fill::zeros);
+   // // Estimate the error sd for diagonal correction
+   arma::vec vec_sig_s(n, arma::fill::zeros);
+   arma::vec vec_sig_t(n, arma::fill::zeros);
    if (lag == 0 && correct_diagonal) {
-     // // Estimate the error sd :
-     mat_sig_s = estimate_sigma_cpp(data, arma::unique(svec));
-     mat_sig_t = estimate_sigma_cpp(data, arma::unique(tvec));
+     arma::mat mat_sig_s = estimate_sigma_cpp(data, svec);
+     arma::mat mat_sig_t = estimate_sigma_cpp(data, tvec);
+     vec_sig_s = mat_sig_s.col(1);
+     vec_sig_t = mat_sig_t.col(1);
    }
 
-   // Init output
-   // // For autocovariance Or the upper part of the coavraince
-   arma::mat res_autocov(n, 14);
+   // Compute the autocovariance function
+   arma::vec PN_lag(n, arma::fill::zeros);
+   arma::vec autocov_numerator(n, arma::fill::zeros);
+   arma::vec diag_correct_numerator(n, arma::fill::zeros);
 
-   // // For lower part of the covariance if lag = 0
-   arma::mat res_autocov_bis(n, 14);
+   for (int i = 0; i < n_curve - lag; ++i) {
+     arma::uvec indices_cur_s = arma::find(data_mat.col(0) == unique_id_curve(i));
+     arma::uvec indices_cur_t = arma::find(data_mat.col(0) == unique_id_curve(i + lag));
+     arma::vec Tnvec_s = data_mat(indices_cur_s, arma::uvec({1}));
+     arma::vec Ynvec_s = data_mat(indices_cur_s, arma::uvec({2}));
+     arma::vec Tnvec_t = data_mat(indices_cur_t, arma::uvec({1}));
+     arma::vec Ynvec_t = data_mat(indices_cur_t, arma::uvec({2}));
 
-   // Estimate autocovariance
-   for (int k = 0; k < n; ++k) {
-     // Extract the estimates of the mean function
-     arma::uvec cur_idx_mean_s = arma::find(mat_mean_s.col(0) == svec(k));
-     arma::uvec cur_idx_mean_t = arma::find(mat_mean_t.col(0) == tvec(k));
-     double PN_muhat_s = mat_mean_s(cur_idx_mean_s(0), 4);
-     double muhat_s = mat_mean_s(cur_idx_mean_s(0), 5);
-     double PN_muhat_t = mat_mean_t(cur_idx_mean_t(0), 4);
-     double muhat_t = mat_mean_t(cur_idx_mean_t(0), 5);
+     // Smooth using Nadaraya-Watson estimator
+     arma::vec Xhat_s = estimate_nw_cpp(Ynvec_s, Tnvec_s, svec, optbw_s_to_use, kernel_name);
+     arma::vec Xhat_t = estimate_nw_cpp(Ynvec_t, Tnvec_t, tvec, optbw_t_to_use, kernel_name);
+     Xhat_s.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+     Xhat_t.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
 
-     // if diagonal correction, Extract the estimates of the sd
-     double sig_s = 0;
-     double sig_t = 0;
-     if (lag == 0 && correct_diagonal) {
-       arma::uvec cur_idx_sig_s = arma::find(mat_sig_s.col(0) == svec(k));
-       arma::uvec cur_idx_sig_t = arma::find(mat_sig_t.col(0) == tvec(k));
-       sig_s = mat_sig_s(cur_idx_sig_s(0), 1);
-       sig_t = mat_sig_t(cur_idx_sig_t(0), 1);
-     }
+     // Compute the vector p_n(t;h) and update P_N(t;h)
+     arma::vec pn_s = arma::regspace<arma::vec>(0, n - 1).transform([&](int j) { return arma::any(arma::abs(Tnvec_s - svec(j)) <= optbw_s_to_use(j)) ? 1.0 : 0.0; });
+     arma::vec pn_t = arma::regspace<arma::vec>(0, n - 1).transform([&](int j) { return arma::any(arma::abs(Tnvec_t - tvec(j)) <= optbw_t_to_use(j)) ? 1.0 : 0.0; });
+     PN_lag += pn_s % pn_t;
 
-     // Compute the autocovariance function
-     double PN_lag = 0;
-     double autocov_numerator = 0;
-     double diag_correct_numerator = 0;
-
-     for (int i = 0; i < n_curve - lag; ++i) {
-       arma::uvec indices_cur_s = arma::find(data_mat.col(0) == unique_id_curve(i));
-       arma::uvec indices_cur_t = arma::find(data_mat.col(0) == unique_id_curve(i + lag));
-       arma::vec Tnvec_s = data_mat(indices_cur_s, arma::uvec({1}));
-       arma::vec Ynvec_s = data_mat(indices_cur_s, arma::uvec({2}));
-       arma::vec Tnvec_t = data_mat(indices_cur_t, arma::uvec({1}));
-       arma::vec Ynvec_t = data_mat(indices_cur_t, arma::uvec({2}));
-
-       // Smooth using Nadaraya-Watson estimator
-       arma::vec Xhat_s = estimate_nw_cpp(Ynvec_s, Tnvec_s, arma::vec({svec(k)}), arma::vec({optbw_s_to_use(k)}), kernel_name);
-       arma::vec Xhat_t = estimate_nw_cpp(Ynvec_t, Tnvec_t, arma::vec({tvec(k)}), arma::vec({optbw_t_to_use(k)}), kernel_name);
-       Xhat_s.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-       Xhat_t.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-
-       // Compute the vector p_n(t;h) and update P_N(t;h)
-       double pn_s = arma::any(arma::abs(Tnvec_s - svec(k)) <= optbw_s_to_use(k)) ? 1.0 : 0.0;
-       double pn_t = arma::any(arma::abs(Tnvec_t - tvec(k)) <= optbw_t_to_use(k)) ? 1.0 : 0.0;
-       PN_lag += pn_s * pn_t;
-
-       // Estimate the numerator of the autocovariance function
-       if (center) {
-         autocov_numerator += pn_s * pn_t * (Xhat_s(0) - muhat_s) * (Xhat_t(0) - muhat_t);
-       } else {
-         autocov_numerator += pn_s * pn_t * Xhat_s(0) * Xhat_t(0);
-       }
-
-       // Diagonal correction
-       if (lag == 0 && correct_diagonal) {
-         // Compute the weight product
-         arma::vec weight_s = kernel_func((Tnvec_s - svec(k)) / optbw_s_to_use(k));
-         arma::vec weight_t = kernel_func((Tnvec_t - tvec(k)) / optbw_t_to_use(k));
-         weight_s /= arma::accu(weight_s);
-         weight_t /= arma::accu(weight_t);
-         weight_s.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-         weight_t.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-
-         // Estimate the numerator of the diagonal part
-         diag_correct_numerator += sig_s * sig_t * pn_s * pn_t * arma::accu(weight_s % weight_t);
-       }
-     }
-
-     // Compute autocovariance estimate
-     // // Note that if lag = 0 or correct_diagonal = FALSE, Then diag_correct_numerator = 0
-     double autocovhat;
+     // Estimate the numerator function numerator
      if (center) {
-       autocovhat = autocov_numerator / PN_lag - diag_correct_numerator / PN_lag;
+       autocov_numerator += pn_s % pn_t % (Xhat_s - muhat_s) % (Xhat_t - muhat_t);
      } else {
-       autocovhat = autocov_numerator / PN_lag - muhat_s * muhat_t - diag_correct_numerator / PN_lag;
+       autocov_numerator += pn_s % pn_t % Xhat_s % Xhat_t;
      }
 
-     // Return the result
-     // // Extract local regularity parameters
-     arma::uvec idx_locreg_cur = arma::find(mat_locreg.col(0) == svec(k) && mat_locreg.col(1) == tvec(k));
-     res_autocov.row(k) = {svec(k), tvec(k), optbw_s_to_use(k), optbw_t_to_use(k),
-                           mat_locreg(idx_locreg_cur(0), 2), mat_locreg(idx_locreg_cur(0), 3),
-                           mat_locreg(idx_locreg_cur(0), 4), mat_locreg(idx_locreg_cur(0), 5),
-                           PN_muhat_s, muhat_s, PN_muhat_t, muhat_t, PN_lag, autocovhat};
-     if (lag == 0) {
-       res_autocov_bis.row(k) = {tvec(k), svec(k), optbw_t_to_use(k), optbw_s_to_use(k),
-                                 mat_locreg(idx_locreg_cur(0), 4), mat_locreg(idx_locreg_cur(0), 5),
-                                 mat_locreg(idx_locreg_cur(0), 2), mat_locreg(idx_locreg_cur(0), 3),
-                                 PN_muhat_t, muhat_t, PN_muhat_s, muhat_s, PN_lag, autocovhat};
+     // Diagonal correction
+     if (lag == 0 && correct_diagonal) {
+       // Compute the weight product
+       arma::vec weight_product = arma::regspace<arma::vec>(0, n - 1).transform([&](int k) {
+         // W_{n,k}(t;h_t)
+         arma::vec weight_sk = kernel_func((Tnvec_s - svec(k)) / optbw_s_to_use(k));
+         weight_sk /= arma::accu(weight_sk);
+         weight_sk.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+
+         // W_{n,k}(s;h_s)
+         arma::vec weight_tk = kernel_func((Tnvec_t - tvec(k)) / optbw_t_to_use(k));
+         weight_tk /= arma::accu(weight_tk);
+         weight_tk.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+         return arma::accu(weight_sk % weight_tk);
+         });
+
+       // Estimate the numerator of the diagonal part
+       diag_correct_numerator += vec_sig_s % vec_sig_t % pn_s % pn_t % weight_product;
      }
    }
 
-   // Initialize the result matrix
-   int n_couple = t.size();
-   arma::mat mat_res_autocov(n_couple, 14);
+   // Compute autocovariance estimate
+   // // Note that if lag = 0 or correct_diagonal = FALSE, Then diag_correct_numerator = 0
+   arma::vec autocovhat;
+   if (center) {
+     autocovhat = autocov_numerator / PN_lag - diag_correct_numerator / PN_lag;
+   } else {
+     autocovhat = autocov_numerator / PN_lag - muhat_s % muhat_t - diag_correct_numerator / PN_lag;
+   }
 
-   // Diagonal correction if lag == 0
+   // Return the result
+   // // Init output
+   arma::mat mat_res_autocov(n, 14);
+
+   // // For autocovariance Or the upper part of the coavariance
+   arma::mat res_autocov(n, 14);
+   res_autocov.col(0) = svec;
+   res_autocov.col(1) = tvec;
+   res_autocov.col(2) = optbw_s_to_use;
+   res_autocov.col(3) = optbw_t_to_use;
+   res_autocov.col(4) = mat_locreg.col(2);
+   res_autocov.col(5) = mat_locreg.col(3);
+   res_autocov.col(6) = mat_locreg.col(4);
+   res_autocov.col(7) = mat_locreg.col(5);
+   res_autocov.col(8) = mat_mean_s.col(4);
+   res_autocov.col(9) = mat_mean_s.col(5);
+   res_autocov.col(10) = mat_mean_t.col(4);
+   res_autocov.col(11) = mat_mean_t.col(5);
+   res_autocov.col(12) = PN_lag;
+   res_autocov.col(13) = autocovhat;
+
    if (lag == 0) {
-     // arma::uvec idx_no_diag = arma::find(res_autocov_bis.col(0) != res_autocov_bis.col(1));
-     // mat_res_autocov = remove_duplicates(arma::join_cols(res_autocov, res_autocov_bis.rows(idx_no_diag)));
+     // If lag == 0, fill the lower part of the covariance matrix
      for (int k = 0; k < n_couple ; ++k) {
        arma::uvec idx_cov_st_upper = arma::find((res_autocov.col(0) == s(k)) && (res_autocov.col(1) == t(k)));
        if (! idx_cov_st_upper.is_empty()) {
          mat_res_autocov.row(k) = res_autocov.row(idx_cov_st_upper(0));
        } else {
-         // arma::uvec idx_cov_st_lower = arma::find(res_autocov_bis.col(0) == s(k) && res_autocov_bis.col(1) == t(k));
-         // mat_res_autocov.row(k) = res_autocov_bis.row(idx_cov_st_lower(0));
          arma::uvec idx_cov_st_lower = arma::find((res_autocov.col(1) == s(k)) && (res_autocov.col(0) == t(k)));
          mat_res_autocov.row(k) = {res_autocov(idx_cov_st_lower(0), 1), res_autocov(idx_cov_st_lower(0), 0),
                                    res_autocov(idx_cov_st_lower(0), 3), res_autocov(idx_cov_st_lower(0), 2),
@@ -861,11 +837,10 @@ using namespace arma;
 
      }
    } else {
-     // return the result
      mat_res_autocov = res_autocov;
    }
-   return sort_by_columns(mat_res_autocov, 0, 1);
 
+   return sort_by_columns(mat_res_autocov, 0, 1);
 
  }
 

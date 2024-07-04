@@ -413,7 +413,7 @@ using namespace arma;
      eigval.transform([&](double val){ return val <= 0 ? min_positive * c : val; });
 
      // If the eigenvalues is too small
-     arma::vec eigval_final = modify_eigenvalues(eigval, 0.80);
+     arma::vec eigval_final = modify_eigenvalues(eigval, 0.90);
 
      // Step 3: Reconstruct the matrix
      arma::mat A_recons = eigvec * arma::diagmat(eigval_final) * eigvec.t();
@@ -563,27 +563,11 @@ using namespace arma;
    arma::mat mat_autocov_lag_pred = reshape_matrix(mat_autocov_lag_pred_all, 0, 1, 13);
    arma::mat mat_cov_pred_pred = reshape_matrix(mat_cov_pred_pred_all, 0, 1, 13);
    arma::mat mat_VarY_init = combine_matrices(mat_cov_lag_lag, mat_autocov_lag_pred,arma::trans(mat_autocov_lag_pred), mat_cov_pred_pred) ;
-   mat_VarY_init = mat_VarY_init + Sigma_all;
-   // // Estimate the Diagonal
-   arma::mat mat_opt_mean_bw_all_tobs = get_nearest_best_mean_bw(mat_opt_mean_param, data_mat.col(1));
-   arma::mat mat_mean_all_tobs = estimate_mean_cpp(data, mat_opt_mean_bw_all_tobs.col(0), Rcpp::wrap(mat_opt_mean_bw_all_tobs.col(1)), R_NilValue, kernel_name);
-   arma::vec vec_all_Yobs_centred_squared = arma::square(data_mat.col(2) - mat_mean_all_tobs.col(5));
-   Rcpp::DataFrame df_Yobs_centred_squared = Rcpp::DataFrame::create(
-     Rcpp::Named("id_curve") = data_mat.col(0),
-     Rcpp::Named("tobs") = data_mat.col(1),
-     Rcpp::Named("X") = vec_all_Yobs_centred_squared
-   );
-   double hbest_diag = get_nw_optimal_bw_cpp(df_Yobs_centred_squared, R_NilValue, R_NilValue, kernel_name);
-   arma::vec vec_diag_varY = estimate_nw_cpp(vec_all_Yobs_centred_squared, data_mat.col(1), vec_Tn0_raw, arma::vec({hbest_diag}), kernel_name);
-   Rcout << "--> hbest_diag = " << hbest_diag << "\n";
-   Rcout << "--> vec_diag_varY = " << arma::trans(vec_diag_varY) << "\n";
-   // // Replace the diagonal and ensure that mat_VarY is positive definite
-   arma::mat mat_VarY = mat_VarY_init;
-   mat_VarY.diag() = vec_diag_varY;
-   double correction_const = 1 / std::log(n_curve * Tvec_lag.size());
 
-   arma::mat mat_VarY_corrected = ensure_positive_definite(mat_VarY, correction_const);
-   // mat_VarY_corrected.diag() = vec_diag_varY;
+   // // Ensure that mat_VarY is positive definite
+   double correction_const = 1 / std::log(n_curve * Tvec_lag.size());
+   arma::mat mat_VarY_corrected = ensure_positive_definite(mat_VarY_init, correction_const);
+   mat_VarY_corrected = mat_VarY_corrected + Sigma_all;
    Rcout << "--> mat_VarY build : ok \n ";
 
    // Build the matrix Cov(Y_N, X_n0(t))
@@ -593,6 +577,7 @@ using namespace arma;
    Rcout << "--> covY_Xn0 build : ok \n ";
 
    // Build the BLUP
+   // arma::mat Bn0 = arma::inv(mat_VarY_corrected) * covY_Xn0;
    arma::mat Bn0 = arma::inv(mat_VarY_corrected) * covY_Xn0;
    arma::vec vec_blup = mat_mean_tvec.col(5) + arma::trans(Bn0) * vec_Yn0_lag;
 
@@ -626,9 +611,6 @@ using namespace arma;
    result["vec_Yn0_lag"] = vec_Yn0_lag;
    result["vec_Tn0_raw"] = vec_Tn0_raw;
    result["vec_Yn0_raw"] = vec_Yn0_raw;
-   result["vec_diag_varY"] = vec_diag_varY;
-   result["vec_all_Yobs_centred_squared"] = vec_all_Yobs_centred_squared;
-   result["vec_mat_mean_all_tobs"] = mat_mean_all_tobs.col(5);
    result["vec_MM"] = mat_mean_lag_pred.col(5);
    result["res_blup"] = mat_res;
 
