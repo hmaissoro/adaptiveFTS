@@ -196,7 +196,7 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
   if (! (methods::is(L, "numeric") && L > 0 && length(L) == 1)) {
     stop("'L' must be a positive scalar value.")
   }
-  if (! (methods::is(shift_var, "numeric") && shift_var > 0 && length(shift_var) == 1)) {
+  if (! (methods::is(shift_var, "numeric") && shift_var >= 0 && length(shift_var) == 1)) {
     stop("'shift_var' must be a positive scalar value.")
   }
 
