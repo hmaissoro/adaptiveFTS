@@ -1,6 +1,6 @@
 #' Local Regularity Parameters Estimation
 #'
-#' @inheritParams .format_data
+#' @inheritParams format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the local regularity parameters of the underlying process.
 #' @param Delta \code{numeric (positive)}. The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.
 #' Default \code{Delta = NULL} and thus it will be estimated from the data.
@@ -114,7 +114,7 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     stop("'center' must be a TRUE or FALSE.")
 
   # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   # Control and set arguments depending on the data
@@ -257,124 +257,4 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   data.table::setcolorder(x = dt_reg, neworder = c("t", "Delta", "Nused", "locreg_bw", "Ht", "Lt"))
 
   return(dt_reg)
-}
-
-#' Format data for local regularity estimation
-#'
-#' @param data \code{data.table (or data.frame)} or \code{list} of \code{data.table (or data.frame)} or \code{list} of \code{list}.
-#' \itemize{
-#'    \item{If \code{data.table}}{
-#'        It must contain the raw binding of the curve observations with at least 3 columns.
-#'        \itemize{
-#'          \item{\code{idcol} :}{ The name of the column that contains the index of the curve in the sample.
-#'                              Each index of a curve is repeated as many times as it has observation points.}
-#'          \item{\code{tcol} :}{ The name of the column that contains the observation points associated to each curve index.}
-#'          \item{\code{ycol} :}{ The name of the column that contains the observed value of a curve at each point of observation and for each index of the curve.}
-#'        }
-#'    }
-#'    \item{If \code{list} of \code{data.table}}{
-#'         In this case, each element of the given \code{list} corresponds to the observation scheme of a curve, which is given as \code{data.table} or \code{data.frame}.
-#'         The data.table contains at least 2 columns.
-#'         \itemize{
-#'          \item{\code{tcol} :}{ The name of the column that contains the observation points associated to the curve.}
-#'          \item{\code{ycol} :}{ The name of the column that contains the observed value of the curve.}
-#'        }
-#'    }
-#'    \item{If \code{list} of \code{list}}{
-#'      In the latter case, the \code{data} is a list \code{list} where each element is the observation scheme of a curve given as a \code{list} of 2 vectors.
-#'      \itemize{
-#'          \item{\code{tcol} :}{ The name of the vector that contains the observation points associated the curve.}
-#'          \item{\code{ycol} :}{ The name of the vector that contains the observed value of the curve.}
-#'        }
-#'    }
-#' }
-#' @param idcol \code{character}. If \code{data} is given as \code{data.table} or \code{data.frame},
-#' it is the name of the column that contains the index of the curve in the sample.
-#' Each index of a curve is repeated as many times as it has observation points.
-#' Opposite, if f \code{data} is given as \code{list} of \code{data.table (or data.frame)} of \code{list} of \code{list}, \code{idcol = NULL.}
-#' @param tcol \code{character}. The name of the column (or vector) that contains the observation points associated to the curves.
-#' @param ycol \code{character}. The name of the column that contains the observed value of the curves.
-#'
-#' @return A \code{data.table} containing 3 columns.
-#'          \itemize{
-#'            \item{id_curve :}{ The index of the curve.}
-#'            \item{tobs :}{ The observation points associated to each curve \code{id_curve}.}
-#'            \item{X :}{ The observed values of the curve associated to \code{id_curve} at \code{tobs} observation points.}
-#'         }
-#'
-#' @import data.table
-#' @importFrom methods is
-#'
-.format_data <- function(data, idcol = NULL, tcol = "tobs", ycol = "X"){
-  # Check if data is a data.table or data.frame
-  is_dt_or_df <- methods::is(data, "data.table") | methods::is(data, "data.frame")
-
-  # Check if data is a list of data.table (or data.frame)
-  is_list_dt_or_df <- methods::is(data, "list") &
-    all(unlist(lapply(data, function(element){
-      methods::is(element,"data.table") | methods::is(element,"data.frame")
-    })))
-
-  # Check if data is a list of list
-  is_list_of_list <- methods::is(data, "list") &
-    all(unlist(lapply(data, function(element){
-      methods::is(element,"list")
-    })))
-
-  if (! (is_dt_or_df | is_list_dt_or_df | is_list_of_list))
-    stop("'data' must of class data.table (or data.frame) or a list of data.table (or data.table) or a list of list.")
-
-  if (is_dt_or_df) {
-    if (is.null(idcol))
-      stop("If the class of 'data' is data.table (or data.frame), 'idcol' need to be specifyed.")
-    if (! all(c(idcol, tcol, ycol) %in% colnames(data))){
-      stop("The specified column name 'idcol' or 'tcol' or 'ycol' is incorrect.")
-    } else {
-      data <- data.table::as.data.table(data)
-      data <- data[, .SD, .SDcols = c(idcol, tcol, ycol)]
-      names(data) <- c("id_curve", "tobs", "X")
-      data <- data[, list(id_curve, tobs, X)]
-      Mn <- data[, .N, by = id_curve][, N]
-      N <- length(Mn)
-      id <- unlist(lapply(1:N, function(n, Mn){
-        rep(n, Mn[n])
-      }, Mn = Mn))
-      data[, id_curve := id]
-      rm(Mn, N, id)
-    }
-  } else if (is_list_dt_or_df) {
-    if (! is.null(idcol))
-      stop("If 'data' is a list of data.table (or data.table) or a list of list, 'idcol' must be NULL.")
-    check_colname <- all(unlist(lapply(data, function(element, tcol, ycol){
-      all(c(tcol, ycol) %in% colnames(element))
-    }, tcol = tcol, ycol = ycol)))
-    if (! check_colname) {
-      stop("The specified column name 'tcol' or 'ycol' is incorrect.")
-    } else {
-      data <- data.table::rbindlist(lapply(1:length(data), function(i, tcol, ycol){
-        data[[i]] <- data.table::as.data.table(data[[i]])
-        data.table::setnames(x = data[[i]], old = c(tcol, ycol), new = c("tobs", "X"))
-        dt <- data.table::data.table("id_curve" = i, data[[i]][, list(tobs, X)])
-      }, tcol = tcol, ycol = ycol))
-    }
-
-  } else if (is_list_of_list) {
-    if (! is.null(idcol))
-      stop("If 'data' is a list of data.table (or data.table) or a list of list, 'idcol' must be NULL.")
-    check_vecname <- all(unlist(lapply(data, function(element, tcol, ycol){
-      all(c(tcol, ycol) %in% names(element))
-    }, tcol = tcol, ycol = ycol)))
-    if (! check_vecname) {
-      stop("The specified vector name 'tcol' or 'ycol' is incorrect.")
-    } else {
-      data <- data.table::rbindlist(lapply(1:length(data), function(i, tcol, ycol){
-        data[[i]] <- data.table::as.data.table(data[[i]])
-        data.table::setnames(x = data[[i]], old = c(tcol, ycol), new = c("tobs", "X"))
-        dt <- data.table::data.table("id_curve" = i, data[[i]][, list(tobs, X)])
-      }, tcol = tcol, ycol = ycol))
-    }
-  } else {
-    NA
-  }
-  return(data)
 }

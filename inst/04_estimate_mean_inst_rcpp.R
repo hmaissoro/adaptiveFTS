@@ -11,7 +11,7 @@ dt <- dt[ttag == "trandom"]
 # Estimation parameters
 t0 <- seq(0.1, 0.9, len = 25)
 presmooth_bw <- unique(dt[, .(id_curve, presmooth_bw)])[order(id_curve), presmooth_bw]
-data_prepared <- .format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
+data_prepared <- format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
 
 ## Estimate locreg
 lambdahat <- mean(dt[, .N, by = "id_curve"][, N])

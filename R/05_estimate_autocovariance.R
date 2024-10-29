@@ -1,6 +1,6 @@
 #' Estimate the risk of the lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function
 #'
-#' @inheritParams .format_data
+#' @inheritParams format_data
 #' @param s \code{vector (numeric)}. First argument of the autocovariance function.
 #' It corresponds to the observation points \code{s} in the pair (\code{s}, \code{t}).
 #' It has to be of the same length as the \code{t}
@@ -133,7 +133,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
     stop("If 'Hs', 'Ls', 'Ht' or 'Lt' is not NULL, it must be numeric.")
 
   # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   if (! is.null(bw_grid)) {
@@ -615,7 +615,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     stop("If 'Hs', 'Ls', 'Ht' or 'Lt' is not NULL, it must be numeric.")
 
   # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
@@ -837,7 +837,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 
 #' \eqn{S_{pq}^{(\ell)}}, (\eqn{\ell \leq 0}) function. See Rubìn and Panaretos (2020) Equation (B.7)
 #'
-#' @inheritParams .format_data
+#' @inheritParams format_data
 #' @param s \code{vector (numeric)}. First argument of the autocovariance function.
 #' It corresponds to the observation points \code{s} in the pair (\code{s}, \code{t}).
 #' It has to be of the same length as the \code{t}
@@ -873,7 +873,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     stop("'h' must be a numeric scalar value between 0 and 1.")
 
   # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   # Extract observation points
@@ -902,7 +902,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 
 #' \eqn{Q_{pq}^{(\ell)}}, (\eqn{\ell \leq 0}) function. See Rubìn and Panaretos (2020) Equation (B.7)
 #'
-#' @inheritParams .format_data
+#' @inheritParams format_data
 #' @param s \code{vector (numeric)}. First argument of the autocovariance function.
 #' It corresponds to the observation points \code{s} in the pair (\code{s}, \code{t}).
 #' It has to be of the same length as the \code{t}
@@ -952,7 +952,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     stop("'smooth_ker' must be a function.")
 
   # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   # Estimate mean function is it is NULL
@@ -1013,7 +1013,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 
 #' Estimate lag-\eqn{\ell} (\eqn{\ell \leq 0}) autocovariance function using Rubìn and Panaretos (2020) method
 #'
-#' @inheritParams .format_data
+#' @inheritParams format_data
 #' @param s \code{vector (numeric)}. First argument of the autocovariance function.
 #' It corresponds to the observation points \code{s} in the pair (\code{s}, \code{t}).
 #' It has to be of the same length as the \code{t}
@@ -1069,7 +1069,7 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
     stop("'lag' must be a positive integer lower than the number of curves.")
 
   # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
 
   # Sort by s and t
   dt_st <- data.table::data.table("s" = s, "t" = t)
@@ -1131,7 +1131,7 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
 
 #' Bandwidth estimation using cross-validation for the Rubìn and Panaretos (2020) autocovariance function estimator.
 #'
-#' @inheritParams .format_data
+#' @inheritParams format_data
 #' @param Kfold \code{integer (positive)}. Number of fold for the cross-validation.
 #' @param bw_grid \code{vector (numeric)}. The bandwidth grid.
 #' @param dt_mean_rp \code{data.table}. It contains the estimates of the mean function at each observation point for each curve.
@@ -1160,7 +1160,7 @@ estimate_autocov_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol
                                    Kfold = 10, bw_grid = seq(0.001, 0.15, len = 45),
                                    optbw_mean = NULL, dt_mean_rp = NULL, smooth_ker = epanechnikov){
   # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   if (any(Kfold < 0)| (length(Kfold) > 1) | any(Kfold - floor(Kfold) > 0) | any(N <= Kfold))

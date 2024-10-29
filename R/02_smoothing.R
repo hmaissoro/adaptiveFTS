@@ -260,7 +260,7 @@ estimate_nw_bw <- function(y, t, bw_grid = NULL,
 
 #' Estimate Nadayara-Watson optimal bandwidth on all or a subset of curves
 #'
-#' @inheritParams .format_data
+#' @inheritParams format_data
 #' @param bw_grid \code{vector (numeric)}. The cross-validation bandwidth grid.
 #' Default \code{bw_grid = NULL} and so it will be set as an exponential grid using the average of the number of observation points per curve.
 #' @param nsubset \code{integer (positive integer)}. The number of subset curves to be randomly and uniformly selected.
@@ -281,7 +281,7 @@ estimate_nw_bw <- function(y, t, bw_grid = NULL,
 get_nw_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                               bw_grid = NULL, nsubset = NULL, smooth_ker = epanechnikov){
   # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   # Control parameters

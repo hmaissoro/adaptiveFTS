@@ -20,7 +20,7 @@ dt_locreg <- estimate_locreg(
 
 # Estimation using Rcpp
 hsmooth <- rep(median(presmooth_bw), 150)
-data_prepared <- .format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
+data_prepared <- format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
 dt_locreg_cpp <- estimate_locreg_cpp(
   data = data_prepared,
   t = t0, Delta = Deltahat, h = presmooth_bw,
@@ -46,7 +46,7 @@ estimate_locreg_wrap <- function(data, idcol = "id_curve", tcol = "tobs", ycol =
     stop("'center' must be a TRUE or FALSE.")
 
   # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   # Control and set arguments depending on the data
@@ -97,7 +97,7 @@ dt_locreg_cur <- estimate_locreg(
   smooth_ker = epanechnikov, center = TRUE)
 
 ### cpp function
-data_prepared <- .format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
+data_prepared <- format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
 dt_locreg_cpp <- estimate_locreg_cpp(
   data = data_prepared,
   t = t0, Delta = Deltahat, h = presmooth_bw,

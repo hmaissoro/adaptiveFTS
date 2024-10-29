@@ -6,7 +6,7 @@ Rcpp::sourceCpp("./src/08_estimate_curve_cpp.cpp")
 dt <- readRDS("../../curve_reconstruction/adaptive_blup_emp_study/data/fts_model_2/N150lambda40/dt_mc_FAR_mfBm_N=150_lambda=40_id_mc=1_fts_model_2.RDS")
 dt_common <- dt[ttag == "tcommon"]
 dt <- dt[ttag == "trandom"]
-data_prepared <- .format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
+data_prepared <- format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
 
 # Estimation parameters
 t0 <- c(0.2, 0.4, 0.7, 0.8)
@@ -19,7 +19,7 @@ dt_res_blup <- data.table::rbindlist(parallel::mclapply(1:100, function(id){
   dt_common <- dt[ttag == "tcommon"]
   dt <- dt[ttag == "trandom"]
   dt[! id_curve == 150 & tobs > 0.5]
-  data_prepared <- .format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
+  data_prepared <- format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
   data_to_use <- data_prepared[-which(id_curve == 150 & tobs > 0.5)]
 
   res_blup_one <- estimate_curve(data = data_to_use, id_curve = 150, t = t0, kernel_name = "epanechnikov")
@@ -83,7 +83,7 @@ dt_res_blup_N400lambda300 <- data.table::rbindlist(parallel::mclapply(1:20, func
   dt_common <- dt[ttag == "tcommon"]
   dt <- dt[ttag == "trandom"]
   # dt[! id_curve == 400 & tobs > 0.5]
-  data_prepared <- .format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
+  data_prepared <- format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
   data_to_use <- data_prepared[-which(id_curve == 400 & tobs > 0.5)]
 
   res_blup_one <- estimate_curve(data = data_to_use, id_curve = 400, t = t0, kernel_name = "epanechnikov")

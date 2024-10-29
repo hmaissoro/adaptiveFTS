@@ -1,6 +1,6 @@
 #' Estimate the the standard deviation of the observation error
 #'
-#' @inheritParams .format_data
+#' @inheritParams format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the standard deviation of the error.
 #'
 #' @return A data.table with two columns: \code{t} and \code{sig} corresponding to the estimated standard deviation.
@@ -10,7 +10,7 @@
 #'
 estimate_sigma <- function(data, idcol = NULL, tcol = "tobs", ycol = "X", t = c(1/4, 1/2, 3/4)) {
   # Format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
 
   dt_sig <- data.table::rbindlist(lapply(data[, unique(id_curve)], function(idx, data, t) {
     # Compute get the index the two T_{n,k} closest to time for each X_n
@@ -40,7 +40,7 @@ estimate_sigma <- function(data, idcol = NULL, tcol = "tobs", ycol = "X", t = c(
 
 #' Estimate empirical autocovariance function
 #'
-#' @inheritParams .format_data
+#' @inheritParams format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the empirical autocovariance function.
 #' @param lag \code{vector (integer)}. Lag of the autocovariance.
 #' @param h \code{numeric (positive vector or scalar)}. The smoothing bandwidth parameter.
@@ -61,7 +61,7 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
                                        t = c(1/4, 1/2, 3/4), lag = c(0, 1, 2), h = NULL,
                                        smooth_ker = epanechnikov){
   # Format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   if (any(N <= lag))
@@ -135,7 +135,7 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
 
 #' Estimate empirical \eqn{X_0(s)X_{\ell}(t)} autocovariance function
 #'
-#' @inheritParams .format_data
+#' @inheritParams format_data
 #' @param s \code{vector (numeric)}. First argument in \eqn{X_0(s)X_{\ell}(t)}.
 #' It corresponds to the observation points \code{s} in the pair (\code{s}, \code{t}).
 #' It has to be of the same length as the \code{t}
@@ -180,7 +180,7 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", y
                                             smooth_ker = epanechnikov,
                                             center = FALSE){
   # Format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
   if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
     stop("'s' must be a numeric vector or scalar value(s) between 0 and 1.")

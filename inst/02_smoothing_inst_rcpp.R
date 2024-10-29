@@ -65,6 +65,6 @@ print(res_bm_bw_sel, unit="relative", order="median")
 # Estimate best bandwidth on a subset of curves
 # Import the data
 dt <- readRDS("../../curve_reconstruction/adaptive_blup_emp_study/data/fts_model_2/N150lambda40/dt_mc_FAR_mfBm_N=150_lambda=40_id_mc=1_fts_model_2.RDS")
-data_prepared <- .format_data(data = dt[ttag == "trandom"], idcol = "id_curve", tcol = "tobs", ycol = "X")
+data_prepared <- format_data(data = dt[ttag == "trandom"], idcol = "id_curve", tcol = "tobs", ycol = "X")
 get_nw_optimal_bw_cpp(data_prepared, bw_grid = NULL, nsubset = 30, kernel_name = "epanechnikov")
 

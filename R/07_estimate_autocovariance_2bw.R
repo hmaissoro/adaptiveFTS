@@ -1,6 +1,6 @@
 #' Estimate the risk of the lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function with two bandwidths.
 #'
-#' @inheritParams .format_data
+#' @inheritParams format_data
 #' @param s \code{vector (numeric)}. First argument of the autocovariance function.
 #' It corresponds to the observation points \code{s} in the pair (\code{s}, \code{t}).
 #' It has to be of the same length as the \code{t}
@@ -134,7 +134,7 @@ estimate_autocov_risk_2bw <- function(data, idcol = "id_curve", tcol = "tobs", y
     stop("If 'Hs', 'Ls', 'Ht' or 'Lt' is not NULL, it must be numeric.")
 
   # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   if (! is.null(bw_grid)) {
@@ -624,7 +624,7 @@ estimate_autocov_2bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol =
     stop("If 'Hs', 'Ls', 'Ht' or 'Lt' is not NULL, it must be numeric.")
 
   # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))

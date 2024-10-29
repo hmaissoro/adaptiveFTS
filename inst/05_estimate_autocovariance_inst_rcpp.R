@@ -19,7 +19,7 @@ t0 <- dt_st[, t]
 rm(dt_st) ; gc()
 
 presmooth_bw <- unique(dt[, .(id_curve, presmooth_bw)])[order(id_curve), presmooth_bw]
-data_prepared <- .format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
+data_prepared <- format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
 
 ## Estimate locreg
 lambdahat <- mean(dt[, .N, by = "id_curve"][, N])

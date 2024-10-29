@@ -3,7 +3,7 @@
 #' The risk of the mean function is the function \eqn{R_\mu(t;h)} in
 #' Section 4.1 of \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}.
 #'
-#' @inheritParams .format_data
+#' @inheritParams format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the mean function of the underlying process.
 #' @param bw_grid \code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each \code{t}.
 #' It can be \code{NULL} and that way it will be defined as an exponential grid of \eqn{N\times\lambda}.
@@ -104,7 +104,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     stop("If 'Ht' or 'Lt' is not NULL, it must be numeric.")
 
   # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   if (! is.null(bw_grid)) {
@@ -240,10 +240,6 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     dependence_coef <- abs(dependence_coef)
     dependence_term <- 2 * dependence_coef  / dt_rk[, PN]
 
-<<<<<<< HEAD
-
-=======
->>>>>>> d8b5dd12dee2ab3dddb7b7a432b3c5de45fbdff4
     ## Final risk function
     mean_risk <- bias_term + varriance_term + dependence_term
 
@@ -322,14 +318,14 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                           Ht = NULL, Lt = NULL, Delta = NULL, h = NULL,
                           smooth_ker = epanechnikov){
   # Control on t, optbw and smooth_ker arguments
-  # NB : The remaining arguments are controlled using the .format_data and estimate_mean_risk functions, if required.
+  # NB : The remaining arguments are controlled using the format_data and estimate_mean_risk functions, if required.
   if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
 
   # Control and format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   if ((!is.null(optbw)) & length(optbw) != length(t)) {
@@ -400,7 +396,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 # mean function estimator : Rubìn et Paranaretos ----
 #' Estimate mean function using \insertCite{rubin2020;textual}{adaptiveFTS} method.
 #'
-#' @inheritParams .format_data
+#' @inheritParams format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the mean function of the underlying process.
 #' @param h \code{numeric (positive scalar)}. The bandwidth of the estimator.
 #' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
@@ -452,7 +448,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                              t = c(1/4, 1/2, 3/4), h, smooth_ker = epanechnikov){
   # Format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
   lambdahat <- mean(data[, .N, by = "id_curve"][, N])
 
@@ -549,7 +545,7 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 
 #' Bandwidth estimation using cross-validation for the \insertCite{rubin2020;textual}{adaptiveFTS} mean function estimator.
 #'
-#' @inheritParams .format_data
+#' @inheritParams format_data
 #' @param Kfold \code{integer (positive)}. Number of fold for the cross-validation.
 #' @param bw_grid \code{vector (numeric)}. The bandwidth grid.
 #' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
@@ -612,7 +608,7 @@ estimate_mean_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
                                 Kfold = 10, bw_grid = seq(0.001, 0.15, len = 45),
                                 smooth_ker = epanechnikov){
   # Format data
-  data <- .format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   # Create Kfold folds
   fold <- caret::createFolds(y = unique(data[, id_curve]), k = Kfold, list = TRUE)
 
