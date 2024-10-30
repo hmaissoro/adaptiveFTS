@@ -182,22 +182,17 @@ using namespace arma;
  //' @param y A vector of response values.
  //' @param t A vector of predictor values corresponding to the response values.
  //' @param tnew A vector of new predictor values for which to estimate the response.
- //'  //' @param h Numeric (positive vector or scalar). The bandwidth of the Nadaraya-Watson estimator for the local regularity estimation.
- //' Default \code{h = NULL} and thus it will be estimated by Cross-Validation on a subset of curves.
- //' If \code{h} is a scalar, then all curves will be smoothed with the same bandwidth.
- //' Otherwise, if \code{h} is a vector, its length must be equal to the number of curves in \code{data}
- //' and each element of the vector must correspond to a curve given in the same order as in \code{data}.
- //' @param h h Numeric (positive vector or scalar). The bandwidth parameter for the kernel estimator.
- //' If \code{h} is a scalar, then all pointd will be estimated with the same bandwidth.
- //' Otherwise, if \code{h} is a vector, its length must be equal to the number of points in \code{t}
- //' and each element of the vector must correspond to a point given in the same order as in \code{t}.
- //' @param kernel_name A string specifying the name of the kernel function to use. Default is "epanechnikov".
- //'   Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform".
+ //' @param h Numeric (positive vector or scalar). The bandwidth of the Nadaraya-Watson estimator for local regularity estimation.
+ //' If \code{h} is \code{NULL}, the bandwidth will be estimated by cross-validation on a subset of curves.
+ //' If \code{h} is a scalar, all points will be estimated with the same bandwidth.
+ //' If \code{h} is a vector, its length must be equal to the number of points in \code{t}, with each element corresponding to a point in \code{t}.
+ //' @param kernel_name A string specifying the name of the kernel function to use. The default is "epanechnikov".
+ //' Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform".
  //'
- //' @return A vector of estimated response values for the new predictor values.
+ //' @return A vector of estimated response values for the new predictor values in \code{tnew}.
  //'
  //' @details This function estimates the Nadaraya-Watson kernel estimator for regression,
- //' using a specified kernel function. It returns only only vector.
+ //' using the specified kernel function.
  //'
  //' @examples
  //' y <- c(1, 2, 3, 4, 5)
@@ -386,7 +381,7 @@ using namespace arma;
   //'
   //' Estimates the median of the best bandwidths obtained by Nadaraya-Watson cross-validation on a subset of curves.
   //'
-  //' @param data A DataFrame containing the columns "id_curve", "tobs", and "X". Typically, the output of the function \link{.format_data}.
+  //' @param data A DataFrame containing the columns "id_curve", "tobs", and "X". Typically, the output of the function \link{format_data}.
   //' @param bw_grid A vector of candidate bandwidths. If NULL, a default grid is used.
   //' @param nsubset An integer specifying the number of curves to use for bandwidth selection. If NULL, defaults to 30 or the number of curves if less than 30.
   //' @param kernel_name A string specifying the kernel function to use. Default is "epanechnikov".
