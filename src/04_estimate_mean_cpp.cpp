@@ -13,7 +13,7 @@ using namespace arma;
  //'
  //' This function estimates the risk function \eqn{R_\mu(t;h)} of the mean function estimation proposed by Maissoro et al. (2024).
  //'
- //' @param data A DataFrame containing the columns "id_curve", "tobs", and "X", typically the output of the function \link{.format_data}.
+ //' @param data A DataFrame containing the columns "id_curve", "tobs", and "X", typically the output of the function \link{format_data}.
  //' @param t A numeric vector of observation points at which we want to estimate the mean function of the underlying process.
  //' @param bw_grid A numeric vector representing the bandwidth grid in which the best smoothing parameter is selected for each t.
  //' It can be NULL, in which case it will be defined as an exponential grid of \eqn{N \times \lambda}.

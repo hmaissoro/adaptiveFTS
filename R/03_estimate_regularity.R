@@ -104,12 +104,10 @@
 #'
 estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                             t = 1/2, Delta = NULL, h = NULL,
-                            smooth_ker = epanechnikov, center = TRUE){
+                            kernel_name = "epanechnikov", center = TRUE){
   # Control easy checkable arguments
   if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
-  if (! methods::is(smooth_ker, "function"))
-    stop("'smooth_ker' must be a function.")
   if (! methods::is(center, "logical"))
     stop("'center' must be a TRUE or FALSE.")
 

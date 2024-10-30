@@ -14,7 +14,7 @@ using namespace arma;
  //'
  //' Estimate the risk function of the lag-\eqn{\ell}, \eqn{\ell} = 0, 1,..., autocovariance function estimator of Maissoro et al. (2024).
  //'
- //' @param data A DataFrame containing the columns "id_curve", "tobs", and "X". Typically, the output of the function \link{.format_data}.
+ //' @param data A DataFrame containing the columns "id_curve", "tobs", and "X". Typically, the output of the function \link{format_data}.
  //' @param s \code{vector (numeric)}. First argument of the autocovariance function.
  //' It corresponds to the observation points \code{s} in the pair (\code{s}, \code{t}).
  //' It has to be of the same length as the \code{t}

@@ -7,7 +7,7 @@ using namespace arma;
 
 //' Local Regularity Parameters Estimation
  //'
- //' @param data A DataFrame containing the columns "id_curve", "tobs", and "X". Typically, the output of the function \link{.format_data}.
+ //' @param data A DataFrame containing the columns "id_curve", "tobs", and "X". Typically, the output of the function \link{format_data}.
  //' @param t Numeric vector. Observation points at which we want to estimate the local regularity parameters of the underlying process.
  //' @param center Logical. If \code{TRUE}, the curves are centered.
  //' @param kernel_name String. The kernel function of the Nadaraya-Watson estimator. Default is "epanechnikov".
