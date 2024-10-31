@@ -195,30 +195,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// get_upper_tri_couple_old
-arma::mat get_upper_tri_couple_old(const arma::vec& s, const arma::vec& t);
-RcppExport SEXP _adaptiveFTS_get_upper_tri_couple_old(SEXP sSEXP, SEXP tSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::vec& >::type s(sSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type t(tSEXP);
-    rcpp_result_gen = Rcpp::wrap(get_upper_tri_couple_old(s, t));
-    return rcpp_result_gen;
-END_RCPP
-}
-// build_grid
-arma::mat build_grid(const arma::vec& u, const arma::vec& v);
-RcppExport SEXP _adaptiveFTS_build_grid(SEXP uSEXP, SEXP vSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::vec& >::type u(uSEXP);
-    Rcpp::traits::input_parameter< const arma::vec& >::type v(vSEXP);
-    rcpp_result_gen = Rcpp::wrap(build_grid(u, v));
-    return rcpp_result_gen;
-END_RCPP
-}
 // sort_by_columns
 arma::mat sort_by_columns(const arma::mat& mat, arma::uword first_col_idx, arma::uword second_col_idx);
 RcppExport SEXP _adaptiveFTS_sort_by_columns(SEXP matSEXP, SEXP first_col_idxSEXP, SEXP second_col_idxSEXP) {
@@ -229,17 +205,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< arma::uword >::type first_col_idx(first_col_idxSEXP);
     Rcpp::traits::input_parameter< arma::uword >::type second_col_idx(second_col_idxSEXP);
     rcpp_result_gen = Rcpp::wrap(sort_by_columns(mat, first_col_idx, second_col_idx));
-    return rcpp_result_gen;
-END_RCPP
-}
-// remove_duplicates
-arma::mat remove_duplicates(const arma::mat& mat);
-RcppExport SEXP _adaptiveFTS_remove_duplicates(SEXP matSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const arma::mat& >::type mat(matSEXP);
-    rcpp_result_gen = Rcpp::wrap(remove_duplicates(mat));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -415,26 +380,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// estimate_curve
-Rcpp::List estimate_curve(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<int> id_curve, const Rcpp::Nullable<arma::vec> optbw_s, const Rcpp::Nullable<arma::vec> optbw_t, const Rcpp::Nullable<arma::vec> bw_grid, const bool use_same_bw, const bool center, const bool correct_diagonal, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_estimate_curve(SEXP dataSEXP, SEXP tSEXP, SEXP id_curveSEXP, SEXP optbw_sSEXP, SEXP optbw_tSEXP, SEXP bw_gridSEXP, SEXP use_same_bwSEXP, SEXP centerSEXP, SEXP correct_diagonalSEXP, SEXP kernel_nameSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::Nullable<int> >::type id_curve(id_curveSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type optbw_s(optbw_sSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type optbw_t(optbw_tSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_grid(bw_gridSEXP);
-    Rcpp::traits::input_parameter< const bool >::type use_same_bw(use_same_bwSEXP);
-    Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
-    Rcpp::traits::input_parameter< const bool >::type correct_diagonal(correct_diagonalSEXP);
-    Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_curve(data, t, id_curve, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name));
-    return rcpp_result_gen;
-END_RCPP
-}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_biweight_kernel", (DL_FUNC) &_adaptiveFTS_biweight_kernel, 1},
@@ -451,10 +396,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_estimate_mean_cpp", (DL_FUNC) &_adaptiveFTS_estimate_mean_cpp, 5},
     {"_adaptiveFTS_estimate_autocov_risk_cpp", (DL_FUNC) &_adaptiveFTS_estimate_autocov_risk_cpp, 8},
     {"_adaptiveFTS_get_upper_tri_couple", (DL_FUNC) &_adaptiveFTS_get_upper_tri_couple, 2},
-    {"_adaptiveFTS_get_upper_tri_couple_old", (DL_FUNC) &_adaptiveFTS_get_upper_tri_couple_old, 2},
-    {"_adaptiveFTS_build_grid", (DL_FUNC) &_adaptiveFTS_build_grid, 2},
     {"_adaptiveFTS_sort_by_columns", (DL_FUNC) &_adaptiveFTS_sort_by_columns, 3},
-    {"_adaptiveFTS_remove_duplicates", (DL_FUNC) &_adaptiveFTS_remove_duplicates, 1},
     {"_adaptiveFTS_estimate_autocov_cpp", (DL_FUNC) &_adaptiveFTS_estimate_autocov_cpp, 11},
     {"_adaptiveFTS_estimate_sigma_cpp", (DL_FUNC) &_adaptiveFTS_estimate_sigma_cpp, 2},
     {"_adaptiveFTS_estimate_empirical_mom_cpp", (DL_FUNC) &_adaptiveFTS_estimate_empirical_mom_cpp, 6},
@@ -467,7 +409,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_get_best_mean_bw", (DL_FUNC) &_adaptiveFTS_get_best_mean_bw, 2},
     {"_adaptiveFTS_get_nearest_best_mean_bw", (DL_FUNC) &_adaptiveFTS_get_nearest_best_mean_bw, 2},
     {"_adaptiveFTS_ensure_positive_definite", (DL_FUNC) &_adaptiveFTS_ensure_positive_definite, 2},
-    {"_adaptiveFTS_estimate_curve", (DL_FUNC) &_adaptiveFTS_estimate_curve, 10},
     {NULL, NULL, 0}
 };
 

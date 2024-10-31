@@ -1,12 +1,8 @@
 library(ggplot2)
-source("./R/03_estimate_regularity.R")
 Rcpp::sourceCpp("./src/08_estimate_curve_cpp.cpp")
 
 # Import the data
-dt <- readRDS("../../curve_reconstruction/adaptive_blup_emp_study/data/fts_model_2/N150lambda40/dt_mc_FAR_mfBm_N=150_lambda=40_id_mc=1_fts_model_2.RDS")
-dt_common <- dt[ttag == "tcommon"]
-dt <- dt[ttag == "trandom"]
-data_prepared <- format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
+data("data_far")
 
 # Estimation parameters
 t0 <- c(0.2, 0.4, 0.7, 0.8)

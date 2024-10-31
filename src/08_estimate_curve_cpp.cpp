@@ -427,13 +427,34 @@ using namespace arma;
 
 
 
-
- // [[Rcpp::export]]
+ //' Reconstruct a curve using the Best Linear Unbiased Predictor (BLUP).
+ //'
+ //' This function reconstructs a curve using the adaptive Best Linear Unbiased Predictor proposed by \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+ //'
+ //' @param data A DataFrame containing the data with columns \code{"id_curve"}, \code{"tobs"}, and \code{"X"}.
+ //' @param t A numeric vector specifying the time points \code{t} at which to reconstruct the curve \code{id_curve}.
+ //' @param id_curve An integer specifying the index of the curve to be reconstructed. Default is \code{NULL}, which considers the last curve in \code{data}.
+ //' @param bw_grid A numeric vector of bandwidth grid values for selecting optimal bandwidth parameters for (auto)covariance estimation.
+ //' Default is \code{NULL}, which sets it in the function.
+ //' @param use_same_bw A logical value indicating whether the same bandwidth should be used for the arguments \code{s} and \code{t} in the (auto)covariance estimation. Default is \code{FALSE}.
+ //' @param center A logical value indicating whether the data should be centered before estimating the (auto)covariance. Default is \code{TRUE}.
+ //' @param correct_diagonal A logical value indicating whether the diagonal of the covariances should be corrected. Default is \code{TRUE}.
+ //' @param kernel_name A string specifying the kernel to use for estimation. Supported values are \code{"epanechnikov"}, \code{"biweight"},
+ //' \code{"triweight"}, \code{"tricube"}, \code{"triangular"}, and \code{"uniform"}. Default is \code{"epanechnikov"}.
+ //'
+ //' @return A \code{list} containing the reconstructed curve and additional relevant objects. See the end of the function.
+ //'
+ //' @export
+ //'
+ //' @import Rdpack
+ //'
+ //' @references
+ //' \insertAllCited{}
+ //'
+// [[Rcpp::export]]
  Rcpp::List estimate_curve(const Rcpp::DataFrame data,
                            const arma::vec t,
                            const Rcpp::Nullable<int> id_curve = R_NilValue,
-                           const Rcpp::Nullable<arma::vec> optbw_s = R_NilValue,
-                           const Rcpp::Nullable<arma::vec> optbw_t = R_NilValue,
                            const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
                            const bool use_same_bw = false,
                            const bool center = true,
@@ -500,8 +521,8 @@ using namespace arma;
    // // Estimate cov and autocovariance on the grid
    arma::vec vec_grid = arma::vec({0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95});
    arma::mat grid_fixe = build_grid(vec_grid, vec_grid);
-   arma::mat mat_cov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 0, R_NilValue, use_same_bw, center, kernel_name);
-   arma::mat mat_autocov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 1, R_NilValue, use_same_bw, center, kernel_name);
+   arma::mat mat_cov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 0, bw_grid, use_same_bw, center, kernel_name);
+   arma::mat mat_autocov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 1, bw_grid, use_same_bw, center, kernel_name);
    Rcout << "--> Set cov and autocov : ok \n ";
    // // get optimal cov and autocov variance parameters
    mat mat_opt_cov_param = get_best_autocov_bw(mat_cov_risk, grid_fixe.col(0), grid_fixe.col(1));
@@ -525,19 +546,19 @@ using namespace arma;
    // // estimate covariances and autocovariances
    arma::mat mat_cov_pred_pred_all = estimate_autocov_cpp(data, grid_pred_pred_optbw.col(0), grid_pred_pred_optbw.col(1), 0,
                                                           Rcpp::wrap(grid_pred_pred_optbw.col(2)), Rcpp::wrap(grid_pred_pred_optbw.col(3)),
-                                                          bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+                                                          R_NilValue, use_same_bw, center, correct_diagonal, kernel_name);
    arma::mat mat_cov_lag_lag_all = estimate_autocov_cpp(data, grid_lag_lag_optbw.col(0), grid_lag_lag_optbw.col(1), 0,
                                                         Rcpp::wrap(grid_lag_lag_optbw.col(2)), Rcpp::wrap(grid_lag_lag_optbw.col(3)),
-                                                        bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+                                                        R_NilValue, use_same_bw, center, correct_diagonal, kernel_name);
    arma::mat mat_autocov_lag_pred_all = estimate_autocov_cpp(data, grid_lag_pred_optbw.col(0), grid_lag_pred_optbw.col(1), 1,
                                                              Rcpp::wrap(grid_lag_pred_optbw.col(2)), Rcpp::wrap(grid_lag_pred_optbw.col(3)),
-                                                             bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+                                                             R_NilValue, use_same_bw, center, correct_diagonal, kernel_name);
    arma::mat mat_autocov_lag_tvec_all = estimate_autocov_cpp(data, grid_lag_tvec_optbw.col(0), grid_lag_tvec_optbw.col(1), 1,
                                                              Rcpp::wrap(grid_lag_tvec_optbw.col(2)), Rcpp::wrap(grid_lag_tvec_optbw.col(3)),
-                                                             bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+                                                             R_NilValue, use_same_bw, center, correct_diagonal, kernel_name);
    arma::mat mat_cov_pred_tvec_all = estimate_autocov_cpp(data, grid_pred_tvec_optbw.col(0), grid_pred_tvec_optbw.col(1), 0,
                                                           Rcpp::wrap(grid_pred_tvec_optbw.col(2)), Rcpp::wrap(grid_pred_tvec_optbw.col(3)),
-                                                          bw_grid, use_same_bw, center, correct_diagonal, kernel_name);
+                                                          R_NilValue, use_same_bw, center, correct_diagonal, kernel_name);
    Rcout << "--> autocov estimation : ok \n ";
 
    // Estimate mean functions

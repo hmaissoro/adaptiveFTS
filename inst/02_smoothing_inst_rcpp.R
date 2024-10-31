@@ -16,8 +16,6 @@ estimate_nw_wrap <- function(y, t, tnew, h){
     stop("The arguments 'y' and 't' must have a length of at least 2 and must be of the same length.")
   if (! is.null(h) & length(h) > 1)
     stop("The bandwidth 'h' must be either NULL or saclar.")
-  # if (! methods::is(smooth_ker, "function"))
-  #   stop("'smooth_ker' must be a function.")
 
   # Estimate Nadaraya-Watson estimator using estimate_nw_cpp function
   res <- estimate_nw_cpp(y = Yn, t = Tn, tnew = tnew, h = h)

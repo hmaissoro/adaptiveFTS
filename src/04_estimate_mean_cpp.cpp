@@ -11,7 +11,7 @@ using namespace arma;
 
 //' Estimate the risk of the mean function
  //'
- //' This function estimates the risk function \eqn{R_\mu(t;h)} of the mean function estimation proposed by Maissoro et al. (2024).
+ //' This function estimates the risk function \eqn{R_\mu(t;h)} of the mean function estimation proposed by \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}.
  //'
  //' @param data A DataFrame containing the columns "id_curve", "tobs", and "X", typically the output of the function \link{format_data}.
  //' @param t A numeric vector of observation points at which we want to estimate the mean function of the underlying process.
@@ -61,6 +61,11 @@ using namespace arma;
  //' }
  //'
  //' @export
+ //'
+ //' @import Rdpack
+ //'
+ //' @references
+ //' \insertAllCited{}
  //'
  // [[Rcpp::export]]
  arma::mat estimate_mean_risk_cpp(const Rcpp::DataFrame data, const arma::vec t,
@@ -204,7 +209,7 @@ using namespace arma;
  //' This function estimates the mean function for functional data using the
  //' Nadaraya-Watson estimator with a specified kernel. The function takes a
  //' data frame of observations, a vector of evaluation points, and optional
- //' bandwidth parameters.
+ //' bandwidth parameters. See \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}.
  //'
  //' @param data A data frame containing the functional data. It should have three columns:
  //' \code{id_curve} (curve identifiers), \code{tobs} (observation times), and \code{X} (observations).
@@ -235,6 +240,11 @@ using namespace arma;
  //' }
  //'
  //' @export
+ //'
+ //' @import Rdpack
+ //'
+ //' @references
+ //' \insertAllCited{}
  //'
  // [[Rcpp::export]]
  arma::mat estimate_mean_cpp(const Rcpp::DataFrame data, const arma::vec t,

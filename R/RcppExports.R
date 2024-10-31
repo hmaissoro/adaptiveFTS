@@ -69,20 +69,8 @@ get_upper_tri_couple <- function(s, t) {
     .Call(`_adaptiveFTS_get_upper_tri_couple`, s, t)
 }
 
-get_upper_tri_couple_old <- function(s, t) {
-    .Call(`_adaptiveFTS_get_upper_tri_couple_old`, s, t)
-}
-
-build_grid <- function(u, v) {
-    .Call(`_adaptiveFTS_build_grid`, u, v)
-}
-
 sort_by_columns <- function(mat, first_col_idx, second_col_idx) {
     .Call(`_adaptiveFTS_sort_by_columns`, mat, first_col_idx, second_col_idx)
-}
-
-remove_duplicates <- function(mat) {
-    .Call(`_adaptiveFTS_remove_duplicates`, mat)
 }
 
 estimate_autocov_cpp <- function(data, s, t, lag, optbw_s = NULL, optbw_t = NULL, bw_grid = NULL, use_same_bw = FALSE, center = TRUE, correct_diagonal = TRUE, kernel_name = "epanechnikov") {
@@ -134,9 +122,5 @@ get_nearest_best_mean_bw <- function(mat_opt_param, tnew) {
 
 ensure_positive_definite <- function(A, c = 1e-6) {
     .Call(`_adaptiveFTS_ensure_positive_definite`, A, c)
-}
-
-estimate_curve <- function(data, t, id_curve = NULL, optbw_s = NULL, optbw_t = NULL, bw_grid = NULL, use_same_bw = FALSE, center = TRUE, correct_diagonal = TRUE, kernel_name = "epanechnikov") {
-    .Call(`_adaptiveFTS_estimate_curve`, data, t, id_curve, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name)
 }
 

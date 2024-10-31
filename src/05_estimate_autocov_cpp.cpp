@@ -12,7 +12,8 @@ using namespace arma;
 
 //' Estimate the risk of the covariance or autocovariance function
  //'
- //' Estimate the risk function of the lag-\eqn{\ell}, \eqn{\ell} = 0, 1,..., autocovariance function estimator of Maissoro et al. (2024).
+ //' Estimate the risk function of the lag-\eqn{\ell}, \eqn{\ell} = 0, 1,..., autocovariance function estimator of
+ //' \insertCite{maissoro2024adaptive;textual}{adaptiveFTS} and \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
  //'
  //' @param data A DataFrame containing the columns "id_curve", "tobs", and "X". Typically, the output of the function \link{format_data}.
  //' @param s \code{vector (numeric)}. First argument of the autocovariance function.
@@ -24,8 +25,10 @@ using namespace arma;
  //' @param lag \code{integer (positive integer)}. Lag of the autocovariance.
  //' @param bw_grid \code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each pair (\code{s}, \code{t}).
  //' It can be \code{NULL} and that way it will be defined as an exponential grid of \eqn{N\times\lambda}.
- //' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator.
- //' Default \code{smooth_ker = epanechnikov}.
+ //' @param use_same_bw A logical value indicating if the same bandwidth should be used for \code{s} and \code{t}. Default is \code{false}.
+ //' @param center A logical value indicating if the data should be centered before estimation. Default is \code{true}.
+ //' @param kernel_name \code{string}. Specifies the kernel function for estimation; default is "epanechnikov".
+ //' Supported kernels include: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".
  //'
  //' @return A \code{matrix} containing the following fourteen columns in order:
  //'          \itemize{
@@ -46,6 +49,11 @@ using namespace arma;
  //'         }
  //'
  //' @export
+ //'
+ //' @import Rdpack
+ //'
+ //' @references
+ //' \insertAllCited{}
  //'
  //' @examples
  //' \dontrun{
@@ -436,86 +444,6 @@ using namespace arma;
    return sorted_mat;
  }
 
-
- //' Get Upper Triangular Couples
- //'
- //' This function constructs a matrix of upper triangular couples from vectors s and t,
- //' ensuring that if max(s) < max(t), the missing values from t are included in s.
- //'
- //' @param s A vector of values.
- //' @param t A vector of values.
- //' @return A matrix with unique (s, t) pairs where s >= t, sorted by s in descending order and t in ascending order.
- //' @export
- // [[Rcpp::export]]
- arma::mat get_upper_tri_couple_old(const arma::vec& s, const arma::vec& t) {
-   // Sort unique values of s in descending order and t in ascending order
-   arma::vec s_unique = arma::sort(arma::unique(s), "descend");
-   arma::vec t_unique = arma::sort(arma::unique(t), "ascend");
-
-   // If max(s) < max(t), include the missing values from t_unique in s_unique
-   double max_s = s_unique.max();
-   double max_t = t_unique.max();
-   if (max_s < max_t) {
-     arma::uvec t_indices = arma::find(t_unique > max_s);
-     s_unique = arma::join_vert(s_unique, t_unique.elem(t_indices));
-     s_unique = arma::sort(s_unique, "descend");
-   }
-
-   // Generate pairs
-   arma::mat mat_st(s_unique.n_elem * t_unique.n_elem, 2);
-   int idx = 0;
-   for (arma::uword i = 0; i < s_unique.n_elem; ++i) {
-     for (arma::uword j = 0; j < t_unique.n_elem; ++j) {
-       if (s_unique(i) >= t_unique(j)) {
-         mat_st(idx, 0) = s_unique(i);
-         mat_st(idx, 1) = t_unique(j);
-         ++idx;
-       }
-     }
-   }
-
-   // Resize matrix to remove unused rows
-   mat_st.resize(idx, 2);
-
-   return mat_st;
- }
-
- //' Build a full grid of pairs
- //'
- //' This function takes two vectors of parameters and returns a matrix containing
- //' all possible pairs of the parameters. Each row in the resulting matrix represents
- //' a unique pair where the first element is from the first vector and the second element
- //' is from the second vector.
- //'
- //' @param u A numeric vector of parameters for the first dimension.
- //' @param v A numeric vector of parameters for the second dimension.
- //' @return A matrix where each row is a pair from the two parameter grids.
- //'
- //' @examples
- //' \dontrun{
- //' u <- c(0.2, 0.4, 0.5)
- //' v <- c(0.7, 0.8)
- //' build_grid(u, v)
- //' }
- //'
- //' @export
- //'
- // [[Rcpp::export]]
- arma::mat build_grid(const arma::vec& u, const arma::vec& v) {
-   int nu = u.n_elem;
-   int nv = v.n_elem;
-   arma::mat grid(nu * nv, 2);
-
-   for (int i = 0; i < nu; ++i) {
-     for (int j = 0; j < nv; ++j) {
-       grid(i * nv + j, 0) = u(i);
-       grid(i * nv + j, 1) = v(j);
-     }
-   }
-
-   return grid;
- }
-
  //' Sort Matrix by Specified Columns
  //'
  //' This function sorts a matrix by two specified columns in sequence.
@@ -547,40 +475,10 @@ using namespace arma;
    return sorted_mat;
  }
 
- //' Remove Duplicate Rows from an Armadillo Matrix
- //'
- //' This function removes duplicate rows from an Armadillo matrix.
- //'
- //' @param mat An Armadillo matrix.
- //' @return A matrix with duplicate rows removed.
- //'
- //' @export
- // [[Rcpp::export]]
- arma::mat remove_duplicates(const arma::mat& mat) {
-   // Step 1: Create a set of unique rows
-   std::set<std::vector<double>> unique_rows_set;
-
-   // Step 2: Populate the set with rows of mat
-   for (arma::uword i = 0; i < mat.n_rows; ++i) {
-     std::vector<double> row_vec(mat.row(i).begin(), mat.row(i).end());
-     unique_rows_set.insert(row_vec);
-   }
-
-   // Step 3: Convert set back to Armadillo matrix
-   arma::mat unique_mat(unique_rows_set.size(), mat.n_cols);
-   arma::uword row_idx = 0;
-   for (auto it = unique_rows_set.begin(); it != unique_rows_set.end(); ++it) {
-     unique_mat.row(row_idx) = arma::rowvec(*it);
-     ++row_idx;
-   }
-
-   return unique_mat;
- }
-
-
  //' Estimate the autocovariance function
  //'
- //' This function estimates the lag-\eqn{\ell}, \eqn{\ell} = 0, 1,..., autocovariance function based on the methodology of Maissoro et al. (2024).
+ //' This function estimates the lag-\eqn{\ell}, \eqn{\ell} = 0, 1,..., autocovariance function based on the methodology of
+ //' \insertCite{maissoro2024adaptive;textual}{adaptiveFTS} and \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
  //'
  //' @param data A \code{DataFrame} containing the data with columns \code{"id_curve"}, \code{"tobs"}, and \code{"X"}.
  //' @param s A numeric vector specifying time points \code{s} for which to estimate autocovariance.
@@ -588,9 +486,10 @@ using namespace arma;
  //' @param lag An integer specifying the lag value for autocovariance.
  //' @param optbw_s Optional numeric vector specifying optimal bandwidths for \code{s}. Default is \code{NULL}.
  //' @param optbw_t Optional numeric vector specifying optimal bandwidths for \code{t}. Default is \code{NULL}.
- //' @param bw_grid Optional numeric vector of bandwidth grid values. Default is \code{NULL}.
- //' @param use_same_bw A logical value indicating if the same bandwidth should be used for \code{s} and \code{t}. Default is \code{FALSE}.
- //' @param center A logical value indicating if the data should be centered before estimation. Default is \code{TRUE}.
+ //' @param bw_grid numeric vector of bandwidth grid values. Default is \code{NULL}.
+ //' @param use_same_bw A logical value indicating if the same bandwidth should be used for \code{s} and \code{t}. Default is \code{false}.
+ //' @param center A logical value indicating if the data should be centered before estimation. Default is \code{true}.
+ //' @param correct_diagonal A logical value indicating whether the diagonal of the covariance should be corrected when \code{lag=0}.
  //' @param kernel_name A string specifying the kernel to use for estimation. Supported values are \code{"epanechnikov"}, \code{"biweight"}, \code{"triweight"}, \code{"tricube"}, \code{"triangular"}, \code{"uniform"}. Default is \code{"epanechnikov"}.
  //'
  //' @return A \code{matrix} containing the following fourteen columns in order:
@@ -623,6 +522,11 @@ using namespace arma;
  //' }
  //'
  //' @export
+ //'
+ //' @import Rdpack
+ //'
+ //' @references
+ //' \insertAllCited{}
  //'
  // [[Rcpp::export]]
  arma::mat estimate_autocov_cpp(const Rcpp::DataFrame data,
