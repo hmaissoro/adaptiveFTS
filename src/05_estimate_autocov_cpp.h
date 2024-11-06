@@ -7,7 +7,7 @@ arma::mat estimate_autocov_risk_cpp(const Rcpp::DataFrame data, const arma::vec 
                                     const int lag, const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
                                     const bool use_same_bw = false, const bool center = true,
                                     const std::string kernel_name = "epanechnikov");
-arma::mat build_grid(const arma::vec& u, const arma::vec& v);
+
 arma::mat sort_by_columns(const arma::mat& mat, arma::uword first_col_idx, arma::uword second_col_idx);
 
 arma::mat estimate_autocov_cpp(const Rcpp::DataFrame data, const arma::vec s, const arma::vec t,
