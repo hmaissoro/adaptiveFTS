@@ -120,6 +120,42 @@ using namespace arma;
    return result;
  }
 
+ //' Build a full grid of pairs
+ //'
+ //' This function takes two vectors of parameters and returns a matrix containing
+ //' all possible pairs of the parameters. Each row in the resulting matrix represents
+ //' a unique pair where the first element is from the first vector and the second element
+ //' is from the second vector.
+ //'
+ //' @param u A numeric vector of parameters for the first dimension.
+ //' @param v A numeric vector of parameters for the second dimension.
+ //' @return A matrix where each row is a pair from the two parameter grids.
+ //'
+ //' @examples
+ //' \dontrun{
+ //' u <- c(0.2, 0.4, 0.5)
+ //' v <- c(0.7, 0.8)
+ //' build_grid(u, v)
+ //' }
+ //'
+ //' @export
+ //'
+ // [[Rcpp::export]]
+ arma::mat build_grid(const arma::vec& u, const arma::vec& v) {
+   int nu = u.n_elem;
+   int nv = v.n_elem;
+   arma::mat grid(nu * nv, 2);
+
+   for (int i = 0; i < nu; ++i) {
+     for (int j = 0; j < nv; ++j) {
+       grid(i * nv + j, 0) = u(i);
+       grid(i * nv + j, 1) = v(j);
+     }
+   }
+
+   return grid;
+ }
+
  //' Get the optimal bandwidth for given time points
  //'
  //' This function selects the optimal bandwidth for each pair of time points (s, t)
