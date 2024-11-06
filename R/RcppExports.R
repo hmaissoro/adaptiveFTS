@@ -104,6 +104,10 @@ combine_matrices <- function(A, B, C, D) {
     .Call(`_adaptiveFTS_combine_matrices`, A, B, C, D)
 }
 
+build_grid <- function(u, v) {
+    .Call(`_adaptiveFTS_build_grid`, u, v)
+}
+
 get_best_autocov_bw <- function(mat_autocov_risk, s, t) {
     .Call(`_adaptiveFTS_get_best_autocov_bw`, mat_autocov_risk, s, t)
 }
@@ -122,5 +126,9 @@ get_nearest_best_mean_bw <- function(mat_opt_param, tnew) {
 
 ensure_positive_definite <- function(A, c = 1e-6) {
     .Call(`_adaptiveFTS_ensure_positive_definite`, A, c)
+}
+
+estimate_curve <- function(data, t, id_curve = NULL, bw_grid = NULL, use_same_bw = FALSE, center = TRUE, correct_diagonal = TRUE, kernel_name = "epanechnikov") {
+    .Call(`_adaptiveFTS_estimate_curve`, data, t, id_curve, bw_grid, use_same_bw, center, correct_diagonal, kernel_name)
 }
 

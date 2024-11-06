@@ -2,7 +2,7 @@
 % Please edit documentation in R/05_estimate_autocovariance.R
 \name{estimate_autocov_rp}
 \alias{estimate_autocov_rp}
-\title{Estimate lag-\eqn{\ell} (\eqn{\ell \leq 0}) autocovariance function using Rubìn and Panaretos (2020) method}
+\title{Estimate lag-\eqn{\ell} (\eqn{\ell \leq 0}) autocovariance function using \insertCite{rubin2020;textual}{adaptiveFTS} method}
 \usage{
 estimate_autocov_rp(
   data,
@@ -19,42 +19,40 @@ estimate_autocov_rp(
 )
 }
 \arguments{
-\item{data}{\code{data.table (or data.frame)} or \code{list} of \code{data.table (or data.frame)} or \code{list} of \code{list}.
+\item{data}{A \code{data.table} (or \code{data.frame}), a \code{list} of \code{data.table} (or \code{data.frame}), or a \code{list} of \code{list}.
 \itemize{
-\item{If \code{data.table}}{
-It must contain the raw binding of the curve observations with at least 3 columns.
+\item{If \code{data.table}:}{
+It should contain the raw curve observations in at least three columns.
 \itemize{
-\item{\code{idcol} :}{ The name of the column that contains the index of the curve in the sample.
-Each index of a curve is repeated as many times as it has observation points.}
-\item{\code{tcol} :}{ The name of the column that contains the observation points associated to each curve index.}
-\item{\code{ycol} :}{ The name of the column that contains the observed value of a curve at each point of observation and for each index of the curve.}
+\item{\code{idcol} :}{ The name of the column containing the curve index in the sample.
+Each curve index is repeated according to the number of observation points.}
+\item{\code{tcol} :}{ The name of the column with observation points associated with each curve index.}
+\item{\code{ycol} :}{ The name of the column with observed values at each observation point for each curve index.}
 }
 }
-\item{If \code{list} of \code{data.table}}{
-In this case, each element of the given \code{list} corresponds to the observation scheme of a curve, which is given as \code{data.table} or \code{data.frame}.
-The data.table contains at least 2 columns.
+\item{If \code{list} of \code{data.table}:}{
+In this case, each element in the \code{list} represents the observation data of a curve in the form of a \code{data.table} or \code{data.frame}.
+Each \code{data.table} contains at least two columns.
 \itemize{
-\item{\code{tcol} :}{ The name of the column that contains the observation points associated to the curve.}
-\item{\code{ycol} :}{ The name of the column that contains the observed value of the curve.}
+\item{\code{tcol} :}{ The name of the column with observation points for the curve.}
+\item{\code{ycol} :}{ The name of the column with observed values for the curve.}
 }
 }
-\item{If \code{list} of \code{list}}{
-In the latter case, the \code{data} is a list \code{list} where each element is the observation scheme of a curve given as a \code{list} of 2 vectors.
+\item{If \code{list} of \code{list}:}{
+In this case, \code{data} is a list where each element is the observation data of a curve, given as a \code{list} of two vectors.
 \itemize{
-\item{\code{tcol} :}{ The name of the vector that contains the observation points associated the curve.}
-\item{\code{ycol} :}{ The name of the vector that contains the observed value of the curve.}
+\item{\code{tcol} :}{ The vector containing observation points for the curve.}
+\item{\code{ycol} :}{ The vector containing observed values for the curve.}
 }
 }
 }}
 
-\item{idcol}{\code{character}. If \code{data} is given as \code{data.table} or \code{data.frame},
-it is the name of the column that contains the index of the curve in the sample.
-Each index of a curve is repeated as many times as it has observation points.
-Opposite, if f \code{data} is given as \code{list} of \code{data.table (or data.frame)} of \code{list} of \code{list}, \code{idcol = NULL.}}
+\item{idcol}{\code{character}. If \code{data} is given as a \code{data.table} or \code{data.frame}, this is the name of the column that holds the curve index.
+Each curve index is repeated according to the number of observation points. If \code{data} is a \code{list} of \code{data.table} (or \code{data.frame}) or a \code{list} of \code{list}, set \code{idcol = NULL}.}
 
-\item{tcol}{\code{character}. The name of the column (or vector) that contains the observation points associated to the curves.}
+\item{tcol}{\code{character}. The name of the column (or vector) containing the observation points for the curves.}
 
-\item{ycol}{\code{character}. The name of the column that contains the observed value of the curves.}
+\item{ycol}{\code{character}. The name of the column with observed values for the curves.}
 
 \item{s}{\code{vector (numeric)}. First argument of the autocovariance function.
 It corresponds to the observation points \code{s} in the pair (\code{s}, \code{t}).
@@ -90,5 +88,8 @@ A \code{data.table} containing the following columns.
 }
 }
 \description{
-Estimate lag-\eqn{\ell} (\eqn{\ell \leq 0}) autocovariance function using Rubìn and Panaretos (2020) method
+Estimate lag-\eqn{\ell} (\eqn{\ell \leq 0}) autocovariance function using \insertCite{rubin2020;textual}{adaptiveFTS} method
+}
+\references{
+\insertAllCited{}
 }

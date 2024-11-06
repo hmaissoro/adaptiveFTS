@@ -2,63 +2,64 @@
 % Please edit documentation in R/02_smoothing.R
 \name{estimate_nw_bw}
 \alias{estimate_nw_bw}
-\title{Nadaraya-Watson Bandwidth Selection using cross validation.}
+\title{Nadaraya-Watson Bandwidth Selection using Cross-Validation}
 \usage{
-estimate_nw_bw(y, t, bw_grid = NULL, smooth_ker = epanechnikov)
+estimate_nw_bw(y, t, bw_grid = NULL, kernel_name = "epanechnikov")
 }
 \arguments{
-\item{y}{\code{vector (numeric)}. A numeric vector containing the observed values of the independent variable corresponding to the observation points \code{t}.}
+\item{y}{\code{vector (numeric)}. A numeric vector containing the observed values of the dependent variable.}
 
-\item{t}{\code{vector (numeric)}. A numeric vector containing the observed values of the dependent variable.}
+\item{t}{\code{vector (numeric)}. A numeric vector containing the observed values of the independent variable.}
 
-\item{bw_grid}{\code{vector (numeric)}. A grid of bandwidth to test. Default \code{bw_grid = NULL}, so it will be set as an exponential grid of \code{length(t)}.}
+\item{bw_grid}{\code{vector (numeric)}. A grid of bandwidth values to test. Default is \code{bw_grid = NULL}, in which case an exponential grid based on the length of \code{t} will be used.}
 
-\item{smooth_ker}{\code{function}. The kernel function of the estimator.}
+\item{kernel_name}{\code{string}. A string specifying the name of the kernel function to use. The default is "epanechnikov".
+Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform".}
 }
 \value{
-A \code{numeric} value corresponding to the best bandwidth.
+A \code{numeric} value representing the optimal bandwidth that minimizes the cross-validation error.
 }
 \description{
-Nadaraya-Watson Bandwidth Selection using cross validation.
+Selects the optimal bandwidth for Nadaraya-Watson kernel regression using cross-validation.
+}
+\details{
+This function computes the optimal bandwidth for the Nadaraya-Watson kernel regression estimator by performing cross-validation over a set of candidate bandwidths defined by \code{bw_grid}. The function returns the bandwidth that minimizes the cross-validation error.
 }
 \examples{
 \dontrun{
-# The model
-## Let
+# Define the true regression function
 m <- function(t) 4 * sin(1.5 * pi * t)
 
-## Observation points
-t <- runif(n = 200, min = 0, max = 1)
-t <- sort(t)
+# Generate observation points
+t <- sort(runif(n = 200, min = 0, max = 1))
 
-## Measure error
+# Generate measurement errors
 e <- rnorm(n = 200, mean = 0, sd = 0.2)
 
-## Regression model
+# Observed values of the regression model
 y <- m(t) + e
 
+# Plot observed points and true regression function
 plot(x = t, y = y, main = "Observed points and true regression function")
-lines(x = t, y = m(t), type = "l", col = "red")
+lines(x = t, y = m(t), col = "red")
 
-## Estimate the best bandwidth
-bw_grid <- seq(1 / (2 * length(t)), length(t) ** (- 1/3), len = 100)
-hbest <- estimate_nw_bw(y = y, t = t,
-                        bw_grid = bw_grid,
-                        smooth_ker = epanechnikov)
+# Define a grid of candidate bandwidths
+bw_grid <- seq(1 / (2 * length(t)), length(t)^(-1/3), length.out = 100)
 
-## Estimate the regression function
-dt_nw <- estimate_nw(y = y, t = t,
-                     tnew = seq(0.01, 0.99, len = 100),
-                     h = hbest, smooth_ker = epanechnikov)
+# Estimate the best bandwidth using cross-validation
+hbest <- estimate_nw_bw(y = y, t = t, bw_grid = bw_grid, kernel_name = "epanechnikov")
 
+# Estimate the regression function using the selected bandwidth
+dt_nw <- estimate_nw(y = y, t = t, tnew = seq(0.01, 0.99, length.out = 100), h = hbest, kernel_name = "epanechnikov")
+
+# Plot estimated and true regression functions
 plot(x = dt_nw[, tnew], y = dt_nw[, yhat], type = "l", col = "blue",
-     main = "Estimated and true regression function.")
-lines(x = dt_nw[, tnew], y = m(dt_nw[, tnew]), type = "l", col = "red")
-legend(x = 0.64, y = 4.1, fill = c("blue", "red"),legend = c("Estimated m", "True m"))
-
+     main = "Estimated and true regression function")
+lines(x = dt_nw[, tnew], y = m(dt_nw[, tnew]), col = "red")
+legend(x = 0.64, y = 4.1, fill = c("blue", "red"), legend = c("Estimated m", "True m"))
 }
 
 }
 \seealso{
-\code{\link[=estimate_nw]{estimate_nw()}}
+\code{\link{estimate_nw}}
 }

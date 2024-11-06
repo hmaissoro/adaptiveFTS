@@ -2,7 +2,7 @@
 % Please edit documentation in R/05_estimate_autocovariance.R
 \name{estimate_autocov_risk}
 \alias{estimate_autocov_risk}
-\title{Estimate the risk of the lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function}
+\title{Estimate the Risk of the Covariance or Autocovariance Function}
 \usage{
 estimate_autocov_risk(
   data,
@@ -12,164 +12,131 @@ estimate_autocov_risk(
   s = c(1/5, 2/5, 4/5),
   t = c(1/4, 1/2, 3/4),
   lag = 1,
-  bw_grid = seq(0.005, 0.15, len = 45),
-  smooth_ker = epanechnikov,
-  Hs = NULL,
-  Ls = NULL,
-  Ht = NULL,
-  Lt = NULL,
-  Delta = NULL,
-  h = NULL
+  bw_grid = NULL,
+  use_same_bw = FALSE,
+  center = TRUE,
+  kernel_name = "epanechnikov"
 )
 }
 \arguments{
-\item{data}{\code{data.table (or data.frame)} or \code{list} of \code{data.table (or data.frame)} or \code{list} of \code{list}.
+\item{data}{A \code{data.table} (or \code{data.frame}), a \code{list} of \code{data.table} (or \code{data.frame}), or a \code{list} of \code{list}.
 \itemize{
-\item{If \code{data.table}}{
-It must contain the raw binding of the curve observations with at least 3 columns.
+\item{If \code{data.table}:}{
+It should contain the raw curve observations in at least three columns.
 \itemize{
-\item{\code{idcol} :}{ The name of the column that contains the index of the curve in the sample.
-Each index of a curve is repeated as many times as it has observation points.}
-\item{\code{tcol} :}{ The name of the column that contains the observation points associated to each curve index.}
-\item{\code{ycol} :}{ The name of the column that contains the observed value of a curve at each point of observation and for each index of the curve.}
+\item{\code{idcol} :}{ The name of the column containing the curve index in the sample.
+Each curve index is repeated according to the number of observation points.}
+\item{\code{tcol} :}{ The name of the column with observation points associated with each curve index.}
+\item{\code{ycol} :}{ The name of the column with observed values at each observation point for each curve index.}
 }
 }
-\item{If \code{list} of \code{data.table}}{
-In this case, each element of the given \code{list} corresponds to the observation scheme of a curve, which is given as \code{data.table} or \code{data.frame}.
-The data.table contains at least 2 columns.
+\item{If \code{list} of \code{data.table}:}{
+In this case, each element in the \code{list} represents the observation data of a curve in the form of a \code{data.table} or \code{data.frame}.
+Each \code{data.table} contains at least two columns.
 \itemize{
-\item{\code{tcol} :}{ The name of the column that contains the observation points associated to the curve.}
-\item{\code{ycol} :}{ The name of the column that contains the observed value of the curve.}
+\item{\code{tcol} :}{ The name of the column with observation points for the curve.}
+\item{\code{ycol} :}{ The name of the column with observed values for the curve.}
 }
 }
-\item{If \code{list} of \code{list}}{
-In the latter case, the \code{data} is a list \code{list} where each element is the observation scheme of a curve given as a \code{list} of 2 vectors.
+\item{If \code{list} of \code{list}:}{
+In this case, \code{data} is a list where each element is the observation data of a curve, given as a \code{list} of two vectors.
 \itemize{
-\item{\code{tcol} :}{ The name of the vector that contains the observation points associated the curve.}
-\item{\code{ycol} :}{ The name of the vector that contains the observed value of the curve.}
+\item{\code{tcol} :}{ The vector containing observation points for the curve.}
+\item{\code{ycol} :}{ The vector containing observed values for the curve.}
 }
 }
 }}
 
-\item{idcol}{\code{character}. If \code{data} is given as \code{data.table} or \code{data.frame},
-it is the name of the column that contains the index of the curve in the sample.
-Each index of a curve is repeated as many times as it has observation points.
-Opposite, if f \code{data} is given as \code{list} of \code{data.table (or data.frame)} of \code{list} of \code{list}, \code{idcol = NULL.}}
+\item{idcol}{\code{character}. If \code{data} is given as a \code{data.table} or \code{data.frame}, this is the name of the column that holds the curve index.
+Each curve index is repeated according to the number of observation points. If \code{data} is a \code{list} of \code{data.table} (or \code{data.frame}) or a \code{list} of \code{list}, set \code{idcol = NULL}.}
 
-\item{tcol}{\code{character}. The name of the column (or vector) that contains the observation points associated to the curves.}
+\item{tcol}{\code{character}. The name of the column (or vector) containing the observation points for the curves.}
 
-\item{ycol}{\code{character}. The name of the column that contains the observed value of the curves.}
+\item{ycol}{\code{character}. The name of the column with observed values for the curves.}
 
-\item{s}{\code{vector (numeric)}. First argument of the autocovariance function.
-It corresponds to the observation points \code{s} in the pair (\code{s}, \code{t}).
-It has to be of the same length as the \code{t}}
+\item{s}{\code{vector (numeric)}. The first argument of the autocovariance function, corresponding to observation points \code{s} in the pair (\code{s}, \code{t}). Must be of the same length as \code{t}.}
 
-\item{t}{\code{vector (numeric)}. Second argument of the autocovariance function.
-It corresponds to the observation points \code{t} in the pair (\code{s}, \code{t}).
-It has to be of the same length as the \code{s}.}
+\item{t}{\code{vector (numeric)}. The second argument of the autocovariance function, corresponding to observation points \code{t} in the pair (\code{s}, \code{t}). Must be of the same length as \code{s}.}
 
-\item{lag}{\code{integer (positive integer)}. Lag of the autocovariance.}
+\item{lag}{\code{integer (positive integer)}. The lag of the autocovariance.}
 
-\item{bw_grid}{\code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each pair (\code{s}, \code{t}).
-It can be \code{NULL} and that way it will be defined as an exponential grid of \eqn{N\times\lambda}.}
+\item{bw_grid}{\code{vector (numeric)}. Bandwidth grid for selecting the optimal smoothing parameter for each pair (\code{s}, \code{t}). Defaults to \code{NULL}, which generates an exponential grid of \eqn{N \lambda}.}
 
-\item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator.
-Default \code{smooth_ker = epanechnikov}.}
+\item{use_same_bw}{\code{logical}. Indicates whether the same bandwidth should be used for both \code{s} and \code{t}. Defaults to \code{FALSE}.}
 
-\item{Hs}{\code{vector (numeric)}. The estimates of the local exponent for each \code{s}.
-Default \code{Hs = NULL} and thus it will be estimated.}
+\item{center}{\code{logical}. If \code{TRUE}, centers the data before estimation. Default is \code{TRUE}.}
 
-\item{Ls}{\code{vector (numeric)}. The estimates of the Hölder constant for each \code{s}.
-It corresponds to \eqn{L_s^2}. Default \code{Ls = NULL} and thus it will be estimated.}
-
-\item{Ht}{\code{vector (numeric)}. The estimates of the local exponent for each \code{t}.
-Default \code{Ht = NULL} and thus it will be estimated.}
-
-\item{Lt}{\code{vector (numeric)}. The estimates of the Hölder constant for each \code{t}.
-It corresponds to \eqn{L_t^2}. Default \code{Lt = NULL} and thus it will be estimated.}
-
-\item{Delta}{\code{numeric (positive)}. The length of the neighbourhood of \code{s} and \code{t} around which the local regularity is to be estimated.
-Default \code{Delta = NULL} and thus it will be estimated from the data.}
-
-\item{h}{\code{numeric (positive vector or scalar)}. The bandwidth of the Nadaraya-Watson estimator for the local regularity estimation.
-Default \code{h = NULL} and thus it will be estimated by Cross-Validation on a subset of curves.
-If \code{h} is a \code{scalar}, then all curves will be smoothed with the same bandwidth.
-Otherwise, if \code{h} is a \code{vector}, its length must be equal to the number of curves in \code{data}
-and each element of the vector must correspond to a curve given in the same order as in \code{data}.}
+\item{kernel_name}{\code{string}. Specifies the kernel function for estimation; default is "epanechnikov". Supported kernels include: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".}
 }
 \value{
-A \code{data.table} containing the following columns.
+A \code{data.table} containing the following columns:
 \itemize{
-\item{s :}{ The first argument of the autocovariance function.}
-\item{t :}{ The second argument of the autocovariance function.}
-\item{h :}{ The candidate bandwidth.}
-\item{Hs :}{ The estimates of the local exponent for each \code{s}. It corresponds to \eqn{H_s}}
-\item{Ls :}{ The estimates of the Hölder constant for each \code{s}. It corresponds to \eqn{L_s^2}.}
-\item{Ht :}{ The estimates of the local exponent for each \code{t}. It corresponds to \eqn{H_t}}
-\item{Lt :}{ The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
-\item{bias_term :}{ The bias term of the risk function.}
-\item{varriance_term :}{ The variance term of the risk function.}
-\item{dependence_term :}{ The dependence term of the risk function.}
-\item{autocov_risk :}{ The estimates of the risk function of the autocovariance function.}
+\item{\code{s} :}{ The first argument of the autocovariance function.}
+\item{\code{t} :}{ The second argument of the autocovariance function.}
+\item{\code{hs} :}{ Candidate bandwidth for \code{s}. If \code{use_same_bw = TRUE}, \code{hs} and \code{ht} will contain the same values.}
+\item{\code{ht} :}{ Candidate bandwidth for \code{t}.}
+\item{\code{PNl} :}{ Number of curves used in the autocovariance estimation at (\code{s}, \code{t}). Corresponds to \eqn{P_{N,\ell}(s,t;h_s, h_t)}.}
+\item{\code{locreg_bw} :}{ Bandwidth used for estimating local regularity parameters.}
+\item{\code{Hs} :}{ Local exponent estimates for \code{s}, denoted as \eqn{H_s}.}
+\item{\code{Ls} :}{ Estimates of the Hölder constant for \code{s}, corresponding to \eqn{L_s^2}.}
+\item{\code{Ht} :}{ Local exponent estimates for \code{t}, denoted as \eqn{H_t}.}
+\item{\code{Lt} :}{ Estimates of the Hölder constant for \code{t}, corresponding to \eqn{L_t^2}.}
+\item{\code{bias_term} :}{ Bias term of the risk function.}
+\item{\code{variance_term} :}{ Variance term of the risk function.}
+\item{\code{dependence_term} :}{ Dependence term of the risk function.}
+\item{\code{autocov_risk} :}{ Estimated risk of the covariance/autocovariance function.}
 }
 }
 \description{
-Estimate the risk of the lag-\eqn{\ell} (\eqn{\ell > 0}) autocovariance function
+This function estimates the risk function of the adaptive lag-\eqn{\ell} autocovariance function estimator, where \eqn{\ell} = 0, 1, ...,
+using one bandwidth parameter as proposed in \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}
+or two bandwidth parameters as proposed in \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
 }
 \examples{
 \dontrun{
-# Generate a sample path of FTS
-dt_far <- simulate_far(N = 50, lambda = 70,
-                       tdesign = "random",
-                       Mdistribution = rpois,
-                       tdistribution = runif,
-                       tcommon = NULL,
-                       hurst_fun = hurst_logistic,
-                       L = 4,
-                       far_kernel = get_real_data_far_kenel,
-                       far_mean = get_real_data_mean,
-                       int_grid = 100L,
-                       burnin = 100L,
-                       remove_burnin = TRUE)
+# Load data
+data("data_far")
 
-# Add noise
-dt_far[, X := X + rnorm(n = .N, mean = 0, sd = 0.9 ** (0.1)), by = id_curve]
-
-# Estimate risk function
+# Estimate risk function with same bandwidth for s and t
 dt_autocov_risk <- estimate_autocov_risk(
-  data = dt_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  s = c(1/5, 2/5, 4/5),
-  t = c(1/4, 1/2, 3/4),
-  lag = 3,
-  bw_grid = seq(0.005, 0.15, len = 45),
-  Delta = NULL, h = NULL, smooth_ker = epanechnikov
+  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  s = c(1/5, 2/5, 4/5), t = c(1/4, 1/2, 3/4), lag = 1,
+  bw_grid = NULL, use_same_bw = TRUE, center = TRUE,
+  kernel_name = "epanechnikov"
 )
 
-# Plot mean risk function
-dt_dcast <- data.table::dcast(data = dt_autocov_risk,
-                              formula = h ~ s + t ,
-                              value.var = "autocov_risk")
-
+# Visualize mean risk function for different (s, t) pairs
+dt_dcast <- data.table::dcast(data = dt_autocov_risk, formula = hs ~ s + t, value.var = "autocov_risk")
 manipulateWidget::combineWidgets(
   list = list(
-    dygraphs::dygraph(data = dt_dcast[, .(h, "(s, t) = (0.2, 0.25)" = `0.2_0.25`)],
-                      main = "lag = 3 - (s, t) = (0.2, 0.25)",
-                      xlab = "h",
-                      ylab = "risk function"),
-    dygraphs::dygraph(data = dt_dcast[, .(h, "(s, t) = (0.4, 0.5)" = `0.4_0.5`)],
-                      main = "lag = 3 - (s, t) = (0.4, 0.5)",
-                      xlab = "h",
-                      ylab = "risk function"),
-    dygraphs::dygraph(data = dt_dcast[, .(h, "(s, t) = (0.8, 0.75)" = `0.8_0.75`)],
-                      main = "lag = 3 - (s, t) = (0.8, 0.75)",
-                      xlab = "h",
-                      ylab = "risk function")
+    dygraphs::dygraph(data = dt_dcast[, .(hs, "(s, t) = (0.2, 0.25)" = `0.2_0.25`)],
+                      main = "lag = 1 - (s, t) = (0.2, 0.25)",
+                      xlab = "h", ylab = "Risk Function"),
+    dygraphs::dygraph(data = dt_dcast[, .(hs, "(s, t) = (0.4, 0.5)" = `0.4_0.5`)],
+                      main = "lag = 1 - (s, t) = (0.4, 0.5)",
+                      xlab = "h", ylab = "Risk Function"),
+    dygraphs::dygraph(data = dt_dcast[, .(hs, "(s, t) = (0.8, 0.75)" = `0.8_0.75`)],
+                      main = "lag = 1 - (s, t) = (0.8, 0.75)",
+                      xlab = "h", ylab = "Risk Function")
   ),
   nrow = 3
 )
 
+# Estimate risk function with separate bandwidths for s and t
+dt_autocov_risk_2bw <- estimate_autocov_risk(
+  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  s = c(1/5, 2/5, 4/5), t = c(1/4, 1/2, 3/4), lag = 1,
+  bw_grid = NULL, use_same_bw = FALSE, center = TRUE,
+  kernel_name = "epanechnikov"
+)
+
+# Display selected columns of the results
+dt_autocov_risk_2bw[, .(s, t, lag, hs, ht, autocov_risk)]
 }
 
+}
+\references{
+\insertAllCited{}
 }
 \seealso{
 \code{\link[=estimate_mean]{estimate_mean()}}, \code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_sigma]{estimate_sigma()}}, \code{\link[=estimate_nw]{estimate_nw()}}, \code{\link[=estimate_empirical_XsXt_autocov]{estimate_empirical_XsXt_autocov()}}.

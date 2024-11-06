@@ -12,149 +12,99 @@ estimate_locreg(
   t = 1/2,
   Delta = NULL,
   h = NULL,
-  smooth_ker = epanechnikov,
+  kernel_name = "epanechnikov",
   center = TRUE
 )
 }
 \arguments{
-\item{data}{\code{data.table (or data.frame)} or \code{list} of \code{data.table (or data.frame)} or \code{list} of \code{list}.
+\item{data}{A \code{data.table} (or \code{data.frame}), a \code{list} of \code{data.table} (or \code{data.frame}), or a \code{list} of \code{list}.
 \itemize{
-\item{If \code{data.table}}{
-It must contain the raw binding of the curve observations with at least 3 columns.
+\item{If \code{data.table}:}{
+It should contain the raw curve observations in at least three columns.
 \itemize{
-\item{\code{idcol} :}{ The name of the column that contains the index of the curve in the sample.
-Each index of a curve is repeated as many times as it has observation points.}
-\item{\code{tcol} :}{ The name of the column that contains the observation points associated to each curve index.}
-\item{\code{ycol} :}{ The name of the column that contains the observed value of a curve at each point of observation and for each index of the curve.}
+\item{\code{idcol} :}{ The name of the column containing the curve index in the sample.
+Each curve index is repeated according to the number of observation points.}
+\item{\code{tcol} :}{ The name of the column with observation points associated with each curve index.}
+\item{\code{ycol} :}{ The name of the column with observed values at each observation point for each curve index.}
 }
 }
-\item{If \code{list} of \code{data.table}}{
-In this case, each element of the given \code{list} corresponds to the observation scheme of a curve, which is given as \code{data.table} or \code{data.frame}.
-The data.table contains at least 2 columns.
+\item{If \code{list} of \code{data.table}:}{
+In this case, each element in the \code{list} represents the observation data of a curve in the form of a \code{data.table} or \code{data.frame}.
+Each \code{data.table} contains at least two columns.
 \itemize{
-\item{\code{tcol} :}{ The name of the column that contains the observation points associated to the curve.}
-\item{\code{ycol} :}{ The name of the column that contains the observed value of the curve.}
+\item{\code{tcol} :}{ The name of the column with observation points for the curve.}
+\item{\code{ycol} :}{ The name of the column with observed values for the curve.}
 }
 }
-\item{If \code{list} of \code{list}}{
-In the latter case, the \code{data} is a list \code{list} where each element is the observation scheme of a curve given as a \code{list} of 2 vectors.
+\item{If \code{list} of \code{list}:}{
+In this case, \code{data} is a list where each element is the observation data of a curve, given as a \code{list} of two vectors.
 \itemize{
-\item{\code{tcol} :}{ The name of the vector that contains the observation points associated the curve.}
-\item{\code{ycol} :}{ The name of the vector that contains the observed value of the curve.}
+\item{\code{tcol} :}{ The vector containing observation points for the curve.}
+\item{\code{ycol} :}{ The vector containing observed values for the curve.}
 }
 }
 }}
 
-\item{idcol}{\code{character}. If \code{data} is given as \code{data.table} or \code{data.frame},
-it is the name of the column that contains the index of the curve in the sample.
-Each index of a curve is repeated as many times as it has observation points.
-Opposite, if f \code{data} is given as \code{list} of \code{data.table (or data.frame)} of \code{list} of \code{list}, \code{idcol = NULL.}}
+\item{idcol}{\code{character}. If \code{data} is given as a \code{data.table} or \code{data.frame}, this is the name of the column that holds the curve index.
+Each curve index is repeated according to the number of observation points. If \code{data} is a \code{list} of \code{data.table} (or \code{data.frame}) or a \code{list} of \code{list}, set \code{idcol = NULL}.}
 
-\item{tcol}{\code{character}. The name of the column (or vector) that contains the observation points associated to the curves.}
+\item{tcol}{\code{character}. The name of the column (or vector) containing the observation points for the curves.}
 
-\item{ycol}{\code{character}. The name of the column that contains the observed value of the curves.}
+\item{ycol}{\code{character}. The name of the column with observed values for the curves.}
 
-\item{t}{\code{vector (numeric)}. Observation points at which we want to estimate the local regularity parameters of the underlying process.}
+\item{t}{\code{vector (numeric)}. Observation points at which to estimate the local regularity parameters of the underlying process.}
 
-\item{Delta}{\code{numeric (positive)}. The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.
-Default \code{Delta = NULL} and thus it will be estimated from the data.}
+\item{Delta}{\code{numeric (positive)}. The length of the neighborhood around each point in \code{t} for local regularity estimation.
+Default is \code{Delta = NULL}, in which case it will be estimated from the data.}
 
-\item{h}{\code{numeric (positive vector or scalar)}. The bandwidth of the Nadaraya-Watson estimator for the local regularity estimation.
-Default \code{h = NULL} and thus it will be estimated by Cross-Validation on a subset of curves.
-If \code{h} is a \code{scalar}, then all curves will be smoothed with the same bandwidth.
-Otherwise, if \code{h} is a \code{vector}, its length must be equal to the number of curves in \code{data}
-and each element of the vector must correspond to a curve given in the same order as in \code{data}.}
+\item{h}{\code{numeric (positive vector or scalar)}. Bandwidth parameter for the Nadaraya-Watson estimator used in local regularity estimation.
+Default is \code{h = NULL}, allowing it to be determined by cross-validation on a subset of curves.
+If \code{h} is a scalar, the same bandwidth is applied across all curves. If it is a vector, it must match the number of curves in \code{data}, with each element corresponding to a curve.}
 
-\item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.}
+\item{kernel_name}{\code{string}. Specifies the kernel function for estimation; default is "epanechnikov".
+Supported kernels include: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".}
 
-\item{center}{\code{logical}. If \code{TRUE}, the curves are centered.}
+\item{center}{\code{logical}. If \code{TRUE}, centers the curves before regularity estimation.}
 }
 \value{
-A \code{data.table} containing the following columns.
+A \code{data.table} with columns:
 \itemize{
-\item{t :}{ The points around which the local regularity parameters are estimated.}
-\item{locreg_bw :}{ The presmoothing bandwidth.}
-\item{Delta :}{ The length of the neighbourhood of \code{t} around which the local regularity is to be estimated.}
-\item{Nused :}{ The number of curves that give non-degenerate estimates around \code{t}.}
-\item{Ht :}{ The local exponent estimates for each \code{t}. It corresponds to \eqn{H_t}}
-\item{Lt :}{ The Hölder constant estimates \code{t}. It corresponds to \eqn{L_t^2}.}
+\item{\code{t} :}{ The observation points around which local regularity is estimated.}
+\item{\code{locreg_bw} :}{ The presmoothing bandwidth used for estimation.}
+\item{\code{Delta} :}{ The neighborhood length around each \code{t} used in local regularity estimation.}
+\item{\code{Nused} :}{ The number of curves contributing non-degenerate estimates around each \code{t}.}
+\item{\code{Ht} :}{ Local exponent estimates, denoted by \eqn{H_t}.}
+\item{\code{Lt} :}{ Hölder constant estimates, corresponding to \eqn{L_t^2}.}
 }
 }
 \description{
-Local Regularity Parameters Estimation
+This function estimates the local regularity parameters \eqn{H_t} and \eqn{L_t^2} defined in Section 3 of \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}.
 }
 \examples{
 \dontrun{
-  # Generate a sample of FAR(1)
-Hfun <- function(t) {
-  hurst_logistic(t = t, h_left = 0.4, h_right = 0.8, slope = 5)
+ # Load data
+ data("data_far")
+
+ # Define observation points for local regularity estimation
+ t0 <- seq(0.2, 0.8, length.out = 8)
+
+ # Estimate local regularity parameters
+ dt_locreg <- estimate_locreg(data = data_far,
+                              idcol = "id_curve",
+                              tcol = "tobs",
+                              ycol = "X",
+                              t = t0,
+                              Delta = NULL,
+                              h = NULL,
+                              kernel_name = "epanechnikov",
+                              center = TRUE)
+
+ dt_locreg
 }
 
-## Hölder constant
-L <- 4
-
-dt_far <- simulate_far(N = 200L, lambda = 100L,
-                       tdesign = "random",
-                       Mdistribution = rpois,
-                       tdistribution = runif,
-                       tcommon = NULL,
-                       hurst_fun = Hfun,
-                       L = L,
-                       far_kernel = function(s,t) 9/4 * exp( - (t + 2 * s) ** 2),
-                       far_mean = function(t) 4 * sin(1.5 * pi * t),
-                       int_grid = 100L,
-                       burnin = 100L,
-                       remove_burnin = TRUE)
-
-# Estimate local regularity at
-t0 <- seq(0.2, 0.8, len = 8)
-
-## If data is a data.table or a data. frame
-dt_locreg <- estimate_locreg(data = dt_far,
-                             idcol = "id_curve",
-                             tcol = "tobs",
-                             ycol = "X",
-                             t = t0,
-                             Delta = NULL,
-                             h = NULL,
-                             smooth_ker = epanechnikov)
-DT::datatable(dt_locreg)
-
-## If data is a list of data.table (or data. frame)
-list_dt_far <- lapply(unique(dt_far[, id_curve]), function(idx){
-  dt_far[id_curve == idx, list(tobs, X)]
-})
-
-dt_locreg_2 <- estimate_locreg(data = list_dt_far,
-                               idcol = NULL,
-                               tcol = "tobs",
-                               ycol = "X",
-                               t = t0,
-                               Delta = NULL,
-                               h = NULL,
-                               smooth_ker = epanechnikov)
-DT::datatable(dt_locreg_2)
-
-## If data is a list of list
-list_list_far <- lapply(unique(dt_far[, id_curve]), function(idx){
-  list("Obs_point" = dt_far[id_curve == idx, tobs],
-       "Xobs" = dt_far[id_curve == idx, X])
-})
-
-dt_locreg_3 <- estimate_locreg(data = list_list_far,
-                               idcol = NULL,
-                               tcol = "Obs_point",
-                               ycol = "Xobs",
-                               t = t0,
-                               Delta = NULL,
-                               h = NULL,
-                               smooth_ker = epanechnikov)
-DT::datatable(dt_locreg_2)
-
 }
-
-
-
+\references{
+\insertAllCited{}
 }
 \seealso{
 \code{\link[=estimate_nw]{estimate_nw()}}, \code{\link[=estimate_nw_bw]{estimate_nw_bw()}}, \code{\link[=simulate_far]{simulate_far()}}, etc.

@@ -318,6 +318,18 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// build_grid
+arma::mat build_grid(const arma::vec& u, const arma::vec& v);
+RcppExport SEXP _adaptiveFTS_build_grid(SEXP uSEXP, SEXP vSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type u(uSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type v(vSEXP);
+    rcpp_result_gen = Rcpp::wrap(build_grid(u, v));
+    return rcpp_result_gen;
+END_RCPP
+}
 // get_best_autocov_bw
 arma::mat get_best_autocov_bw(const arma::mat& mat_autocov_risk, const arma::vec s, const arma::vec t);
 RcppExport SEXP _adaptiveFTS_get_best_autocov_bw(SEXP mat_autocov_riskSEXP, SEXP sSEXP, SEXP tSEXP) {
@@ -380,6 +392,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// estimate_curve
+Rcpp::List estimate_curve(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<int> id_curve, const Rcpp::Nullable<arma::vec> bw_grid, const bool use_same_bw, const bool center, const bool correct_diagonal, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_estimate_curve(SEXP dataSEXP, SEXP tSEXP, SEXP id_curveSEXP, SEXP bw_gridSEXP, SEXP use_same_bwSEXP, SEXP centerSEXP, SEXP correct_diagonalSEXP, SEXP kernel_nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<int> >::type id_curve(id_curveSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_grid(bw_gridSEXP);
+    Rcpp::traits::input_parameter< const bool >::type use_same_bw(use_same_bwSEXP);
+    Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
+    Rcpp::traits::input_parameter< const bool >::type correct_diagonal(correct_diagonalSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_curve(data, t, id_curve, bw_grid, use_same_bw, center, correct_diagonal, kernel_name));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_biweight_kernel", (DL_FUNC) &_adaptiveFTS_biweight_kernel, 1},
@@ -404,11 +434,13 @@ static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_estimate_empirical_XsXt_autocov_cpp", (DL_FUNC) &_adaptiveFTS_estimate_empirical_XsXt_autocov_cpp, 8},
     {"_adaptiveFTS_reshape_matrix", (DL_FUNC) &_adaptiveFTS_reshape_matrix, 4},
     {"_adaptiveFTS_combine_matrices", (DL_FUNC) &_adaptiveFTS_combine_matrices, 4},
+    {"_adaptiveFTS_build_grid", (DL_FUNC) &_adaptiveFTS_build_grid, 2},
     {"_adaptiveFTS_get_best_autocov_bw", (DL_FUNC) &_adaptiveFTS_get_best_autocov_bw, 3},
     {"_adaptiveFTS_get_nearest_best_autocov_bw", (DL_FUNC) &_adaptiveFTS_get_nearest_best_autocov_bw, 3},
     {"_adaptiveFTS_get_best_mean_bw", (DL_FUNC) &_adaptiveFTS_get_best_mean_bw, 2},
     {"_adaptiveFTS_get_nearest_best_mean_bw", (DL_FUNC) &_adaptiveFTS_get_nearest_best_mean_bw, 2},
     {"_adaptiveFTS_ensure_positive_definite", (DL_FUNC) &_adaptiveFTS_ensure_positive_definite, 2},
+    {"_adaptiveFTS_estimate_curve", (DL_FUNC) &_adaptiveFTS_estimate_curve, 8},
     {NULL, NULL, 0}
 };
 
