@@ -54,7 +54,9 @@
 #' )
 #'
 #' # Visualize mean risk function for different (s, t) pairs
-#' dt_dcast <- data.table::dcast(data = dt_autocov_risk, formula = hs ~ s + t, value.var = "autocov_risk")
+#' dt_dcast <- data.table::dcast(data = dt_autocov_risk,
+#'                               formula = hs ~ s + t,
+#'                               value.var = "autocov_risk")
 #' manipulateWidget::combineWidgets(
 #'   list = list(
 #'     dygraphs::dygraph(data = dt_dcast[, .(hs, "(s, t) = (0.2, 0.25)" = `0.2_0.25`)],

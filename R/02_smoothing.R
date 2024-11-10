@@ -47,7 +47,8 @@
 #' hbest <- estimate_nw_bw(y = y, t = t, bw_grid = bw_grid, kernel_name = "epanechnikov")
 #'
 #' # Estimate regression function with the Nadaraya-Watson estimator
-#' dt_nw <- estimate_nw(y = y, t = t, tnew = seq(0.01, 0.99, length.out = 100), h = hbest, kernel_name = "epanechnikov")
+#' dt_nw <- estimate_nw(y = y, t = t, tnew = seq(0.01, 0.99, length.out = 100),
+#'                      h = hbest, kernel_name = "epanechnikov")
 #'
 #' # Plot estimated and true regression functions
 #' plot(x = dt_nw[, tnew], y = dt_nw[, yhat], type = "l", col = "blue",
@@ -127,7 +128,8 @@ estimate_nw <- function(y, t, tnew, h = NULL, kernel_name = "epanechnikov"){
 #' hbest <- estimate_nw_bw(y = y, t = t, bw_grid = bw_grid, kernel_name = "epanechnikov")
 #'
 #' # Estimate the regression function using the selected bandwidth
-#' dt_nw <- estimate_nw(y = y, t = t, tnew = seq(0.01, 0.99, length.out = 100), h = hbest, kernel_name = "epanechnikov")
+#' dt_nw <- estimate_nw(y = y, t = t, tnew = seq(0.01, 0.99, length.out = 100),
+#'                      h = hbest, kernel_name = "epanechnikov")
 #'
 #' # Plot estimated and true regression functions
 #' plot(x = dt_nw[, tnew], y = dt_nw[, yhat], type = "l", col = "blue",
