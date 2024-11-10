@@ -14,7 +14,6 @@
 #' @references
 #' \insertAllCited{}
 #'
-#' @seealso [estimate_sigma_cpp()]
 #'
 #' @examples
 #' \dontrun{
@@ -22,7 +21,7 @@
 #' data("data_far")
 #'
 #' # Estimate the standar-deviation of the error term
-#' estimate_sigma_cpp(data = data_far, t = c(1/4, 1/2, 3/4))
+#' estimate_sigma(data = data_far, t = c(1/4, 1/2, 3/4))
 #'
 #' }
 #'
@@ -65,7 +64,7 @@ estimate_sigma <- function(data, idcol = NULL, tcol = "tobs", ycol = "X", t = c(
 #' @references
 #' \insertAllCited{}
 #'
-#' @seealso [get_nw_optimal_bw()], [estimate_empirical_autocov_cpp()].
+#' @seealso [get_nw_optimal_bw()].
 #'
 #' @examples
 #' \dontrun{
@@ -168,7 +167,7 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
 #' @references
 #' \insertAllCited{}
 #'
-#' @seealso [get_nw_optimal_bw()], [estimate_empirical_mom_cpp()].
+#' @seealso [get_nw_optimal_bw()].
 #'
 #' @examples
 #' \dontrun{
@@ -283,9 +282,9 @@ estimate_empirical_mom <- function(data, idcol = NULL, tcol = "tobs", ycol = "X"
 #' @references
 #' \insertAllCited{}
 #'
-#' @seealso [get_nw_optimal_bw()], [estimate_empirical_XsXt_autocov_cpp()].
+#' @seealso [get_nw_optimal_bw()].
 #'
-#' #' @examples
+#' @examples
 #' \dontrun{
 #' # Load data
 #' data("data_far")

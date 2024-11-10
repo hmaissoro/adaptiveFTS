@@ -16,10 +16,8 @@ Imports:
     data.table,
     fastmatrix,
     MASS,
-    matrixStats,
     methods,
     Rcpp,
-    RcppArmadillo,
     Rdpack
 RdMacros: Rdpack
 Suggests: 

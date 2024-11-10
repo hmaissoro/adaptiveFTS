@@ -208,10 +208,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @inheritParams format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the mean function of the underlying process.
 #' @param h \code{numeric (positive scalar)}. The bandwidth of the estimator.
-#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = kernel_epanechnikov}.
-#'
-#' @import data.table data.table
-#' @importFrom fastmatrix kronecker.prod
+#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
 #'
 #' @return A \code{data.table} containing the following columns.
 #'          \itemize{
@@ -222,7 +219,11 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @export
 #'
 #' @seealso [estimate_mean_bw_rp()]
-#' @importFrom Rdpack reprompt
+#'
+#' @import data.table data.table
+#' @import Rdpack
+#' @importFrom fastmatrix kronecker.prod
+#'
 #' @references
 #' \insertAllcited{}
 #'
@@ -248,14 +249,14 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' # Estimate mean function using Rubìn and Panaretos (2020) method
 #' dt_mean_rp <- estimate_mean_rp(
 #'   data = dt_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-#'   t = c(1/4, 1/2, 3/4), h = 5/70, smooth_ker = kernel_epanechnikov)
+#'   t = c(1/4, 1/2, 3/4), h = 5/70, smooth_ker = epanechnikov)
 #'
 #' DT::datatable(data = dt_mean_rp[, lapply(.SD, function(X) round(X, 5))])
 #'
 #' }
 #'
 estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                             t = c(1/4, 1/2, 3/4), h, smooth_ker = kernel_epanechnikov){
+                             t = c(1/4, 1/2, 3/4), h, smooth_ker = epanechnikov){
   # Format data
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
@@ -357,7 +358,7 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' @inheritParams format_data
 #' @param Kfold \code{integer (positive)}. Number of fold for the cross-validation.
 #' @param bw_grid \code{vector (numeric)}. The bandwidth grid.
-#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = kernel_epanechnikov}.
+#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
 #'
 #' @return A \code{data.table} containing the following columns.
 #'          \itemize{
@@ -369,7 +370,8 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' @importFrom data.table data.table rbindlist
 #' @seealso [estimate_mean_rp()]
 #'
-#' @importFrom Rdpack reprompt
+#' @import Rdpack
+#'
 #' @references
 #' \insertAllcited{}
 #'
@@ -407,7 +409,7 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' ## Estimate the mean function
 #' dt_mean_rp <- estimate_mean_rp(
 #'   data = dt_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-#'   t = c(1/4, 1/2, 3/4), h = optbw, smooth_ker = kernel_epanechnikov)
+#'   t = c(1/4, 1/2, 3/4), h = optbw, smooth_ker = epanechnikov)
 #'
 #' DT::datatable(data = dt_mean_rp[, lapply(.SD, function(X) round(X, 5))])
 #'
@@ -415,7 +417,7 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #'
 estimate_mean_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                 Kfold = 10, bw_grid = seq(0.001, 0.15, len = 45),
-                                smooth_ker = kernel_epanechnikov){
+                                smooth_ker = epanechnikov){
   # Format data
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   # Create Kfold folds
