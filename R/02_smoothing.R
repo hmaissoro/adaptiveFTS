@@ -243,3 +243,75 @@ get_nw_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X
 
   return(hbest)
 }
+
+#' Biweight kernel function
+#'
+#' @param u \code{numeric}. Scalar or vector of numeric values at which to evaluate the function.
+#'
+#' @return A scalar or vector of \code{numeric}.
+#' @export
+#' @seealso [triweight()], [tricube()], [epanechnikov()], [triangular()], and [uniform()].
+#'
+biweight <- function(u){
+  ifelse(abs(u) <= 1, (15 / 16) * (1 - u ** 2) ** 2, 0)
+}
+
+#' Triweight kernel function
+#'
+#' @param u \code{numeric}. Scalar or vector of numeric values at which to evaluate the function.
+#'
+#' @return A scalar or vector of \code{numeric}.
+#' @export
+#' @seealso [biweight()], [tricube()], [epanechnikov()], [triangular()], and [uniform()].
+#'
+triweight <- function(u){
+  ifelse(abs(u) <= 1, (35 / 32) * (1 - u ** 2) ** 3, 0)
+}
+
+#' Tricube kernel function
+#'
+#' @param u \code{numeric}. Scalar or vector of numeric values at which to evaluate the function.
+#'
+#' @return A scalar or vector of \code{numeric}.
+#' @export
+#' @seealso [biweight()], [triweight()], [epanechnikov()], [triangular()], and [uniform()].
+#'
+tricube <- function(u){
+  ifelse(abs(u) <= 1, (70 / 81) * (1 - abs(u) ** 3) ** 3, 0)
+}
+
+#' Epanechnikov kernel function
+#'
+#' @param u \code{numeric}. Scalar or vector of numeric values at which to evaluate the function.
+#'
+#' @return A scalar or vector of \code{numeric}.
+#' @export
+#' @seealso [biweight()], [triweight()], [tricube()], [triangular()], and [uniform()].
+#'
+epanechnikov <- function(u){
+  ifelse(abs(u) <= 1, (3 / 4) * (1 - u ** 2), 0)
+}
+
+#' Triangular kernel function
+#'
+#' @param u \code{numeric}. Scalar or vector of numeric values at which to evaluate the function.
+#'
+#' @return A scalar or vector of \code{numeric}.
+#' @export
+#' @seealso [biweight()], [triweight()], [tricube()], [epanechnikov()], and [uniform()].
+#'
+triangular <- function(u){
+  ifelse(abs(u) <= 1, (1 - abs(u)), 0)
+}
+
+#' Uniform kernel function
+#'
+#' @param u \code{numeric}. Scalar or vector of numeric values at which to evaluate the function.
+#'
+#' @return A scalar or vector of \code{numeric}.
+#' @export
+#' @seealso [biweight()], [triweight()], [tricube()], [epanechnikov()], and [triangular()].
+#'
+uniform <- function(u){
+  ifelse(abs(u) <= 1, 1/2, 0)
+}
