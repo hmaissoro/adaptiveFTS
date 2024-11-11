@@ -11,7 +11,7 @@ estimate_mean_rp(
   ycol = "X",
   t = c(1/4, 1/2, 3/4),
   h,
-  smooth_ker = kernel_epanechnikov
+  smooth_ker = epanechnikov
 )
 }
 \arguments{
@@ -54,7 +54,7 @@ Each curve index is repeated according to the number of observation points. If \
 
 \item{h}{\code{numeric (positive scalar)}. The bandwidth of the estimator.}
 
-\item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = kernel_epanechnikov}.}
+\item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.}
 }
 \value{
 A \code{data.table} containing the following columns.
@@ -65,7 +65,8 @@ A \code{data.table} containing the following columns.
 }
 }
 \description{
-Estimate mean function using \insertCite{rubin2020;textual}{adaptiveFTS} method.
+This function estimates the mean function of a set of curves using the method proposed
+by \insertCite{rubin2020;textual}{adaptiveFTS}.
 }
 \examples{
 \dontrun{
@@ -89,7 +90,7 @@ dt_far[, X := X + rnorm(n = .N, mean = 0, sd = 0.9 ** (0.1)), by = id_curve]
 # Estimate mean function using Rubìn and Panaretos (2020) method
 dt_mean_rp <- estimate_mean_rp(
   data = dt_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  t = c(1/4, 1/2, 3/4), h = 5/70, smooth_ker = kernel_epanechnikov)
+  t = c(1/4, 1/2, 3/4), h = 5/70, smooth_ker = epanechnikov)
 
 DT::datatable(data = dt_mean_rp[, lapply(.SD, function(X) round(X, 5))])
 

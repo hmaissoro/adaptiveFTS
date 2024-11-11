@@ -88,13 +88,7 @@ A \code{data.table} with columns:
 This function estimates the empirical \eqn{X_0(s)X_{\ell}(t)} autocovariance function for \eqn{\ell} = 0, 1, ...,
 used in the empirical study of the papers \insertCite{maissoro2024adaptive;textual}{adaptiveFTS} and \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
 }
-\references{
-\insertAllCited{}
-}
-\seealso{
-\code{\link[=get_nw_optimal_bw]{get_nw_optimal_bw()}}, \code{\link[=estimate_empirical_XsXt_autocov_cpp]{estimate_empirical_XsXt_autocov_cpp()}}.
-
-#' @examples
+\examples{
 \dontrun{
 # Load data
 data("data_far")
@@ -131,4 +125,11 @@ dt_empirical_cov_centered <- estimate_empirical_XsXt_autocov(
 )
 dt_empirical_cov_centered
 }
+
+}
+\references{
+\insertAllCited{}
+}
+\seealso{
+\code{\link[=get_nw_optimal_bw]{get_nw_optimal_bw()}}.
 }

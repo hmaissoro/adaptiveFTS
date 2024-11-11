@@ -62,7 +62,7 @@ This function estimates the the standard deviation of the observation error usin
 data("data_far")
 
 # Estimate the standar-deviation of the error term
-estimate_sigma_cpp(data = data_far, t = c(1/4, 1/2, 3/4))
+estimate_sigma(data = data_far, t = c(1/4, 1/2, 3/4))
 
 }
 
@@ -70,7 +70,4 @@ estimate_sigma_cpp(data = data_far, t = c(1/4, 1/2, 3/4))
 }
 \references{
 \insertAllCited{}
-}
-\seealso{
-\code{\link[=estimate_sigma_cpp]{estimate_sigma_cpp()}}
 }

@@ -106,5 +106,5 @@ print(moment_estimates)
 \insertAllCited{}
 }
 \seealso{
-\code{\link[=get_nw_optimal_bw]{get_nw_optimal_bw()}}, \code{\link[=estimate_empirical_mom_cpp]{estimate_empirical_mom_cpp()}}.
+\code{\link[=get_nw_optimal_bw]{get_nw_optimal_bw()}}.
 }

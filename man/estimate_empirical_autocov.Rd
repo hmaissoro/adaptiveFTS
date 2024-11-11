@@ -96,5 +96,5 @@ dt_empirical_autocov_cv
 \insertAllCited{}
 }
 \seealso{
-\code{\link[=get_nw_optimal_bw]{get_nw_optimal_bw()}}, \code{\link[=estimate_empirical_autocov_cpp]{estimate_empirical_autocov_cpp()}}.
+\code{\link[=get_nw_optimal_bw]{get_nw_optimal_bw()}}.
 }

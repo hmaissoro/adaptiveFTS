@@ -205,6 +205,9 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 
 #' Estimate mean function using \insertCite{rubin2020;textual}{adaptiveFTS} method.
 #'
+#' This function estimates the mean function of a set of curves using the method proposed
+#' by \insertCite{rubin2020;textual}{adaptiveFTS}.
+#'
 #' @inheritParams format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the mean function of the underlying process.
 #' @param h \code{numeric (positive scalar)}. The bandwidth of the estimator.
@@ -220,7 +223,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #'
 #' @seealso [estimate_mean_bw_rp()]
 #'
-#' @import data.table data.table
+#' @import data.table
 #' @import Rdpack
 #' @importFrom fastmatrix kronecker.prod
 #'
@@ -355,6 +358,9 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 
 #' Bandwidth estimation using cross-validation for the \insertCite{rubin2020;textual}{adaptiveFTS} mean function estimator.
 #'
+#' This function estimates the optimal bandwidth for the mean function estimator
+#' using cross-validation, as described in \insertCite{rubin2020;textual}{adaptiveFTS}.
+#'
 #' @inheritParams format_data
 #' @param Kfold \code{integer (positive)}. Number of fold for the cross-validation.
 #' @param bw_grid \code{vector (numeric)}. The bandwidth grid.
@@ -366,11 +372,11 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #'            \item{cv_error :}{ The estimates of the Cross-Validation error for each \code{h}.}
 #'         }
 #' @export
-#' @importFrom caret createFolds
-#' @importFrom data.table data.table rbindlist
 #' @seealso [estimate_mean_rp()]
 #'
+#' @import data.table
 #' @import Rdpack
+#' @importFrom caret createFolds
 #'
 #' @references
 #' \insertAllcited{}

@@ -11,7 +11,7 @@ estimate_mean_bw_rp(
   ycol = "X",
   Kfold = 10,
   bw_grid = seq(0.001, 0.15, len = 45),
-  smooth_ker = kernel_epanechnikov
+  smooth_ker = epanechnikov
 )
 }
 \arguments{
@@ -54,7 +54,7 @@ Each curve index is repeated according to the number of observation points. If \
 
 \item{bw_grid}{\code{vector (numeric)}. The bandwidth grid.}
 
-\item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = kernel_epanechnikov}.}
+\item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.}
 }
 \value{
 A \code{data.table} containing the following columns.
@@ -64,7 +64,8 @@ A \code{data.table} containing the following columns.
 }
 }
 \description{
-Bandwidth estimation using cross-validation for the \insertCite{rubin2020;textual}{adaptiveFTS} mean function estimator.
+This function estimates the optimal bandwidth for the mean function estimator
+using cross-validation, as described in \insertCite{rubin2020;textual}{adaptiveFTS}.
 }
 \examples{
 \dontrun{
@@ -100,7 +101,7 @@ optbw <- dt_bw_mean_rp[, h[which.min(cv_error)]]
 ## Estimate the mean function
 dt_mean_rp <- estimate_mean_rp(
   data = dt_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  t = c(1/4, 1/2, 3/4), h = optbw, smooth_ker = kernel_epanechnikov)
+  t = c(1/4, 1/2, 3/4), h = optbw, smooth_ker = epanechnikov)
 
 DT::datatable(data = dt_mean_rp[, lapply(.SD, function(X) round(X, 5))])
 
