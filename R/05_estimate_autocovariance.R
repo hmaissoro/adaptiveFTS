@@ -34,7 +34,7 @@
 #' @seealso [estimate_mean()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_empirical_XsXt_autocov()].
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
@@ -186,7 +186,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 #' @seealso [estimate_mean()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_autocov_risk()].
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
@@ -284,7 +284,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' Default \code{smooth_ker = epanechnikov}.
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
@@ -361,7 +361,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' Default \code{smooth_ker = epanechnikov}.
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
@@ -477,7 +477,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' Default \code{smooth_ker = epanechnikov}.
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
@@ -602,7 +602,7 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
 #' @export
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #' @importFrom caret createFolds
 #'

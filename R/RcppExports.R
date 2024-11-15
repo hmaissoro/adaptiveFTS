@@ -128,7 +128,7 @@ ensure_positive_definite <- function(A, c = 1e-6) {
     .Call(`_adaptiveFTS_ensure_positive_definite`, A, c)
 }
 
-estimate_curve <- function(data, t, id_curve = NULL, bw_grid = NULL, use_same_bw = FALSE, center = TRUE, correct_diagonal = TRUE, kernel_name = "epanechnikov") {
-    .Call(`_adaptiveFTS_estimate_curve`, data, t, id_curve, bw_grid, use_same_bw, center, correct_diagonal, kernel_name)
+estimate_curve_cpp <- function(data, t, id_curve = NULL, bw_grid = NULL, use_same_bw = FALSE, center = TRUE, correct_diagonal = TRUE, kernel_name = "epanechnikov") {
+    .Call(`_adaptiveFTS_estimate_curve_cpp`, data, t, id_curve, bw_grid, use_same_bw, center, correct_diagonal, kernel_name)
 }
 

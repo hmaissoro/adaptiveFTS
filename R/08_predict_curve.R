@@ -22,7 +22,7 @@
 #' @seealso [estimate_locreg()], [estimate_mean()], [estimate_autocov()], [estimate_nw()].
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references

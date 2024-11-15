@@ -28,7 +28,7 @@
 #' @seealso [estimate_mean()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_empirical_autocov()].
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
@@ -132,7 +132,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #' @seealso [estimate_mean_risk()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_empirical_autocov()].
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #'
 #' @references
 #' \insertAllCited{}

@@ -26,7 +26,7 @@
 #' @export
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @seealso [estimate_nw()], [estimate_nw_bw()], [simulate_far()], etc.
