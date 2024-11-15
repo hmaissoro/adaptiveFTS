@@ -109,7 +109,7 @@ DT::datatable(data = dt_mean_rp[, lapply(.SD, function(X) round(X, 5))])
 
 }
 \references{
-\insertAllcited{}
+\insertRef{rubin2020}{adaptiveFTS}
 }
 \seealso{
 \code{\link[=estimate_mean_rp]{estimate_mean_rp()}}

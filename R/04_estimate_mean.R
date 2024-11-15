@@ -228,7 +228,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @importFrom fastmatrix kronecker.prod
 #'
 #' @references
-#' \insertAllcited{}
+#' \insertRef{rubin2020}{adaptiveFTS}
 #'
 #' @examples
 #' \dontrun{
@@ -379,7 +379,7 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' @importFrom caret createFolds
 #'
 #' @references
-#' \insertAllcited{}
+#' \insertRef{rubin2020}{adaptiveFTS}
 #'
 #' @examples
 #' \dontrun{
