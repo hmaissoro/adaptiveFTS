@@ -80,7 +80,6 @@ using namespace arma;
  }
 
 
-
  //' Combine Four Matrices into One Block Matrix
  //'
  //' This function combines four matrices into one block matrix.
@@ -488,15 +487,15 @@ using namespace arma;
  //' \insertAllCited{}
  //'
 // [[Rcpp::export]]
- Rcpp::List estimate_curve(const Rcpp::DataFrame data,
-                           const arma::vec t,
-                           const Rcpp::Nullable<int> id_curve = R_NilValue,
-                           const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
-                           const bool use_same_bw = false,
-                           const bool center = true,
-                           const bool correct_diagonal = true,
-                           const std::string kernel_name = "epanechnikov"){
-   // Take unique observation points t
+Rcpp::List estimate_curve_cpp(const Rcpp::DataFrame data,
+                              const arma::vec t,
+                              const Rcpp::Nullable<int> id_curve = R_NilValue,
+                              const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
+                              const bool use_same_bw = false,
+                              const bool center = true,
+                              const bool correct_diagonal = true,
+                              const std::string kernel_name = "epanechnikov"){
+  // Take unique observation points t
    int nt_pred = t.size();
    if ( nt_pred == 0) {
      stop("'t' must be a numeric vectors or scalar value(s) between 0 and 1.");
@@ -545,13 +544,11 @@ using namespace arma;
    arma::vec Yvec_pred = data_mat(idx_cur_pred, arma::uvec({2}));
    arma::vec Yvec_lag = data_mat(idx_cur_lag, arma::uvec({2}));
 
-   Rcout << " --> Set up : ok \n ";
    // Estimate the observation error standard deviation
    arma::mat mat_sig_pred = estimate_sigma_cpp(data, Tvec_pred);
    arma::mat mat_sig_lag = estimate_sigma_cpp(data, Tvec_lag);
    arma::vec sig_all = arma::join_cols(mat_sig_lag.col(1), mat_sig_pred.col(1));
    arma::mat Sigma_all = arma::diagmat(arma::square(sig_all));
-   Rcout << "--> Sigma estimation : ok \n ";
 
    // Estimate bandwidth parameters on a grid
    // // Estimate cov and autocovariance on the grid
@@ -559,7 +556,7 @@ using namespace arma;
    arma::mat grid_fixe = build_grid(vec_grid, vec_grid);
    arma::mat mat_cov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 0, bw_grid, use_same_bw, center, kernel_name);
    arma::mat mat_autocov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 1, bw_grid, use_same_bw, center, kernel_name);
-   Rcout << "--> Set cov and autocov : ok \n ";
+
    // // get optimal cov and autocov variance parameters
    mat mat_opt_cov_param = get_best_autocov_bw(mat_cov_risk, grid_fixe.col(0), grid_fixe.col(1));
    mat mat_opt_autocov_param = get_best_autocov_bw(mat_autocov_risk, grid_fixe.col(0), grid_fixe.col(1));
@@ -595,7 +592,6 @@ using namespace arma;
    arma::mat mat_cov_pred_tvec_all = estimate_autocov_cpp(data, grid_pred_tvec_optbw.col(0), grid_pred_tvec_optbw.col(1), 0,
                                                           Rcpp::wrap(grid_pred_tvec_optbw.col(2)), Rcpp::wrap(grid_pred_tvec_optbw.col(3)),
                                                           R_NilValue, use_same_bw, center, correct_diagonal, kernel_name);
-   Rcout << "--> autocov estimation : ok \n ";
 
    // Estimate mean functions
    // // Estimate bandwidth for mean function estimation on a grid
@@ -625,13 +621,11 @@ using namespace arma;
    double correction_const = 1; /// std::log(n_curve * Tvec_lag.size());
    arma::mat mat_VarY_corrected = ensure_positive_definite(mat_VarY_init, correction_const);
    mat_VarY_corrected = mat_VarY_corrected + Sigma_all;
-   Rcout << "--> mat_VarY build : ok \n ";
 
    // Build the matrix Cov(Y_N, X_n0(t))
    arma::mat mat_autocov_lag_tvec = reshape_matrix(mat_autocov_lag_tvec_all, 0, 1, 13);
    arma::mat mat_cov_pred_tvec = reshape_matrix(mat_cov_pred_tvec_all, 0, 1, 13);
    arma::mat covY_Xn0 = arma::join_cols(mat_autocov_lag_tvec, mat_cov_pred_tvec);
-   Rcout << "--> covY_Xn0 build : ok \n ";
 
    // Build the BLUP
    // arma::mat Bn0 = arma::inv(mat_VarY_corrected) * covY_Xn0;
