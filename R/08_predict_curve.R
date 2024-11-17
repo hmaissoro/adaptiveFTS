@@ -61,9 +61,9 @@ predict_curve <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   # Estimate the BLUP
   res_blup_one <- estimate_curve_cpp(
     data = data, t = t, id_curve = id_curve_to_predict,
-    bw_grid = NULL, use_same_bw = use_same_bw, center = use_same_bw,
-    correct_diagonal = use_same_bw,
-    kernel_name = "epanechnikov")
+    bw_grid = bw_grid, use_same_bw = use_same_bw, center = center,
+    correct_diagonal = correct_diagonal,
+    kernel_name = kernel_name)
 
   # Return the result
   dt_res <- data.table::as.data.table(res_blup_one$res_blup)

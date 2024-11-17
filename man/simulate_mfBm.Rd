@@ -8,7 +8,7 @@ simulate_mfBm(
   t = seq(0.2, 0.8, len = 50),
   hurst_fun = hurst_logistic,
   L = 1,
-  shift_var = 1,
+  shift_var = 0,
   tied = TRUE,
   ...
 )
