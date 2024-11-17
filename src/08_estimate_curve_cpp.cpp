@@ -448,7 +448,7 @@ using namespace arma;
      eigval.transform([&](double val){ return val <= 0 ? min_positive * c : val; });
 
      // If the eigenvalues is too small
-     arma::vec eigval_final = modify_eigenvalues(eigval, 1.00);
+     arma::vec eigval_final = modify_eigenvalues(eigval, 0.99);
 
      // Step 3: Reconstruct the matrix
      arma::mat A_recons = eigvec * arma::diagmat(eigval_final) * eigvec.t();
@@ -459,8 +459,6 @@ using namespace arma;
      return A_recons;
    }
  }
-
-
 
  //' Reconstruct a curve using the Best Linear Unbiased Predictor (BLUP).
  //'
@@ -618,7 +616,7 @@ Rcpp::List estimate_curve_cpp(const Rcpp::DataFrame data,
    arma::mat mat_VarY_init = combine_matrices(mat_cov_lag_lag, mat_autocov_lag_pred,arma::trans(mat_autocov_lag_pred), mat_cov_pred_pred) ;
 
    // // Ensure that mat_VarY is positive definite
-   double correction_const = 1; /// std::log(n_curve * Tvec_lag.size());
+   double correction_const = 1 ;// std::log(n_curve * Tvec_lag.size());
    arma::mat mat_VarY_corrected = ensure_positive_definite(mat_VarY_init, correction_const);
    mat_VarY_corrected = mat_VarY_corrected + Sigma_all;
 
