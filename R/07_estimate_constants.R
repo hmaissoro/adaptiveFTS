@@ -9,7 +9,7 @@
 #' @export
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #'
 #' @references
 #' \insertAllCited{}
@@ -58,7 +58,7 @@ estimate_sigma <- function(data, idcol = NULL, tcol = "tobs", ycol = "X", t = c(
 #' @export
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
@@ -161,7 +161,7 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
 #' @export
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
@@ -276,7 +276,7 @@ estimate_empirical_mom <- function(data, idcol = NULL, tcol = "tobs", ycol = "X"
 #' @export
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references

@@ -392,9 +392,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// estimate_curve
-Rcpp::List estimate_curve(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<int> id_curve, const Rcpp::Nullable<arma::vec> bw_grid, const bool use_same_bw, const bool center, const bool correct_diagonal, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_estimate_curve(SEXP dataSEXP, SEXP tSEXP, SEXP id_curveSEXP, SEXP bw_gridSEXP, SEXP use_same_bwSEXP, SEXP centerSEXP, SEXP correct_diagonalSEXP, SEXP kernel_nameSEXP) {
+// estimate_curve_cpp
+Rcpp::List estimate_curve_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<int> id_curve, const Rcpp::Nullable<arma::vec> bw_grid, const bool use_same_bw, const bool center, const bool correct_diagonal, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_estimate_curve_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP id_curveSEXP, SEXP bw_gridSEXP, SEXP use_same_bwSEXP, SEXP centerSEXP, SEXP correct_diagonalSEXP, SEXP kernel_nameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -406,7 +406,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
     Rcpp::traits::input_parameter< const bool >::type correct_diagonal(correct_diagonalSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_curve(data, t, id_curve, bw_grid, use_same_bw, center, correct_diagonal, kernel_name));
+    rcpp_result_gen = Rcpp::wrap(estimate_curve_cpp(data, t, id_curve, bw_grid, use_same_bw, center, correct_diagonal, kernel_name));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -440,7 +440,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_get_best_mean_bw", (DL_FUNC) &_adaptiveFTS_get_best_mean_bw, 2},
     {"_adaptiveFTS_get_nearest_best_mean_bw", (DL_FUNC) &_adaptiveFTS_get_nearest_best_mean_bw, 2},
     {"_adaptiveFTS_ensure_positive_definite", (DL_FUNC) &_adaptiveFTS_ensure_positive_definite, 2},
-    {"_adaptiveFTS_estimate_curve", (DL_FUNC) &_adaptiveFTS_estimate_curve, 8},
+    {"_adaptiveFTS_estimate_curve_cpp", (DL_FUNC) &_adaptiveFTS_estimate_curve_cpp, 8},
     {NULL, NULL, 0}
 };
 
