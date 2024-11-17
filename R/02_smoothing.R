@@ -58,7 +58,7 @@
 #' }
 #'
 estimate_nw <- function(y, t, tnew, h = NULL, kernel_name = "epanechnikov"){
-  if (! is.numeric(y) | ! is.numeric(t) | ! is.numeric(tnew) |! is.numeric(h))
+  if (! is.numeric(y) | ! is.numeric(t) | ! is.numeric(tnew))
     stop("The arguments 'y', 't', 'tnew', 'h' must be numeric.")
   if (length(t) != length(y) & length(t) < 2)
     stop("The arguments 'y' and 't' must have a length of at least 2 and must be of the same length.")
@@ -139,11 +139,11 @@ estimate_nw <- function(y, t, tnew, h = NULL, kernel_name = "epanechnikov"){
 #' }
 #'
 estimate_nw_bw <- function(y, t, bw_grid = NULL, kernel_name = "epanechnikov") {
-  if (! is.numeric(y) | ! is.numeric(t) |! is.numeric(bw_grid))
-    stop("The arguments 'y', 't', 'tnew', 'h' must be numeric.")
+  if (! is.numeric(y) | ! is.numeric(t))
+    stop("The arguments 'y' and 't' must be numeric.")
   if (length(t) != length(y) & length(t) < 2)
     stop("The arguments 'y' and 't' must have a length of at least 2 and must be of the same length.")
-  if (! is.numeric(bw_grid) & ! is.numeric(bw_grid))
+  if (! is.null(bw_grid) & ! is.numeric(bw_grid))
     stop("If the bandwidth grid 'bw_grid' is not NULL, so it must be a scalar or vector of numeric.")
 
   # Check the name of the kernel
