@@ -448,7 +448,7 @@ using namespace arma;
      eigval.transform([&](double val){ return val <= 0 ? min_positive * c : val; });
 
      // If the eigenvalues is too small
-     arma::vec eigval_final = modify_eigenvalues(eigval, 0.99);
+     arma::vec eigval_final = modify_eigenvalues(eigval, 0.80);
 
      // Step 3: Reconstruct the matrix
      arma::mat A_recons = eigvec * arma::diagmat(eigval_final) * eigvec.t();
@@ -617,8 +617,8 @@ Rcpp::List estimate_curve_cpp(const Rcpp::DataFrame data,
 
    // // Ensure that mat_VarY is positive definite
    double correction_const = 1 ;// std::log(n_curve * Tvec_lag.size());
-   arma::mat mat_VarY_corrected = ensure_positive_definite(mat_VarY_init, correction_const);
-   mat_VarY_corrected = mat_VarY_corrected + Sigma_all;
+   arma::mat mat_VarY_init_plus_sigma = mat_VarY_init + Sigma_all;
+   arma::mat mat_VarY_corrected = ensure_positive_definite(mat_VarY_init_plus_sigma, correction_const);
 
    // Build the matrix Cov(Y_N, X_n0(t))
    arma::mat mat_autocov_lag_tvec = reshape_matrix(mat_autocov_lag_tvec_all, 0, 1, 13);
