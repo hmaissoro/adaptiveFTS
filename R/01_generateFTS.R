@@ -186,7 +186,7 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' dt_mfBm <- simulate_mfBm(t = t0, hurst_fun = hurst_logistic, L = 1, tied = TRUE)
 #' plot(x = dt_mfBm$t, y = dt_mfBm$mfBm, type = "l", col = "red")
 #'
-simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logistic, L = 1, shift_var = 1, tied = TRUE, ...) {
+simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logistic, L = 1, shift_var = 0, tied = TRUE, ...) {
   if (! (methods::is(t, "numeric") && all(t >= 0 & t <= 1))) {
     stop("'t' must be a numeric vector with values between 0 and 1.")
   }
@@ -360,7 +360,8 @@ simulate_far <- function(N = 2L, lambda = 70L,
                          far_mean = function(t) 4 * sin(1.5 * pi * t),
                          int_grid = 100L,
                          burnin = 100L,
-                         remove_burnin = TRUE) {
+                         remove_burnin = TRUE,
+                         ...) {
   #TODO : Ajouter une description car grosse fonction
   #TODO : try sur farkernel ou alors une erreur spécifique si c'es lui qui fait péter, pareil pour far_mean
   if (! (N - floor(N) == 0) & N > 1)
