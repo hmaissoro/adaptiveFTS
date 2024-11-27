@@ -39,7 +39,7 @@ predict_curve <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                           kernel_name = "epanechnikov"){
 
   # Control easy checkable arguments
-  if (! (methods::is(t, "numeric") & all(t > 0 & t <= 1)))
+  if (! (methods::is(t, "numeric") & all(t >= 0 & t <= 1)))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! (methods::is(use_same_bw, "logical")))
     stop("'use_same_bw' must be TRUE or FALSE.")
