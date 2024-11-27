@@ -448,7 +448,7 @@ using namespace arma;
      eigval.transform([&](double val){ return val <= 0 ? min_positive * c : val; });
 
      // If the eigenvalues is too small
-     arma::vec eigval_final = modify_eigenvalues(eigval, 0.80);
+     arma::vec eigval_final = modify_eigenvalues(eigval, 0.95);
 
      // Step 3: Reconstruct the matrix
      arma::mat A_recons = eigvec * arma::diagmat(eigval_final) * eigvec.t();
@@ -525,7 +525,7 @@ Rcpp::List estimate_curve_cpp(const Rcpp::DataFrame data,
      idx_curve_lag = idx_curve_pred - 1;
    } else {
      double idx_temp = Rcpp::as<int>(id_curve);
-     if (idx_curve_pred > n_curve || idx_curve_pred > 1) {
+     if (idx_curve_pred > n_curve || idx_curve_pred <= 1) {
        stop("If 'id_curve' is not NULL, then it must be an integer between 2 and the total number of curves.");
      } else {
        idx_curve_pred = idx_temp;
