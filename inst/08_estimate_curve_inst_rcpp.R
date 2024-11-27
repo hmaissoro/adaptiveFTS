@@ -1,5 +1,5 @@
 library(ggplot2)
-Rcpp::sourceCpp("./src/08_estimate_curve_cpp.cpp")
+Rcpp::sourceCpp("./src/08_estimate_curve_cpp_cpp.cpp")
 
 # Import the data
 data("data_far")
@@ -18,7 +18,7 @@ dt_res_blup <- data.table::rbindlist(parallel::mclapply(1:100, function(id){
   data_prepared <- format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
   data_to_use <- data_prepared[-which(id_curve == 150 & tobs > 0.5)]
 
-  res_blup_one <- estimate_curve(data = data_to_use, id_curve = 150, t = t0, kernel_name = "epanechnikov")
+  res_blup_one <- estimate_curve_cpp(data = data_to_use, id_curve = 150, t = t0, kernel_name = "epanechnikov")
 
   dt_res <- data.table::as.data.table(res_blup_one$res_blup)
   names(dt_res) <- c("t", "muhat", "blup")
@@ -57,8 +57,8 @@ ggsave(plot = ggplt, filename = file.path("../../curve_reconstruction/adaptive_b
 
 
 
-res_blup_one <- estimate_curve(data = data_prepared, id_curve = 150, t = t0, kernel_name = "epanechnikov")
-res_blup_two <- estimate_curve(data = data_prepared, id_curve = 150, t = t0, kernel_name = "epanechnikov")
+res_blup_one <- estimate_curve_cpp(data = data_prepared, id_curve = 150, t = t0, kernel_name = "epanechnikov")
+res_blup_two <- estimate_curve_cpp(data = data_prepared, id_curve = 150, t = t0, kernel_name = "epanechnikov")
 
 res_blup$Cov_n0 %>% View()
 res_blup$Sigma_n0
@@ -82,7 +82,7 @@ dt_res_blup_N400lambda300 <- data.table::rbindlist(parallel::mclapply(1:20, func
   data_prepared <- format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")
   data_to_use <- data_prepared[-which(id_curve == 400 & tobs > 0.5)]
 
-  res_blup_one <- estimate_curve(data = data_to_use, id_curve = 400, t = t0, kernel_name = "epanechnikov")
+  res_blup_one <- estimate_curve_cpp(data = data_to_use, id_curve = 400, t = t0, kernel_name = "epanechnikov")
 
   dt_res <- data.table::as.data.table(res_blup_one$res_blup)
   names(dt_res) <- c("t", "muhat", "blup")
