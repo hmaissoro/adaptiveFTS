@@ -525,7 +525,7 @@ Rcpp::List estimate_curve_cpp(const Rcpp::DataFrame data,
      idx_curve_lag = idx_curve_pred - 1;
    } else {
      double idx_temp = Rcpp::as<int>(id_curve);
-     if (idx_curve_pred > n_curve || idx_curve_pred <= 1) {
+     if (idx_temp > n_curve || idx_temp <= 1) {
        stop("If 'id_curve' is not NULL, then it must be an integer between 2 and the total number of curves.");
      } else {
        idx_curve_pred = idx_temp;
@@ -558,7 +558,6 @@ Rcpp::List estimate_curve_cpp(const Rcpp::DataFrame data,
    // // get optimal cov and autocov variance parameters
    mat mat_opt_cov_param = get_best_autocov_bw(mat_cov_risk, grid_fixe.col(0), grid_fixe.col(1));
    mat mat_opt_autocov_param = get_best_autocov_bw(mat_autocov_risk, grid_fixe.col(0), grid_fixe.col(1));
-
 
    // Estimate the covariances
    // // Get optimal bandwidth parameter

@@ -608,17 +608,27 @@ using namespace arma;
        arma::vec optbw_svec(n);
        arma::vec optbw_tvec(n);
        for (int j = 0; j < n; ++j) {
-         arma::uvec idx_optbw_svecj = arma::find(s  == svec(j));
-         arma::uvec idx_optbw_tvecj = arma::find(t  == tvec(j));
+         arma::uvec idx_optbw_svecj = arma::find(s == svec(j));
+         if (idx_optbw_svecj.is_empty()) {
+           // In case of svec(j) corresponds to a point in t
+           idx_optbw_svecj = arma::find(t == svec(j));
+         }
+         arma::uvec idx_optbw_tvecj = arma::find(t == tvec(j));
+         if (idx_optbw_tvecj.is_empty()) {
+           // In case of tvec(j) corresponds to a point in s
+           idx_optbw_tvecj = arma::find(s == tvec(j));
+         }
          optbw_svec(j) = optbw_s_to_use_temp(idx_optbw_svecj(0));
          optbw_tvec(j) = optbw_t_to_use_temp(idx_optbw_tvecj(0));
        }
        optbw_s_to_use = optbw_svec;
        optbw_t_to_use = optbw_tvec;
+
      } else {
        stop("If 'optbw_s' and 'optbw_t' are not NULL, they must be the same length as 's' and as 't' or of length 1.");
      }
 
+     // init log reg mat
      mat_locreg.col(0) = svec;
      mat_locreg.col(1) = tvec;
      mat_locreg.cols(2, 5).zeros();
@@ -693,7 +703,7 @@ using namespace arma;
    }
 
    // Compute autocovariance estimate
-   // // Note that if lag = 0 or correct_diagonal = FALSE, Then diag_correct_numerator = 0
+   // // Note that if lag = 0 or correct_diagonal = FALSE, Then by definition diag_correct_numerator = 0
    arma::vec autocovhat;
    if (center) {
      autocovhat = autocov_numerator / PN_lag - diag_correct_numerator / PN_lag;
