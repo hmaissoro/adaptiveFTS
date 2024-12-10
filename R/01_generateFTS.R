@@ -360,10 +360,8 @@ simulate_far <- function(N = 2L, lambda = 70L,
                          far_mean = function(t) 4 * sin(1.5 * pi * t),
                          int_grid = 100L,
                          burnin = 100L,
-                         remove_burnin = TRUE,
-                         ...) {
+                         remove_burnin = TRUE) {
   #TODO : Ajouter une description car grosse fonction
-  #TODO : try sur farkernel ou alors une erreur spécifique si c'es lui qui fait péter, pareil pour far_mean
   if (! (N - floor(N) == 0) & N > 1)
     stop("'N' must be an integer greater than 1.")
   if (! methods::is(tdesign, "character")){
