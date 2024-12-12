@@ -1,0 +1,215 @@
+---
+title: "Prediction of a curve with FDA"
+author: "Hassan Maissoro"
+output: 
+  html_document:
+    toc : true
+    toc_depth : 4
+    number_sections: true
+    theme: readable
+    highlight: tango
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    css: style.css
+    fig_width: 8
+    fig_height: 3
+date: "2024-08-06"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r}
+library(data.table)
+library(ggplot2)
+library(ggpubr)
+library(plotly)
+library(magrittr)
+library(dygraphs)
+library(manipulateWidget)
+library(crosstalk)
+```
+
+# The data
+
+The unit of observation is a curve. The data is a collection of \(N\) curves \(\{X_1, \ldots, X_N\}\) that are realizations of a process $X$. Each curve $X_n$ is observed on the grid $t_1, t_2, \ldots, t_M$, where $M \geq 2$, with some measurement error $\varepsilon_{n,k}$:
+
+$$
+Y_{n,k} = X_n(t_k) + \varepsilon_{n,k},  \qquad n = 1, \ldots, N, \quad k = 1, \ldots, M.
+$$
+ 
+We assume that $\varepsilon_{n,k}$ is centered with variance $\mathbb{E}(\varepsilon_{n,k}^2) = \sigma^2(t_k)$.
+ 
+
+**Example:** Daily Load Profile Curves of a Wind Farm
+
+- **Curve per Day**: Each day is represented by a curve.
+- **Observations per Day**: Every 10 minutes, an observation is recorded, resulting in 144 observations per curve.
+
+
+# Prection using the BLUP
+
+Let $n_0 \in \{1, \ldots, N\}$ and $t_0 \in \{t_1, \ldots, t_M\}$. The objective is to predict $X_{n_0}(t_0)$ using the curves $n_0$ and $n_0 - 1$. We use the BLUP, which stands for Best Linear Unbiased Predictor. Let us state its formula. Let
+
+
+\begin{align*}
+  \mathcal{Y}_{n_0,1} &=(Y_{n_0-1, 1},\ldots,Y_{n_0-1, M}, Y_{n_0, 1},\ldots,Y_{n_0, M})^\top \\
+  \mathcal{M}_{n_0,1} &= (\mu(t_1),\ldots, \mu(t_M),\mu(t_1),\ldots, \mu(t_M))^\top \\
+  \Sigma_{n_0} &= (\sigma(t_1),\ldots, \sigma(t_M),\sigma(t_1),\ldots, \sigma(t_M))^\top.
+\end{align*}
+
+The BLUP is
+$$
+  \mathfrak{X}_{n_0}(t_0) = \mu(t_0) + B_{n_0, 1}^\top (\mathcal{Y}_{n_0, 1}- \mathcal{M}_{n_0, 1}),
+$$
+where
+$$
+  B_{n_0, 1} = \operatorname{Var}_{M,T}(\mathcal{Y}_{n_0, 1})^{-1} \operatorname{Cov}_{M,T}\left(\mathcal{Y}_{n_0, 1},{X}_{n_0}(t_0)\right),
+$$
+\begin{equation}\label{def:var}
+  \operatorname{Var}_{M,T} \left(\mathcal{Y}_{n_0,1}\right) = 
+  \begin{pmatrix}
+    G_0^{(n_0-1,n_0-1)} + \Sigma_{n_0-1} &  G_1^{(n_0-1,n_0)}\\
+    G_1^{(n_0,n_0-1)}& G_0^{(n_0,n_0)}+ \Sigma_{n_0}
+  \end{pmatrix}\in\mathbb R^{2 M}\times \mathbb R^{2 M},
+\end{equation}
+
+\begin{equation}\label{def:covar}
+  \operatorname{Cov}_{M,T} \left(\mathcal Y_{n_0,1},  {X}_{n_0}(t_0)   \right) =
+  \begin{pmatrix}
+    \Gamma_1(t_1,t_0)\\
+    \vdots\\
+    \Gamma_1(t_M,t_0)\\
+    \Gamma_0(t_1,t_0)\\
+    \vdots\\
+    \Gamma_0(t_M,t_0)
+  \end{pmatrix}\in\mathbb R^{2 M},
+\end{equation}
+and 
+$$
+  G_\ell^{(n, n^\prime)} = \left(\Gamma_\ell(t_i,t_j)\right)_{1\leq i, j\leq M}.
+$$
+
+The mean and lag-$\ell$ (auto)covariance  estimator are
+
+$$
+  \widehat{\mu}_N(t_k) = \frac{1}{N} \sum_{n=1}^{N} Y_{n,k}, \qquad k=1, \ldots, M.
+$$
+
+$$
+  \widehat{\Gamma}_\ell(t_i,t_k) = \frac{1}{N - \ell} \sum_{n=1}^{N - \ell} \{Y_{n,i} - \widehat{\mu}_N(t_i)\}\{Y_{n+\ell,j} - \widehat{\mu}_N(t_j)\}, \qquad i,j \in \{1, \ldots, M\} \quad \text{and} \quad \ell = 0, 1, \ldots, N-1.
+$$
+
+
+## Wind farm data application
+
+We consider a single park, specifically the one with the fewest missing values in its production record. We assume the following:
+
+- **Daily Curve Data**: Each day provides one curve with 144 records, recorded every ten minutes.
+- **Functional Time Series (FTS)**: The collection of daily curves is considered as a functional time series.
+- **Winter Curves**: Only curves from winter are used for checking stationarity.
+
+To construct the Best Linear Unbiased Prediction (BLUP), we need the following:
+
+- **Mean of the Process**: The average behavior of the process.
+- **Covariance of the Process**: The variability and relationship between different points in the process.
+- **Lag-$\ell$ Autocovariance of the Process**: The autocovariance for lags $\ell = 1, \ldots, N$.
+
+```{r, echo=TRUE}
+source("../R/model_blup.R")
+dt_fts <- readRDS("../PrevProd_Eol/dt_fts.RDS")
+```
+
+```{r}
+dt_fts
+```
+
+
+**predict $7/8$ of the last curve**
+```{r, fig.width= 10, fig.height= 4, fig.align='center', echo=TRUE}
+dt_res_blup <- get_blup_prev(
+  data = dt_fts, 
+  id_curve_to_pred = NULL,
+  threshold = 1/8, 
+  L = 1, 
+  graph = TRUE)
+```
+
+**predict $3/4$ of the last curve**
+```{r, fig.width= 10, fig.height= 4, fig.align='center', echo=TRUE}
+dt_res_blup <- get_blup_prev(
+  data = dt_fts, 
+  id_curve_to_pred = NULL,
+  threshold = 2/8, 
+  L = 1, 
+  graph = TRUE)
+```
+
+**predict $1/2$ of the last curve**
+```{r, fig.width= 10, fig.height= 4, fig.align='center', echo=TRUE}
+dt_res_blup <- get_blup_prev(
+  data = dt_fts, 
+  id_curve_to_pred = NULL,
+  threshold = 4/8, 
+  L = 1, 
+  graph = TRUE)
+```
+
+
+**predict $1/4$ of the last curve**
+```{r, fig.width= 10, fig.height= 4, fig.align='center', echo=TRUE}
+dt_res_blup <- get_blup_prev(
+  data = dt_fts, 
+  id_curve_to_pred = NULL,
+  threshold = 6/8, 
+  L = 1, 
+  graph = TRUE)
+```
+
+## PV data application
+
+TODO
+
+# Prection using FAR(1)
+
+TODO : Introduce the method
+
+## Wind farm data application
+
+```{r, echo=TRUE}
+# Predict the next curve
+id_curve_to_prev <- dt_fts[, max(id_curve)]
+data_for_comparison <- copy(dt_fts[id_curve == id_curve_to_prev])
+
+# Predict
+dt_far_prev <- get_far_prev(
+  data = dt_fts[! id_curve == id_curve_to_prev],
+  horizon = 1
+)
+```
+
+```{r, fig.width= 7, fig.height= 4, fig.align='center'}
+# plot prev
+dt_graph <- rbind(
+  data_for_comparison[, .("t" = tobs, "value" = X, Variable = "FC")],
+  dt_far_prev[horizon == 1, .(t, "value" = prev, Variable = "Forecast")]
+)
+ggplot(dt_graph, aes(x = t, y = value, color = Variable, group = Variable)) +
+  geom_line() +
+  xlab("t") +
+  ggtitle("Forecast vs True") + 
+  ylab("") +
+  scale_colour_manual(values = c("FC" = "#1B4F72", "Forecast" = "#A93226")) +
+  theme_minimal() +
+  theme(axis.title = element_text(size = 12),
+        axis.title.x = element_text(size = 12, margin = margin(t = 10, r = 0, b = 0, l = 0)),
+        axis.title.y = element_text(size = 12, margin = margin(t = 10, r = 10, b = 0, l = 0)),
+        axis.text.x = element_text(size = 12),
+        axis.text.y = element_text(size = 12),
+        legend.position = "bottom")
+```
+
+
+

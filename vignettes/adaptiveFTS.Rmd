@@ -1,0 +1,94 @@
+---
+title: "adaptiveFTS"
+output: 
+  rmarkdown::html_vignette:
+    toc : true
+    toc_depth : 4
+    number_sections: true
+    theme: readable
+    highlight: tango
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+    css: style.css
+    fig_width: 8
+    fig_height: 3
+
+vignette: >
+  %\VignetteIndexEntry{adaptiveFTS}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(adaptiveFTS)
+```
+
+```{r}
+library(data.table)
+library(ggplot2)
+library(ggpubr)
+library(plotly)
+library(magrittr)
+library(dygraphs)
+library(manipulateWidget)
+library(crosstalk)
+```
+
+# The data
+
+The unit of observation is a curve. The data is a collection of $N$ curves $\{X_1, \ldots, X_N\}$ that are realizations of a process $X$. For each $1\leq n \leq N$, the trajectory (or curve) $X_n$  is observed at the domain points $\{T_{n,i}, 1\leq i \leq  M_n\}\subset I$, with additive noise. The data points associated with $X_n$ consist of  the pairs  $(Y_{n,i} , T_{n,i} ) \in\mathbb R \times I $, where 
+$$
+Y_{n,i} = X_n(T_{n,i}) +  \sigma(T_{n,i})\varepsilon_{n,i}, \qquad 1\leq n \leq N,  \; \; 1\leq i \leq M_n.
+$$
+The data generating process satisfies the following assumptions.
+
+- The series$\{X_n\}$ is a (strictly) stationary $\mathcal H-$valued series.
+	
+- The $M_1, \dotsc, M_N$ are random draws of an integer  variable $M\geq 2$, with expectation $\lambda$.  
+	
+- Either all the $T_{n,i}$  are independent copies of a  variable $T\in I$ which admits a strictly positive density $g$ over $I$ (independent design case), or the $T_{n,i}$, $1\leq i \leq \lambda=M_n$, are the points of the same equidistant grid of $\lambda$ points in $I$ (common design case).
+	
+- The $\varepsilon_{n,i} $  are independent copies of a centered error variable $\e$ with   unit variance, and  $\sigma^2(\cdot)$ is a Lipschitz continuous function. 
+	
+- The series $\{X_n\}$ and the copies of  $M$, $T$ and $\varepsilon$ are mutually independent.
+
+
+
+
+
+For each $1\leq n \leq N$, the trajectory (or curve) $X_n$  is observed at the domain points $\{T_{n,i}, 1\leq i \leq  M_n\}\subset I$, with additive noise. The data points associated with $X_n$ consist of  the pairs  $(Y_{n,i} , T_{n,i} ) \in\mathbb R \times I $, where 
+\begin{equation}\label{eq:data-model}
+	Y_{n,i} = X_n(T_{n,i}) +  \sigma(T_{n,i})\varepsilon_{n,i},   
+	\qquad 1\leq n \leq N,  \; \; 1\leq i \leq M_n.
+\end{equation}
+The data generating process described in \eqref{eq:data-model} satisfies the following assumptions.
+
+- The series  $\{X_n\}$ is a (strictly) stationary $\mathcal H-$valued series.
+	
+- The $M_1, \dotsc,M_N$ are random  draws of an integer  variable $M\geq 2$, with expectation $\lambda$.  
+	
+- Either all the $T_{n,i}$  are independent copies of a  variable $T\in I$ which admits a strictly positive density $g$ over $I$ (independent design case), or the $T_{n,i}$, $1\leq i \leq \lambda=M_n$, are the points of the same equidistant grid of $\lambda$ points in $I$ (common design case).
+	
+- The $\varepsilon_{n,i} $  are independent copies of a centered error variable $\e$ with   unit variance, and  $\sigma^2(\cdot)$ is a Lipschitz continuous function. 
+	
+- The series $\{X_n\}$ and the copies of  $M$, $T$ and $\varepsilon$ are mutually independent.
+
+In the following, $X$ denotes  a generic random function having the stationary distribution of $\{X_n\}$. The distribution of the variable $M$ depends on $N$, namely its expectation $\lambda$   is allowed to increase with $N$. Thus, for our non-asymptotic results, the domain points $T_{n,i}$, $1\leq i\leq M_n$, $1\leq n\leq N$ are a triangular array of points. They are either obtained as random copies of $T\in I$, or they are the elements of a grid of length $\lambda$, which we consider to be equidistant for simplicity. Assumption \assrefH{H:epsni} allows for heteroscedastic errors. 
+
+We  study the \textit{local regularity} of $X$, and thus that of the stationary distribution of $\{X_n\}$. Before providing the formal definition of the local regularity, we provide insight into this notion proposed by \citet{golovkine2022learning} in the case where the sample paths $X_n$ are not almost surely differentiable.  Let us assume that a constant $\beta>0$ exists and for any $t\in I$, $H_t\in  (0,1]$ and  $L_t \in (0,\infty)$ exist such that   
+\begin{equation}\label{eq:def_lr1x}
+	\EE\left[ \left\{X(u) - X(v)\right\}^2 \right] = L^2_t |u-v|^{2H_t} \{1+O(|u-v|^{\beta})\},
+\end{equation}
+when $u\leq t\leq v$ lie in a small neighborhood of $t$. $H_t$ is then the local Hölder exponent while $L_t$ is the local Hölder constant. They are both allowed to depend on $t$ in order to allow for curves with general patterns. Examples of processes satisfying \eqref{eq:def_lr1x} include, but are not limited to stationary or stationary increment processes \citep[][]{golovkine2022learning}. The class of multifractional Brownian motion processes with domain deformation is another example \citep[][]{wei2023adaptive}. By Kolmogorov's criterion \citep[][Theorem 2.1]{yor}, the local regularity of the process $X$ is linked to the regularity of the sample paths. %Finally, the notion of local regularity extends to the case where the sample paths of $X$ admit derivatives (see Supporting information). 
+%Condition \eqref{eq:def_lr1x} is then considered with the highest integer order derivative at $u$ and $v$ in place of $X(u)$ and $X(v)$, respectively. 

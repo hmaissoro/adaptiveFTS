@@ -15,3 +15,4 @@ inst/11_mc_simulate_data/mean_estimates/
 *.png
 *.csv
 *.tex
+inst/doc
