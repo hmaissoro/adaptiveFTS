@@ -84,7 +84,7 @@ using namespace arma;
    if (Delta.isNull() || Delta_to_use < 0 || Delta_to_use > 1) {
      // Estimate lambda
      double lambdahat = arma::mean(hist(data_mat.col(0), unique_id_curve));
-     Delta_to_use = std::min(exp(- std::pow(log(lambdahat), 1 / 3)), 0.2);
+     Delta_to_use = std::min(exp(- std::pow(log(lambdahat), 1 / 3)), 0.198);
    } else {
      Delta_to_use = as<double>(Delta);
    }
