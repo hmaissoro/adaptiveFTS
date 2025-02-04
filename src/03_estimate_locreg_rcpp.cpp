@@ -84,7 +84,7 @@ using namespace arma;
    if (Delta.isNull() || Delta_to_use < 0 || Delta_to_use > 1) {
      // Estimate lambda
      double lambdahat = arma::mean(hist(data_mat.col(0), unique_id_curve));
-     Delta_to_use = std::min(exp(- std::pow(log(lambdahat), 1 / 3)), 0.2);
+     Delta_to_use = std::min(exp(- std::pow(log(lambdahat), 1.0 / 3)), 0.2);
    } else {
      Delta_to_use = as<double>(Delta);
    }
@@ -96,18 +96,19 @@ using namespace arma;
    for (int i = 0; i < n; ++i) {
      double ti = t(i);
 
+     // Add small uniform value to avoid ties
      if ((ti - Delta_to_use / 2) <= 0) {
        t1(i) = ti;
-       t2(i) = ti + Delta_to_use / 2.1;
-       t3(i) = ti + Delta_to_use / 1.05;
+       t2(i) = ti + Delta_to_use / 2 + arma::randu(distr_param(1e-06, 2e-06));
+       t3(i) = ti + Delta_to_use + arma::randu(distr_param(1e-06, 2e-06));
      } else if ((ti + Delta_to_use / 2) >= 1) {
        t3(i) = ti;
-       t2(i) = ti - Delta_to_use / 2;
-       t1(i) = ti - Delta_to_use;
+       t2(i) = ti - Delta_to_use / 2 + arma::randu(distr_param(1e-06, 2e-06));;
+       t1(i) = ti - Delta_to_use + arma::randu(distr_param(1e-06, 2e-06));;
      } else {
-       t1(i) = ti - Delta_to_use / 2.1;
+       t1(i) = ti - Delta_to_use / 2 + arma::randu(distr_param(1e-06, 2e-06));;
        t2(i) = ti;
-       t3(i) = ti + Delta_to_use / 1.05;
+       t3(i) = ti + Delta_to_use / 2 + arma::randu(distr_param(1e-06, 2e-06));;
      }
    }
 
