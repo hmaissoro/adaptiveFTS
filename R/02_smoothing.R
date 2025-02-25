@@ -5,8 +5,8 @@
 #' @param y \code{vector (numeric)}. A numeric vector containing the observed values of the dependent variable corresponding to the observation points \code{t}.
 #' @param t \code{vector (numeric)}. A numeric vector containing the observed values of the independent variable.
 #' @param tnew \code{vector (numeric)}. New \code{t} values at which to estimate the regression function.
-#' @param h \code{numeric (positive)}. The bandwidth parameter, where \code{h > (2 * length(x))}.
-#' Default is \code{h = NULL}, in which case it will be computed automatically.
+#' @param h \code{numeric (positive)}. The bandwidth parameter.
+#' Default is \code{h = NULL}, in which case it will be chosen using cross-validation
 #' @param kernel_name \code{string}. A string specifying the name of the kernel function to use. The default is "epanechnikov".
 #' Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform".
 #'
@@ -72,6 +72,7 @@ estimate_nw <- function(y, t, tnew, h = NULL, kernel_name = "epanechnikov"){
   )
 
   if (is.null(h)) {
+    n <- length(y)
     hcv <- estimate_nw_bw(y = y, t = t,
                           bw_grid = seq(2 / n, n ** (-1/3), len = 100),
                           kernel_name = kernel_name)
