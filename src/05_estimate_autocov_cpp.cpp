@@ -157,6 +157,11 @@ using namespace arma;
    // Estimate the autocovariance
    arma::mat mat_emp_autocov = estimate_empirical_XsXt_autocov_cpp(data, s, t, lag, arma::regspace(0, n_curve - lag - 1), h, kernel_name, center);
 
+   // Estimate the numerator \mathbb{D}(t;h_t), \mathbb{D}(s;h_s),
+   // and \mathbb{D}_\ell(t;h_t|s,h_s) \mathbb{D}_\ell(s;h_s|t,h_t)
+   arma::mat mat_num_DD_t = estimate_numerator_dependence_term_DD_cpp(data, t, 6, h, kernel_name, center);
+   arma::mat mat_num_DD_s = estimate_numerator_dependence_term_DD_cpp(data, s, 6, h, kernel_name, center);
+
    // Definie result matrix
    int n_rows_res = use_same_bw ? bw_size * n : bw_size * bw_size * n;
    arma::mat mat_res_risk(n_rows_res, 14);
@@ -245,19 +250,39 @@ using namespace arma;
          double PN_lag = arma::accu(pn_s_vec % pn_lag_t_vec);
 
          // Compute bias term
-         double bias_term = bias_term_num / PN_lag;
+         double bias_term = 4 * bias_term_num / PN_lag;
 
          // Compute variance term
-         double variance_term = variance_term_num / (PN_lag * PN_lag);
+         double variance_term = 4 * variance_term_num / (PN_lag * PN_lag);
 
-         // Compute dependence term
+         // ::::::::: Compute dependence term :::::::
+
+         // Compute \mathbb{D}(t;h_t), \mathbb{D}(s;h_s), \mathbb{D}_\ell(t;h_t|s,h_s) \mathbb{D}_\ell(s;h_s|t,h_t)
+         // Extract local regularity parameters
+         arma::uvec idx_DD_cur_s = arma::find(mat_num_DD_s.col(0) == s(k));
+         arma::uvec idx_DD_cur_t = arma::find(mat_num_DD_t.col(0) == t(k));
+         double num_Ds = mat_num_DD_s(idx_DD_cur_s(0), 1);
+         double num_Dt = mat_num_DD_t(idx_DD_cur_t(0), 1);
+         double PNs = arma::accu(pn_s_vec);
+         double PNt = arma::accu(pn_lag_t_vec);
+         double Ds = num_Ds / (PNs * PNs * PNs) ;
+         double Dt = num_Dt / (PNt * PNt * PNt) ;
+         double Ds_t = num_Ds / (PN_lag * PN_lag * PN_lag) ;
+         double Dt_s = num_Dt / (PN_lag * PN_lag * PN_lag) ;
+         double first_dependence_term = 15 * ( sqrt(Ds_t * Dt) + sqrt(Dt_s * Ds) + 3 * sqrt(Ds * Dt) ) / PN_lag;
+
+         // Compute \mathbb{D}(s;h_s)
          // Add the lag-0 autocovariance to the vector
-         arma::uvec idx_lag0 = arma::find(mat_emp_autocov.col(0) == s(k) && mat_emp_autocov.col(1) == t(k) && mat_emp_autocov.col(3) == 0);
-         arma::uvec idx_lag = arma::find(mat_emp_autocov.col(0) == s(k) && mat_emp_autocov.col(1) == t(k) && (mat_emp_autocov.col(3) != 0));
+         arma::uvec idx_lag0 = arma::find( (mat_emp_autocov.col(0) == s(k)) % (mat_emp_autocov.col(1) == t(k)) % (mat_emp_autocov.col(3) == 0) );
+         arma::uvec idx_lag = arma::find( (mat_emp_autocov.col(0) == s(k)) % (mat_emp_autocov.col(1) == t(k)) % (mat_emp_autocov.col(3) != 0) );
+
          double XsXt_var = mat_emp_autocov(idx_lag0(0), 5);
          arma::mat XsXt_mat_lr_var = mat_emp_autocov.rows(idx_lag);
-         double dependence_term_num = XsXt_var + arma::accu(arma::abs(2 * XsXt_mat_lr_var.col(5)));
-         double dependence_term = (dependence_term_num  / PN_lag) / 3;
+         double second_dependence_term_num = XsXt_var + arma::accu(arma::abs(2 * XsXt_mat_lr_var.col(5)));
+         double second_dependence_term = (second_dependence_term_num / PN_lag);
+
+         double dependence_term = first_dependence_term + second_dependence_term;
+         // ::::::::::: End dependence term ::::::::
 
          // Autocovariance risk
          double autocov_risk = bias_term + variance_term + dependence_term;
@@ -351,19 +376,39 @@ using namespace arma;
            double PN_lag = arma::accu(pn_s_vec % pn_lag_t_vec);
 
            // Compute bias term
-           double bias_term = bias_term_num / PN_lag;
+           double bias_term = 4 * bias_term_num / PN_lag;
 
            // Compute variance term
-           double variance_term = variance_term_num / (PN_lag * PN_lag);
+           double variance_term = 4 * variance_term_num / (PN_lag * PN_lag);
 
-           // Compute dependence term
+           // ::::::::: Compute dependence term :::::::
+
+           // Compute \mathbb{D}(t;h_t), \mathbb{D}(s;h_s), \mathbb{D}_\ell(t;h_t|s,h_s) \mathbb{D}_\ell(s;h_s|t,h_t)
+           // Extract local regularity parameters
+           arma::uvec idx_DD_cur_s = arma::find(mat_num_DD_s.col(0) == s(k));
+           arma::uvec idx_DD_cur_t = arma::find(mat_num_DD_t.col(0) == t(k));
+           double num_Ds = mat_num_DD_s(idx_DD_cur_s(0), 1);
+           double num_Dt = mat_num_DD_t(idx_DD_cur_t(0), 1);
+           double PNs = arma::accu(pn_s_vec);
+           double PNt = arma::accu(pn_lag_t_vec);
+           double Ds = num_Ds / (PNs * PNs * PNs) ;
+           double Dt = num_Dt / (PNt * PNt * PNt) ;
+           double Ds_t = num_Ds / (PN_lag * PN_lag * PN_lag) ;
+           double Dt_s = num_Dt / (PN_lag * PN_lag * PN_lag) ;
+           double first_dependence_term = 15 * ( sqrt(Ds_t * Dt) + sqrt(Dt_s * Ds) + 3 * sqrt(Ds * Dt) ) / PN_lag;
+
+           // Compute \mathbb{D}(s;h_s)
            // Add the lag-0 autocovariance to the vector
-           arma::uvec idx_lag0 = arma::find(mat_emp_autocov.col(0) == s(k) && mat_emp_autocov.col(1) == t(k) && mat_emp_autocov.col(3) == 0);
-           arma::uvec idx_lag = arma::find(mat_emp_autocov.col(0) == s(k) && mat_emp_autocov.col(1) == t(k) && mat_emp_autocov.col(3) != 0);
+           arma::uvec idx_lag0 = arma::find( (mat_emp_autocov.col(0) == s(k)) % (mat_emp_autocov.col(1) == t(k)) % (mat_emp_autocov.col(3) == 0) );
+           arma::uvec idx_lag = arma::find( (mat_emp_autocov.col(0) == s(k)) % (mat_emp_autocov.col(1) == t(k)) % (mat_emp_autocov.col(3) != 0) );
+
            double XsXt_var = mat_emp_autocov(idx_lag0(0), 5);
            arma::mat XsXt_mat_lr_var = mat_emp_autocov.rows(idx_lag);
-           double dependence_term_num = XsXt_var + arma::accu(2 * arma::abs(XsXt_mat_lr_var.col(5)));
-           double dependence_term = (dependence_term_num  / PN_lag) / 4;
+           double second_dependence_term_num = XsXt_var + arma::accu(arma::abs(2 * XsXt_mat_lr_var.col(5)));
+           double second_dependence_term = (second_dependence_term_num / PN_lag);
+
+           double dependence_term = first_dependence_term + second_dependence_term;
+           // ::::::::::: End dependence term ::::::::
 
            // Autocovariance risk
            double autocov_risk = bias_term + variance_term + dependence_term;
@@ -582,7 +627,7 @@ using namespace arma;
    if (optbw_s.isNull() || optbw_t.isNull()) {
      arma::mat mat_risk = estimate_autocov_risk_cpp(data, svec, tvec, lag, bw_grid, use_same_bw, center, kernel_name);
      for (int k = 0; k < n; ++k) {
-       arma::uvec idx_risk_cur = arma::find(mat_risk.col(0) == svec(k) && mat_risk.col(1) == tvec(k));
+       arma::uvec idx_risk_cur = arma::find((mat_risk.col(0) == svec(k)) % (mat_risk.col(1) == tvec(k)));
        arma::vec risk = mat_risk(idx_risk_cur, arma::uvec({13}));
        arma::uword idx_min = arma::index_min(risk.elem(arma::find_finite(risk)));
 
@@ -598,10 +643,10 @@ using namespace arma;
      int optbw_s_to_use_temp_size = optbw_s_to_use_temp.size();
      int optbw_t_to_use_temp_size = optbw_t_to_use_temp.size();
 
-     if (optbw_s_to_use_temp_size == n && optbw_t_to_use_temp_size == n) {
+     if ((optbw_s_to_use_temp_size == n) && (optbw_t_to_use_temp_size == n)) {
        optbw_s_to_use = optbw_s_to_use_temp;
        optbw_t_to_use = optbw_t_to_use_temp;
-     } else if (optbw_s_to_use_temp_size == 1 && optbw_t_to_use_temp_size == 1){
+     } else if ((optbw_s_to_use_temp_size == 1) && (optbw_t_to_use_temp_size == 1)){
        optbw_s_to_use = arma::ones(n) * (optbw_s_to_use_temp(0));
        optbw_t_to_use = arma::ones(n) * (optbw_t_to_use_temp(0));
      } else if (lag == 0) {
@@ -736,11 +781,11 @@ using namespace arma;
    if (lag == 0) {
      // If lag == 0, fill the lower part of the covariance matrix
      for (int k = 0; k < n_couple ; ++k) {
-       arma::uvec idx_cov_st_upper = arma::find((res_autocov.col(0) == s(k)) && (res_autocov.col(1) == t(k)));
+       arma::uvec idx_cov_st_upper = arma::find((res_autocov.col(0) == s(k)) % (res_autocov.col(1) == t(k)));
        if (! idx_cov_st_upper.is_empty()) {
          mat_res_autocov.row(k) = res_autocov.row(idx_cov_st_upper(0));
        } else {
-         arma::uvec idx_cov_st_lower = arma::find((res_autocov.col(1) == s(k)) && (res_autocov.col(0) == t(k)));
+         arma::uvec idx_cov_st_lower = arma::find((res_autocov.col(1) == s(k)) % (res_autocov.col(0) == t(k)));
          mat_res_autocov.row(k) = {res_autocov(idx_cov_st_lower(0), 1), res_autocov(idx_cov_st_lower(0), 0),
                                    res_autocov(idx_cov_st_lower(0), 3), res_autocov(idx_cov_st_lower(0), 2),
                                    res_autocov(idx_cov_st_lower(0), 6), res_autocov(idx_cov_st_lower(0), 7),
