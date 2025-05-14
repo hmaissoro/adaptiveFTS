@@ -68,8 +68,9 @@ using namespace arma;
      hvec_to_use.fill(hbest);
    } else {
      arma::vec hvec = Rcpp::as<arma::vec>(h);
-     if (hvec.size() != n_curve) {
-       if (hvec.size() != 1) {
+     int h_size = hvec.size();
+     if (h_size != n_curve) {
+       if (h_size != 1) {
          Rcpp::stop("'h' must be a numeric vector with length equal to the number of curves in 'data' or a scalar value.");
        } else {
          hvec_to_use.fill(hvec(0));
@@ -175,7 +176,6 @@ using namespace arma;
 
      // Compute local regularity parameters
      double theta_t1_t3 = arma::mean(arma::square(xt1_final - xt3_final));
-     double theta_t1_t2 = arma::mean(arma::square(xt1_final - xt2_final));
      double theta_t2_t3 = arma::mean(arma::square(xt2_final - xt3_final));
      double Ht_row = (std::log(theta_t1_t3) - std::log(theta_t2_t3)) / (2 * std::log(2));
      double Ht = (Ht_row <= 0.1) ? 0.1 : (Ht_row >=1) ? 1 : Ht_row;

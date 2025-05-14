@@ -15,9 +15,10 @@ arma::mat estimate_empirical_XsXt_autocov_cpp(const Rcpp::DataFrame data, const 
                                               const arma::vec lag, const arma::vec h,
                                               const std::string kernel_name, const bool center);
 arma::mat estimate_numerator_dependence_term_DD_cpp(const Rcpp::DataFrame data,
-                                                    const arma::vec t,
+                                                    const arma::vec& t,
+                                                    const arma::vec& bw_vec,
+                                                    const arma::vec& h,
                                                     const int max_lag,
-                                                    const arma::vec h,
                                                     const std::string kernel_name,
                                                     const bool center);
 
