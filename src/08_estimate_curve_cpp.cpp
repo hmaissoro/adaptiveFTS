@@ -71,7 +71,7 @@ using namespace arma;
    arma::mat reshaped(ns, nt, arma::fill::zeros);
    for (int i = 0; i < ns; ++i) {
      for (int j = 0; j < nt; ++j) {
-       arma::uvec idx_ij = arma::find(A.col(idx_col_s) == svec(i) && A.col(idx_col_t) == tvec(j));
+       arma::uvec idx_ij = arma::find((A.col(idx_col_s) == svec(i)) % (A.col(idx_col_t) == tvec(j)));
        reshaped(i, j) = A(idx_ij(0), idx_col_value);
      }
    }
@@ -207,7 +207,7 @@ using namespace arma;
    mat_res.col(1) = t;
 
    for (int k = 0; k < n; ++k) {
-     arma::uvec idx_risk_cur = arma::find(mat_autocov_risk.col(0) == s(k) && mat_autocov_risk.col(1) == t(k));
+     arma::uvec idx_risk_cur = arma::find((mat_autocov_risk.col(0) == s(k)) % (mat_autocov_risk.col(1) == t(k)));
      arma::vec risk = mat_autocov_risk(idx_risk_cur, arma::uvec({13}));
      arma::uword idx_min = arma::index_min(risk.elem(arma::find_finite(risk)));
 

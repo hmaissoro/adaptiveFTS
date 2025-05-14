@@ -143,7 +143,7 @@ using namespace arma;
    arma::mat mat_locreg(n, 6);
    for(int j = 0 ; j < n; ++j){
      // Extract all smooth data for each t
-     arma::uvec cur_idx = arma::find(mat_res_nw.col(1) == t1(j) && mat_res_nw.col(3) == t2(j) && mat_res_nw.col(5) == t3(j));
+     arma::uvec cur_idx = arma::find((mat_res_nw.col(1) == t1(j)) % (mat_res_nw.col(3) == t2(j)) % (mat_res_nw.col(5) == t3(j)));
      arma::mat mat_res_nw_by_t = mat_res_nw.rows(cur_idx);
      arma::vec xt1 = mat_res_nw_by_t.col(2);
      arma::vec xt2 = mat_res_nw_by_t.col(4);
@@ -158,13 +158,13 @@ using namespace arma;
      // Remove extreme values
      arma::vec p0025(finiteIndices.size(), fill::value(0.025));
      arma::vec p0975(finiteIndices.size(), fill::value(0.975));
-     arma::uvec rxt1 = (filtered_xt1 >= arma::quantile(filtered_xt1, p0025)) && (filtered_xt1 <= arma::quantile(filtered_xt1, p0975));
-     arma::uvec rxt2 = (filtered_xt2 >= arma::quantile(filtered_xt2, p0025)) && (filtered_xt2 <= arma::quantile(filtered_xt2, p0975));
-     arma::uvec rxt3 = (filtered_xt3 >= arma::quantile(filtered_xt3, p0025)) && (filtered_xt3 <= arma::quantile(filtered_xt3, p0975));
+     arma::uvec rxt1 = (filtered_xt1 >= arma::quantile(filtered_xt1, p0025)) % (filtered_xt1 <= arma::quantile(filtered_xt1, p0975));
+     arma::uvec rxt2 = (filtered_xt2 >= arma::quantile(filtered_xt2, p0025)) % (filtered_xt2 <= arma::quantile(filtered_xt2, p0975));
+     arma::uvec rxt3 = (filtered_xt3 >= arma::quantile(filtered_xt3, p0025)) % (filtered_xt3 <= arma::quantile(filtered_xt3, p0975));
 
-     arma::vec xt1_final = filtered_xt1.elem(arma::find(rxt1 && rxt2 && rxt3));
-     arma::vec xt2_final = filtered_xt2.elem(arma::find(rxt1 && rxt2 && rxt3));
-     arma::vec xt3_final = filtered_xt3.elem(arma::find(rxt1 && rxt2 && rxt3));
+     arma::vec xt1_final = filtered_xt1.elem(arma::find(rxt1 % rxt2 % rxt3));
+     arma::vec xt2_final = filtered_xt2.elem(arma::find(rxt1 % rxt2 % rxt3));
+     arma::vec xt3_final = filtered_xt3.elem(arma::find(rxt1 % rxt2 % rxt3));
 
      // Center data if necessary
      if (center) {

@@ -182,7 +182,7 @@ using namespace arma;
        // Compute dependence term
        arma::vec dep_term_all_lag(n_curve);
        // Add the lag-0 autocovariance to the vector
-       arma::uvec idx_lag0 = arma::find(mat_emp_autocov.col(0) == t(k) && mat_emp_autocov.col(1) == 0);
+       arma::uvec idx_lag0 = arma::find((mat_emp_autocov.col(0) == t(k)) % (mat_emp_autocov.col(1) == 0));
        dep_term_all_lag(0) = mat_emp_autocov(idx_lag0(0), 2);
        for (int ell = 1; ell < n_curve; ++ell) {
          arma::vec pi_i = pn_vec.subvec(0, n_curve - 1 - ell);
