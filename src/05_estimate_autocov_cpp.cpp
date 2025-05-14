@@ -157,11 +157,11 @@ using namespace arma;
    // Estimate the autocovariance
    arma::mat mat_emp_autocov = estimate_empirical_XsXt_autocov_cpp(data, s, t, lag, arma::regspace(0, n_curve - lag - 1), h, kernel_name, center);
 
-   // Estimate the numerator \mathbb{D}(t;h_t), \mathbb{D}(s;h_s),
-   // and \mathbb{D}_\ell(t;h_t|s,h_s) \mathbb{D}_\ell(s;h_s|t,h_t)
-   arma::mat mat_num_DD_t = estimate_numerator_dependence_term_DD_cpp(data, t, 6, h, kernel_name, center);
-   arma::mat mat_num_DD_s = estimate_numerator_dependence_term_DD_cpp(data, s, 6, h, kernel_name, center);
-
+   // Compute the numerator of \mathbb{D}(t;h_t), \mathbb{D}(s;h_s), \mathbb{D}_\ell(t;h_t|s,h_s) \mathbb{D}_\ell(s;h_s|t,h_t)
+   arma::mat mat_num_DD_s = estimate_numerator_dependence_term_DD_cpp(data, arma::unique(s), bw_grid_to_use, h, 3, kernel_name, center);
+   arma::mat mat_num_DD_t = estimate_numerator_dependence_term_DD_cpp(data, arma::unique(t), bw_grid_to_use, h, 3, kernel_name, center);
+   Rcout << "mat_num_DD_s : \n" << mat_num_DD_s << "\n";
+   Rcout << "mat_num_DD_t : \n" << mat_num_DD_t << "\n";
    // Definie result matrix
    int n_rows_res = use_same_bw ? bw_size * n : bw_size * bw_size * n;
    arma::mat mat_res_risk(n_rows_res, 14);
@@ -256,19 +256,17 @@ using namespace arma;
          double variance_term = 4 * variance_term_num / (PN_lag * PN_lag);
 
          // ::::::::: Compute dependence term :::::::
-
-         // Compute \mathbb{D}(t;h_t), \mathbb{D}(s;h_s), \mathbb{D}_\ell(t;h_t|s,h_s) \mathbb{D}_\ell(s;h_s|t,h_t)
-         // Extract local regularity parameters
-         arma::uvec idx_DD_cur_s = arma::find(mat_num_DD_s.col(0) == s(k));
-         arma::uvec idx_DD_cur_t = arma::find(mat_num_DD_t.col(0) == t(k));
-         double num_Ds = mat_num_DD_s(idx_DD_cur_s(0), 1);
-         double num_Dt = mat_num_DD_t(idx_DD_cur_t(0), 1);
-         double PNs = arma::accu(pn_s_vec);
-         double PNt = arma::accu(pn_lag_t_vec);
-         double Ds = num_Ds / (PNs * PNs * PNs) ;
-         double Dt = num_Dt / (PNt * PNt * PNt) ;
-         double Ds_t = num_Ds / (PN_lag * PN_lag * PN_lag) ;
-         double Dt_s = num_Dt / (PN_lag * PN_lag * PN_lag) ;
+         // Extract the numerator of \mathbb{D}(t;h_t), \mathbb{D}(s;h_s), \mathbb{D}_\ell(t;h_t|s,h_s) \mathbb{D}_\ell(s;h_s|t,h_t)
+         arma::uvec idx_num_DD_s = arma::find( (mat_num_DD_s.col(0) == s(k)) % (mat_num_DD_s.col(1) == bw) );
+         arma::uvec idx_num_DD_t = arma::find( (mat_num_DD_t.col(0) == t(k)) % (mat_num_DD_t.col(1) == bw) );
+         double num_Ds = mat_num_DD_s(idx_num_DD_s(0), 2);
+         double num_Dt = mat_num_DD_t(idx_num_DD_t(0), 2);
+         double PNs = mat_num_DD_s(idx_num_DD_s(0), 3);
+         double PNt = mat_num_DD_t(idx_num_DD_t(0), 3);
+         double Ds = num_Ds / std::pow(PNs, 3) ;
+         double Dt = num_Dt / std::pow(PNt, 3) ;
+         double Ds_t = num_Ds / std::pow(PN_lag, 3) ;
+         double Dt_s = num_Dt / std::pow(PN_lag, 3) ;
          double first_dependence_term = 15 * ( sqrt(Ds_t * Dt) + sqrt(Dt_s * Ds) + 3 * sqrt(Ds * Dt) ) / PN_lag;
 
          // Compute \mathbb{D}(s;h_s)
@@ -383,18 +381,17 @@ using namespace arma;
 
            // ::::::::: Compute dependence term :::::::
 
-           // Compute \mathbb{D}(t;h_t), \mathbb{D}(s;h_s), \mathbb{D}_\ell(t;h_t|s,h_s) \mathbb{D}_\ell(s;h_s|t,h_t)
-           // Extract local regularity parameters
-           arma::uvec idx_DD_cur_s = arma::find(mat_num_DD_s.col(0) == s(k));
-           arma::uvec idx_DD_cur_t = arma::find(mat_num_DD_t.col(0) == t(k));
-           double num_Ds = mat_num_DD_s(idx_DD_cur_s(0), 1);
-           double num_Dt = mat_num_DD_t(idx_DD_cur_t(0), 1);
-           double PNs = arma::accu(pn_s_vec);
-           double PNt = arma::accu(pn_lag_t_vec);
-           double Ds = num_Ds / (PNs * PNs * PNs) ;
-           double Dt = num_Dt / (PNt * PNt * PNt) ;
-           double Ds_t = num_Ds / (PN_lag * PN_lag * PN_lag) ;
-           double Dt_s = num_Dt / (PN_lag * PN_lag * PN_lag) ;
+           // Extract the numerator of \mathbb{D}(t;h_t), \mathbb{D}(s;h_s), \mathbb{D}_\ell(t;h_t|s,h_s) \mathbb{D}_\ell(s;h_s|t,h_t)
+           arma::uvec idx_num_DD_s = arma::find( (mat_num_DD_s.col(0) == s(k)) % (mat_num_DD_s.col(1) == bw_s) );
+           arma::uvec idx_num_DD_t = arma::find( (mat_num_DD_t.col(0) == t(k)) % (mat_num_DD_t.col(1) == bw_t) );
+           double num_Ds = mat_num_DD_s(idx_num_DD_s(0), 2);
+           double num_Dt = mat_num_DD_t(idx_num_DD_t(0), 2);
+           double PNs = mat_num_DD_s(idx_num_DD_s(0), 3);
+           double PNt = mat_num_DD_t(idx_num_DD_t(0), 3);
+           double Ds = num_Ds / std::pow(PNs, 3) ;
+           double Dt = num_Dt / std::pow(PNt, 3) ;
+           double Ds_t = num_Ds / std::pow(PN_lag, 3) ;
+           double Dt_s = num_Dt / std::pow(PN_lag, 3) ;
            double first_dependence_term = 15 * ( sqrt(Ds_t * Dt) + sqrt(Dt_s * Ds) + 3 * sqrt(Ds * Dt) ) / PN_lag;
 
            // Compute \mathbb{D}(s;h_s)
@@ -404,9 +401,8 @@ using namespace arma;
 
            double XsXt_var = mat_emp_autocov(idx_lag0(0), 5);
            arma::mat XsXt_mat_lr_var = mat_emp_autocov.rows(idx_lag);
-           double second_dependence_term_num = XsXt_var + arma::accu(arma::abs(2 * XsXt_mat_lr_var.col(5)));
+           double second_dependence_term_num = XsXt_var + arma::accu(arma::abs(2 * XsXt_mat_lr_var.col(5))) / PN_lag;
            double second_dependence_term = (second_dependence_term_num / PN_lag);
-
            double dependence_term = first_dependence_term + second_dependence_term;
            // ::::::::::: End dependence term ::::::::
 

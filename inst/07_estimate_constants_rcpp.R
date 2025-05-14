@@ -34,3 +34,16 @@ mat_mom <- estimate_empirical_mom_cpp(
   h = presmooth_bw,  mom_order = 1,
   center = FALSE, kernel_name = "epanechnikov")
 mat_mom
+
+
+## Estimate \mathbb{D}(t,h_t) numerator ----
+
+estimate_numerator_dependence_term_DD_single_t_cpp(
+  data = data_far, t = t0[1], max_lag = 6, bw = 0.1,
+  h = presmooth_bw, kernel_name = "epanechnikov", center = TRUE)
+
+mat_num_DD <- estimate_numerator_dependence_term_DD_cpp(
+  data = data_far, t = unique(t0), max_lag = 3, bw_vec = bw_grid,
+  h = presmooth_bw, kernel_name = "epanechnikov", center = TRUE)
+mat_num_DD
+mat_num_DD[, 3] / mat_num_DD[, 4] ** 3

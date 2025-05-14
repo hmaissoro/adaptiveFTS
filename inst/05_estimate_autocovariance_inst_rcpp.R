@@ -1,3 +1,5 @@
+library(data.table)
+
 Rcpp::sourceCpp("./src/05_estimate_autocov_cpp.cpp")
 
 # Import the data
@@ -21,12 +23,13 @@ res_gammahat_risk_cpp
 # two bandwidth
 res_gammahat_risk_2bw_cpp <- estimate_autocov_risk_cpp(
   data = data_far, s = s0, t = t0, lag = 1, bw_grid = NULL,
-  use_same_bw = FALSE, center = TRUE, kernel_name = "epanechnikov")
+  use_same_bw = TRUE, center = TRUE, kernel_name = "epanechnikov")
 res_gammahat_risk_2bw_cpp
 
+dt_risk <- as.data.table(res_gammahat_risk_2bw_cpp)
+dygraphs::dygraph(dt_risk[V1 == 0.2 & V2 == 0.8][, .(V3, V14)])
 
 # autoCovariance function
-
 res_cov <- estimate_autocov_cpp(
   data = data_far, s = s0, t = t0, lag = 0,
   use_same_bw = TRUE, center = FALSE, optbw_s = NULL, optbw_t = NULL, bw_grid = NULL,

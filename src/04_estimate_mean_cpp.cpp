@@ -298,7 +298,8 @@ using namespace arma;
      }
    } else {
      arma::vec optbw_cur = as<arma::vec>(optbw);
-     if (optbw_cur.size() != n) {
+     int optbw_cur_size = optbw_cur.size();
+     if (optbw_cur_size != n) {
        stop("If 'optbw' is not NULL, it must be the same length as 't'.");
      } else {
        optbw_to_use = optbw_cur;
@@ -317,7 +318,6 @@ using namespace arma;
      arma::uvec indices_cur = arma::find(data_mat.col(0) == idx_cur_curve);
      arma::vec Tnvec = data_mat(indices_cur, arma::uvec({1}));
      arma::vec Ynvec = data_mat(indices_cur, arma::uvec({2}));
-     int Mn = Tnvec.size();
 
      // Smooth using Nadaraya-Watson estimator
      arma::vec Xhat = estimate_nw_cpp(Ynvec, Tnvec, t, optbw_to_use, kernel_name);
