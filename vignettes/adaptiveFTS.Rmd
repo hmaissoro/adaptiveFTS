@@ -15,18 +15,18 @@ output:
     fig_height: 3
 
 vignette: >
-  %\VignetteIndexEntry{adaptiveFTS}
+%\VignetteIndexEntry{adaptiveFTS}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
----
-
-```{r, include = FALSE}
+  ---
+  
+  ```{r, include = FALSE}
 knitr::opts_chunk$set(
-  echo = FALSE,
-  message = FALSE,
-  warning = FALSE,
-  collapse = TRUE,
-  comment = "#>"
+echo = FALSE,
+message = FALSE,
+warning = FALSE,
+collapse = TRUE,
+comment = "#>"
 )
 ```
 
@@ -61,13 +61,13 @@ $$
 The data generating process satisfies the following assumptions.
 
 - The series$\{X_n\}$ is a (strictly) stationary $\mathcal H-$valued series.
-	
+
 - The $M_1, \dotsc, M_N$ are random draws of an integer  variable $M\geq 2$, with expectation $\lambda$.  
-	
+
 - Either all the $T_{n,i}$  are independent copies of a  variable $T\in I$ which admits a strictly positive density $g$ over $I$ (independent design case), or the $T_{n,i}$, $1\leq i \leq \lambda=M_n$, are the points of the same equidistant grid of $\lambda$ points in $I$ (common design case).
-	
+
 - The $\varepsilon_{n,i} $  are independent copies of a centered error variable $\e$ with   unit variance, and  $\sigma^2(\cdot)$ is a Lipschitz continuous function. 
-	
+
 - The series $\{X_n\}$ and the copies of  $M$, $T$ and $\varepsilon$ are mutually independent.
 
 The package includes an example of dataset `data_far` drawn as a sample of an Functional Autoreressive Process of order one (FAR(1)). Thus, in the following, we first describe how to generate data from a FRA(1). Second, we explain the data
@@ -82,7 +82,7 @@ data("data_far")
 
 # Plot the curve
 ggplot(data = data_far[, .("id_curve" = as.factor(id_curve), "t" =  tobs, X)],
-      mapping = aes(x = t, y = X, group = id_curve)) +
+       mapping = aes(x = t, y = X, group = id_curve)) +
   geom_line(color = "#1B4F72") +
   theme_minimal()
 
@@ -92,6 +92,31 @@ ggplot(data = data_far[, .("id_curve" = as.factor(id_curve), "t" =  tobs, X)],
 
 
 # Estimation of local regularity parameters
+
+To estimate the local regularity parameters, call the function `estimate_locreg`.
+
+```{r}
+# Load data
+data("data_far")
+
+# Define observation points for local regularity estimation
+t0 <- seq(0.1, 0.9, len = 9)
+
+# Estimate local regularity parameters
+dt_locreg <- estimate_locreg(data = data_far,
+                             idcol = "id_curve",
+                             tcol = "tobs",
+                             ycol = "X",
+                             t = t0,
+                             Delta = NULL,
+                             h = NULL,
+                             kernel_name = "epanechnikov",
+                             center = TRUE)
+
+DT::datatable(dt_locreg)
+dt_locreg
+```
+
 
 # Estimation of the mean function
 
