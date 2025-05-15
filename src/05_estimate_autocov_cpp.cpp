@@ -160,8 +160,7 @@ using namespace arma;
    // Compute the numerator of \mathbb{D}(t;h_t), \mathbb{D}(s;h_s), \mathbb{D}_\ell(t;h_t|s,h_s) \mathbb{D}_\ell(s;h_s|t,h_t)
    arma::mat mat_num_DD_s = estimate_numerator_dependence_term_DD_cpp(data, arma::unique(s), bw_grid_to_use, h, 3, kernel_name, center);
    arma::mat mat_num_DD_t = estimate_numerator_dependence_term_DD_cpp(data, arma::unique(t), bw_grid_to_use, h, 3, kernel_name, center);
-   Rcout << "mat_num_DD_s : \n" << mat_num_DD_s << "\n";
-   Rcout << "mat_num_DD_t : \n" << mat_num_DD_t << "\n";
+
    // Definie result matrix
    int n_rows_res = use_same_bw ? bw_size * n : bw_size * bw_size * n;
    arma::mat mat_res_risk(n_rows_res, 14);
@@ -276,7 +275,7 @@ using namespace arma;
 
          double XsXt_var = mat_emp_autocov(idx_lag0(0), 5);
          arma::mat XsXt_mat_lr_var = mat_emp_autocov.rows(idx_lag);
-         double second_dependence_term_num = XsXt_var + arma::accu(arma::abs(2 * XsXt_mat_lr_var.col(5)));
+         double second_dependence_term_num = XsXt_var + arma::accu(arma::abs(2 * XsXt_mat_lr_var.col(5))) / PN_lag;
          double second_dependence_term = (second_dependence_term_num / PN_lag);
 
          double dependence_term = first_dependence_term + second_dependence_term;
