@@ -410,7 +410,7 @@ arma::mat estimate_numerator_dependence_term_DD_cpp(const Rcpp::DataFrame data,
 
       // Compute pn_vec for current bandwidth
       arma::vec pn_vec(mat_res_nw_by_t.n_rows);
-      int nrow_t = mat_res_nw_by_t.n_row;
+      int nrow_t = mat_res_nw_by_t.n_rows;
       for (int i = 0; i < nrow_t; ++i) {
         double idx_cur_curve = mat_res_nw_by_t(i, 0);
         arma::uvec indices_cur = arma::find(data_mat.col(0) == idx_cur_curve);
