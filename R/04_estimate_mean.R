@@ -120,7 +120,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #' @return A \code{data.table} containing the following columns:
 #' \itemize{
 #'   \item{\code{t} :}{ The observation points at which the mean function is estimated.}
-#'   \item{\code{optbw} :}{ The optimal bandwidth used for estimating local regularity parameters at each \code{t}.}
+#'   \item{\code{optbw} :}{ The optimal bandwidth used to estimate the mean function at each \code{t}.}
 #'   \item{\code{Ht} :}{ Local exponent estimates for each \code{t}, corresponding to \eqn{H_t}.}
 #'   \item{\code{Lt} :}{ Estimates of the Hölder constant for each \code{t}, corresponding to \eqn{L_t^2}.}
 #'   \item{\code{PN} :}{ The number of selected curves used in the estimation for each \code{t}.}
