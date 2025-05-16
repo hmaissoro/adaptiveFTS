@@ -229,6 +229,37 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// estimate_cov_segment_risk_cpp
+arma::mat estimate_cov_segment_risk_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<arma::vec> bw_grid, const bool center, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_estimate_cov_segment_risk_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP bw_gridSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_grid(bw_gridSEXP);
+    Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_cov_segment_risk_cpp(data, t, bw_grid, center, kernel_name));
+    return rcpp_result_gen;
+END_RCPP
+}
+// estimate_cov_segment_cpp
+arma::mat estimate_cov_segment_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<arma::vec> optbw, const Rcpp::Nullable<arma::vec> bw_grid, const bool center, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_estimate_cov_segment_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP optbwSEXP, SEXP bw_gridSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type optbw(optbwSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_grid(bw_gridSEXP);
+    Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_cov_segment_cpp(data, t, optbw, bw_grid, center, kernel_name));
+    return rcpp_result_gen;
+END_RCPP
+}
 // estimate_sigma_cpp
 arma::mat estimate_sigma_cpp(const Rcpp::DataFrame data, const arma::vec t);
 RcppExport SEXP _adaptiveFTS_estimate_sigma_cpp(SEXP dataSEXP, SEXP tSEXP) {
@@ -287,6 +318,35 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
     Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
     rcpp_result_gen = Rcpp::wrap(estimate_empirical_XsXt_autocov_cpp(data, s, t, cross_lag, lag, h, kernel_name, center));
+    return rcpp_result_gen;
+END_RCPP
+}
+// estimate_numerator_DD_single_t
+double estimate_numerator_DD_single_t(const arma::vec& Znvec_raw, const int max_lag);
+RcppExport SEXP _adaptiveFTS_estimate_numerator_DD_single_t(SEXP Znvec_rawSEXP, SEXP max_lagSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec& >::type Znvec_raw(Znvec_rawSEXP);
+    Rcpp::traits::input_parameter< const int >::type max_lag(max_lagSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_numerator_DD_single_t(Znvec_raw, max_lag));
+    return rcpp_result_gen;
+END_RCPP
+}
+// estimate_numerator_dependence_term_DD_cpp
+arma::mat estimate_numerator_dependence_term_DD_cpp(const Rcpp::DataFrame data, const arma::vec& t, const arma::vec& bw_vec, const arma::vec& h, const int max_lag, const std::string kernel_name, const bool center);
+RcppExport SEXP _adaptiveFTS_estimate_numerator_dependence_term_DD_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP bw_vecSEXP, SEXP hSEXP, SEXP max_lagSEXP, SEXP kernel_nameSEXP, SEXP centerSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type t(tSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type bw_vec(bw_vecSEXP);
+    Rcpp::traits::input_parameter< const arma::vec& >::type h(hSEXP);
+    Rcpp::traits::input_parameter< const int >::type max_lag(max_lagSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
+    Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_numerator_dependence_term_DD_cpp(data, t, bw_vec, h, max_lag, kernel_name, center));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -428,10 +488,14 @@ static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_get_upper_tri_couple", (DL_FUNC) &_adaptiveFTS_get_upper_tri_couple, 2},
     {"_adaptiveFTS_sort_by_columns", (DL_FUNC) &_adaptiveFTS_sort_by_columns, 3},
     {"_adaptiveFTS_estimate_autocov_cpp", (DL_FUNC) &_adaptiveFTS_estimate_autocov_cpp, 11},
+    {"_adaptiveFTS_estimate_cov_segment_risk_cpp", (DL_FUNC) &_adaptiveFTS_estimate_cov_segment_risk_cpp, 5},
+    {"_adaptiveFTS_estimate_cov_segment_cpp", (DL_FUNC) &_adaptiveFTS_estimate_cov_segment_cpp, 6},
     {"_adaptiveFTS_estimate_sigma_cpp", (DL_FUNC) &_adaptiveFTS_estimate_sigma_cpp, 2},
     {"_adaptiveFTS_estimate_empirical_mom_cpp", (DL_FUNC) &_adaptiveFTS_estimate_empirical_mom_cpp, 6},
     {"_adaptiveFTS_estimate_empirical_autocov_cpp", (DL_FUNC) &_adaptiveFTS_estimate_empirical_autocov_cpp, 5},
     {"_adaptiveFTS_estimate_empirical_XsXt_autocov_cpp", (DL_FUNC) &_adaptiveFTS_estimate_empirical_XsXt_autocov_cpp, 8},
+    {"_adaptiveFTS_estimate_numerator_DD_single_t", (DL_FUNC) &_adaptiveFTS_estimate_numerator_DD_single_t, 2},
+    {"_adaptiveFTS_estimate_numerator_dependence_term_DD_cpp", (DL_FUNC) &_adaptiveFTS_estimate_numerator_dependence_term_DD_cpp, 7},
     {"_adaptiveFTS_reshape_matrix", (DL_FUNC) &_adaptiveFTS_reshape_matrix, 4},
     {"_adaptiveFTS_combine_matrices", (DL_FUNC) &_adaptiveFTS_combine_matrices, 4},
     {"_adaptiveFTS_build_grid", (DL_FUNC) &_adaptiveFTS_build_grid, 2},

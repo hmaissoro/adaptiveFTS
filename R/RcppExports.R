@@ -77,6 +77,17 @@ estimate_autocov_cpp <- function(data, s, t, lag, optbw_s = NULL, optbw_t = NULL
     .Call(`_adaptiveFTS_estimate_autocov_cpp`, data, s, t, lag, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name)
 }
 
+#' Estimate the risk of the covariance segment function
+NULL
+
+estimate_cov_segment_risk_cpp <- function(data, t, bw_grid = NULL, center = TRUE, kernel_name = "epanechnikov") {
+    .Call(`_adaptiveFTS_estimate_cov_segment_risk_cpp`, data, t, bw_grid, center, kernel_name)
+}
+
+estimate_cov_segment_cpp <- function(data, t, optbw = NULL, bw_grid = NULL, center = TRUE, kernel_name = "epanechnikov") {
+    .Call(`_adaptiveFTS_estimate_cov_segment_cpp`, data, t, optbw, bw_grid, center, kernel_name)
+}
+
 estimate_sigma_cpp <- function(data, t) {
     .Call(`_adaptiveFTS_estimate_sigma_cpp`, data, t)
 }
@@ -91,6 +102,14 @@ estimate_empirical_autocov_cpp <- function(data, t, h, lag, kernel_name = "epane
 
 estimate_empirical_XsXt_autocov_cpp <- function(data, s, t, cross_lag, lag, h, kernel_name, center) {
     .Call(`_adaptiveFTS_estimate_empirical_XsXt_autocov_cpp`, data, s, t, cross_lag, lag, h, kernel_name, center)
+}
+
+estimate_numerator_DD_single_t <- function(Znvec_raw, max_lag) {
+    .Call(`_adaptiveFTS_estimate_numerator_DD_single_t`, Znvec_raw, max_lag)
+}
+
+estimate_numerator_dependence_term_DD_cpp <- function(data, t, bw_vec, h, max_lag, kernel_name, center) {
+    .Call(`_adaptiveFTS_estimate_numerator_dependence_term_DD_cpp`, data, t, bw_vec, h, max_lag, kernel_name, center)
 }
 
 #' Reshape Matrix from Long Format Data
