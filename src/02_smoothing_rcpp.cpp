@@ -218,8 +218,9 @@ using namespace arma;
    // Check if h is non-negative
    // Control the presmoothing bandwidth
    arma::vec h_to_use;
-   if (h.size() != m) {
-     if (h.size() != 1) {
+   int h_size = h.size();
+   if (h_size != m) {
+     if (h_size != 1) {
        Rcpp::stop("'h' must be a numeric vector with length equal to the number of points in 'tnew' or a scalar value.");
      } else {
        h_to_use = arma::vec(m, fill::value(h(0)));
