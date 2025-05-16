@@ -17,8 +17,7 @@ simulate_far(
   far_mean = function(t) 4 * sin(1.5 * pi * t),
   int_grid = 100L,
   burnin = 100L,
-  remove_burnin = TRUE,
-  ...
+  remove_burnin = TRUE
 )
 }
 \arguments{
