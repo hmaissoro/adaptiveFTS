@@ -13,8 +13,8 @@ estimate_nw(y, t, tnew, h = NULL, kernel_name = "epanechnikov")
 
 \item{tnew}{\code{vector (numeric)}. New \code{t} values at which to estimate the regression function.}
 
-\item{h}{\code{numeric (positive)}. The bandwidth parameter, where \code{h > (2 * length(x))}.
-Default is \code{h = NULL}, in which case it will be computed automatically.}
+\item{h}{\code{numeric (positive)}. The bandwidth parameter.
+Default is \code{h = NULL}, in which case it will be chosen using cross-validation}
 
 \item{kernel_name}{\code{string}. A string specifying the name of the kernel function to use. The default is "epanechnikov".
 Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform".}

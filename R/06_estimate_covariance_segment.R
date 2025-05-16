@@ -32,7 +32,7 @@
 #' The dependence term includes contributions from both a term based on \eqn{\mathbb{D}(t; h_t)} derived from fourth-moment tensors,
 #' and an empirical autocovariance term computed using \link{estimate_empirical_XsXt_autocov_cpp}.
 #'
-#' @export
+#'
 #' @seealso \link{estimate_mean}, \link{estimate_locreg}, \link{estimate_sigma},
 #'          \link{estimate_nw}, \link{estimate_empirical_autocov}
 #'
@@ -45,6 +45,8 @@
 #'
 #' @examples
 #' # Example coming soon
+#'
+#' @export
 #'
 estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                       t = c(1/4, 1/2, 3/4),
@@ -112,7 +114,6 @@ estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", y
 #'   \item{\code{cov_segment_hat_corrected} :}{ Final corrected covariance segment estimate. }
 #' }
 #'
-#' @export
 #'
 #' @seealso \link{estimate_cov_segment_risk}, \link{estimate_locreg}, \link{estimate_sigma},
 #'          \link{estimate_nw}, \link{estimate_empirical_autocov}
@@ -125,6 +126,8 @@ estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", y
 #'
 #' @examples
 #' # Example coming soon
+#'
+#'  @export
 #'
 estimate_cov_segment <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                  t = c(1/4, 1/2, 3/4),
