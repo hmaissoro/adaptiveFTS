@@ -87,7 +87,6 @@ described in \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
 \examples{
 # Example coming soon
 
- @export
 
 }
 \references{

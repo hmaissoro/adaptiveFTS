@@ -52,6 +52,8 @@ using namespace arma;
  //' wide_matrix <- reshape_matrix(A, 0, 1, 2)
  //' print(wide_matrix)
  //' }
+ //'
+ //'
  // [[Rcpp::export]]
  arma::mat reshape_matrix(const arma::mat& A,
                           const arma::uword idx_col_s,

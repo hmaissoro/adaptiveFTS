@@ -60,7 +60,6 @@ using namespace arma;
  //'          print(mean_risk)
  //' }
  //'
- //' @export
  //'
  //' @import Rdpack
  //'

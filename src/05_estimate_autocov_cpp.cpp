@@ -48,7 +48,6 @@ using namespace arma;
  //'            \item{autocov_risk : The estimates of the risk function of the covariance/autocovariance function.}
  //'         }
  //'
- //' @export
  //'
  //' @import Rdpack
  //'
