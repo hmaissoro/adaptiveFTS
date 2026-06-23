@@ -16,3 +16,8 @@ inst/11_mc_simulate_data/mean_estimates/
 *.csv
 *.tex
 inst/doc
+
+# Keep regression-test reference fixtures (the *.RDS rule above also matches
+# *.rds on case-insensitive filesystems such as Windows).
+!tests/testthat/_refs/
+!tests/testthat/_refs/*.rds
