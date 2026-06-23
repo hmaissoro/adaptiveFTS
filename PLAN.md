@@ -322,6 +322,43 @@ scope changes for it now.
 
 ---
 
-## Appendix A — Baseline `R CMD check --as-cran` (to be filled in Phase 0)
+## Appendix A — Baseline `R CMD check --as-cran`
 
-_Pending: output of `R CMD check --as-cran` under R 4.2.1 will be recorded here._
+Run: R 4.2.1 (ucrt), x86_64-w64-mingw32, rtools42, `--as-cran --no-manual`,
+package built with `--no-build-vignettes` (Pandoc not installed locally).
+**Status: 1 ERROR, 3 WARNINGs, 6 NOTEs.**
+
+### ERROR
+- **Re-building of vignette outputs.** `prev_using_fda.Rmd` has no recognized
+  vignette engine; `adaptiveFTS.Rmd` fails (`argument 'path' incorrect` at lines
+  99–118, plus a mismatched-backticks warning at lines 23/31). Pandoc-missing is
+  local-env, but the engine + path/backtick faults are **real** (→ Phase 4).
+
+### WARNINGs
+- **Rd cross-references** — missing links in `estimate_cov_segment_risk.Rd`:
+  `estimate_locreg_cpp`, `estimate_empirical_XsXt_autocov_cpp`. (real → Phase 4)
+- **vignettes dir** — files in `vignettes/` but none in `inst/doc`;
+  `prev_using_fda.Rmd` named as a vignette but no engine. (real → Phase 4)
+- **inst/doc missing** — `adaptiveFTS.Rmd` has no corresponding built HTML/PDF.
+  (real → Phase 4)
+
+### NOTEs
+- **CRAN incoming feasibility** — New submission; "VignetteBuilder field but no
+  prebuilt vignette index"; Description must not start with "This package".
+  (real → Phase 4)
+- **Hidden files** — `.claude` found at top level. (fixable: `.Rbuildignore`)
+- **Future file timestamps / unable to verify current time.** (local-env only)
+- **DESCRIPTION meta** — `Authors@R` has incorrect ORCID `YOUR-ORCID-ID`.
+  (real → Phase 4)
+- **Top-level files** — README/NEWS can't be checked without Pandoc (env);
+  non-standard top-level file `PLAN.md`. (fixable: `.Rbuildignore`)
+- **R code possible problems** — no visible binding for globals in
+  `estimate_cov_segment`: `cov_segment_hat`, `covseg_correction`,
+  `cov_segment_hat_corrected` (add to `utils::globalVariables` in `zzz.R`).
+  (real → Phase 4, quick)
+
+### Environment-only (will not appear in CI with Pandoc + clean checkout)
+Pandoc-missing (README/NEWS, vignette HTML), "unable to verify current time",
+and `.claude`/`PLAN.md` top-level (build-ignored). The substantive package
+defects to fix for 0/0/0 are: vignette engine/path/backticks, Rd cross-ref
+links, ORCID, Description wording, and the `globalVariables` bindings.
