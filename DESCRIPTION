@@ -14,12 +14,9 @@ Encoding: UTF-8
 Roxygen: list(markdown = TRUE, roclets = c("namespace", "rd", "collate"))
 RoxygenNote: 7.3.1
 Imports:
-    caret,
     data.table,
-    fastmatrix,
     MASS,
     methods,
-    parallel,
     Rcpp,
     Rdpack,
     stats,

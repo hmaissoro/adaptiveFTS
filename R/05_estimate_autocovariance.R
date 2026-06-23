@@ -608,7 +608,6 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
 #' @import data.table
 #' @importFrom Rdpack reprompt
 #' @importFrom methods is
-#' @importFrom caret createFolds
 #'
 #' @references
 #' \insertAllCited{}
@@ -653,10 +652,10 @@ estimate_autocov_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol
   }
 
   # Create Kfold folds
-  fold <- caret::createFolds(y = unique(data[, id_curve]), k = Kfold, list = TRUE)
+  fold <- .create_folds(y = unique(data[, id_curve]), k = Kfold, list = TRUE)
 
   # Get risk for each bandwidth in the grid
-  dt_bw <- data.table::rbindlist(parallel::mclapply(bw_grid, function(BR0, data, dt_mean_rp, fold, kernel_smooth){
+  dt_bw <- data.table::rbindlist(lapply(bw_grid, function(BR0, data, dt_mean_rp, fold, kernel_smooth){
 
     # Compute the cross-validation error for each f in fold
     err_fold <- tryCatch(
@@ -713,7 +712,7 @@ estimate_autocov_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol
     dt_res <- data.table::data.table("h" = BR0, "cv_error" = cv_err)
     return(dt_res)
 
-  }, mc.cores = 20, data = data, dt_mean_rp = dt_mean_rp, fold = fold, kernel_smooth = smooth_ker))
+  }, data = data, dt_mean_rp = dt_mean_rp, fold = fold, kernel_smooth = smooth_ker))
 
   return(dt_bw)
 }

@@ -225,7 +225,6 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #'
 #' @import data.table
 #' @import Rdpack
-#' @importFrom fastmatrix kronecker.prod
 #'
 #' @references
 #' \insertRef{rubin2020}{adaptiveFTS}
@@ -269,9 +268,9 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     # Estimate mean function
     Tn <- data[order(tobs), tobs]
     Yn <- data[order(tobs), X]
-    data_curve <- fastmatrix::kronecker.prod(
-      x = matrix(data = rep(1, length(t)), ncol = 1),
-      y = cbind(Tn, Yn)
+    data_curve <- kronecker(
+      X = matrix(data = rep(1, length(t)), ncol = 1),
+      Y = cbind(Tn, Yn)
     )
     colnames(data_curve) <- c("Tn", "Yn")
     data_curve <- data.table::as.data.table(data_curve)
@@ -317,9 +316,9 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
       Tn <- data[order(tobs), tobs]
       Yn <- data[order(tobs), X]
       if (length(t_list_i) > 1) {
-        data_curve <- fastmatrix::kronecker.prod(
-          x = matrix(data = rep(1, length(t_list_i)), ncol = 1),
-          y = cbind(Tn, Yn)
+        data_curve <- kronecker(
+          X = matrix(data = rep(1, length(t_list_i)), ncol = 1),
+          Y = cbind(Tn, Yn)
         )
         colnames(data_curve) <- c("Tn", "Yn")
         data_curve <- data.table::as.data.table(data_curve)
@@ -376,7 +375,6 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #'
 #' @import data.table
 #' @import Rdpack
-#' @importFrom caret createFolds
 #'
 #' @references
 #' \insertRef{rubin2020}{adaptiveFTS}
@@ -427,7 +425,7 @@ estimate_mean_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
   # Format data
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   # Create Kfold folds
-  fold <- caret::createFolds(y = unique(data[, id_curve]), k = Kfold, list = TRUE)
+  fold <- .create_folds(y = unique(data[, id_curve]), k = Kfold, list = TRUE)
 
   # Get risk for each bandwidth in the grid
   dt_bw <- data.table::rbindlist(lapply(bw_grid, function(Bmu0, data, fold, kernel_smooth){
