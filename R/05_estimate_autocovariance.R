@@ -303,6 +303,11 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     stop("'t' must be a numeric scalar value between 0 and 1.")
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
+
+  # Control and format data (needed before the lag check below, which uses N)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  N <- data[, length(unique(id_curve))]
+
   if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
     stop("'lag' must be a positive integer lower than the number of curves.")
   if ((any(p < 0)| (length(p) > 1) | any(p - floor(p) > 0)) |
@@ -310,10 +315,6 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     stop("'p' and 'q' must be positive integers.")
   if (! (methods::is(h, "numeric") & all(data.table::between(h, 0, 1))  & length(h) == 1))
     stop("'h' must be a numeric scalar value between 0 and 1.")
-
-  # Control and format data
-  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
-  N <- data[, length(unique(id_curve))]
 
   # Extract observation points
   Tn <- data[id_curve %in% 1:(N - lag), tobs]
@@ -378,6 +379,11 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     stop("'s' must be a numeric scalar value between 0 and 1.")
   if (! (methods::is(t, "numeric") && all(t > 0 & t <= 1)  && length(t) == 1))
     stop("'t' must be a numeric scalar value between 0 and 1.")
+
+  # Control and format data (needed before the lag check below, which uses N)
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  N <- data[, length(unique(id_curve))]
+
   if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
     stop("'lag' must be a positive integer lower than the number of curves.")
   if ((any(p < 0)| (length(p) > 1) | any(p - floor(p) > 0)) |
@@ -396,10 +402,6 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   }
   if (! methods::is(smooth_ker, "function"))
     stop("'smooth_ker' must be a function.")
-
-  # Control and format data
-  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
-  N <- data[, length(unique(id_curve))]
 
   # Estimate mean function is it is NULL
   if (is.null(dt_mean_rp)) {
@@ -518,11 +520,13 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
   } else if (! (data.table::is.data.table(dt_mean_rp) && all(c("id_curve", "tobs", "muhat_RP") %in% colnames(dt_mean_rp)))) {
       stop("'dt_mean_rp' must be a data.table containing the columns : 'id_curve', 'tobs' and 'muhat_RP'.")
   }
-  if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
-    stop("'lag' must be a positive integer lower than the number of curves.")
 
   # Control and format data
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  N <- data[, length(unique(id_curve))]
+
+  if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
+    stop("'lag' must be a positive integer lower than the number of curves.")
 
   # Sort by s and t
   dt_st <- data.table::data.table("s" = s, "t" = t)
