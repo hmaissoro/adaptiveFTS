@@ -127,7 +127,8 @@ estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", y
 #' @examples
 #' # Example coming soon
 #'
-#'  @export
+#'
+#' @export
 #'
 estimate_cov_segment <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                  t = c(1/4, 1/2, 3/4),
