@@ -93,22 +93,29 @@ using namespace arma;
    int n = t.size();
    arma::vec t1(n), t2(n), t3(n);
 
+   // Deterministic tie-breaking offset. Previously this was a random draw in
+   // [1e-6, 2e-6] via arma::randu(), which (a) is not controlled by R's
+   // set.seed(), and (b) advances Armadillo's RNG on every call, so the local
+   // regularity estimates were not reproducible (they varied by ~1e-4 between
+   // otherwise identical calls). A fixed offset breaks ties just as well while
+   // making the estimates fully reproducible across runs and platforms.
+   const double jitter = 1.5e-06;
    for (int i = 0; i < n; ++i) {
      double ti = t(i);
 
-     // Add small uniform value to avoid ties
+     // Add a small offset to avoid ties
      if ((ti - Delta_to_use / 2) <= 0) {
        t1(i) = ti;
-       t2(i) = ti + Delta_to_use / 2 + arma::randu(distr_param(1e-06, 2e-06));
-       t3(i) = ti + Delta_to_use + arma::randu(distr_param(1e-06, 2e-06));
+       t2(i) = ti + Delta_to_use / 2 + jitter;
+       t3(i) = ti + Delta_to_use + jitter;
      } else if ((ti + Delta_to_use / 2) >= 1) {
        t3(i) = ti;
-       t2(i) = ti - Delta_to_use / 2 + arma::randu(distr_param(1e-06, 2e-06));;
-       t1(i) = ti - Delta_to_use + arma::randu(distr_param(1e-06, 2e-06));;
+       t2(i) = ti - Delta_to_use / 2 + jitter;
+       t1(i) = ti - Delta_to_use + jitter;
      } else {
-       t1(i) = ti - Delta_to_use / 2 + arma::randu(distr_param(1e-06, 2e-06));;
+       t1(i) = ti - Delta_to_use / 2 + jitter;
        t2(i) = ti;
-       t3(i) = ti + Delta_to_use / 2 + arma::randu(distr_param(1e-06, 2e-06));;
+       t3(i) = ti + Delta_to_use / 2 + jitter;
      }
    }
 
