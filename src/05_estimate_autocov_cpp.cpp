@@ -136,6 +136,14 @@ using namespace arma;
    }
    int bw_size = bw_grid_to_use.size();
 
+   // Precompute the row indices of each curve once. These index sets are
+   // constant, but were previously recomputed with arma::find() inside the
+   // innermost loop (once per curve, per (s,t) pair, per bandwidth pair),
+   // which dominated the runtime. Caching them changes nothing numerically.
+   std::vector<arma::uvec> curve_idx((arma::uword) n_curve);
+   for (arma::uword c = 0; c < (arma::uword) n_curve; ++c)
+     curve_idx[c] = arma::find(data_mat.col(0) == unique_id_curve(c));
+
    // Estimate local regularity
    arma::mat mat_locreg_s = estimate_locreg_cpp(data, arma::unique(s), true, kernel_name, R_NilValue, R_NilValue);
    arma::mat mat_locreg_t = estimate_locreg_cpp(data, arma::unique(t), true, kernel_name, R_NilValue, R_NilValue);
@@ -213,9 +221,9 @@ using namespace arma;
          double variance_term_num = 0;
 
          for(int i = 0 ; i < n_curve - lag; ++i){
-           // Exact the indexes : current and forward
-           arma::uvec idx_i = arma::find(data_mat.col(0) == unique_id_curve(i));
-           arma::uvec idx_i_lag = arma::find(data_mat.col(0) == unique_id_curve(i + lag));
+           // Exact the indexes : current and forward (precomputed)
+           const arma::uvec& idx_i = curve_idx[i];
+           const arma::uvec& idx_i_lag = curve_idx[i + lag];
 
            // Extract weight
            arma::vec wvec_s_i = wvec_s(idx_i) / arma::accu(wvec_s(idx_i));
@@ -337,9 +345,9 @@ using namespace arma;
            double variance_term_num = 0;
 
            for(int i = 0 ; i < n_curve - lag; ++i){
-             // Exact the indexes : current and forward
-             arma::uvec idx_i = arma::find(data_mat.col(0) == unique_id_curve(i));
-             arma::uvec idx_i_lag = arma::find(data_mat.col(0) == unique_id_curve(i + lag));
+             // Exact the indexes : current and forward (precomputed)
+             const arma::uvec& idx_i = curve_idx[i];
+             const arma::uvec& idx_i_lag = curve_idx[i + lag];
 
              // Extract weight
              arma::vec wvec_s_i = wvec_s(idx_i) / arma::accu(wvec_s(idx_i));
