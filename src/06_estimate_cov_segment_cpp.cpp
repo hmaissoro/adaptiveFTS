@@ -63,11 +63,9 @@ using namespace arma;
  //' head(res)
  //' }
  //'
- //' @export
  //' @import Rdpack
  //' @references
  //' \insertAllCited{}
-
  //'
  // [[Rcpp::export]]
  arma::mat estimate_cov_segment_risk_cpp(const Rcpp::DataFrame data, const arma::vec t,
@@ -268,10 +266,10 @@ using namespace arma;
  //' estimate_cov_segment_cpp(data, t)
  //' }
  //'
- //' @export
  //' @import Rdpack
  //' @references
  //' \insertAllCited{}
+ //'
  //'
  // [[Rcpp::export]]
  arma::mat estimate_cov_segment_cpp(const Rcpp::DataFrame data, const arma::vec t,

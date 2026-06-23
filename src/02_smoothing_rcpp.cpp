@@ -15,7 +15,6 @@ using namespace arma;
  //' @examples
  //' biweight_kernel(c(-1, 0, 1))
  //'
- //' @export
  //'
  // [[Rcpp::export]]
  arma::vec biweight_kernel(const arma::vec u) {

@@ -35,7 +35,6 @@ using namespace arma;
  //' estimate_locreg_cpp(data, seq(0, 1, length.out = 20), center = TRUE)
  //' }
  //'
- //' @export
  // [[Rcpp::export]]
  arma::mat estimate_locreg_cpp(const Rcpp::DataFrame data, const arma::vec t,
                                const bool center,
