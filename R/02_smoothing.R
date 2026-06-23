@@ -240,7 +240,7 @@ get_nw_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X
   }
 
   # Estimate the bandwidths using the C++ function
-  hbest <- get_nw_optimal_bw_cpp(data = data, bw_grid = bw_grid, nsubset = nsubset, kernel_name = )
+  hbest <- get_nw_optimal_bw_cpp(data = data, bw_grid = bw_grid, nsubset = nsubset, kernel_name = kernel_name)
 
   return(hbest)
 }
