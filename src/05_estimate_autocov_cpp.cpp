@@ -172,123 +172,131 @@ using namespace arma;
    int n_rows_res = use_same_bw ? bw_size * n : bw_size * bw_size * n;
    arma::mat mat_res_risk(n_rows_res, 14);
 
+   // ---- Precompute quantities shared across the bandwidth loops ----
+   // Previously every constant below was recomputed inside the O(bw^2) x n loop.
+   const int nc = (int) n_curve;
+
+   // Per-pair (s(k), t(k)) constants: local regularity, second moments, error
+   // variances, and the parts of the second dependence term independent of PN_lag.
+   arma::vec Hs_k(n), Ls_k(n), Ht_k(n), Lt_k(n);
+   arma::vec moms_k(n), momt_k(n), sigs_k(n), sigt_k(n);
+   arma::vec XsXtvar_k(n), sumabslr_k(n);
+   for (int k = 0; k < n; ++k) {
+     arma::uvec is = arma::find(mat_locreg_s.col(0) == s(k));
+     arma::uvec it = arma::find(mat_locreg_t.col(0) == t(k));
+     Hs_k(k) = mat_locreg_s(is(0), 4); Ls_k(k) = mat_locreg_s(is(0), 5);
+     Ht_k(k) = mat_locreg_t(it(0), 4); Lt_k(k) = mat_locreg_t(it(0), 5);
+
+     arma::uvec ims = arma::find(mat_mom_s.col(0) == s(k));
+     arma::uvec imt = arma::find(mat_mom_t.col(0) == t(k));
+     moms_k(k) = mom_vec_s(ims(0)); momt_k(k) = mom_vec_t(imt(0));
+
+     arma::uvec iss = arma::find(mat_sig_s.col(0) == s(k));
+     arma::uvec ist = arma::find(mat_sig_t.col(0) == t(k));
+     sigs_k(k) = sig2_vec_s(iss(0)); sigt_k(k) = sig2_vec_t(ist(0));
+
+     arma::uvec idx_lag0 = arma::find( (mat_emp_autocov.col(0) == s(k)) % (mat_emp_autocov.col(1) == t(k)) % (mat_emp_autocov.col(3) == 0) );
+     arma::uvec idx_lag  = arma::find( (mat_emp_autocov.col(0) == s(k)) % (mat_emp_autocov.col(1) == t(k)) % (mat_emp_autocov.col(3) != 0) );
+     XsXtvar_k(k) = mat_emp_autocov(idx_lag0(0), 5);
+     arma::mat XsXt_mat_lr_var = mat_emp_autocov.rows(idx_lag);
+     sumabslr_k(k) = arma::accu(arma::abs(2 * XsXt_mat_lr_var.col(5)));
+   }
+
+   // Per-pair, per-bandwidth dependence-term numerators and counts.
+   arma::mat numDs_kb(n, bw_size), PNs_kb(n, bw_size);
+   arma::mat numDt_kb(n, bw_size), PNt_kb(n, bw_size);
+   for (int k = 0; k < n; ++k) {
+     for (int b = 0; b < bw_size; ++b) {
+       double bw = bw_grid_to_use[b];
+       arma::uvec ids = arma::find( (mat_num_DD_s.col(0) == s(k)) % (mat_num_DD_s.col(1) == bw) );
+       arma::uvec idt = arma::find( (mat_num_DD_t.col(0) == t(k)) % (mat_num_DD_t.col(1) == bw) );
+       numDs_kb(k, b) = mat_num_DD_s(ids(0), 2); PNs_kb(k, b) = mat_num_DD_s(ids(0), 3);
+       numDt_kb(k, b) = mat_num_DD_t(idt(0), 2); PNt_kb(k, b) = mat_num_DD_t(idt(0), 3);
+     }
+   }
+
+   // Per-curve kernel-weight aggregates for every (pair k, bandwidth b). These
+   // are the only quantities the bias/variance numerators need from the weights,
+   // and each depends on a single bandwidth, so caching them removes the
+   // bw-redundant full-data kernel evaluations the previous bw_s x bw_t loop did.
+   //   *_pn  : 1 if the curve has an observation in the kernel support, else 0
+   //   *_sbn : sum |(T - x)/bw|^{2H} * |normalised weight|   (bias numerator)
+   //   *_max : max normalised weight                          (variance numerator)
+   arma::cube s_pn(nc, n, bw_size), s_sbn(nc, n, bw_size), s_max(nc, n, bw_size);
+   arma::cube t_pn(nc, n, bw_size), t_sbn(nc, n, bw_size), t_max(nc, n, bw_size);
+   arma::vec tobs_all = data_mat.col(1);
+   // Cache each curve's observation points once (avoids re-gathering per bw).
+   std::vector<arma::vec> curve_tobs((arma::uword) nc);
+   for (int c = 0; c < nc; ++c) curve_tobs[c] = tobs_all(curve_idx[c]);
+#pragma omp parallel for
+   for (int k = 0; k < n; ++k) {
+     double Hs = Hs_k(k), Ht = Ht_k(k);
+     for (int b = 0; b < bw_size; ++b) {
+       double bw = bw_grid_to_use[b];
+       for (int c = 0; c < nc; ++c) {
+         const arma::vec& Tc = curve_tobs[c];
+         // s-side
+         arma::vec ds = (Tc - s(k)) / bw;
+         arma::vec ws = kernel_func(ds);
+         ws.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+         arma::vec wsn = ws / arma::accu(ws);
+         wsn.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+         s_pn(c, k, b)  = arma::find(arma::abs(ds) <= 1).is_empty() ? 0.0 : 1.0;
+         s_sbn(c, k, b) = arma::sum(arma::pow(arma::abs(ds), 2 * Hs) % arma::abs(wsn));
+         s_max(c, k, b) = wsn.max();
+         // t-side
+         arma::vec dt = (Tc - t(k)) / bw;
+         arma::vec wt = kernel_func(dt);
+         wt.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+         arma::vec wtn = wt / arma::accu(wt);
+         wtn.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+         t_pn(c, k, b)  = arma::find(arma::abs(dt) <= 1).is_empty() ? 0.0 : 1.0;
+         t_sbn(c, k, b) = arma::sum(arma::pow(arma::abs(dt), 2 * Ht) % arma::abs(wtn));
+         t_max(c, k, b) = wtn.max();
+       }
+     }
+   }
+
    // Compute the risk for each (s,t) and each bandwidth in bw_grid
    if (use_same_bw) {
 #pragma omp parallel for
      for (int idx_bw = 0; idx_bw < bw_size; ++idx_bw) {
-       // extract the bandwidth
        double bw = bw_grid_to_use[idx_bw];
-
-       // Do the computation for each s, t
        for (int k = 0; k < n; ++k) {
-         // Extract local regularity parameters
-         arma::uvec idx_locreg_cur_s = arma::find(mat_locreg_s.col(0) == s(k));
-         arma::uvec idx_locreg_cur_t = arma::find(mat_locreg_t.col(0) == t(k));
-         double Hs = mat_locreg_s(idx_locreg_cur_s(0), 4);
-         double Ls = mat_locreg_s(idx_locreg_cur_s(0), 5);
-         double Ht = mat_locreg_t(idx_locreg_cur_t(0), 4);
-         double Lt = mat_locreg_t(idx_locreg_cur_t(0), 5);
+         double Hs = Hs_k(k), Ls = Ls_k(k), Ht = Ht_k(k), Lt = Lt_k(k);
+         double mom_s_square = moms_k(k), mom_t_square = momt_k(k);
+         double sig_s_square = sigs_k(k), sig_t_square = sigt_k(k);
+         double bw_s_pow = std::pow(bw, 2 * Hs);
+         double bw_t_pow = std::pow(bw, 2 * Ht);
 
-         // Compute the weight vectors for each s, t and for each bw
-         // and replace replace non-finite values with 0
-         //// For the argument s
-         arma::vec Tn_s_diff_over_bw = (data_mat.col(1) - s(k)) / bw;
-         arma::vec wvec_s = kernel_func(Tn_s_diff_over_bw);
-         wvec_s.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-
-         //// For the argument t
-         arma::vec Tn_t_diff_over_bw = (data_mat.col(1) - t(k)) / bw;
-         arma::vec wvec_t = kernel_func(Tn_t_diff_over_bw);
-         wvec_t.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-
-         // Extract moment
-         arma::uvec cur_idx_mom_s = arma::find(mat_mom_s.col(0) == s(k));
-         arma::uvec cur_idx_mom_t = arma::find(mat_mom_t.col(0) == t(k));
-         double mom_s_square = mom_vec_s(cur_idx_mom_s(0));
-         double mom_t_square = mom_vec_t(cur_idx_mom_t(0));
-
-         // Extract the estimates of the sd
-         arma::uvec cur_idx_sig_s = arma::find(mat_sig_s.col(0) == s(k));
-         arma::uvec cur_idx_sig_t = arma::find(mat_sig_t.col(0) == t(k));
-         double sig_s_square = sig2_vec_s(cur_idx_sig_s(0));
-         double sig_t_square = sig2_vec_t(cur_idx_sig_t(0));
-
-
-         // Init. output
-         arma::vec pn_s_vec = arma::zeros(n_curve - lag);
-         arma::vec pn_lag_t_vec = arma::zeros(n_curve - lag);
-         double bias_term_num = 0;
-         double variance_term_num = 0;
-
-         for(int i = 0 ; i < n_curve - lag; ++i){
-           // Exact the indexes : current and forward (precomputed)
-           const arma::uvec& idx_i = curve_idx[i];
-           const arma::uvec& idx_i_lag = curve_idx[i + lag];
-
-           // Extract weight
-           arma::vec wvec_s_i = wvec_s(idx_i) / arma::accu(wvec_s(idx_i));
-           arma::vec wvec_t_i_lag = wvec_t(idx_i_lag) / arma::accu(wvec_t(idx_i_lag));
-           wvec_s_i.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-           wvec_t_i_lag.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-
-           // Compute and store the vector \pi_n(s;h)
-           pn_s_vec(i) = arma::find(abs(Tn_s_diff_over_bw(idx_i)) <= 1).is_empty() ? 0 : 1;
-
-           // Compute and store the vector \pi_n(t;h)
-           pn_lag_t_vec(i) = arma::find(abs(Tn_t_diff_over_bw(idx_i_lag)) <= 1).is_empty() ? 0 : 1;
-
-           // Compute bias term numerator
-           // // compute b_n(s;h_s) and b_n(t;h_t)
-           arma::vec bn_s_vec = arma::pow(arma::abs(Tn_s_diff_over_bw(idx_i)), 2 * Hs) % arma::abs(wvec_s_i);
-           arma::vec bn_t_vec = arma::pow(arma::abs(Tn_t_diff_over_bw(idx_i_lag)), 2 * Ht) % arma::abs(wvec_t_i_lag);
-
-           // // Compute bias term numerator
-           bias_term_num += mom_t_square * Ls * std::pow(bw, 2 * Hs) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_s_vec) +
-             mom_s_square * Lt * std::pow(bw, 2 * Ht) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_t_vec);
-
-           // Compute variance term numerator
-           variance_term_num += sig_s_square * mom_t_square * pn_s_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() +
-             sig_t_square * mom_s_square * pn_s_vec(i) * pn_lag_t_vec(i) * wvec_t_i_lag.max() +
-             sig_s_square * sig_t_square * pn_s_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() * wvec_t_i_lag.max();
+         double bias_term_num = 0, variance_term_num = 0, PN_lag = 0;
+         for (int i = 0; i < n_curve - lag; ++i) {
+           double pns = s_pn(i, k, idx_bw);
+           double pnt = t_pn(i + lag, k, idx_bw);
+           PN_lag += pns * pnt;
+           bias_term_num += mom_t_square * Ls * bw_s_pow * pns * pnt * s_sbn(i, k, idx_bw) +
+             mom_s_square * Lt * bw_t_pow * pns * pnt * t_sbn(i + lag, k, idx_bw);
+           variance_term_num += sig_s_square * mom_t_square * pns * pnt * s_max(i, k, idx_bw) +
+             sig_t_square * mom_s_square * pns * pnt * t_max(i + lag, k, idx_bw) +
+             sig_s_square * sig_t_square * pns * pnt * s_max(i, k, idx_bw) * t_max(i + lag, k, idx_bw);
          }
 
-         // Compute P_N(t;h)
-         double PN_lag = arma::accu(pn_s_vec % pn_lag_t_vec);
-
-         // Compute bias term
+         // Compute bias and variance terms
          double bias_term = 4 * bias_term_num / PN_lag;
-
-         // Compute variance term
          double variance_term = 4 * variance_term_num / (PN_lag * PN_lag);
 
-         // ::::::::: Compute dependence term :::::::
-         // Extract the numerator of \mathbb{D}(t;h_t), \mathbb{D}(s;h_s), \mathbb{D}_\ell(t;h_t|s,h_s) \mathbb{D}_\ell(s;h_s|t,h_t)
-         arma::uvec idx_num_DD_s = arma::find( (mat_num_DD_s.col(0) == s(k)) % (mat_num_DD_s.col(1) == bw) );
-         arma::uvec idx_num_DD_t = arma::find( (mat_num_DD_t.col(0) == t(k)) % (mat_num_DD_t.col(1) == bw) );
-         double num_Ds = mat_num_DD_s(idx_num_DD_s(0), 2);
-         double num_Dt = mat_num_DD_t(idx_num_DD_t(0), 2);
-         double PNs = mat_num_DD_s(idx_num_DD_s(0), 3);
-         double PNt = mat_num_DD_t(idx_num_DD_t(0), 3);
+         // Dependence term (numerators / counts precomputed)
+         double num_Ds = numDs_kb(k, idx_bw), num_Dt = numDt_kb(k, idx_bw);
+         double PNs = PNs_kb(k, idx_bw), PNt = PNt_kb(k, idx_bw);
          double Ds = num_Ds / std::pow(PNs, 3) ;
          double Dt = num_Dt / std::pow(PNt, 3) ;
          double Ds_t = num_Ds / std::pow(PN_lag, 3) ;
          double Dt_s = num_Dt / std::pow(PN_lag, 3) ;
          double first_dependence_term = 15 * ( sqrt(Ds_t * Dt) + sqrt(Dt_s * Ds) + 3 * sqrt(Ds * Dt) ) / PN_lag;
-
-         // Compute \mathbb{D}(s;h_s)
-         // Add the lag-0 autocovariance to the vector
-         arma::uvec idx_lag0 = arma::find( (mat_emp_autocov.col(0) == s(k)) % (mat_emp_autocov.col(1) == t(k)) % (mat_emp_autocov.col(3) == 0) );
-         arma::uvec idx_lag = arma::find( (mat_emp_autocov.col(0) == s(k)) % (mat_emp_autocov.col(1) == t(k)) % (mat_emp_autocov.col(3) != 0) );
-
-         double XsXt_var = mat_emp_autocov(idx_lag0(0), 5);
-         arma::mat XsXt_mat_lr_var = mat_emp_autocov.rows(idx_lag);
-         double second_dependence_term_num = XsXt_var + arma::accu(arma::abs(2 * XsXt_mat_lr_var.col(5))) / PN_lag;
+         double second_dependence_term_num = XsXtvar_k(k) + sumabslr_k(k) / PN_lag;
          double second_dependence_term = (second_dependence_term_num / PN_lag);
-
          double dependence_term = first_dependence_term + second_dependence_term;
-         // ::::::::::: End dependence term ::::::::
 
-         // Autocovariance risk
          double autocov_risk = bias_term + variance_term + dependence_term;
          mat_res_risk.row(idx_bw * n + k) = {s(k), t(k), bw, bw, PN_lag, h(0), Hs, Ls, Ht, Lt, bias_term, variance_term, dependence_term, autocov_risk};
        }
@@ -298,126 +306,48 @@ using namespace arma;
      // If two bandwidth are used
 #pragma omp parallel for
      for (int idx_bw_s = 0; idx_bw_s < bw_size; ++idx_bw_s) {
-       arma::mat mat_res_risk_cur_bw(bw_size * n, 14);
+       double bw_s = bw_grid_to_use[idx_bw_s];
        for (int idx_bw_t = 0; idx_bw_t < bw_size; ++idx_bw_t) {
-         // extract the bandwidth
-         double bw_s = bw_grid_to_use[idx_bw_s];
          double bw_t = bw_grid_to_use[idx_bw_t];
-
-         // Do the computation for each s, t
          for (int k = 0; k < n; ++k) {
-           // Extract local regularity parameters
-           arma::uvec idx_locreg_cur_s = arma::find(mat_locreg_s.col(0) == s(k));
-           arma::uvec idx_locreg_cur_t = arma::find(mat_locreg_t.col(0) == t(k));
-           double Hs = mat_locreg_s(idx_locreg_cur_s(0), 4);
-           double Ls = mat_locreg_s(idx_locreg_cur_s(0), 5);
-           double Ht = mat_locreg_t(idx_locreg_cur_t(0), 4);
-           double Lt = mat_locreg_t(idx_locreg_cur_t(0), 5);
+           double Hs = Hs_k(k), Ls = Ls_k(k), Ht = Ht_k(k), Lt = Lt_k(k);
+           double mom_s_square = moms_k(k), mom_t_square = momt_k(k);
+           double sig_s_square = sigs_k(k), sig_t_square = sigt_k(k);
+           double bw_s_pow = std::pow(bw_s, 2 * Hs);
+           double bw_t_pow = std::pow(bw_t, 2 * Ht);
 
-           // Compute the weight vectors for each s, t and for each bw
-           // and replace replace non-finite values with 0
-           //// For the argument s
-           arma::vec Tn_s_diff_over_bw = (data_mat.col(1) - s(k)) / bw_s;
-           arma::vec wvec_s = kernel_func(Tn_s_diff_over_bw);
-           wvec_s.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-
-           //// For the argument t
-           arma::vec Tn_t_diff_over_bw = (data_mat.col(1) - t(k)) / bw_t;
-           arma::vec wvec_t = kernel_func(Tn_t_diff_over_bw);
-           wvec_t.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-
-           // Extract moment
-           arma::uvec cur_idx_mom_s = arma::find(mat_mom_s.col(0) == s(k));
-           arma::uvec cur_idx_mom_t = arma::find(mat_mom_t.col(0) == t(k));
-           double mom_s_square = mom_vec_s(cur_idx_mom_s(0));
-           double mom_t_square = mom_vec_t(cur_idx_mom_t(0));
-
-           // Extract the estimates of the sd
-           arma::uvec cur_idx_sig_s = arma::find(mat_sig_s.col(0) == s(k));
-           arma::uvec cur_idx_sig_t = arma::find(mat_sig_t.col(0) == t(k));
-           double sig_s_square = sig2_vec_s(cur_idx_sig_s(0));
-           double sig_t_square = sig2_vec_t(cur_idx_sig_t(0));
-
-           // Init. output
-           arma::vec pn_s_vec = arma::zeros(n_curve - lag);
-           arma::vec pn_lag_t_vec = arma::zeros(n_curve - lag);
-           double bias_term_num = 0;
-           double variance_term_num = 0;
-
-           for(int i = 0 ; i < n_curve - lag; ++i){
-             // Exact the indexes : current and forward (precomputed)
-             const arma::uvec& idx_i = curve_idx[i];
-             const arma::uvec& idx_i_lag = curve_idx[i + lag];
-
-             // Extract weight
-             arma::vec wvec_s_i = wvec_s(idx_i) / arma::accu(wvec_s(idx_i));
-             arma::vec wvec_t_i_lag = wvec_t(idx_i_lag) / arma::accu(wvec_t(idx_i_lag));
-             wvec_s_i.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-             wvec_t_i_lag.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-
-             // Compute and store the vector \pi_n(s;h)
-             pn_s_vec(i) = arma::find(abs(Tn_s_diff_over_bw(idx_i)) <= 1).is_empty() ? 0 : 1;
-
-             // Compute and store the vector \pi_n(t;h)
-             pn_lag_t_vec(i) = arma::find(abs(Tn_t_diff_over_bw(idx_i_lag)) <= 1).is_empty() ? 0 : 1;
-
-             // Compute bias term numerator
-             // // compute b_n(s;h_s) and b_n(t;h_t)
-             arma::vec bn_s_vec = arma::pow(arma::abs(Tn_s_diff_over_bw(idx_i)), 2 * Hs) % arma::abs(wvec_s_i);
-             arma::vec bn_t_vec = arma::pow(arma::abs(Tn_t_diff_over_bw(idx_i_lag)), 2 * Ht) % arma::abs(wvec_t_i_lag);
-
-             // // Compute bias term numerator
-             bias_term_num += mom_t_square * Ls * std::pow(bw_s, 2 * Hs) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_s_vec) +
-               mom_s_square * Lt * std::pow(bw_t, 2 * Ht) * pn_s_vec(i) * pn_lag_t_vec(i) * arma::sum(bn_t_vec);
-
-             // Compute variance term numerator
-             variance_term_num += sig_s_square * mom_t_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() +
-               sig_t_square * mom_s_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_t_i_lag.max() +
-               sig_s_square * sig_t_square * pn_lag_t_vec(i) * pn_lag_t_vec(i) * wvec_s_i.max() * wvec_t_i_lag.max();
+           double bias_term_num = 0, variance_term_num = 0, PN_lag = 0;
+           for (int i = 0; i < n_curve - lag; ++i) {
+             double pns = s_pn(i, k, idx_bw_s);
+             double pnt = t_pn(i + lag, k, idx_bw_t);
+             PN_lag += pns * pnt;
+             bias_term_num += mom_t_square * Ls * bw_s_pow * pns * pnt * s_sbn(i, k, idx_bw_s) +
+               mom_s_square * Lt * bw_t_pow * pns * pnt * t_sbn(i + lag, k, idx_bw_t);
+             // NB: this branch historically squares pn_t (not pn_s * pn_t) in the
+             // variance term; preserved exactly to keep results bit-identical.
+             variance_term_num += sig_s_square * mom_t_square * pnt * pnt * s_max(i, k, idx_bw_s) +
+               sig_t_square * mom_s_square * pnt * pnt * t_max(i + lag, k, idx_bw_t) +
+               sig_s_square * sig_t_square * pnt * pnt * s_max(i, k, idx_bw_s) * t_max(i + lag, k, idx_bw_t);
            }
 
-           // Compute P_N(t;h)
-           double PN_lag = arma::accu(pn_s_vec % pn_lag_t_vec);
-
-           // Compute bias term
            double bias_term = 4 * bias_term_num / PN_lag;
-
-           // Compute variance term
            double variance_term = 4 * variance_term_num / (PN_lag * PN_lag);
 
-           // ::::::::: Compute dependence term :::::::
-
-           // Extract the numerator of \mathbb{D}(t;h_t), \mathbb{D}(s;h_s), \mathbb{D}_\ell(t;h_t|s,h_s) \mathbb{D}_\ell(s;h_s|t,h_t)
-           arma::uvec idx_num_DD_s = arma::find( (mat_num_DD_s.col(0) == s(k)) % (mat_num_DD_s.col(1) == bw_s) );
-           arma::uvec idx_num_DD_t = arma::find( (mat_num_DD_t.col(0) == t(k)) % (mat_num_DD_t.col(1) == bw_t) );
-           double num_Ds = mat_num_DD_s(idx_num_DD_s(0), 2);
-           double num_Dt = mat_num_DD_t(idx_num_DD_t(0), 2);
-           double PNs = mat_num_DD_s(idx_num_DD_s(0), 3);
-           double PNt = mat_num_DD_t(idx_num_DD_t(0), 3);
+           double num_Ds = numDs_kb(k, idx_bw_s), num_Dt = numDt_kb(k, idx_bw_t);
+           double PNs = PNs_kb(k, idx_bw_s), PNt = PNt_kb(k, idx_bw_t);
            double Ds = num_Ds / std::pow(PNs, 3) ;
            double Dt = num_Dt / std::pow(PNt, 3) ;
            double Ds_t = num_Ds / std::pow(PN_lag, 3) ;
            double Dt_s = num_Dt / std::pow(PN_lag, 3) ;
            double first_dependence_term = 15 * ( sqrt(Ds_t * Dt) + sqrt(Dt_s * Ds) + 3 * sqrt(Ds * Dt) ) / PN_lag;
-
-           // Compute \mathbb{D}(s;h_s)
-           // Add the lag-0 autocovariance to the vector
-           arma::uvec idx_lag0 = arma::find( (mat_emp_autocov.col(0) == s(k)) % (mat_emp_autocov.col(1) == t(k)) % (mat_emp_autocov.col(3) == 0) );
-           arma::uvec idx_lag = arma::find( (mat_emp_autocov.col(0) == s(k)) % (mat_emp_autocov.col(1) == t(k)) % (mat_emp_autocov.col(3) != 0) );
-
-           double XsXt_var = mat_emp_autocov(idx_lag0(0), 5);
-           arma::mat XsXt_mat_lr_var = mat_emp_autocov.rows(idx_lag);
-           double second_dependence_term_num = XsXt_var + arma::accu(arma::abs(2 * XsXt_mat_lr_var.col(5))) / PN_lag;
+           double second_dependence_term_num = XsXtvar_k(k) + sumabslr_k(k) / PN_lag;
            double second_dependence_term = (second_dependence_term_num / PN_lag);
            double dependence_term = first_dependence_term + second_dependence_term;
-           // ::::::::::: End dependence term ::::::::
 
-           // Autocovariance risk
            double autocov_risk = bias_term + variance_term + dependence_term;
-           mat_res_risk_cur_bw.row(idx_bw_t * n + k) = {s(k), t(k), bw_s, bw_t, PN_lag, h(0), Hs, Ls, Ht, Lt, bias_term, variance_term, dependence_term, autocov_risk};
+           mat_res_risk.row(idx_bw_s * bw_size * n + idx_bw_t * n + k) = {s(k), t(k), bw_s, bw_t, PN_lag, h(0), Hs, Ls, Ht, Lt, bias_term, variance_term, dependence_term, autocov_risk};
          }
        }
-       mat_res_risk(span(idx_bw_s * bw_size * n, (idx_bw_s + 1) * bw_size * n - 1), span(0, 13)) = mat_res_risk_cur_bw;
      }
    }
 
