@@ -5,5 +5,6 @@ NULL
 
 ## usethis namespace: start
 #' @importFrom Rcpp sourceCpp
+#' @importFrom utils globalVariables
 ## usethis namespace: end
 NULL
