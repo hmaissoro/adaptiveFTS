@@ -13,14 +13,17 @@ License: AGPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE, roclets = c("namespace", "rd", "collate"))
 RoxygenNote: 7.3.1
-Imports: 
+Imports:
     caret,
     data.table,
     fastmatrix,
     MASS,
     methods,
+    parallel,
     Rcpp,
-    Rdpack
+    Rdpack,
+    stats,
+    utils
 RdMacros: Rdpack
 Suggests: 
     knitr,
