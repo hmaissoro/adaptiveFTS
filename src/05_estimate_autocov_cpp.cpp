@@ -1,5 +1,7 @@
 #include <RcppArmadillo.h>
 #include <omp.h>
+#include <map>
+#include <utility>
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -611,9 +613,39 @@ using namespace arma;
      mat_locreg.cols(2, 5).zeros();
    }
 
-   // Estimate mean function
-   arma::mat mat_mean_s = estimate_mean_cpp(data, svec, Rcpp::wrap(optbw_s_to_use), R_NilValue, kernel_name);
-   arma::mat mat_mean_t = estimate_mean_cpp(data, tvec, Rcpp::wrap(optbw_t_to_use), R_NilValue, kernel_name);
+   // Deduplicate (point, bandwidth) tuples. The per-pair NW smoothing, support
+   // indicators, diagonal weights and mean estimates depend only on a single
+   // (s, h_s) or (t, h_t) tuple, yet svec/tvec typically repeat the same values
+   // many times (e.g. an m x m covariance grid has only m distinct s and t).
+   // Compute each distinct tuple once and expand back via map_s / map_t. This
+   // is numerically identical: each estimate is independent of the others.
+   std::map<std::pair<double, double>, int> umap_s, umap_t;
+   arma::uvec map_s(n), map_t(n);
+   std::vector<double> svec_u_v, obs_u_v, tvec_u_v, obt_u_v;
+   for (int k = 0; k < n; ++k) {
+     std::pair<double, double> ks(svec(k), optbw_s_to_use(k));
+     auto it = umap_s.find(ks);
+     if (it == umap_s.end()) {
+       int id = (int) svec_u_v.size();
+       umap_s.emplace(ks, id); svec_u_v.push_back(svec(k)); obs_u_v.push_back(optbw_s_to_use(k));
+       map_s(k) = id;
+     } else { map_s(k) = it->second; }
+     std::pair<double, double> kt(tvec(k), optbw_t_to_use(k));
+     auto jt = umap_t.find(kt);
+     if (jt == umap_t.end()) {
+       int id = (int) tvec_u_v.size();
+       umap_t.emplace(kt, id); tvec_u_v.push_back(tvec(k)); obt_u_v.push_back(optbw_t_to_use(k));
+       map_t(k) = id;
+     } else { map_t(k) = jt->second; }
+   }
+   arma::vec svec_u(svec_u_v), obs_u(obs_u_v), tvec_u(tvec_u_v), obt_u(obt_u_v);
+   int Us = svec_u.n_elem, Ut = tvec_u.n_elem;
+
+   // Estimate mean function (once per distinct tuple, then expand by row)
+   arma::mat mat_mean_s_u = estimate_mean_cpp(data, svec_u, Rcpp::wrap(obs_u), R_NilValue, kernel_name);
+   arma::mat mat_mean_t_u = estimate_mean_cpp(data, tvec_u, Rcpp::wrap(obt_u), R_NilValue, kernel_name);
+   arma::mat mat_mean_s = mat_mean_s_u.rows(map_s);
+   arma::mat mat_mean_t = mat_mean_t_u.rows(map_t);
    arma::vec muhat_s = mat_mean_s.col(5);
    arma::vec muhat_t = mat_mean_t.col(5);
 
@@ -640,15 +672,20 @@ using namespace arma;
      arma::vec Tnvec_t = data_mat(indices_cur_t, arma::uvec({1}));
      arma::vec Ynvec_t = data_mat(indices_cur_t, arma::uvec({2}));
 
-     // Smooth using Nadaraya-Watson estimator
-     arma::vec Xhat_s = estimate_nw_cpp(Ynvec_s, Tnvec_s, svec, optbw_s_to_use, kernel_name);
-     arma::vec Xhat_t = estimate_nw_cpp(Ynvec_t, Tnvec_t, tvec, optbw_t_to_use, kernel_name);
-     Xhat_s.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-     Xhat_t.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+     // Smooth using Nadaraya-Watson estimator (once per distinct tuple)
+     arma::vec Xhat_s_u = estimate_nw_cpp(Ynvec_s, Tnvec_s, svec_u, obs_u, kernel_name);
+     arma::vec Xhat_t_u = estimate_nw_cpp(Ynvec_t, Tnvec_t, tvec_u, obt_u, kernel_name);
+     Xhat_s_u.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+     Xhat_t_u.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+     arma::vec Xhat_s = Xhat_s_u.elem(map_s);
+     arma::vec Xhat_t = Xhat_t_u.elem(map_t);
 
-     // Compute the vector p_n(t;h) and update P_N(t;h)
-     arma::vec pn_s = arma::regspace<arma::vec>(0, n - 1).transform([&](int j) { return arma::any(arma::abs(Tnvec_s - svec(j)) <= optbw_s_to_use(j)) ? 1.0 : 0.0; });
-     arma::vec pn_t = arma::regspace<arma::vec>(0, n - 1).transform([&](int j) { return arma::any(arma::abs(Tnvec_t - tvec(j)) <= optbw_t_to_use(j)) ? 1.0 : 0.0; });
+     // Compute the vector p_n(t;h) and update P_N(t;h) (once per distinct tuple)
+     arma::vec pn_s_u(Us), pn_t_u(Ut);
+     for (int j = 0; j < Us; ++j) pn_s_u(j) = arma::any(arma::abs(Tnvec_s - svec_u(j)) <= obs_u(j)) ? 1.0 : 0.0;
+     for (int j = 0; j < Ut; ++j) pn_t_u(j) = arma::any(arma::abs(Tnvec_t - tvec_u(j)) <= obt_u(j)) ? 1.0 : 0.0;
+     arma::vec pn_s = pn_s_u.elem(map_s);
+     arma::vec pn_t = pn_t_u.elem(map_t);
      PN_lag += pn_s % pn_t;
 
      // Estimate the numerator function numerator
@@ -660,19 +697,24 @@ using namespace arma;
 
      // Diagonal correction
      if (lag == 0 && correct_diagonal) {
-       // Compute the weight product
-       arma::vec weight_product = arma::regspace<arma::vec>(0, n - 1).transform([&](int k) {
-         // W_{n,k}(t;h_t)
-         arma::vec weight_sk = kernel_func((Tnvec_s - svec(k)) / optbw_s_to_use(k));
-         weight_sk /= arma::accu(weight_sk);
-         weight_sk.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-
-         // W_{n,k}(s;h_s)
-         arma::vec weight_tk = kernel_func((Tnvec_t - tvec(k)) / optbw_t_to_use(k));
-         weight_tk /= arma::accu(weight_tk);
-         weight_tk.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-         return arma::accu(weight_sk % weight_tk);
-         });
+       // Normalized NW weight vectors, once per distinct tuple
+       std::vector<arma::vec> Ws(Us), Wt(Ut);
+       for (int j = 0; j < Us; ++j) {
+         arma::vec w = kernel_func((Tnvec_s - svec_u(j)) / obs_u(j));
+         w /= arma::accu(w);
+         w.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+         Ws[j] = w;
+       }
+       for (int j = 0; j < Ut; ++j) {
+         arma::vec w = kernel_func((Tnvec_t - tvec_u(j)) / obt_u(j));
+         w /= arma::accu(w);
+         w.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
+         Wt[j] = w;
+       }
+       // Compute the weight product for each (s,t) pair from the cached vectors
+       arma::vec weight_product(n);
+       for (int k = 0; k < n; ++k)
+         weight_product(k) = arma::accu(Ws[map_s(k)] % Wt[map_t(k)]);
 
        // Estimate the numerator of the diagonal part
        diag_correct_numerator += vec_sig_s % vec_sig_t % pn_s % pn_t % weight_product;
