@@ -682,10 +682,16 @@ using namespace arma;
    arma::vec vec_sig_s(n, arma::fill::zeros);
    arma::vec vec_sig_t(n, arma::fill::zeros);
    if (lag == 0 && correct_diagonal) {
-     arma::mat mat_sig_s = estimate_sigma_cpp(data, svec);
-     arma::mat mat_sig_t = estimate_sigma_cpp(data, tvec);
-     vec_sig_s = mat_sig_s.col(1);
-     vec_sig_t = mat_sig_t.col(1);
+     // The error sd depends only on the point; svec/tvec repeat few distinct
+     // values (an m x m grid has only m distinct points), so estimate once per
+     // distinct value and expand. Bit-identical (sigma at a point is independent
+     // of the other points).
+     arma::mat mat_sig_s = estimate_sigma_cpp(data, svec_u);
+     arma::mat mat_sig_t = estimate_sigma_cpp(data, tvec_u);
+     arma::vec sig_s_u = mat_sig_s.col(1);
+     arma::vec sig_t_u = mat_sig_t.col(1);
+     vec_sig_s = sig_s_u.elem(map_s);
+     vec_sig_t = sig_t_u.elem(map_t);
    }
 
    // Compute the autocovariance function
