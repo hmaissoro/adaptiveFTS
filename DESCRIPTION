@@ -23,7 +23,14 @@ Imports:
     utils
 RdMacros: Rdpack
 Suggests:
+    crosstalk,
+    dygraphs,
+    ggplot2,
+    ggpubr,
     knitr,
+    magrittr,
+    manipulateWidget,
+    plotly,
     rmarkdown,
     testthat (>= 3.0.0)
 VignetteBuilder: knitr
