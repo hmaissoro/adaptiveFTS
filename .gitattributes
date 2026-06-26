@@ -1,0 +1,7 @@
+# Normalize line endings to LF for text sources so CI shell/R steps and
+# R CMD check's line-ending checks behave consistently across platforms.
+* text=auto eol=lf
+*.png binary
+*.rda binary
+*.rds binary
+*.RDS binary
