@@ -15,12 +15,12 @@ output:
     fig_height: 3
 
 vignette: >
-%\VignetteIndexEntry{adaptiveFTS}
+  %\VignetteIndexEntry{adaptiveFTS}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
-  ---
-  
-  ```{r, include = FALSE}
+---
+
+```{r, include = FALSE}
 knitr::opts_chunk$set(
 echo = FALSE,
 message = FALSE,
