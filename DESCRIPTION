@@ -1,14 +1,14 @@
 Package: adaptiveFTS
 Title: Adaptive Functional Time Series Analysis
 Version: 0.1.1
-Authors@R: 
-    person("Hassan", "Maissoro", , "maissorohassan@gmail.com", role = c("aut", "cre"),
-           comment = c(ORCID = "YOUR-ORCID-ID"))
-Description: 
-  This package contains the adaptive estimation procedures proposed by Maissoro et al. (2024) 
-  and Maissoro et al. (2025) for weakly dependent functional time series. It implements estimators 
-  for the local regularity parameters, the mean function, the autocovariance function, 
-  and an adaptive estimator of the Best Linear Unbiased Predictor (BLUP).
+Authors@R:
+    person("Hassan", "Maissoro", , "maissorohassan@gmail.com", role = c("aut", "cre"))
+Description:
+  Adaptive estimation procedures for weakly dependent functional time series,
+  following Maissoro, Patilea and Vimond (2024) and (2025). Provides estimators
+  for the local regularity parameters, the mean function, and the autocovariance
+  function, together with an adaptive estimator of the Best Linear Unbiased
+  Predictor (BLUP) for prediction.
 License: AGPL (>= 3)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE, roclets = c("namespace", "rd", "collate"))
