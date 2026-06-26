@@ -132,12 +132,6 @@ using namespace arma;
    // Compute the risk for each t and each bandwidth in bw_grid
    arma::mat mat_res_risk(bw_size * n, 10);
 
-   // Precompute each curve's row indices once (curve ids are 1..n_curve),
-   // instead of recomputing arma::find() per bandwidth, per t, per curve.
-   std::vector<arma::uvec> curve_idx((arma::uword) n_curve);
-   for (arma::uword c = 0; c < (arma::uword) n_curve; ++c)
-     curve_idx[c] = arma::find(data_mat.col(0) == (double)(c + 1));
-
    // Parallelize outer loop
 #pragma omp parallel for
    for (int idx_bw = 0; idx_bw < bw_size; ++idx_bw) {
@@ -167,8 +161,8 @@ using namespace arma;
        double variance_term_num = 0;
 
        for (int i = 0; i < n_curve; ++i) {
-         // Extract the current curve index data (precomputed)
-         const arma::uvec& idx_i = curve_idx[i];
+         // Extract the current curve index data
+         arma::uvec idx_i = arma::find(data_mat.col(0) == i + 1);
 
          // Extract weight
          arma::vec wvec_i = wvec(idx_i) / arma::accu(wvec(idx_i));
