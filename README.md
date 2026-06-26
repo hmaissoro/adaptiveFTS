@@ -3,6 +3,10 @@
 
 [![Version](https://img.shields.io/badge/version-0.1.1-blue)](https://github.com/hmaissoro/adaptiveFTS)  
 [![License](https://img.shields.io/badge/license-AGPL%20%3E%3D%203-lightgrey)](LICENSE)
+[![R-CMD-check](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/R-CMD-check.yaml)
+[![test-coverage](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/test-coverage.yaml)
+[![lint](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/lint.yaml/badge.svg)](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/lint.yaml)
+[![codecov](https://codecov.io/gh/hmaissoro/adaptiveFTS/branch/main/graph/badge.svg)](https://app.codecov.io/gh/hmaissoro/adaptiveFTS)
 
 ---
 

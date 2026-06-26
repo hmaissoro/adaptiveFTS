@@ -1,0 +1,16 @@
+linters: linters_with_defaults(
+    line_length_linter(120L),
+    object_name_linter = NULL,
+    object_usage_linter = NULL,
+    commented_code_linter = NULL,
+    cyclocomp_linter = NULL,
+    object_length_linter = NULL,
+    indentation_linter = NULL
+  )
+encoding: "UTF-8"
+exclusions: list(
+    "src",
+    "tests/testthat/_refs",
+    "data-raw",
+    "inst"
+  )

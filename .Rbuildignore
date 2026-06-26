@@ -6,3 +6,9 @@
 ^PROFILING\.md$
 ^\.claude$
 ^\.github$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.lintr$
+^codecov\.yml$
+^CRAN-SUBMISSION$
