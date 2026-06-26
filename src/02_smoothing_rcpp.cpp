@@ -206,8 +206,8 @@ using namespace arma;
                            const arma::vec tnew, const arma::vec h,
                            const std::string kernel_name = "epanechnikov") {
    // Check if y and t are numeric vectors and not empty
-   if (!arma::is_finite(y) || y.size() == 0 ||
-       !arma::is_finite(t) || t.size() == 0 ||
+   if (!y.is_finite() || y.size() == 0 ||
+       !t.is_finite() || t.size() == 0 ||
        y.size() != t.size()) {
      stop("The vectors y and t must be non-empty numeric vectors of the same length.");
    }
@@ -316,14 +316,14 @@ using namespace arma;
                             const arma::vec bw_grid,
                             const std::string kernel_name = "epanechnikov") {
     // Check if y and t are numeric vectors and not empty
-    if (!arma::is_finite(y) || y.size() == 0 ||
-        !arma::is_finite(t) || t.size() == 0 ||
+    if (!y.is_finite() || y.size() == 0 ||
+        !t.is_finite() || t.size() == 0 ||
         y.size() != t.size()) {
       stop("The vectors y and t must be non-empty numeric vectors of the same length.");
     }
 
     // Check if bw_grid is a numeric vector and not empty
-    if (!arma::is_finite(bw_grid) || bw_grid.size() == 0) {
+    if (!bw_grid.is_finite() || bw_grid.size() == 0) {
       stop("bw_grid must be a non-empty numeric vector.");
     }
 
