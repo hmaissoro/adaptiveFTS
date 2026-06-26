@@ -1,15 +1,9 @@
 ---
 title: "adaptiveFTS"
-output: 
+output:
   rmarkdown::html_vignette:
-    toc : true
-    toc_depth : 4
-    number_sections: true
-    theme: readable
-    highlight: tango
-    toc_float:
-      collapsed: false
-      smooth_scroll: false
+    toc: true
+    toc_depth: 4
     css: style.css
     fig_width: 8
     fig_height: 3
