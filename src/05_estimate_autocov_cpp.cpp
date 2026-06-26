@@ -217,71 +217,44 @@ using namespace arma;
      }
    }
 
-   // Per-curve kernel-weight aggregates. These depend only on the point value
-   // and bandwidth, and s/t typically take few distinct values (an m x m grid
-   // has only m distinct s and m distinct t), so compute each once per distinct
-   // value and expand via ks_idx / kt_idx. Bit-identical; removes the previous
-   // per-pair redundancy.
+   // Per-curve kernel-weight aggregates for every (pair k, bandwidth b). These
+   // are the only quantities the bias/variance numerators need from the weights,
+   // and each depends on a single bandwidth, so caching them removes the
+   // bw-redundant full-data kernel evaluations the previous bw_s x bw_t loop did.
    //   *_pn  : 1 if the curve has an observation in the kernel support, else 0
    //   *_sbn : sum |(T - x)/bw|^{2H} * |normalised weight|   (bias numerator)
    //   *_max : max normalised weight                          (variance numerator)
-   std::map<double, int> us_map, ut_map;
-   arma::uvec ks_idx(n), kt_idx(n);
-   std::vector<double> sval_u_v, tval_u_v;
-   for (int k = 0; k < n; ++k) {
-     auto is2 = us_map.find(s(k));
-     if (is2 == us_map.end()) { int id = (int) sval_u_v.size(); us_map.emplace(s(k), id); sval_u_v.push_back(s(k)); ks_idx(k) = id; }
-     else ks_idx(k) = is2->second;
-     auto it2 = ut_map.find(t(k));
-     if (it2 == ut_map.end()) { int id = (int) tval_u_v.size(); ut_map.emplace(t(k), id); tval_u_v.push_back(t(k)); kt_idx(k) = id; }
-     else kt_idx(k) = it2->second;
-   }
-   arma::vec sval_u(sval_u_v), tval_u(tval_u_v);
-   int Us = sval_u.n_elem, Ut = tval_u.n_elem;
-   arma::vec Hs_u(Us), Ht_u(Ut);
-   for (int j = 0; j < Us; ++j) { arma::uvec ii = arma::find(mat_locreg_s.col(0) == sval_u(j)); Hs_u(j) = mat_locreg_s(ii(0), 4); }
-   for (int j = 0; j < Ut; ++j) { arma::uvec ii = arma::find(mat_locreg_t.col(0) == tval_u(j)); Ht_u(j) = mat_locreg_t(ii(0), 4); }
-
+   arma::cube s_pn(nc, n, bw_size), s_sbn(nc, n, bw_size), s_max(nc, n, bw_size);
+   arma::cube t_pn(nc, n, bw_size), t_sbn(nc, n, bw_size), t_max(nc, n, bw_size);
    arma::vec tobs_all = data_mat.col(1);
    // Cache each curve's observation points once (avoids re-gathering per bw).
    std::vector<arma::vec> curve_tobs((arma::uword) nc);
    for (int c = 0; c < nc; ++c) curve_tobs[c] = tobs_all(curve_idx[c]);
-
-   arma::cube s_pn(nc, Us, bw_size), s_sbn(nc, Us, bw_size), s_max(nc, Us, bw_size);
-   arma::cube t_pn(nc, Ut, bw_size), t_sbn(nc, Ut, bw_size), t_max(nc, Ut, bw_size);
 #pragma omp parallel for
-   for (int j = 0; j < Us; ++j) {
-     double Hs = Hs_u(j);
+   for (int k = 0; k < n; ++k) {
+     double Hs = Hs_k(k), Ht = Ht_k(k);
      for (int b = 0; b < bw_size; ++b) {
        double bw = bw_grid_to_use[b];
        for (int c = 0; c < nc; ++c) {
          const arma::vec& Tc = curve_tobs[c];
-         arma::vec ds = (Tc - sval_u(j)) / bw;
+         // s-side
+         arma::vec ds = (Tc - s(k)) / bw;
          arma::vec ws = kernel_func(ds);
          ws.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
          arma::vec wsn = ws / arma::accu(ws);
          wsn.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-         s_pn(c, j, b)  = arma::find(arma::abs(ds) <= 1).is_empty() ? 0.0 : 1.0;
-         s_sbn(c, j, b) = arma::sum(arma::pow(arma::abs(ds), 2 * Hs) % arma::abs(wsn));
-         s_max(c, j, b) = wsn.max();
-       }
-     }
-   }
-#pragma omp parallel for
-   for (int j = 0; j < Ut; ++j) {
-     double Ht = Ht_u(j);
-     for (int b = 0; b < bw_size; ++b) {
-       double bw = bw_grid_to_use[b];
-       for (int c = 0; c < nc; ++c) {
-         const arma::vec& Tc = curve_tobs[c];
-         arma::vec dt = (Tc - tval_u(j)) / bw;
+         s_pn(c, k, b)  = arma::find(arma::abs(ds) <= 1).is_empty() ? 0.0 : 1.0;
+         s_sbn(c, k, b) = arma::sum(arma::pow(arma::abs(ds), 2 * Hs) % arma::abs(wsn));
+         s_max(c, k, b) = wsn.max();
+         // t-side
+         arma::vec dt = (Tc - t(k)) / bw;
          arma::vec wt = kernel_func(dt);
          wt.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
          arma::vec wtn = wt / arma::accu(wt);
          wtn.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-         t_pn(c, j, b)  = arma::find(arma::abs(dt) <= 1).is_empty() ? 0.0 : 1.0;
-         t_sbn(c, j, b) = arma::sum(arma::pow(arma::abs(dt), 2 * Ht) % arma::abs(wtn));
-         t_max(c, j, b) = wtn.max();
+         t_pn(c, k, b)  = arma::find(arma::abs(dt) <= 1).is_empty() ? 0.0 : 1.0;
+         t_sbn(c, k, b) = arma::sum(arma::pow(arma::abs(dt), 2 * Ht) % arma::abs(wtn));
+         t_max(c, k, b) = wtn.max();
        }
      }
    }
@@ -298,17 +271,16 @@ using namespace arma;
          double bw_s_pow = std::pow(bw, 2 * Hs);
          double bw_t_pow = std::pow(bw, 2 * Ht);
 
-         const int ks = (int) ks_idx(k), kt = (int) kt_idx(k);
          double bias_term_num = 0, variance_term_num = 0, PN_lag = 0;
          for (int i = 0; i < n_curve - lag; ++i) {
-           double pns = s_pn(i, ks, idx_bw);
-           double pnt = t_pn(i + lag, kt, idx_bw);
+           double pns = s_pn(i, k, idx_bw);
+           double pnt = t_pn(i + lag, k, idx_bw);
            PN_lag += pns * pnt;
-           bias_term_num += mom_t_square * Ls * bw_s_pow * pns * pnt * s_sbn(i, ks, idx_bw) +
-             mom_s_square * Lt * bw_t_pow * pns * pnt * t_sbn(i + lag, kt, idx_bw);
-           variance_term_num += sig_s_square * mom_t_square * pns * pnt * s_max(i, ks, idx_bw) +
-             sig_t_square * mom_s_square * pns * pnt * t_max(i + lag, kt, idx_bw) +
-             sig_s_square * sig_t_square * pns * pnt * s_max(i, ks, idx_bw) * t_max(i + lag, kt, idx_bw);
+           bias_term_num += mom_t_square * Ls * bw_s_pow * pns * pnt * s_sbn(i, k, idx_bw) +
+             mom_s_square * Lt * bw_t_pow * pns * pnt * t_sbn(i + lag, k, idx_bw);
+           variance_term_num += sig_s_square * mom_t_square * pns * pnt * s_max(i, k, idx_bw) +
+             sig_t_square * mom_s_square * pns * pnt * t_max(i + lag, k, idx_bw) +
+             sig_s_square * sig_t_square * pns * pnt * s_max(i, k, idx_bw) * t_max(i + lag, k, idx_bw);
          }
 
          // Compute bias and variance terms
@@ -346,19 +318,18 @@ using namespace arma;
            double bw_s_pow = std::pow(bw_s, 2 * Hs);
            double bw_t_pow = std::pow(bw_t, 2 * Ht);
 
-           const int ks = (int) ks_idx(k), kt = (int) kt_idx(k);
            double bias_term_num = 0, variance_term_num = 0, PN_lag = 0;
            for (int i = 0; i < n_curve - lag; ++i) {
-             double pns = s_pn(i, ks, idx_bw_s);
-             double pnt = t_pn(i + lag, kt, idx_bw_t);
+             double pns = s_pn(i, k, idx_bw_s);
+             double pnt = t_pn(i + lag, k, idx_bw_t);
              PN_lag += pns * pnt;
-             bias_term_num += mom_t_square * Ls * bw_s_pow * pns * pnt * s_sbn(i, ks, idx_bw_s) +
-               mom_s_square * Lt * bw_t_pow * pns * pnt * t_sbn(i + lag, kt, idx_bw_t);
+             bias_term_num += mom_t_square * Ls * bw_s_pow * pns * pnt * s_sbn(i, k, idx_bw_s) +
+               mom_s_square * Lt * bw_t_pow * pns * pnt * t_sbn(i + lag, k, idx_bw_t);
              // NB: this branch historically squares pn_t (not pn_s * pn_t) in the
              // variance term; preserved exactly to keep results bit-identical.
-             variance_term_num += sig_s_square * mom_t_square * pnt * pnt * s_max(i, ks, idx_bw_s) +
-               sig_t_square * mom_s_square * pnt * pnt * t_max(i + lag, kt, idx_bw_t) +
-               sig_s_square * sig_t_square * pnt * pnt * s_max(i, ks, idx_bw_s) * t_max(i + lag, kt, idx_bw_t);
+             variance_term_num += sig_s_square * mom_t_square * pnt * pnt * s_max(i, k, idx_bw_s) +
+               sig_t_square * mom_s_square * pnt * pnt * t_max(i + lag, k, idx_bw_t) +
+               sig_s_square * sig_t_square * pnt * pnt * s_max(i, k, idx_bw_s) * t_max(i + lag, k, idx_bw_t);
            }
 
            double bias_term = 4 * bias_term_num / PN_lag;
