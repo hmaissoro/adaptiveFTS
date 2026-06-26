@@ -1,0 +1,59 @@
+url: https://hmaissoro.github.io/adaptiveFTS/
+
+template:
+  bootstrap: 5
+
+reference:
+- title: Data formatting
+  contents:
+  - format_data
+- title: Simulation
+  contents:
+  - simulate_far
+  - simulate_fma
+  - simulate_fBm
+  - simulate_mfBm
+  - starts_with("hurst_")
+- title: Kernels and smoothing
+  contents:
+  - estimate_nw
+  - estimate_nw_bw
+  - get_nw_optimal_bw
+  - biweight
+  - epanechnikov
+  - triangular
+  - tricube
+  - triweight
+  - uniform
+- title: Local regularity
+  contents:
+  - estimate_locreg
+- title: Mean function
+  contents:
+  - estimate_mean
+  - estimate_mean_risk
+  - estimate_mean_rp
+  - estimate_mean_bw_rp
+- title: Autocovariance function
+  contents:
+  - estimate_autocov
+  - estimate_autocov_risk
+  - estimate_autocov_rp
+  - estimate_autocov_bw_rp
+- title: Covariance segment
+  contents:
+  - estimate_cov_segment
+  - estimate_cov_segment_risk
+- title: Constants and empirical moments
+  contents:
+  - estimate_sigma
+  - estimate_empirical_autocov
+  - estimate_empirical_mom
+  - estimate_empirical_XsXt_autocov
+- title: Prediction (BLUP)
+  contents:
+  - predict_curve
+- title: Real-data helpers
+  contents:
+  - get_real_data_mean
+  - get_real_data_far_kenel
