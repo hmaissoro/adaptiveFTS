@@ -27,10 +27,10 @@
 #' }
 #'
 #' @details
-#' The local regularity parameters are estimated within the function using \link{estimate_locreg_cpp}.
+#' The local regularity parameters are estimated within the function using \code{estimate_locreg_cpp}.
 #'
 #' The dependence term includes contributions from both a term based on \eqn{\mathbb{D}(t; h_t)} derived from fourth-moment tensors,
-#' and an empirical autocovariance term computed using \link{estimate_empirical_XsXt_autocov_cpp}.
+#' and an empirical autocovariance term computed using \code{estimate_empirical_XsXt_autocov_cpp}.
 #'
 #'
 #' @seealso \link{estimate_mean}, \link{estimate_locreg}, \link{estimate_sigma},
