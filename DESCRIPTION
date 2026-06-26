@@ -22,10 +22,12 @@ Imports:
     stats,
     utils
 RdMacros: Rdpack
-Suggests: 
+Suggests:
     knitr,
-    rmarkdown
+    rmarkdown,
+    testthat (>= 3.0.0)
 VignetteBuilder: knitr
+Config/testthat/edition: 3
 LinkingTo: 
     Rcpp,
     RcppArmadillo
