@@ -13,4 +13,4 @@
 ^codecov\.yml$
 ^CRAN-SUBMISSION$
 ^\.gitattributes$
-^vignettes/prev_using_fda\.Rmd$
+^dev$
