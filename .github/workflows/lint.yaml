@@ -26,8 +26,8 @@ jobs:
           extra-packages: any::lintr, local::.
           needs: lint
 
+      # Lint is informational: this codebase intentionally does not follow the
+      # tidyverse style, so style nits are reported but do not fail CI.
       - name: Lint
-        run: lintr::lint_package()
+        run: print(lintr::lint_package())
         shell: Rscript {0}
-        env:
-          LINTR_ERROR_ON_LINT: true

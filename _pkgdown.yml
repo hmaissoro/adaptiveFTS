@@ -57,3 +57,13 @@ reference:
   contents:
   - get_real_data_mean
   - get_real_data_far_kenel
+- title: Data
+  contents:
+  - data_far
+- title: Internal helpers
+  contents:
+  - .Spq_fun
+  - .Qpq_fun
+  - .constant_d
+  - .covariance_mfBm
+  - .random_design
