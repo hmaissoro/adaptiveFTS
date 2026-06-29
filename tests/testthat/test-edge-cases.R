@@ -2,7 +2,7 @@
 # sparser designs. These assert the estimators run and return finite, sane
 # output rather than locking exact numbers.
 
-suppressMessages(library(data.table))
+# data.table functions are accessed via data.table::
 
 test_that("mean / locreg handle boundary and single evaluation points", {
   dt <- fixture_data_far(12L)
