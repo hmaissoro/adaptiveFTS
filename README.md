@@ -29,8 +29,9 @@ This package leverages the computational efficiency of Rcpp and RcppArmadillo fo
 2. [Installation](#installation)  
 3. [Usage](#usage)  
 4. [Examples](#examples)  
-5. [Contributing](#contributing)  
-6. [License](#license)  
+5. [Development](#development)  
+6. [Contributing](#contributing)  
+7. [License](#license)  
 
 ---
 
@@ -44,6 +45,13 @@ This package leverages the computational efficiency of Rcpp and RcppArmadillo fo
 ---
 
 ## **Installation**
+
+### **From CRAN**
+Once released on CRAN, install the stable version with:
+
+```R
+install.packages("adaptiveFTS")
+```
 
 ### **From GitHub**
 To install the development version of **adaptiveFTS**, use the `devtools` package:
@@ -126,6 +134,34 @@ dt_mean <- estimate_mean(
 DT::datatable(data = dt_mean[, lapply(.SD, function(X) round(X, 3))])
 
 ```
+
+---
+
+## **Development**
+
+A `Makefile` wraps the common development and CRAN-submission tasks. Run them
+from the package root (R, `Rscript` and a C++ toolchain must be on the `PATH`):
+
+```bash
+make help        # list all targets
+make document    # regenerate Rd files and NAMESPACE (roxygen2)
+make test        # run the testthat suite
+make check       # build + R CMD check --as-cran on the tarball
+make coverage    # test-coverage report (covr)
+make pkgdown     # build the documentation website
+make cran        # pre-submission gate: document + build + check --as-cran
+```
+
+If R is not on the `PATH` (e.g. on Windows), override the interpreters:
+
+```bash
+make check R="/c/Program Files/R/R-4.2.1/bin/x64/R.exe" \
+           RSCRIPT="/c/Program Files/R/R-4.2.1/bin/x64/Rscript.exe"
+```
+
+Continuous integration (GitHub Actions) runs `R CMD check` on Linux, macOS and
+Windows (R-release and R-oldrel, plus R-devel on Linux), test coverage, lint, and
+the pkgdown site on every push and pull request.
 
 ---
 
