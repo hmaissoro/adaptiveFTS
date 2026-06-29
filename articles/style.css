@@ -1,0 +1,49 @@
+/* Whole document: */
+body{
+  font-family: Cambria;
+  font-size: 12pt;
+}
+
+h1, h2, h3, h4, h5 {
+  font-family: Cambria, Georgia, serif;
+  font-style: normal;
+  font-variant: normal;
+}
+
+/* Headers */
+h1{
+  font-size: 14pt;
+}
+h2{
+  font-size: 13pt;
+}
+h3{
+  font-size: 12pt;
+}
+h4{
+  font-size: 11pt;
+}
+h5{
+  font-size: 10pt;
+}
+
+#p_{
+  font-size: 18pt;
+}
+/* Scroll bar for code */
+pre, code {white-space:pre !important; overflow-x:auto !important}
+
+/* TOC style */
+
+.list-group-item.active, .list-group-item.active:focus, .list-group-item.active:hover {
+    z-index: 2;
+    color: #fff;
+    background-color: #337ab7;
+    border-color: #337ab7;
+}
+
+.dygraph-title {
+  font-family: Cambria;
+  font-size: 14pt;
+  position: center;
+}

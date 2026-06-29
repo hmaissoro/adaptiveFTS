@@ -1,0 +1,373 @@
+# **adaptiveFTS**
+
+[![Version](https://img.shields.io/badge/version-0.1.1-blue)](https://github.com/hmaissoro/adaptiveFTS)  
+[![License](https://img.shields.io/badge/license-AGPL%20%3E%3D%203-lightgrey)](https://hmaissoro.github.io/adaptiveFTS/LICENSE)
+[![R-CMD-check](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/R-CMD-check.yaml)
+[![test-coverage](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/test-coverage.yaml)
+[![lint](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/lint.yaml/badge.svg)](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/lint.yaml)
+[![codecov](https://codecov.io/gh/hmaissoro/adaptiveFTS/branch/main/graph/badge.svg)](https://app.codecov.io/gh/hmaissoro/adaptiveFTS)
+
+------------------------------------------------------------------------
+
+## **Description**
+
+`adaptiveFTS` provides tools for adaptive estimation procedures for
+weakly dependent functional time series. Developed by Maissoro et
+al. (2024, 2025), it includes:
+
+- Estimators for local regularity parameters
+- Mean function estimation
+- Autocovariance function estimation
+- An adaptive Best Linear Unbiased Predictor (BLUP)
+
+This package leverages the computational efficiency of Rcpp and
+RcppArmadillo for high-performance functional data analysis.
+
+------------------------------------------------------------------------
+
+## **Table of Contents**
+
+1.  [Features](#features)  
+2.  [Installation](#installation)  
+3.  [Usage](#usage)  
+4.  [Examples](#examples)  
+5.  [Development](#development)  
+6.  [Contributing](#contributing)  
+7.  [License](#license)
+
+------------------------------------------------------------------------
+
+## **Features**
+
+- Adaptive estimators for functional time series analysis.
+- Efficient computation using Rcpp and RcppArmadillo.
+- Implements methodologies from cutting-edge research (2024, 2025).
+- Tools for predicting functional time series via BLUP.
+
+------------------------------------------------------------------------
+
+## **Installation**
+
+### **From CRAN**
+
+Once released on CRAN, install the stable version with:
+
+``` r
+
+install.packages("adaptiveFTS")
+```
+
+### **From GitHub**
+
+To install the development version of **adaptiveFTS**, use the
+`devtools` package:
+
+``` r
+
+# Install devtools if not already installed
+install.packages("devtools")
+
+# Install adaptiveFTS from GitHub
+devtools::install_github("hmaissoro/adaptiveFTS")
+```
+
+------------------------------------------------------------------------
+
+## **Usage**
+
+Load the package and start using its functions:
+
+``` r
+
+# Load adaptiveFTS
+library(adaptiveFTS)
+
+# Example of mean function estimation
+
+## Load data
+data("data_far")
+
+## Estimate risk function for the mean
+dt_mean_risk <- estimate_mean_risk(
+  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  t = c(1/4, 1/2, 3/4), bw_grid = NULL,
+  kernel_name = "epanechnikov"
+)
+```
+
+(Refer to the [examples section](#examples) for detailed code snippets
+and use cases.)
+
+------------------------------------------------------------------------
+
+## **Examples**
+
+Example of mean function estimation
+
+``` r
+
+# Load data
+data("data_far")
+
+# Estimate risk function for the mean
+dt_mean_risk <- estimate_mean_risk(
+  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  t = c(1/4, 1/2, 3/4), bw_grid = NULL,
+  kernel_name = "epanechnikov"
+)
+
+# Visualize mean risk at various observation points
+dt_dcast <- data.table::dcast(data = dt_mean_risk, formula = h ~ t, value.var = "mean_risk")
+manipulateWidget::combineWidgets(
+  list = list(
+    dygraphs::dygraph(
+      data = dt_dcast[, list(h, "t = 0.25" = `0.25`)],
+      main = "t = 0.25", xlab = "h", ylab = "Risk Function"),
+    dygraphs::dygraph(
+      data = dt_dcast[, list(h, "t = 0.5" = `0.5`)],
+      main = "t = 0.5", xlab = "h", ylab = "Risk Function"),
+    dygraphs::dygraph(
+      data = dt_dcast[, list(h, "t = 0.75" = `0.75`)],
+      main = "t = 0.75", xlab = "h", ylab = "Risk Function")
+  ),
+  nrow = 3
+)
+
+# Estimate mean function with optimal bandwidths
+dt_mean <- estimate_mean(
+  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  t = c(1/4, 1/2, 3/4), bw_grid = seq(0.005, 0.15, len = 45),
+  kernel_name = "epanechnikov"
+)
+
+# Display rounded estimates of the mean function
+DT::datatable(data = dt_mean[, lapply(.SD, function(X) round(X, 3))])
+```
+
+------------------------------------------------------------------------
+
+## **Development**
+
+A `Makefile` wraps the common development and CRAN-submission tasks. Run
+them from the package root (R, `Rscript` and a C++ toolchain must be on
+the `PATH`):
+
+``` bash
+make help        # list all targets
+make document    # regenerate Rd files and NAMESPACE (roxygen2)
+make test        # run the testthat suite
+make check       # build + R CMD check --as-cran on the tarball
+make coverage    # test-coverage report (covr)
+make pkgdown     # build the documentation website
+make cran        # pre-submission gate: document + build + check --as-cran
+```
+
+If R is not on the `PATH` (e.g. on Windows), override the interpreters:
+
+``` bash
+make check R="/c/Program Files/R/R-4.2.1/bin/x64/R.exe" \
+           RSCRIPT="/c/Program Files/R/R-4.2.1/bin/x64/Rscript.exe"
+```
+
+Continuous integration (GitHub Actions) runs `R CMD check` on Linux,
+macOS and Windows (R-release and R-oldrel, plus R-devel on Linux), test
+coverage, lint, and the pkgdown site on every push and pull request.
+
+------------------------------------------------------------------------
+
+## **Contributing**
+
+We welcome contributions! Follow these steps:
+
+1.  Fork the repository:
+    [adaptiveFTS](https://github.com/hmaissoro/adaptiveFTS)
+
+2.  Clone your fork:
+
+    ``` bash
+    git clone https://github.com/your-username/adaptiveFTS.git
+    ```
+
+3.  Create a feature branch:
+
+    ``` bash
+    git checkout -b feature-name
+    ```
+
+4.  Commit your changes:
+
+    ``` bash
+    git commit -m "Add feature description"
+    ```
+
+5.  Push the branch:
+
+    ``` bash
+    git push origin feature-name
+    ```
+
+6.  Submit a pull request.
+
+------------------------------------------------------------------------
+
+## **License**
+
+This package is licensed under the **AGPL (\>= 3)** license. See the
+[LICENSE](https://hmaissoro.github.io/adaptiveFTS/LICENSE) file for more
+details.
+
+------------------------------------------------------------------------
+
+## **Acknowledgements**
+
+- Built using **Rcpp** and **RcppArmadillo** for efficient computation.
+- Inspired by methodologies developed in Maissoro et al. (2024, 2025).
+
+------------------------------------------------------------------------
+
+## **References**
+
+1.  **Hassan Maissoro, Valentin Patilea, and Myriam Vimond.** *Adaptive
+    Estimation for Weakly Dependent Functional Time Series.* 2024.
+    Available at [arXiv:2403.13706](https://arxiv.org/abs/2403.13706).
+
+2.  **Hassan Maissoro, Valentin Patilea, and Myriam Vimond.** *Adaptive
+    prediction for Functional Times Series.* 2024. [Work in
+    progress](https://hassan.maissoro.com/assets/pdf/2024-adaptive-estimation-for-functional-time-series.pdf).
+
+------------------------------------------------------------------------
+
+# Package index
+
+## Data formatting
+
+- [`format_data()`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  :
+
+  Convert Data to a `data.table` Format
+
+## Simulation
+
+- [`simulate_far()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.md)
+  : Functional Autoregressive process of order 1 (FAR(1)) simulation
+- [`simulate_fma()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fma.md)
+  : Functional Moving Average process of order 1 (FMA(1)) simulation
+- [`simulate_fBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fBm.md)
+  : Draw a fractional Brownian motion sample path.
+- [`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md)
+  : Draw a multifractional Brownian motion sample path.
+- [`hurst_arctan()`](https://hmaissoro.github.io/adaptiveFTS/reference/hurst_arctan.md)
+  : Arctan Hurst function
+- [`hurst_linear()`](https://hmaissoro.github.io/adaptiveFTS/reference/hurst_linear.md)
+  : Linear Hurst function
+- [`hurst_logistic()`](https://hmaissoro.github.io/adaptiveFTS/reference/hurst_logistic.md)
+  : Logistic Hurst function
+
+## Kernels and smoothing
+
+- [`estimate_nw()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_nw.md)
+  : Nadaraya-Watson Kernel Estimator
+- [`estimate_nw_bw()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_nw_bw.md)
+  : Nadaraya-Watson Bandwidth Selection using Cross-Validation
+- [`get_nw_optimal_bw()`](https://hmaissoro.github.io/adaptiveFTS/reference/get_nw_optimal_bw.md)
+  : Estimate Optimal Bandwidth for Nadaraya-Watson Estimator on a Subset
+  of Curves
+- [`biweight()`](https://hmaissoro.github.io/adaptiveFTS/reference/biweight.md)
+  : Biweight kernel function
+- [`epanechnikov()`](https://hmaissoro.github.io/adaptiveFTS/reference/epanechnikov.md)
+  : Epanechnikov kernel function
+- [`triangular()`](https://hmaissoro.github.io/adaptiveFTS/reference/triangular.md)
+  : Triangular kernel function
+- [`tricube()`](https://hmaissoro.github.io/adaptiveFTS/reference/tricube.md)
+  : Tricube kernel function
+- [`triweight()`](https://hmaissoro.github.io/adaptiveFTS/reference/triweight.md)
+  : Triweight kernel function
+- [`uniform()`](https://hmaissoro.github.io/adaptiveFTS/reference/uniform.md)
+  : Uniform kernel function
+
+## Local regularity
+
+- [`estimate_locreg()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_locreg.md)
+  : Local Regularity Parameters Estimation
+
+## Mean function
+
+- [`estimate_mean()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean.md)
+  : Estimate Mean Function
+- [`estimate_mean_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_risk.md)
+  : Estimate the Risk Function of the Mean Function
+- [`estimate_mean_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_rp.md)
+  : Estimate mean function using Rubín and Panaretos (2020) method.
+- [`estimate_mean_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_bw_rp.md)
+  : Bandwidth estimation using cross-validation for the Rubín and
+  Panaretos (2020) mean function estimator.
+
+## Autocovariance function
+
+- [`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md)
+  : Estimate the Covariance or Autocovariance Function
+- [`estimate_autocov_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_risk.md)
+  : Estimate the Risk of the Covariance or Autocovariance Function
+- [`estimate_autocov_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_rp.md)
+  : Estimate lag-\\\ell\\ (\\\ell \leq 0\\) autocovariance function
+  using Rubín and Panaretos (2020) method
+- [`estimate_autocov_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_bw_rp.md)
+  : Bandwidth estimation using cross-validation for the Rubín and
+  Panaretos (2020) autocovariance function estimator.
+
+## Covariance segment
+
+- [`estimate_cov_segment()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_cov_segment.md)
+  : Estimate Covariance Segment Function for Functional Data
+- [`estimate_cov_segment_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_cov_segment_risk.md)
+  : Estimate the Risk of the Covariance Segment Function
+
+## Constants and empirical moments
+
+- [`estimate_sigma()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_sigma.md)
+  : Estimate the the standard deviation of the observation error
+- [`estimate_empirical_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_empirical_autocov.md)
+  : Estimate Empirical Autocovariance Function
+- [`estimate_empirical_mom()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_empirical_mom.md)
+  : Estimate empirical \\p\\-th order moment of \\X(t)\\.
+- [`estimate_empirical_XsXt_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_empirical_XsXt_autocov.md)
+  : Estimate Empirical \\X_0(s)X\_{\ell}(t)\\ Autocovariance Function
+  for \\\ell\\ = 0, 1, ...
+
+## Prediction (BLUP)
+
+- [`predict_curve()`](https://hmaissoro.github.io/adaptiveFTS/reference/predict_curve.md)
+  : Curve prediction using the Best Linear Unbiased Predictor (BLUP).
+
+## Real-data helpers
+
+- [`get_real_data_mean()`](https://hmaissoro.github.io/adaptiveFTS/reference/get_real_data_mean.md)
+  : Mean function learned from the voltage curves of the electricity
+- [`get_real_data_far_kenel()`](https://hmaissoro.github.io/adaptiveFTS/reference/get_real_data_far_kenel.md)
+  : FAR kernel learned from the voltage curves of the electricity
+
+## Data
+
+- [`data_far`](https://hmaissoro.github.io/adaptiveFTS/reference/data_far.md)
+  : Sample for Functional Autoregressive Process of Order 1
+
+## Internal helpers
+
+- [`.Spq_fun()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-Spq_fun.md)
+  : \\S\_{pq}^{(\ell)}\\, (\\\ell \leq 0\\) function. See Rubín and
+  Panaretos (2020) Equation (B.7)
+- [`.Qpq_fun()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-Qpq_fun.md)
+  : \\Q\_{pq}^{(\ell)}\\, (\\\ell \leq 0\\) function. See Rubín and
+  Panaretos (2020) Equation (B.7)
+- [`.constant_d()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-constant_d.md)
+  : Constant D(x,y) function
+- [`.covariance_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-covariance_mfBm.md)
+  : Covariance matrix of the multi-fractional Brownian Motion
+- [`.random_design()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-random_design.md)
+  : Generate a random design of the place where the observation is made.
+
+# Articles
+
+### All vignettes
+
+- [adaptiveFTS](https://hmaissoro.github.io/adaptiveFTS/articles/adaptiveFTS.md):
