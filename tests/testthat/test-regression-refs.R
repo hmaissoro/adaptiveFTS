@@ -3,7 +3,7 @@
 # These references were captured on the deterministic build; any future change
 # that alters results beyond 1e-10 will fail here.
 
-suppressMessages(library(data.table))
+# data.table functions are accessed via data.table::
 TOL <- 1e-10
 
 test_that("kernel functions match references", {

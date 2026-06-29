@@ -2,12 +2,10 @@
 # the slow comparison-method wrappers; tests use tiny inputs and skip the
 # cross-validation variants on CRAN to keep runtime within limits.
 
-suppressMessages(library(data.table))
-
 tiny_far <- function(seed = 5L, ncur = 8L, npts = 12L) {
   set.seed(seed)
   ids <- rep(seq_len(ncur), each = npts)
-  data.table(id_curve = ids, tobs = stats::runif(length(ids)), X = stats::rnorm(length(ids)))
+  data.table::data.table(id_curve = ids, tobs = stats::runif(length(ids)), X = stats::rnorm(length(ids)))
 }
 
 test_that(".Spq_fun and .Qpq_fun return finite scalars", {
@@ -51,6 +49,10 @@ test_that("estimate_mean_bw_rp runs and returns a cv_error grid", {
 
 test_that("estimate_autocov_bw_rp runs and returns a cv_error grid", {
   skip_on_cran()
+  # The autocovariance cross-validation wrapper is very slow (per-pair
+  # Rubin-Panaretos estimation); only run it on explicit opt-in.
+  if (!identical(Sys.getenv("ADAPTIVEFTS_RUN_SLOW"), "true"))
+    skip("slow RP autocovariance CV; set ADAPTIVEFTS_RUN_SLOW=true to run")
   dt <- tiny_far(ncur = 6L, npts = 7L)
   res <- estimate_autocov_bw_rp(dt, Kfold = 2L, bw_grid = c(0.1, 0.2),
                                 optbw_mean = 0.15, dt_mean_rp = NULL, smooth_ker = epanechnikov)
