@@ -37,12 +37,13 @@ jobs:
           covr::to_cobertura(cov)
         shell: Rscript {0}
 
-      - uses: codecov/codecov-action@v4
+      # Upload is informational: do not fail CI if Codecov rejects a tokenless
+      # upload. Set the CODECOV_TOKEN repository secret to enable uploads and the
+      # coverage badge (https://app.codecov.io -> repo settings -> upload token).
+      - uses: codecov/codecov-action@v5
         with:
-          fail_ci_if_error: ${{ github.event_name != 'pull_request' }}
-          file: ./cobertura.xml
-          plugins: noop
-          disable_search: true
+          fail_ci_if_error: false
+          files: ./cobertura.xml
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Show testthat output
