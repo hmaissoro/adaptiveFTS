@@ -3,7 +3,7 @@
 # selectors, and the real-data helpers. Properties + determinism, not exact
 # numerics (those are locked in test-regression-refs.R).
 
-suppressMessages(library(data.table))
+# data.table functions are accessed via data.table::
 
 test_that("exported kernel functions have the right support and values", {
   kerns <- list(epanechnikov = epanechnikov, biweight = biweight, triweight = triweight,
