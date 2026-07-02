@@ -343,8 +343,8 @@ autocov_at <- function(fit, data, s, t, lag = 1L, kernel_name = "epanechnikov") 
 #' every score equally and does not move the argmin).
 #'
 #' @param data A prepared functional data.table (`id_curve`, `tobs`, `X`).
-#' @param alpha_grid Candidate values. If `NULL`, a 25-point log grid anchored
-#'   to the eigenvalue scale of the weighted system is built.
+#' @param alpha_grid Candidate values. If `NULL`, a 25-point grid
+#'   \eqn{\{e^{-5}, e^{-5 + 5/24}, \ldots, e^0\}} is used.
 #' @param n_val Number of trailing curves used for one-step-ahead validation.
 #' @param bw_grid,kernel_name Passed through to `predict_next_curve`.
 #'
@@ -407,8 +407,7 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
     }
 
     if (is.null(alpha_grid)) {
-        scale0 <- mean(vapply(folds, function(f) mean(diag(f$A0)), numeric(1)))
-        alpha_grid <- scale0 * 10 ^ seq(-3, 2, length.out = 30)
+        alpha_grid <- exp(seq(-5, 0, length.out = 25))
     }
 
     ## Phase 2 : only the M x M solve depends on alpha
@@ -435,7 +434,8 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
         alpha_grid = alpha_grid,
         cv_curve = cv_curve,
         cv_matrix = cv_matrix,
-        val_ids = ids[val_pos])
+        val_ids = ids[val_pos]
+    )
 }
 
 
@@ -444,7 +444,12 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
 ## =============================================================================
 if (FALSE) {
 
-    cv <- cv_alpha_blup(data = data_train, n_val = 30L, bw_grid = bw_grid_blup)
+    cv <- cv_alpha_blup(
+        data = data_train,
+        alpha_grid = exp(seq(-2, -0.5, length.out = 25)),
+        n_val = 30L,
+        bw_grid = bw_grid_blup
+    )
     cv$alpha_star
 
     dt_cv <- data.table::data.table(alpha = cv$alpha_grid, cv = cv$cv_curve)
@@ -459,4 +464,28 @@ if (FALSE) {
     fit <- predict_next_curve(
         data = data_train, prediction_points = t0,
         tikhonov_reg_param = cv$alpha_star, bw_grid = bw_grid_blup)
+
+    dt_blup_cv <- merge(
+        data_test[, .(tobs, X)], fit$blup, by.x = "tobs", by.y = "t", all.x = TRUE
+    )
+
+    dt_graph_cv <- rbind(
+        dt_blup_cv[, .("t" = tobs, "Quantity" = "blup", value = blup)],
+        dt_blup_cv[, .("t" = tobs, "Quantity" = "Xtrue", value = X)]
+    )
+
+    ggplot(data = dt_graph_cv,
+           mapping = aes(x = t, y = value, group = Quantity, colour = Quantity)) +
+        geom_line() +
+        xlab("t") +
+        theme_minimal() +
+        theme(plot.title = element_text(size = 12, hjust = 0.5, vjust = 0),
+              axis.title = element_text(size = 12),
+              axis.title.x = element_text(size = 12, margin = margin(t = 10, r = 0, b = 0, l = 0)),
+              axis.text.x = element_text(size = 10),
+              axis.text.y = element_text(size = 10),
+              legend.text = element_text(size = 10),
+              legend.title = element_text(size = 10),
+              legend.key.width = unit(0.8, 'cm'),
+              legend.position = "top")
 }
