@@ -42,7 +42,7 @@ estimate_density <- function(x, bw_grid = NULL,
     # estimate stays strictly positive.
     h_ref <- 1.06 * min(stats::sd(x), stats::IQR(x) / 1.349) * n^(-1 / 5)
     h_min <- 2 * stats::median(diff(sort(x)))
-    bw_grid <- pmax(h_ref * 2^seq(-3, 2, length.out = 30), h_min)
+    bw_grid <- pmax(h_ref * 2^seq(-4, 3, length.out = 40), h_min)
   }
  
   kern <- switch(
