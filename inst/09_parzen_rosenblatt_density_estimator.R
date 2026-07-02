@@ -17,11 +17,10 @@
 #' @param x Numeric vector of observation times of a *single* curve
 #'   \eqn{T_{n_0,\cdot}} (not pooled across curves).
 #' @param bw_grid Numeric vector of candidate bandwidths for the LSCV search.
-#'   If `NULL` (default), a geometric grid is built from `x`, anchored at a
-#'   Silverman reference bandwidth of order \eqn{M_{n_0}^{-1/5}} and floored
-#'   at twice the median spacing of the sorted `x` to keep the leave-one-out
-#'   estimate strictly positive. For Monte Carlo studies, pass a fixed grid so
-#'   the cross-validation is comparable across replications.
+#'   If `NULL` (default), a fixed log-spaced grid close to
+#'   `exp(seq(log(0.01), log(0.3), length.out = 30))` is used. For Monte Carlo
+#'   studies, pass a fixed grid so the cross-validation is comparable across
+#'   replications.
 #' @param kernel_name Kernel name: "epanechnikov", "gaussian", "uniform",
 #'   or "biweight".
 #' @param lower,upper Bounds of the domain \eqn{I}; default (0, 1].
@@ -37,12 +36,9 @@ estimate_density <- function(x, bw_grid = NULL,
   n <- length(x)
  
   if (is.null(bw_grid)) {
-    # Silverman reference bandwidth (order M^{-1/5}), then a geometric grid
-    # around it, floored at twice the median spacing so the leave-one-out
-    # estimate stays strictly positive.
-    h_ref <- 1.06 * min(stats::sd(x), stats::IQR(x) / 1.349) * n^(-1 / 5)
-    h_min <- 2 * stats::median(diff(sort(x)))
-    bw_grid <- pmax(h_ref * 2^seq(-4, 3, length.out = 40), h_min)
+    # Default to a fixed log-spaced grid so bandwidth selection remains
+    # aligned with the reference Monte Carlo setup.
+    bw_grid <- exp(seq(log(0.01), log(0.3), length.out = 30))
   }
  
   kern <- switch(
@@ -97,7 +93,7 @@ estimate_density <- function(x, bw_grid = NULL,
 
 if (FALSE) {
   data("data_far")
-  Tn0 <- data_far[id_curve == 150, sort(tobs)]
+  Tn0 <- data_far[id_curve == 149, sort(tobs)]
   Mn0 <- length(Tn0)
   bw_grid <- exp(seq(log(0.01), log(0.3), length.out = 30))
  
