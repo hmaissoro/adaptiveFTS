@@ -48,7 +48,8 @@ bw_grid_blup <- b0 * a ** (seq_len(K))
 # Adaptive BLUP for the new curve X_{n_0 + 1}
 predict_next_curve <- function(
     data = data_train, prediction_points = t0, tikhonov_reg_param = 1e-6,
-    bw_grid = bw_grid_blup, kernel_name = "epanechnikov") {
+    bw_grid = bw_grid_blup, kernel_name = "epanechnikov",
+    homoscedastic = TRUE) {
 
     n0 <- data[, max(id_curve)]
     Tn0 <- data[id_curve == n0, sort(unique(tobs))]
@@ -182,16 +183,16 @@ predict_next_curve <- function(
     c1hat <- as.matrix(dt_autocov_dcast[, .SD, .SDcols = ! "s"])
     colnames(c1hat) <- NULL
 
-    ## Estimate sigma, the error standard deviation, at Tn0 points
-    dt_sigma <- adaptiveFTS::estimate_sigma(
-        data = data, idcol = "id_curve", 
-        tcol = "tobs", ycol = "X", t = Tn0)
-    sigma2 <- dt_sigma[, sig ** 2]
+    ## Estimate sigma^2, the error variance, at Tn0 points. If homoscedastic
+    ## (default) use a single constant, the median over Tn0; otherwise keep the
+    ## t-varying vector. The noise term is diag(sigma2 * rho) either way.
+    sigma2 <- adaptiveFTS::estimate_sigma(
+        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", t = Tn0)[, sig ** 2]
+    if (homoscedastic) sigma2 <- stats::median(sigma2, na.rm = TRUE)
 
     ## Compute the BLUP
     ### Build the variance matrix
     V <- root_Dn0 %*% c0hat %*% root_Dn0 + diag(sigma2 * rho) + tikhonov_reg_param * diag(Mn0)
-    invV <- solve(V) 
 
     ### Compute the blup
     Yn0_centred_weighted <- root_Dn0 %*% matrix(data = Yn0 - muhat_Tn0, ncol = 1)
@@ -206,9 +207,9 @@ predict_next_curve <- function(
         "c0hat" = c0hat,
         "c1hat" = c1hat,
         "sigma2" = sigma2,
+        "homoscedastic" = homoscedastic,
         "rho" = rho,
         "V" = V,
-        "invV" = invV,
         "tikhonov_reg_param" = tikhonov_reg_param,
         "Tn0" = Tn0,
         "Yn0" = Yn0,
@@ -347,12 +348,16 @@ autocov_at <- function(fit, data, s, t, lag = 1L, kernel_name = "epanechnikov") 
 #'   \eqn{\{e^{-5}, e^{-5 + 5/24}, \ldots, e^0\}} is used.
 #' @param n_val Number of trailing curves used for one-step-ahead validation.
 #' @param bw_grid,kernel_name Passed through to `predict_next_curve`.
+#' @param homoscedastic Passed through to `predict_next_curve`: if `TRUE`
+#'   (default) a constant \eqn{\sigma^2} (median of the pointwise estimates) is
+#'   used, otherwise the t-varying estimates are kept.
 #'
 #' @return A list with `alpha_star`, `alpha_grid`, `cv_curve`, `cv_matrix`
 #'   (fold by alpha), and `val_ids`.
 #' @export
 cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
-                          bw_grid = bw_grid_blup, kernel_name = "epanechnikov") {
+                          bw_grid = bw_grid_blup, kernel_name = "epanechnikov",
+                          homoscedastic = TRUE) {
 
     ids <- data[, sort(unique(id_curve))]
     n <- length(ids)
@@ -364,7 +369,8 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
     ## Estimate every alpha-free component once on the training block
     fit <- predict_next_curve(
         data = data_fit, prediction_points = data_fit[id_curve == max(fit_ids), sort(unique(tobs))],
-        tikhonov_reg_param = 1e-6, bw_grid = bw_grid, kernel_name = kernel_name)
+        tikhonov_reg_param = 1e-6, bw_grid = bw_grid, kernel_name = kernel_name,
+        homoscedastic = homoscedastic)
 
     ## Phase 1 : assemble the alpha-free pieces for each validation curve
     folds <- vector("list", n_val)
@@ -393,6 +399,7 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
             mu_targ <- mean_at(fit, data_fit, Ttarg, kernel_name)
             sigma2 <- adaptiveFTS::estimate_sigma(
                 data = data_fit, idcol = "id_curve", tcol = "tobs", ycol = "X", t = Tprev)[, sig ** 2]
+            if (homoscedastic) sigma2 <- stats::median(sigma2, na.rm = TRUE)
             ghat <- estimate_density(x = Tprev, kernel_name = kernel_name, lower = 0, upper = 1)$estimate
             rho <- 1 / (length(Tprev) * pmax(ghat, 1e-6))
             root_Dn0 <- diag(sqrt(rho))
@@ -410,14 +417,22 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
         alpha_grid <- exp(seq(-5, 0, length.out = 25))
     }
 
-    ## Phase 2 : only the M x M solve depends on alpha
+    ## Phase 2 : only the (A0 + alpha I)^{-1} step depends on alpha. A0 is
+    ## symmetric (root_Dn0 %*% c0hat %*% root_Dn0 + a diagonal), so eigendecompose
+    ## it once per fold, A0 = Q Lambda Q^T, and reuse it for every alpha:
+    ##   (A0 + alpha I)^{-1} resid = Q diag(1 / (lambda + alpha)) Q^T resid.
+    ## Each alpha then costs an O(M) rescale instead of an O(M^3) solve, and the
+    ## conditioning is explicit in (lambda + alpha).
     cv_matrix <- matrix(NA_real_, nrow = n_val, ncol = length(alpha_grid))
     for (k in seq_len(n_val)) {
         f <- folds[[k]]
-        Id <- diag(f$Mn0)
+        eg <- eigen(f$A0, symmetric = TRUE)
+        lambda <- eg$values
+        z <- as.vector(crossprod(eg$vectors, f$resid))   # Q^T resid
+        W <- f$C1rD %*% eg$vectors                        # C1rD Q, reused across alpha
         for (l in seq_along(alpha_grid)) {
             pred <- tryCatch(
-                f$mu_pred + as.vector(f$C1rD %*% solve(f$A0 + alpha_grid[l] * Id, f$resid)),
+                f$mu_pred + as.vector(W %*% (z / (lambda + alpha_grid[l]))),
                 error = function(e) rep(NA_real_, length(f$Y_targ)))
             cv_matrix[k, l] <- mean((f$Y_targ - pred) ^ 2)
         }
