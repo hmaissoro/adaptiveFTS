@@ -54,14 +54,15 @@ estimate_density <- function(x, bw_grid = NULL,
     # Integral term int ghat_h(x)^2 dx via trapezoidal rule
     zgrid <- seq(lower, upper, length.out = 500L)
     fvals <- vapply(zgrid, function(zi) sum(kern((zi - x) / h)) / (n * h), numeric(1))
-    integral_term <- pracma::trapz(zgrid, fvals)
+    integral_term <- pracma::trapz(zgrid, fvals ** 2)
  
     # Leave-one-out term
     loo_term <- vapply(seq_len(n), function(i) {
       sum(kern((x[i] - x[-i]) / h)) / ((n - 1) * h)
     }, numeric(1))
  
-    integral_term - 2 * mean(loo_term)
+    cvh <- integral_term - 2 * mean(loo_term)
+    return(cvh)
   }
  
   cv_curve <- vapply(bw_grid, function(h) {
@@ -79,13 +80,13 @@ estimate_density <- function(x, bw_grid = NULL,
     sum(kern((x[i] - x[-i]) / h_star)) / ((n - 1) * h_star)
   }, numeric(1))
  
-  list(
+  return(list(
     h_star = h_star,
     bw_grid = bw_grid,
     cv_curve = cv_curve,
     kernel_name = kernel_name,
     estimate = estimate
-  )
+  ))
 }
  
 
@@ -93,9 +94,9 @@ estimate_density <- function(x, bw_grid = NULL,
 
 if (FALSE) {
   data("data_far")
-  Tn0 <- data_far[id_curve == 149, sort(tobs)]
+  Tn0 <- data_far[id_curve == 150, sort(tobs)]
   Mn0 <- length(Tn0)
-  bw_grid <- exp(seq(log(0.01), log(0.3), length.out = 30))
+  bw_grid <- exp(seq(log(0.02), log(0.5), length.out = 30))
  
   fit <- estimate_density(
     x = Tn0, bw_grid = bw_grid,
