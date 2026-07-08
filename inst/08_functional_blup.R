@@ -64,6 +64,7 @@ predict_next_curve <- function(
     } else {
         ghat <- estimate_density(x = Tn0, kernel_name = kernel_name, lower = 0, upper = 1)$estimate
         rho <- 1 / (Mn0 * pmax(ghat, 1e-6))
+        rho <- rho / sum(rho)
     }
     root_Dn0 <- diag(sqrt(rho))
 
@@ -245,7 +246,7 @@ dt_graph <- rbind(
   dt_blup[, .("t" = tobs, "Quantity" = "Xtrue", value = X)]
 )
 
-g <- ggplot(data = dt_graph, mapping = aes(x = t, y = value, group = Quantity, colour = Quantity)) +
+ggplot(data = dt_graph, mapping = aes(x = t, y = value, group = Quantity, colour = Quantity)) +
   geom_line() +
   xlab("t") +
   theme_minimal() +
@@ -329,19 +330,33 @@ autocov_at <- function(fit, data, s, t, lag = 1L, kernel_name = "epanechnikov") 
 }
 
 
-#' Holdout cross-validation for the Tikhonov regularization parameter
+#' One-step-ahead cross-validation for the Tikhonov regularization parameter
 #'
-#' Selects \eqn{\alpha} by fixed-training one-step-ahead cross-validation,
-#' following the holdout scheme of Zhao (2026). The mean and (auto)covariance
-#' operators are estimated once on the training block; each of the last `n_val`
-#' curves is then predicted from its immediate predecessor. In the common
-#' design nothing but the conditioning values \eqn{Y_{v-1}} changes across the
-#' validation set, so the whole weighted system is built once; in the
-#' independent design the blocks are re-evaluated at the new points via cached
-#' bandwidths (`autocov_at`). Only the \eqn{M \times M} solve depends on
-#' \eqn{\alpha}. The score is the mean squared prediction error at the held-out
-#' observation points (the \eqn{\alpha}-independent innovation variance shifts
-#' every score equally and does not move the argmin).
+#' Selects \eqn{\alpha} by one-step-ahead cross-validation: each of the last
+#' `n_val` curves is predicted from its immediate predecessor and scored by the
+#' \emph{design-weighted} squared prediction error at its observation points,
+#' \eqn{\sum_i \varrho_{n,i} (Y_{n,i} - \widehat X_n(T_{n,i};\alpha))^2}, where
+#' \eqn{\varrho_{n,i}} is the design weight of the held-out (target) curve
+#' (\eqn{1/|T_n|} under the common design; the importance-sampling correction
+#' \eqn{\{M_n \widehat g(T_{n,i})\}^{-1}} under the independent design). This
+#' makes the score target the \eqn{\LL^2(I)} risk rather than the \eqn{\LL^2(g)}
+#' risk; the \eqn{\alpha}-independent innovation variance shifts every score
+#' equally and does not move the argmin. Two regimes:
+#' \itemize{
+#'   \item \strong{Common design} — the design points never change, so the mean
+#'     and (auto)covariance operators are estimated once on the training block
+#'     (holdout scheme of Zhao (2026)) and only the conditioning values
+#'     \eqn{Y_{v-1}} vary across the validation set.
+#'   \item \strong{Independent design} — a \emph{rolling origin}: for each target
+#'     curve the operators are re-estimated on all curves observed up to its
+#'     predecessor (the training block grown with every earlier validation
+#'     curve), so the estimator sees exactly the information available at
+#'     prediction time. The adaptive bandwidths are held fixed at those selected
+#'     once on the initial block (cached in `fit`); only the plug-in estimates
+#'     are refreshed on the growing window (`mean_at`, `autocov_at`).
+#' }
+#' In both regimes only the \eqn{M \times M} system depends on \eqn{\alpha},
+#' which Phase 2 solves for the whole grid from a single eigendecomposition.
 #'
 #' @param data A prepared functional data.table (`id_curve`, `tobs`, `X`).
 #' @param alpha_grid Candidate values. If `NULL`, a 25-point grid
@@ -382,33 +397,51 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
 
         if (is_common) {
             root_Dn0 <- diag(sqrt(fit$rho))
+            ## Design weights of the held-out (target) curve for the validation loss
+            rho_targ <- rep(1 / length(Y_targ), length(Y_targ))
             folds[[k]] <- list(
                 A0 = root_Dn0 %*% fit$c0hat %*% root_Dn0 + diag(fit$sigma2 * fit$rho),
                 C1rD = t(fit$c1hat) %*% root_Dn0,
                 mu_pred = fit$muhat_prediction_points,
                 resid = root_Dn0 %*% matrix(Y_prev - fit$muhat_Tn0, ncol = 1),
                 Y_targ = Y_targ,
+                rho_targ = rho_targ,
                 Mn0 = length(fit$rho))
         } else {
+            ## Rolling origin: re-estimate the operators on every curve observed
+            ## up to the prediction origin (id_prev), i.e. the initial training
+            ## block grown with all earlier validation curves. Equivalent to the
+            ## rbind-growth scheme, expressed as a prefix of the sorted ids. The
+            ## bandwidths stay fixed at those selected once on the initial block
+            ## (cached in `fit`), so only the plug-in estimates are refreshed.
+            data_roll <- data[id_curve <= id_prev]
             Tprev <- data[id_curve == id_prev, sort(unique(tobs))]
             Ttarg <- data[id_curve == id_targ, sort(unique(tobs))]
-            c0hat <- autocov_at(fit, data_fit, Tprev, Tprev, lag = 0, kernel_name)
+            c0hat <- autocov_at(fit, data_roll, Tprev, Tprev, lag = 0, kernel_name)
             c0hat <- (c0hat + t(c0hat)) / 2
-            c1hat <- autocov_at(fit, data_fit, Tprev, Ttarg, lag = 1, kernel_name)
-            mu_prev <- mean_at(fit, data_fit, Tprev, kernel_name)
-            mu_targ <- mean_at(fit, data_fit, Ttarg, kernel_name)
+            c1hat <- autocov_at(fit, data_roll, Tprev, Ttarg, lag = 1, kernel_name)
+            mu_prev <- mean_at(fit, data_roll, Tprev, kernel_name)
+            mu_targ <- mean_at(fit, data_roll, Ttarg, kernel_name)
             sigma2 <- adaptiveFTS::estimate_sigma(
-                data = data_fit, idcol = "id_curve", tcol = "tobs", ycol = "X", t = Tprev)[, sig ** 2]
+                data = data_roll, idcol = "id_curve", tcol = "tobs", ycol = "X", t = Tprev)[, sig ** 2]
             if (homoscedastic) sigma2 <- stats::median(sigma2, na.rm = TRUE)
             ghat <- estimate_density(x = Tprev, kernel_name = kernel_name, lower = 0, upper = 1)$estimate
             rho <- 1 / (length(Tprev) * pmax(ghat, 1e-6))
+            rho <- rho / sum(rho)
             root_Dn0 <- diag(sqrt(rho))
+
+            ## Design weights of the held-out (target) curve for the validation loss
+            ghat_targ <- estimate_density(x = Ttarg, kernel_name = kernel_name, lower = 0, upper = 1)$estimate
+            rho_targ <- 1 / (length(Ttarg) * pmax(ghat_targ, 1e-6))
+            rho_targ <- rho_targ / sum(rho_targ)
+            
             folds[[k]] <- list(
                 A0 = root_Dn0 %*% c0hat %*% root_Dn0 + diag(sigma2 * rho),
                 C1rD = t(c1hat) %*% root_Dn0,
                 mu_pred = mu_targ,
                 resid = root_Dn0 %*% matrix(Y_prev - mu_prev, ncol = 1),
                 Y_targ = Y_targ,
+                rho_targ = rho_targ,
                 Mn0 = length(rho))
         }
     }
@@ -434,7 +467,10 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
             pred <- tryCatch(
                 f$mu_pred + as.vector(W %*% (z / (lambda + alpha_grid[l]))),
                 error = function(e) rep(NA_real_, length(f$Y_targ)))
-            cv_matrix[k, l] <- mean((f$Y_targ - pred) ^ 2)
+            ## Design-weighted validation loss: sum_i varrho_{n,i} (Y_{n,i} - Xhat_i)^2.
+            ## Common design collapses to the plain MSE; independent design applies
+            ## the importance-sampling correction so the score targets the L^2(I) risk.
+            cv_matrix[k, l] <- sum(f$rho_targ * (f$Y_targ - pred) ^ 2)
         }
     }
 
@@ -461,7 +497,7 @@ if (FALSE) {
 
     cv <- cv_alpha_blup(
         data = data_train,
-        alpha_grid = exp(seq(-2, -0.5, length.out = 25)),
+        alpha_grid = exp(seq(0.3, 1.2, length.out = 25)),
         n_val = 30L,
         bw_grid = bw_grid_blup
     )
