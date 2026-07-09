@@ -1,5 +1,15 @@
 #' Curve prediction using the Best Linear Unbiased Predictor (BLUP).
 #'
+#' @description
+#' \strong{Deprecated.} `predict_curve()` is deprecated and will be removed in a
+#' future release.
+#' It reconstructs a curve from a block system conditioning on the neighbouring
+#' curve and the target curve's own partial observations. For the
+#' design-weighted, Tikhonov-regularised adaptive BLUP (one-step-ahead
+#' prediction of the curve following a conditioning curve), use [blup_fit()]
+#' with [predict.blup_fit()], or the one-call wrapper [blup()]. Note that these
+#' compute a different quantity, so results are not interchangeable.
+#'
 #' This function predict a curve using the adaptive Best Linear Unbiased Predictor proposed by \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
 #'
 #' @inheritParams format_data
@@ -19,7 +29,7 @@
 #'   \item{\code{prediction} :}{ The adaptive estimates the Best Linear Unbiased Predictor.}
 #' }
 #' @export
-#' @seealso [estimate_locreg()], [estimate_mean()], [estimate_autocov()], [estimate_nw()].
+#' @seealso [blup_fit()], [predict.blup_fit()], [blup()], [estimate_mean()], [estimate_autocov()].
 #'
 #' @import data.table
 #' @importFrom Rdpack reprompt
@@ -37,6 +47,13 @@ predict_curve <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                           center = TRUE,
                           correct_diagonal = TRUE,
                           kernel_name = "epanechnikov"){
+
+  .Deprecated(
+    new = "blup_fit",
+    msg = paste(
+      "'predict_curve()' is deprecated and will be removed in a future release.",
+      "Use blup_fit()/predict() or blup() for the design-weighted adaptive BLUP",
+      "(note: they compute a different quantity)."))
 
   # Control easy checkable arguments
   if (! (methods::is(t, "numeric") & all(t >= 0 & t <= 1)))

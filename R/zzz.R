@@ -11,4 +11,5 @@ globalVariables(
     "pin_t", "pk", "sig_error_s", "sig_error_t", "wmax_s", "wmax_t", "yhat",
     "Q0", "Q1", "S0", "S1", "S2", "Tn_minus_t", "Tn_minus_t_over_h", "V2",
     "XsXt_var", "dependence_coef", "gamma_cross_lag", ".", "n",
-    "cov_segment_hat", "covseg_correction", "cov_segment_hat_corrected"))
+    "cov_segment_hat", "covseg_correction", "cov_segment_hat_corrected",
+    "optbw_s", "optbw_t"))

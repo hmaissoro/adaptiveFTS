@@ -79,11 +79,20 @@ A \code{data.table} containing the predicted curve:
 }
 }
 \description{
+\strong{Deprecated.} \code{predict_curve()} is deprecated and will be removed in a
+future release.
+It reconstructs a curve from a block system conditioning on the neighbouring
+curve and the target curve's own partial observations. For the
+design-weighted, Tikhonov-regularised adaptive BLUP (one-step-ahead
+prediction of the curve following a conditioning curve), use \code{\link[=blup_fit]{blup_fit()}}
+with \code{\link[=predict.blup_fit]{predict.blup_fit()}}, or the one-call wrapper \code{\link[=blup]{blup()}}. Note that these
+compute a different quantity, so results are not interchangeable.
+
 This function predict a curve using the adaptive Best Linear Unbiased Predictor proposed by \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
 }
 \references{
 \insertAllCited{}
 }
 \seealso{
-\code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_mean]{estimate_mean()}}, \code{\link[=estimate_autocov]{estimate_autocov()}}, \code{\link[=estimate_nw]{estimate_nw()}}.
+\code{\link[=blup_fit]{blup_fit()}}, \code{\link[=predict.blup_fit]{predict.blup_fit()}}, \code{\link[=blup]{blup()}}, \code{\link[=estimate_mean]{estimate_mean()}}, \code{\link[=estimate_autocov]{estimate_autocov()}}.
 }
