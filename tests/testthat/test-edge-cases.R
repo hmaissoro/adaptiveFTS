@@ -42,7 +42,9 @@ test_that("estimators run on a sparser set of curves", {
 test_that("predict_curve returns a reconstruction on the requested grid", {
   dt <- fixture_data_far(12L)
   tt <- c(0.2, 0.4, 0.6, 0.8)
-  pc <- predict_curve(dt, t = tt, id_curve_to_predict = 3L,
-                      bw_grid = seq(0.05, 0.2, length.out = 5))
+  expect_warning(
+    pc <- predict_curve(dt, t = tt, id_curve_to_predict = 3L,
+                        bw_grid = seq(0.05, 0.2, length.out = 5)),
+    "deprecated")
   expect_true(is.list(pc) || data.table::is.data.table(pc) || is.matrix(pc))
 })

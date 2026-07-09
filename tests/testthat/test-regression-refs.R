@@ -112,6 +112,6 @@ test_that("full BLUP pipeline matches references", {
   ref <- read_ref("estimate_curve_cpp")
   expect_equal(sort(names(cur)), sort(names(ref)))
   for (nm in names(ref)) expect_equal(cur[[nm]], ref[[nm]], tolerance = TOL, info = nm)
-  expect_equal(predict_curve(p$dt, t = p$tt, id_curve_to_predict = 2L, bw_grid = p$bwg),
+  expect_equal(suppressWarnings(predict_curve(p$dt, t = p$tt, id_curve_to_predict = 2L, bw_grid = p$bwg)),
                read_ref("predict_curve_wrapper"), tolerance = TOL)
 })

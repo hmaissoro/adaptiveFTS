@@ -290,6 +290,7 @@ predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, h = 1L, ...
 #' @seealso [blup_fit()], [predict.blup_fit()], [cv_blup_alpha()].
 #' @export
 #' @import data.table
+#' @importFrom stats predict
 blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                  t = seq(0.01, 0.99, length.out = 99), id_lag = NULL, h = 1L,
                  tikhonov_reg_param = 1e-6, bw_grid = NULL,
