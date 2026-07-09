@@ -347,3 +347,178 @@ predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, h = 1L, ...
 
   data.table::data.table(t = t, muhat = res$muhat, prediction = res$prediction)
 }
+
+#' Fit and predict the adaptive functional BLUP in one call
+#'
+#' Convenience wrapper that fits the adaptive BLUP on `data` and immediately
+#' predicts the curve following the conditioning curve at `t`. Equivalent to
+#' `predict(blup_fit(data, ...), t = t, h = h)`.
+#'
+#' @inheritParams blup_fit
+#' @param t Numeric vector of prediction points in \eqn{[0, 1]}.
+#' @param h Integer prediction horizon (steps ahead). Default `1`.
+#'
+#' @return A `data.table` with columns `t`, `muhat` and `prediction`.
+#'
+#' @seealso [blup_fit()], [predict.blup_fit()], [cv_blup_alpha()].
+#' @export
+#' @import data.table
+blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                 t = seq(0.01, 0.99, length.out = 99), id_lag = NULL, h = 1L,
+                 tikhonov_reg_param = 1e-6, bw_grid = NULL,
+                 kernel_name = "epanechnikov", homoscedastic = TRUE,
+                 density_bw = NULL, sub_grid_length = 10L) {
+  fit <- blup_fit(
+    data = data, idcol = idcol, tcol = tcol, ycol = ycol, id_lag = id_lag,
+    tikhonov_reg_param = tikhonov_reg_param, bw_grid = bw_grid,
+    kernel_name = kernel_name, homoscedastic = homoscedastic,
+    density_bw = density_bw, sub_grid_length = sub_grid_length)
+  predict(fit, t = t, h = h)
+}
+
+#' One-step-ahead cross-validation for the Tikhonov parameter
+#'
+#' Selects the Tikhonov regularisation parameter \eqn{\alpha} by one-step-ahead
+#' cross-validation: each of the last `n_val` curves is predicted from its
+#' immediate predecessor and scored by the design-weighted squared prediction
+#' error at its observation points,
+#' \eqn{\sum_i \varrho_{n,i}\,(Y_{n,i} - \widehat X_n(T_{n,i};\alpha))^2}, where
+#' \eqn{\varrho_{n,i}} is the design weight of the held-out (target) curve. Two
+#' regimes:
+#' \itemize{
+#'   \item \strong{Common design} — the operators are estimated once on the
+#'     training block and only the conditioning values vary across the
+#'     validation set.
+#'   \item \strong{Independent design} — a rolling origin: for each target curve
+#'     the plug-in estimates are refreshed on all curves observed up to its
+#'     predecessor, with the adaptive bandwidths held fixed at those selected
+#'     once on the initial block (cached in the fit).
+#' }
+#' Only the \eqn{M \times M} system depends on \eqn{\alpha}; it is solved for the
+#' whole grid from a single eigendecomposition per fold.
+#'
+#' @inheritParams blup_fit
+#' @param alpha_grid Candidate values. If `NULL`, a 25-point grid
+#'   \eqn{\{e^{-5}, \ldots, e^0\}} is used.
+#' @param n_val Number of trailing curves used for one-step-ahead validation.
+#'
+#' @return A list with `alpha_star`, `alpha_grid`, `cv_curve`, `cv_matrix`
+#'   (fold by alpha) and `val_ids`.
+#'
+#' @seealso [blup_fit()].
+#' @export
+#' @import data.table
+cv_blup_alpha <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                          alpha_grid = NULL, n_val = 30L, bw_grid = NULL,
+                          kernel_name = "epanechnikov", homoscedastic = TRUE,
+                          density_bw = NULL) {
+
+  data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
+  kernel_name <- match.arg(
+    arg = kernel_name,
+    choices = c("epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform"))
+
+  ids <- data[, sort(unique(id_curve))]
+  n <- length(ids)
+  if (n_val >= n) stop("'n_val' must be smaller than the number of curves.")
+  fit_ids <- ids[seq_len(n - n_val)]
+  val_pos <- (n - n_val + 1L):n
+  data_fit <- data[id_curve %in% fit_ids]
+  is_common <- .is_common_design(data = data, idcol = "id_curve", tcol = "tobs")
+
+  # Select the design-density bandwidth once on the initial training block.
+  if (!is_common && is.null(density_bw))
+    density_bw <- get_density_optimal_bw(
+      data = data_fit, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      kernel_name = kernel_name, lower = 0, upper = 1)
+
+  # Estimate every alpha-free component once on the training block.
+  fit <- blup_fit(
+    data = data_fit, id_lag = max(fit_ids), tikhonov_reg_param = 1e-6,
+    bw_grid = bw_grid, kernel_name = kernel_name, homoscedastic = homoscedastic,
+    density_bw = density_bw)
+
+  # Common-design invariants (the operators do not change across folds).
+  if (is_common) {
+    Tn0 <- fit$Tn0
+    c1_common <- .autocov_at(fit$dt_optbw_autocov, data_fit, Tn0, Tn0, lag = 1, kernel_name)
+    A0_common <- fit$root_Dn0 %*% fit$c0hat %*% fit$root_Dn0 + diag(fit$sigma2 * fit$rho)
+    C1rD_common <- t(c1_common) %*% fit$root_Dn0
+  }
+
+  ## Phase 1: assemble the alpha-free pieces for each validation curve.
+  folds <- vector("list", n_val)
+  for (k in seq_len(n_val)) {
+    id_targ <- ids[val_pos[k]]
+    id_prev <- ids[val_pos[k] - 1L]
+    Y_prev <- data[id_curve == id_prev][order(tobs), X]
+    Y_targ <- data[id_curve == id_targ][order(tobs), X]
+
+    if (is_common) {
+      folds[[k]] <- list(
+        A0 = A0_common, C1rD = C1rD_common, mu_pred = fit$muhat_Tn0,
+        resid = fit$root_Dn0 %*% matrix(Y_prev - fit$muhat_Tn0, ncol = 1),
+        Y_targ = Y_targ, rho_targ = rep(1 / length(Y_targ), length(Y_targ)))
+    } else {
+      # Rolling origin: refresh the plug-in estimates on the grown window with
+      # the bandwidths held fixed at those cached in `fit`.
+      data_roll <- data[id_curve <= id_prev]
+      Tprev <- data[id_curve == id_prev, sort(unique(tobs))]
+      Ttarg <- data[id_curve == id_targ, sort(unique(tobs))]
+      c0 <- .autocov_at(fit$dt_optbw_cov, data_roll, Tprev, Tprev, lag = 0, kernel_name)
+      c0 <- (c0 + t(c0)) / 2
+      c1 <- .autocov_at(fit$dt_optbw_autocov, data_roll, Tprev, Ttarg, lag = 1, kernel_name)
+      mu_prev <- .mean_at(fit$dt_optbw_mean, data_roll, Tprev, kernel_name)
+      mu_targ <- .mean_at(fit$dt_optbw_mean, data_roll, Ttarg, kernel_name)
+      sig2 <- adaptiveFTS::estimate_sigma(
+        data = data_roll, idcol = "id_curve", tcol = "tobs", ycol = "X", t = Tprev)[, sig ** 2]
+      if (homoscedastic) sig2 <- stats::median(sig2, na.rm = TRUE)
+      ghat <- estimate_density(x = Tprev, h = density_bw, kernel_name = kernel_name,
+                               lower = 0, upper = 1)$estimate
+      rho <- 1 / (length(Tprev) * pmax(ghat, 1e-6))
+      rho <- rho / sum(rho)
+      root_D <- diag(sqrt(rho))
+      ghat_targ <- estimate_density(x = Ttarg, h = density_bw, kernel_name = kernel_name,
+                                    lower = 0, upper = 1)$estimate
+      rho_targ <- 1 / (length(Ttarg) * pmax(ghat_targ, 1e-6))
+      rho_targ <- rho_targ / sum(rho_targ)
+      folds[[k]] <- list(
+        A0 = root_D %*% c0 %*% root_D + diag(sig2 * rho), C1rD = t(c1) %*% root_D,
+        mu_pred = mu_targ, resid = root_D %*% matrix(Y_prev - mu_prev, ncol = 1),
+        Y_targ = Y_targ, rho_targ = rho_targ)
+    }
+  }
+
+  if (is.null(alpha_grid)) alpha_grid <- exp(seq(-5, 0, length.out = 25))
+
+  ## Phase 2: only (A0 + alpha I)^{-1} depends on alpha; A0 is symmetric, so
+  ## eigendecompose once per fold and reuse across the whole grid.
+  cv_matrix <- matrix(NA_real_, nrow = n_val, ncol = length(alpha_grid))
+  for (k in seq_len(n_val)) {
+    f <- folds[[k]]
+    eg <- eigen(f$A0, symmetric = TRUE)
+    lambda <- eg$values
+    z <- as.vector(crossprod(eg$vectors, f$resid))
+    W <- f$C1rD %*% eg$vectors
+    for (l in seq_along(alpha_grid)) {
+      pred <- tryCatch(
+        f$mu_pred + as.vector(W %*% (z / (lambda + alpha_grid[l]))),
+        error = function(e) rep(NA_real_, length(f$Y_targ)))
+      cv_matrix[k, l] <- sum(f$rho_targ * (f$Y_targ - pred) ^ 2)
+    }
+  }
+
+  cv_curve <- colMeans(cv_matrix, na.rm = TRUE)
+  l_star <- which.min(cv_curve)
+  alpha_star <- alpha_grid[l_star]
+  if (l_star %in% c(1L, length(alpha_grid)))
+    warning("alpha_star at a grid boundary; widen alpha_grid.")
+
+  list(
+    alpha_star = alpha_star,
+    alpha_grid = alpha_grid,
+    cv_curve = cv_curve,
+    cv_matrix = cv_matrix,
+    val_ids = ids[val_pos]
+  )
+}
