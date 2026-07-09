@@ -434,7 +434,7 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
             ghat_targ <- estimate_density(x = Ttarg, kernel_name = kernel_name, lower = 0, upper = 1)$estimate
             rho_targ <- 1 / (length(Ttarg) * pmax(ghat_targ, 1e-6))
             rho_targ <- rho_targ / sum(rho_targ)
-            
+
             folds[[k]] <- list(
                 A0 = root_Dn0 %*% c0hat %*% root_Dn0 + diag(sigma2 * rho),
                 C1rD = t(c1hat) %*% root_Dn0,
@@ -497,7 +497,7 @@ if (FALSE) {
 
     cv <- cv_alpha_blup(
         data = data_train,
-        alpha_grid = exp(seq(0.3, 1.2, length.out = 25)),
+        alpha_grid = exp(seq(0.3, 1, length.out = 25)),
         n_val = 30L,
         bw_grid = bw_grid_blup
     )
