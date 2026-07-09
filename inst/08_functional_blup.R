@@ -1,7 +1,7 @@
 library(data.table)
 library(ggplot2)
 Rcpp::sourceCpp("./src/08_estimate_curve_cpp.cpp")
-source("./inst/09_parzen_rosenblatt_density_estimator.R")
+source("./R/10_density_estimator.R")
 
 
 #' Check whether all curves share the same observation design
@@ -49,7 +49,7 @@ bw_grid_blup <- b0 * a ** (seq_len(K))
 predict_next_curve <- function(
     data = data_train, prediction_points = t0, tikhonov_reg_param = 1e-6,
     bw_grid = bw_grid_blup, kernel_name = "epanechnikov",
-    homoscedastic = TRUE) {
+    homoscedastic = TRUE, density_bw = NULL) {
 
     n0 <- data[, max(id_curve)]
     Tn0 <- data[id_curve == n0, sort(unique(tobs))]
@@ -62,7 +62,14 @@ predict_next_curve <- function(
     if (is_common_design) {
         rho <- rep(1 / Mn0, Mn0)
     } else {
-        ghat <- estimate_density(x = Tn0, kernel_name = kernel_name, lower = 0, upper = 1)$estimate
+        # Select the design-density bandwidth once on a subset of curves, then
+        # reuse the exact same value for every estimate_density() call.
+        if (is.null(density_bw))
+            density_bw <- get_density_optimal_bw(
+                data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                kernel_name = kernel_name, lower = 0, upper = 1)
+        ghat <- estimate_density(x = Tn0, h = density_bw, kernel_name = kernel_name,
+                                 lower = 0, upper = 1)$estimate
         rho <- 1 / (Mn0 * pmax(ghat, 1e-6))
         rho <- rho / sum(rho)
     }
@@ -215,6 +222,7 @@ predict_next_curve <- function(
         "Tn0" = Tn0,
         "Yn0" = Yn0,
         "bw_grid" = bw_grid,
+        "density_bw" = density_bw,
         "dt_risk_mean" = dt_risk_mean,
         "dt_optbw_mean" = dt_optbw_mean,
         "dt_risk_cov" = dt_risk_cov,
@@ -372,7 +380,7 @@ autocov_at <- function(fit, data, s, t, lag = 1L, kernel_name = "epanechnikov") 
 #' @export
 cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
                           bw_grid = bw_grid_blup, kernel_name = "epanechnikov",
-                          homoscedastic = TRUE) {
+                          homoscedastic = TRUE, density_bw = NULL) {
 
     ids <- data[, sort(unique(id_curve))]
     n <- length(ids)
@@ -381,11 +389,18 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
     data_fit <- data[id_curve %in% fit_ids]
     is_common <- .is_common_design(data = data, idcol = "id_curve", tcol = "tobs")
 
+    ## Select the design-density bandwidth once on the initial training block and
+    ## reuse it for every estimate_density() call below (independent design only).
+    if (!is_common && is.null(density_bw))
+        density_bw <- get_density_optimal_bw(
+            data = data_fit, idcol = "id_curve", tcol = "tobs", ycol = "X",
+            kernel_name = kernel_name, lower = 0, upper = 1)
+
     ## Estimate every alpha-free component once on the training block
     fit <- predict_next_curve(
         data = data_fit, prediction_points = data_fit[id_curve == max(fit_ids), sort(unique(tobs))],
         tikhonov_reg_param = 1e-6, bw_grid = bw_grid, kernel_name = kernel_name,
-        homoscedastic = homoscedastic)
+        homoscedastic = homoscedastic, density_bw = density_bw)
 
     ## Phase 1 : assemble the alpha-free pieces for each validation curve
     folds <- vector("list", n_val)
@@ -425,13 +440,15 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
             sigma2 <- adaptiveFTS::estimate_sigma(
                 data = data_roll, idcol = "id_curve", tcol = "tobs", ycol = "X", t = Tprev)[, sig ** 2]
             if (homoscedastic) sigma2 <- stats::median(sigma2, na.rm = TRUE)
-            ghat <- estimate_density(x = Tprev, kernel_name = kernel_name, lower = 0, upper = 1)$estimate
+            ghat <- estimate_density(x = Tprev, h = density_bw, kernel_name = kernel_name,
+                                     lower = 0, upper = 1)$estimate
             rho <- 1 / (length(Tprev) * pmax(ghat, 1e-6))
             rho <- rho / sum(rho)
             root_Dn0 <- diag(sqrt(rho))
 
             ## Design weights of the held-out (target) curve for the validation loss
-            ghat_targ <- estimate_density(x = Ttarg, kernel_name = kernel_name, lower = 0, upper = 1)$estimate
+            ghat_targ <- estimate_density(x = Ttarg, h = density_bw, kernel_name = kernel_name,
+                                          lower = 0, upper = 1)$estimate
             rho_targ <- 1 / (length(Ttarg) * pmax(ghat_targ, 1e-6))
             rho_targ <- rho_targ / sum(rho_targ)
 
