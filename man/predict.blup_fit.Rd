@@ -30,9 +30,9 @@ A \code{data.table} with columns \code{t}, \code{muhat} (mean estimate) and
 \description{
 Evaluates the adaptive Best Linear Unbiased Predictor of the curve following
 the conditioning curve at the requested prediction points. For \code{h > 1}
-(h-step-ahead), each intermediate curve is predicted at the (common) design
-points and fed back as the new conditioning curve, so the \code{(n_0 + i)}-th
-prediction is built from the \code{(n_0 + i - 1)}-th predicted curve.
+(h-step-ahead), each intermediate curve is predicted on the target grid \code{t}
+and fed back as the new conditioning curve, so the \code{(n_0 + i)}-th prediction
+is built from the \code{(n_0 + i - 1)}-th predicted curve.
 }
 \seealso{
 \code{\link[=blup_fit]{blup_fit()}}.

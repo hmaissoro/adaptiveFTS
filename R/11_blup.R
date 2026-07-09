@@ -57,33 +57,6 @@
   }, integer(1))
 }
 
-#' Adaptive optimal mean bandwidths on a sub-grid
-#'
-#' Runs `estimate_mean_risk` on a coarse sub-grid and returns, for each sub-grid
-#' point, the bandwidth minimising the risk. Cached in the fit and reused at
-#' predict time via nearest-neighbour matching.
-#' @keywords internal
-.mean_optbw <- function(data, sub_grid_vec, bw_grid, kernel_name) {
-  dt_risk_mean <- adaptiveFTS::estimate_mean_risk(
-    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-    t = sub_grid_vec, bw_grid = bw_grid, kernel_name = kernel_name)
-  dt_risk_mean[, .("optbw" = h[which.min(mean_risk)]), by = t]
-}
-
-#' Adaptive optimal (auto)covariance bandwidths on a sub-grid
-#' @keywords internal
-.autocov_optbw <- function(data, sub_grid, lag, bw_grid, kernel_name) {
-  dt_risk <- adaptiveFTS::estimate_autocov_risk(
-    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-    s = sub_grid$s, t = sub_grid$t, lag = lag, bw_grid = bw_grid,
-    use_same_bw = FALSE, center = TRUE, kernel_name = kernel_name)
-  dt_risk[
-    ,
-    .("optbw_s" = hs[which.min(autocov_risk)], "optbw_t" = ht[which.min(autocov_risk)]),
-    by = c("s", "t")
-  ]
-}
-
 #' Evaluate the mean at new locations using cached bandwidths
 #'
 #' Reuses the adaptive optimal bandwidths selected in `blup_fit` (`dt_optbw_mean`),
@@ -200,29 +173,24 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     bw_grid <- b0 * a ** (seq_len(K))
   }
 
-  sub_grid_vec <- seq(0.05, 0.95, length.out = sub_grid_length)
-  sub_grid <- expand.grid("s" = sub_grid_vec, "t" = sub_grid_vec)
+  # C++ core: adaptive bandwidth selection, mean, covariance C0, noise level and
+  # the regularised variance matrix V for the conditioning curve.
+  cpp <- blup_fit_cpp(
+    data = data, id_lag = as.integer(n0), bw_grid = as.numeric(bw_grid),
+    rho = rho, homoscedastic = homoscedastic,
+    tikhonov = tikhonov_reg_param, sub_grid_length = as.integer(sub_grid_length),
+    kernel_name = kernel_name)
 
-  # Adaptive bandwidths (cached for predict-time reuse)
-  dt_optbw_mean <- .mean_optbw(data, sub_grid_vec, bw_grid, kernel_name)
-  dt_optbw_cov <- .autocov_optbw(data, sub_grid, lag = 0, bw_grid, kernel_name)
-  dt_optbw_autocov <- .autocov_optbw(data, sub_grid, lag = 1, bw_grid, kernel_name)
-
-  # Mean at the conditioning-curve design points
-  muhat_Tn0 <- .mean_at(dt_optbw_mean, data, Tn0, kernel_name)
-
-  # Covariance C0 at Tn0 x Tn0 (symmetrised)
-  c0hat <- .autocov_at(dt_optbw_cov, data, Tn0, Tn0, lag = 0, kernel_name)
-  c0hat <- (c0hat + t(c0hat)) / 2
-
-  # Noise variance at Tn0
-  sigma2 <- adaptiveFTS::estimate_sigma(
-    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", t = Tn0)[, sig ** 2]
-  if (homoscedastic) sigma2 <- stats::median(sigma2, na.rm = TRUE)
-
-  # Regularised variance matrix and the alpha-independent conditioning residual
-  V <- root_Dn0 %*% c0hat %*% root_Dn0 + diag(sigma2 * rho) + tikhonov_reg_param * diag(Mn0)
-  resid <- root_Dn0 %*% matrix(data = Yn0 - muhat_Tn0, ncol = 1)
+  # Cached adaptive bandwidths, exposed both as matrices (for the C++ predict)
+  # and as data.tables (for cv_blup_alpha and the R plug-in helpers).
+  dt_optbw_mean <- data.table::data.table(
+    t = cpp$opt_mean[, 1], optbw = cpp$opt_mean[, 2])
+  dt_optbw_cov <- data.table::data.table(
+    s = cpp$opt_cov[, 1], t = cpp$opt_cov[, 2],
+    optbw_s = cpp$opt_cov[, 3], optbw_t = cpp$opt_cov[, 4])
+  dt_optbw_autocov <- data.table::data.table(
+    s = cpp$opt_autocov[, 1], t = cpp$opt_autocov[, 2],
+    optbw_s = cpp$opt_autocov[, 3], optbw_t = cpp$opt_autocov[, 4])
 
   structure(
     list(
@@ -230,23 +198,26 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       kernel_name = kernel_name,
       is_common_design = is_common_design,
       id_lag = n0,
-      Tn0 = Tn0,
-      Yn0 = Yn0,
+      Tn0 = as.vector(cpp$Tn0),
+      Yn0 = as.vector(cpp$Yn0),
       Mn0 = Mn0,
       rho = rho,
       root_Dn0 = root_Dn0,
       density_bw = density_bw,
       bw_grid = bw_grid,
+      opt_mean = cpp$opt_mean,
+      opt_cov = cpp$opt_cov,
+      opt_autocov = cpp$opt_autocov,
       dt_optbw_mean = dt_optbw_mean,
       dt_optbw_cov = dt_optbw_cov,
       dt_optbw_autocov = dt_optbw_autocov,
-      muhat_Tn0 = muhat_Tn0,
-      c0hat = c0hat,
-      sigma2 = sigma2,
+      muhat_Tn0 = as.vector(cpp$muhat_Tn0),
+      c0hat = cpp$c0hat,
+      sigma2 = if (homoscedastic) as.numeric(cpp$sigma2) else as.vector(cpp$sigma2),
       homoscedastic = homoscedastic,
       tikhonov_reg_param = tikhonov_reg_param,
-      V = V,
-      resid = resid
+      V = cpp$V,
+      resid = cpp$resid
     ),
     class = "blup_fit"
   )
@@ -256,9 +227,9 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #'
 #' Evaluates the adaptive Best Linear Unbiased Predictor of the curve following
 #' the conditioning curve at the requested prediction points. For `h > 1`
-#' (h-step-ahead), each intermediate curve is predicted at the (common) design
-#' points and fed back as the new conditioning curve, so the `(n_0 + i)`-th
-#' prediction is built from the `(n_0 + i - 1)`-th predicted curve.
+#' (h-step-ahead), each intermediate curve is predicted on the target grid `t`
+#' and fed back as the new conditioning curve, so the `(n_0 + i)`-th prediction
+#' is built from the `(n_0 + i - 1)`-th predicted curve.
 #'
 #' @param object A `blup_fit` object.
 #' @param t Numeric vector of prediction points in \eqn{[0, 1]}. Default is the
@@ -289,63 +260,19 @@ predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, h = 1L, ...
   if (length(Yn0) != object$Mn0)
     stop("'newdata' must have length equal to the fit's design (", object$Mn0, ").")
 
-  data <- object$data
-  kern <- object$kernel_name
-  alpha <- object$tikhonov_reg_param
+  # density_bw is unused under the common design; pass a dummy positive value.
+  density_bw <- if (is.null(object$density_bw)) 0.1 else object$density_bw
 
-  # Conditioning-dependent quantities for an arbitrary design `Td` and values
-  # `Yd`, reusing the cached adaptive bandwidths and the historical data for the
-  # plug-in estimates. Used when a predicted curve (on grid `t`) becomes the new
-  # conditioning curve during the h-step recursion.
-  condition <- function(Td, Yd) {
-    Md <- length(Td)
-    if (object$is_common_design) {
-      rho <- rep(1 / Md, Md)
-    } else {
-      ghat <- estimate_density(x = Td, h = object$density_bw, kernel_name = kern,
-                               lower = 0, upper = 1)$estimate
-      rho <- 1 / (Md * pmax(ghat, 1e-6))
-      rho <- rho / sum(rho)
-    }
-    root_D <- diag(sqrt(rho))
-    muhat_Td <- .mean_at(object$dt_optbw_mean, data, Td, kern)
-    c0 <- .autocov_at(object$dt_optbw_cov, data, Td, Td, lag = 0, kern)
-    c0 <- (c0 + t(c0)) / 2
-    sig2 <- adaptiveFTS::estimate_sigma(
-      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", t = Td)[, sig ** 2]
-    if (object$homoscedastic) sig2 <- stats::median(sig2, na.rm = TRUE)
-    V <- root_D %*% c0 %*% root_D + diag(sig2 * rho) + alpha * diag(Md)
-    resid <- root_D %*% matrix(Yd - muhat_Td, ncol = 1)
-    list(Td = Td, root_D = root_D, V = V, resid = resid)
-  }
+  out <- blup_predict_cpp(
+    data = object$data, opt_mean = object$opt_mean, opt_cov = object$opt_cov,
+    opt_autocov = object$opt_autocov, Tn0 = as.numeric(object$Tn0),
+    muhat_Tn0 = as.numeric(object$muhat_Tn0), V = object$V, root_D = object$root_Dn0,
+    Yn0 = as.numeric(Yn0), density_bw = density_bw,
+    is_common = object$is_common_design, homoscedastic = object$homoscedastic,
+    tikhonov = object$tikhonov_reg_param, t = as.numeric(t), h = h,
+    kernel_name = object$kernel_name)
 
-  # One-step BLUP at `tpred` given conditioning quantities `cond`.
-  blup_at <- function(cond, tpred) {
-    muhat_t <- .mean_at(object$dt_optbw_mean, data, tpred, kern)
-    c1 <- .autocov_at(object$dt_optbw_autocov, data, cond$Td, tpred, lag = 1, kern)
-    pred <- muhat_t + t(c1) %*% cond$root_D %*% solve(cond$V, cond$resid)
-    list(muhat = muhat_t, prediction = as.vector(pred))
-  }
-
-  # Step 1 conditions on the fitted (real) curve: reuse the cached V and root_D
-  # so the h = 1 result is bit-identical to blup_fit's assembly.
-  cond <- list(Td = object$Tn0, root_D = object$root_Dn0, V = object$V,
-               resid = object$root_Dn0 %*% matrix(Yn0 - object$muhat_Tn0, ncol = 1))
-
-  if (h == 1L) {
-    res <- blup_at(cond, t)
-  } else {
-    xprev <- blup_at(cond, t)$prediction
-    if (h > 2L)
-      for (step in seq_len(h - 2L)) {
-        cond <- condition(t, xprev)
-        xprev <- blup_at(cond, t)$prediction
-      }
-    cond <- condition(t, xprev)
-    res <- blup_at(cond, t)
-  }
-
-  data.table::data.table(t = t, muhat = res$muhat, prediction = res$prediction)
+  data.table::data.table(t = out[, 1], muhat = out[, 2], prediction = out[, 3])
 }
 
 #' Fit and predict the adaptive functional BLUP in one call

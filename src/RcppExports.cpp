@@ -470,6 +470,50 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// blup_fit_cpp
+Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data, const int id_lag, const arma::vec bw_grid, const arma::vec rho, const bool homoscedastic, const double tikhonov, const int sub_grid_length, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_blup_fit_cpp(SEXP dataSEXP, SEXP id_lagSEXP, SEXP bw_gridSEXP, SEXP rhoSEXP, SEXP homoscedasticSEXP, SEXP tikhonovSEXP, SEXP sub_grid_lengthSEXP, SEXP kernel_nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const int >::type id_lag(id_lagSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type bw_grid(bw_gridSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type rho(rhoSEXP);
+    Rcpp::traits::input_parameter< const bool >::type homoscedastic(homoscedasticSEXP);
+    Rcpp::traits::input_parameter< const double >::type tikhonov(tikhonovSEXP);
+    Rcpp::traits::input_parameter< const int >::type sub_grid_length(sub_grid_lengthSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
+    rcpp_result_gen = Rcpp::wrap(blup_fit_cpp(data, id_lag, bw_grid, rho, homoscedastic, tikhonov, sub_grid_length, kernel_name));
+    return rcpp_result_gen;
+END_RCPP
+}
+// blup_predict_cpp
+arma::mat blup_predict_cpp(const Rcpp::DataFrame data, const arma::mat opt_mean, const arma::mat opt_cov, const arma::mat opt_autocov, const arma::vec Tn0, const arma::vec muhat_Tn0, const arma::mat V, const arma::mat root_D, const arma::vec Yn0, const double density_bw, const bool is_common, const bool homoscedastic, const double tikhonov, const arma::vec t, const int h, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_blup_predict_cpp(SEXP dataSEXP, SEXP opt_meanSEXP, SEXP opt_covSEXP, SEXP opt_autocovSEXP, SEXP Tn0SEXP, SEXP muhat_Tn0SEXP, SEXP VSEXP, SEXP root_DSEXP, SEXP Yn0SEXP, SEXP density_bwSEXP, SEXP is_commonSEXP, SEXP homoscedasticSEXP, SEXP tikhonovSEXP, SEXP tSEXP, SEXP hSEXP, SEXP kernel_nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type data(dataSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type opt_mean(opt_meanSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type opt_cov(opt_covSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type opt_autocov(opt_autocovSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type Tn0(Tn0SEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type muhat_Tn0(muhat_Tn0SEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type V(VSEXP);
+    Rcpp::traits::input_parameter< const arma::mat >::type root_D(root_DSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type Yn0(Yn0SEXP);
+    Rcpp::traits::input_parameter< const double >::type density_bw(density_bwSEXP);
+    Rcpp::traits::input_parameter< const bool >::type is_common(is_commonSEXP);
+    Rcpp::traits::input_parameter< const bool >::type homoscedastic(homoscedasticSEXP);
+    Rcpp::traits::input_parameter< const double >::type tikhonov(tikhonovSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
+    Rcpp::traits::input_parameter< const int >::type h(hSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
+    rcpp_result_gen = Rcpp::wrap(blup_predict_cpp(data, opt_mean, opt_cov, opt_autocov, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, h, kernel_name));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_biweight_kernel", (DL_FUNC) &_adaptiveFTS_biweight_kernel, 1},
@@ -505,6 +549,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_get_nearest_best_mean_bw", (DL_FUNC) &_adaptiveFTS_get_nearest_best_mean_bw, 2},
     {"_adaptiveFTS_ensure_positive_definite", (DL_FUNC) &_adaptiveFTS_ensure_positive_definite, 2},
     {"_adaptiveFTS_estimate_curve_cpp", (DL_FUNC) &_adaptiveFTS_estimate_curve_cpp, 8},
+    {"_adaptiveFTS_blup_fit_cpp", (DL_FUNC) &_adaptiveFTS_blup_fit_cpp, 8},
+    {"_adaptiveFTS_blup_predict_cpp", (DL_FUNC) &_adaptiveFTS_blup_predict_cpp, 16},
     {NULL, NULL, 0}
 };
 

@@ -151,3 +151,52 @@ estimate_curve_cpp <- function(data, t, id_curve = NULL, bw_grid = NULL, use_sam
     .Call(`_adaptiveFTS_estimate_curve_cpp`, data, t, id_curve, bw_grid, use_same_bw, center, correct_diagonal, kernel_name)
 }
 
+#' Fit the adaptive functional BLUP (C++ core)
+#'
+#' Estimates every prediction-point-independent component of the adaptive
+#' Best Linear Unbiased Predictor and caches the adaptive bandwidths. Called by
+#' the R function \code{blup_fit()}; not intended to be used directly.
+#'
+#' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
+#' @param id_lag Integer id of the conditioning curve.
+#' @param bw_grid Bandwidth grid for the adaptive risk.
+#' @param rho Design weights of the conditioning curve.
+#' @param homoscedastic Whether to use a constant noise variance.
+#' @param tikhonov Tikhonov regularisation parameter.
+#' @param sub_grid_length Number of points per axis of the bandwidth sub-grid.
+#' @param kernel_name Kernel name.
+#'
+#' @return A list with the cached bandwidths, the covariance operator, the
+#'   mean, the noise level, the regularised variance matrix and the residual.
+#' @keywords internal
+blup_fit_cpp <- function(data, id_lag, bw_grid, rho, homoscedastic, tikhonov, sub_grid_length, kernel_name) {
+    .Call(`_adaptiveFTS_blup_fit_cpp`, data, id_lag, bw_grid, rho, homoscedastic, tikhonov, sub_grid_length, kernel_name)
+}
+
+#' Predict with the adaptive functional BLUP (C++ core)
+#'
+#' Evaluates the adaptive BLUP at the prediction points, looping for
+#' h-step-ahead prediction. Called by \code{predict.blup_fit()}; not intended
+#' to be used directly.
+#'
+#' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
+#' @param opt_mean,opt_cov,opt_autocov Cached adaptive-bandwidth matrices.
+#' @param Tn0 Conditioning-curve design points.
+#' @param muhat_Tn0 Mean at the conditioning-curve design points.
+#' @param V Regularised variance matrix of the fit.
+#' @param root_D Square-root design-weight matrix of the fit.
+#' @param Yn0 Conditioning-curve values (possibly overriding the fit's).
+#' @param density_bw Fixed design-density bandwidth.
+#' @param is_common Whether the design is common across curves.
+#' @param homoscedastic Whether to use a constant noise variance.
+#' @param tikhonov Tikhonov regularisation parameter.
+#' @param t Prediction points.
+#' @param h Prediction horizon (steps ahead).
+#' @param kernel_name Kernel name.
+#'
+#' @return A matrix with columns \code{t}, \code{muhat}, \code{prediction}.
+#' @keywords internal
+blup_predict_cpp <- function(data, opt_mean, opt_cov, opt_autocov, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, h, kernel_name) {
+    .Call(`_adaptiveFTS_blup_predict_cpp`, data, opt_mean, opt_cov, opt_autocov, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, h, kernel_name)
+}
+
