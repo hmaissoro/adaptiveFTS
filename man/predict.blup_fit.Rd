@@ -16,8 +16,10 @@ conditioning-curve design points.}
 fit's design points (\code{object$Tn0}), overriding \code{object$Yn0}. Used internally
 for the h-step recursion; must have length \code{object$Mn0}.}
 
-\item{h}{Integer prediction horizon (steps ahead). Default \code{1}. Values \verb{> 1}
-require the common design.}
+\item{h}{Integer prediction horizon (steps ahead). Default \code{1}. For \code{h > 1},
+each intermediate curve is predicted on the target grid \code{t} and fed back as
+the new conditioning curve; the conditioning quantities are recomputed for
+that grid using the cached adaptive bandwidths (works for both designs).}
 
 \item{...}{Unused; for S3 compatibility.}
 }
