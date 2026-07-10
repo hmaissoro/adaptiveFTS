@@ -147,7 +147,6 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 
   is_common_design <- .is_common_design(data = data, idcol = "id_curve", tcol = "tobs")
 
-  # Design weights rho_{n0,i}
   if (is_common_design) {
     rho <- rep(1 / Mn0, Mn0)
   } else {
@@ -162,7 +161,6 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   }
   root_Dn0 <- diag(sqrt(rho))
 
-  # Default bandwidth grid (common-design geometric grid)
   if (is.null(bw_grid)) {
     N <- data[, length(unique(id_curve))]
     lambdahat <- data[, .(Mn = .N), by = id_curve][, mean(Mn)]
@@ -173,8 +171,7 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     bw_grid <- b0 * a ** (seq_len(K))
   }
 
-  # C++ core: adaptive bandwidth selection, mean, covariance C0, noise level and
-  # the regularised variance matrix V for the conditioning curve.
+  # C++ core: bandwidth selection, mean, C0, noise and the regularised matrix V.
   cpp <- blup_fit_cpp(
     data = data, id_lag = as.integer(n0), bw_grid = as.numeric(bw_grid),
     rho = rho, homoscedastic = homoscedastic,
@@ -255,7 +252,6 @@ predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, h = 1L, ...
   h <- as.integer(h)
   if (h < 1L) stop("'h' must be a positive integer.")
 
-  # Conditioning-curve values (possibly overridden for the recursion)
   Yn0 <- if (is.null(newdata)) object$Yn0 else as.numeric(newdata)
   if (length(Yn0) != object$Mn0)
     stop("'newdata' must have length equal to the fit's design (", object$Mn0, ").")

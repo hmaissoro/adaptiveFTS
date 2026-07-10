@@ -186,6 +186,17 @@ Cond condition(const DataFrame& data, const arma::mat& opt_mean, const arma::mat
   return c;
 }
 
+// One-step BLUP at `tpred` given conditioning quantities; also returns the mean
+// at `tpred` through `muhat_out`.
+arma::vec blup_one_step(const DataFrame& data, const arma::mat& opt_mean,
+                        const arma::mat& opt_autocov, const std::string& kernel,
+                        const arma::vec& tpred, const arma::vec& Td, const arma::mat& rootD,
+                        const arma::mat& Vmat, const arma::vec& resid, arma::vec& muhat_out) {
+  muhat_out = mean_at(data, opt_mean, tpred, kernel);
+  arma::mat c1 = autocov_at(data, opt_autocov, Td, tpred, 1, false, kernel);
+  return muhat_out + c1.t() * rootD * arma::solve(Vmat, resid);
+}
+
 } // anonymous namespace
 
 //' Fit the adaptive functional BLUP (C++ core)
@@ -228,7 +239,6 @@ Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data,
   arma::uvec ord = arma::sort_index(Traw);
   arma::vec Yn0 = Yraw.elem(ord);
 
-  // Adaptive bandwidths on the coarse sub-grid.
   arma::vec sub_vec = arma::linspace(0.05, 0.95, sub_grid_length);
   arma::uword ng = sub_vec.n_elem;
   arma::vec gs(ng * ng), gt(ng * ng);
@@ -306,17 +316,10 @@ arma::mat blup_predict_cpp(const Rcpp::DataFrame data,
   std::function<arma::vec(const arma::vec)> kfun = select_kernel(kernel_name);
   arma::vec tpred = arma::sort(arma::unique(t));
 
-  // One-step BLUP at `tpred` given conditioning quantities.
-  auto blup_at = [&](const arma::vec& Td, const arma::mat& rootD, const arma::mat& Vmat,
-                     const arma::vec& resid, arma::vec& muhat_out) -> arma::vec {
-    muhat_out = mean_at(data, opt_mean, tpred, kernel_name);
-    arma::mat c1 = autocov_at(data, opt_autocov, Td, tpred, 1, false, kernel_name);
-    return muhat_out + c1.t() * rootD * arma::solve(Vmat, resid);
-  };
-
   arma::vec muhat_t;
   arma::vec resid0 = root_D * (Yn0 - muhat_Tn0);
-  arma::vec pred = blup_at(Tn0, root_D, V, resid0, muhat_t);
+  arma::vec pred = blup_one_step(data, opt_mean, opt_autocov, kernel_name, tpred,
+                                 Tn0, root_D, V, resid0, muhat_t);
 
   if (h > 1) {
     // Feed each predicted curve (on `tpred`) back as the new conditioning curve.
@@ -325,7 +328,8 @@ arma::mat blup_predict_cpp(const Rcpp::DataFrame data,
       arma::vec rho = compute_rho(tpred, is_common, density_bw, kfun);
       Cond c = condition(data, opt_mean, opt_cov, tpred, xprev, rho,
                          homoscedastic, tikhonov, kernel_name);
-      xprev = blup_at(tpred, c.root_D, c.V, c.resid, muhat_t);
+      xprev = blup_one_step(data, opt_mean, opt_autocov, kernel_name, tpred,
+                            tpred, c.root_D, c.V, c.resid, muhat_t);
     }
     pred = xprev;
   }
