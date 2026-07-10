@@ -37,6 +37,37 @@
   sum((x[-1L] - x[-n]) * (y[-1L] + y[-n]) / 2)
 }
 
+#' Leave-one-out Parzen-Rosenblatt estimate at the observation points
+#'
+#' @param x Observation times of a single curve.
+#' @param hval Bandwidth.
+#' @param kern Kernel function.
+#' @return The vector \eqn{\widehat g_{h}^{(-i)}(x_i)}, in the order of `x`.
+#' @keywords internal
+.density_loo_estimate <- function(x, hval, kern) {
+  n <- length(x)
+  vapply(seq_len(n), function(i) {
+    sum(kern((x[i] - x[-i]) / hval)) / ((n - 1) * hval)
+  }, numeric(1))
+}
+
+#' Least-squares cross-validation score of the design-density bandwidth
+#'
+#' @param hval Bandwidth.
+#' @param x Observation times of a single curve.
+#' @param kern Kernel function.
+#' @param lower,upper Bounds of the domain.
+#' @return The LSCV score at `hval`.
+#' @keywords internal
+.density_cv_score <- function(hval, x, kern, lower, upper) {
+  n <- length(x)
+  zgrid <- seq(lower, upper, length.out = 500L)
+  fvals <- vapply(zgrid, function(zi) sum(kern((zi - x) / hval)) / (n * hval), numeric(1))
+  integral_term <- .trapz(zgrid, fvals ** 2)
+  loo_term <- .density_loo_estimate(x, hval, kern)
+  integral_term - 2 * mean(loo_term)
+}
+
 #' Leave-one-out Parzen-Rosenblatt density estimator
 #'
 #' Computes the leave-one-out Parzen-Rosenblatt estimator of the design
@@ -89,15 +120,7 @@ estimate_density <- function(x, h = NULL, bw_grid = NULL,
   )
   kern <- .select_density_kernel(kernel_name)
 
-  # Leave-one-out estimate at each observation point, using a given bandwidth
-  loo_estimate <- function(hval) {
-    vapply(seq_len(n), function(i) {
-      sum(kern((x[i] - x[-i]) / hval)) / ((n - 1) * hval)
-    }, numeric(1))
-  }
-
   if (!is.null(h)) {
-    # Fixed-bandwidth path: skip the cross-validation entirely.
     if (!(methods::is(h, "numeric") && length(h) == 1L && h > 0))
       stop("'h' must be a single positive numeric value.")
     return(list(
@@ -105,30 +128,17 @@ estimate_density <- function(x, h = NULL, bw_grid = NULL,
       bw_grid = bw_grid,
       cv_curve = NULL,
       kernel_name = kernel_name,
-      estimate = loo_estimate(h)
+      estimate = .density_loo_estimate(x, h, kern)
     ))
   }
 
   if (is.null(bw_grid)) {
-    # Default to a fixed log-spaced grid so bandwidth selection remains
-    # aligned with the reference Monte Carlo setup.
+    # Fixed log-spaced grid, kept aligned with the reference Monte Carlo setup.
     bw_grid <- exp(seq(log(0.01), log(0.3), length.out = 30))
   }
 
-  cv_score <- function(hval) {
-    # Integral term int ghat_h(x)^2 dx via the trapezoidal rule
-    zgrid <- seq(lower, upper, length.out = 500L)
-    fvals <- vapply(zgrid, function(zi) sum(kern((zi - x) / hval)) / (n * hval), numeric(1))
-    integral_term <- .trapz(zgrid, fvals ** 2)
-
-    # Leave-one-out term
-    loo_term <- loo_estimate(hval)
-
-    integral_term - 2 * mean(loo_term)
-  }
-
   cv_curve <- vapply(bw_grid, function(hval) {
-    tryCatch(cv_score(hval), error = function(e) NA_real_)
+    tryCatch(.density_cv_score(hval, x, kern, lower, upper), error = function(e) NA_real_)
   }, numeric(1))
   if (!any(is.finite(cv_curve)))
     stop("CV score could not be computed for any h in bw_grid.")
@@ -142,7 +152,7 @@ estimate_density <- function(x, h = NULL, bw_grid = NULL,
     bw_grid = bw_grid,
     cv_curve = cv_curve,
     kernel_name = kernel_name,
-    estimate = loo_estimate(h_star)
+    estimate = .density_loo_estimate(x, h_star, kern)
   )
 }
 
@@ -181,12 +191,10 @@ get_density_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol
                                    nsubset = NULL, bw_grid = NULL,
                                    kernel_name = "epanechnikov",
                                    lower = 0, upper = 1) {
-  # Control and format data
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   ids <- data[, sort(unique(id_curve))]
   N <- length(ids)
 
-  # Check the name of the kernel
   kernel_name <- match.arg(
     arg = kernel_name,
     choices = c("epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform")
@@ -196,10 +204,8 @@ get_density_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol
     if (any(nsubset < 0) | (length(nsubset) > 1) | any(nsubset - floor(nsubset) > 0) | any(N <= nsubset))
       stop("If 'nsubset' is not NULL, then it must be a positive integer lower than the number of curves.")
 
-  # Define the set of curves
   sample_ids <- if (!is.null(nsubset)) sample(x = ids, size = nsubset) else ids
 
-  # Per-curve LSCV bandwidth, then median across the subset
   h_stars <- vapply(sample_ids, function(idc) {
     tvals <- data[id_curve == idc, sort(unique(tobs))]
     tryCatch(
