@@ -52,7 +52,15 @@ reference:
   - estimate_empirical_XsXt_autocov
 - title: Prediction (BLUP)
   contents:
+  - blup_fit
+  - predict.blup_fit
+  - blup
+  - cv_blup_alpha
   - predict_curve
+- title: Design density
+  contents:
+  - estimate_density
+  - get_density_optimal_bw
 - title: Real-data helpers
   contents:
   - get_real_data_mean

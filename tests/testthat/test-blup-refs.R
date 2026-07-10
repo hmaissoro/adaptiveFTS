@@ -4,7 +4,13 @@
 # in tests/testthat/_refs/, captured on the deterministic build. They also serve
 # as the sanity check that the Rcpp port (Phase 3) must reproduce.
 
+# TOL locks values that are either pure C++ or diagonal-scaled (reproducible
+# across platforms). TOL_BLAS is used for results that flow through a general
+# LAPACK solve()/eigen() (the prediction and the cross-validation), which are
+# not bit-reproducible across BLAS/LAPACK implementations: on Linux they differ
+# from the Windows-captured references by ~1e-9, far below any real regression.
 TOL <- 1e-10
+TOL_BLAS <- 1e-6
 
 test_that("design-density estimator matches references", {
   p <- ref_inputs()
@@ -33,9 +39,9 @@ test_that("blup_fit components match references", {
 test_that("blup() prediction matches references (h = 1 and h = 2)", {
   p <- ref_inputs()
   expect_equal(blup(p$dt, t = p$tt, bw_grid = p$bwg, kernel_name = "epanechnikov"),
-               read_ref("blup_predict"), tolerance = TOL)
+               read_ref("blup_predict"), tolerance = TOL_BLAS)
   expect_equal(blup(p$dt, t = p$tt, bw_grid = p$bwg, h = 2L, kernel_name = "epanechnikov"),
-               read_ref("blup_predict_h2"), tolerance = TOL)
+               read_ref("blup_predict_h2"), tolerance = TOL_BLAS)
 })
 
 test_that("blup() wrapper equals predict(blup_fit())", {
@@ -50,5 +56,5 @@ test_that("cv_blup_alpha matches references", {
   alpha_grid_ref <- exp(seq(-2, 0, length.out = 8))
   cv <- suppressWarnings(cv_blup_alpha(p$dt, alpha_grid = alpha_grid_ref, n_val = 3L,
                                        bw_grid = p$bwg, kernel_name = "epanechnikov"))
-  expect_equal(cv, read_ref("cv_blup_alpha"), tolerance = TOL)
+  expect_equal(cv, read_ref("cv_blup_alpha"), tolerance = TOL_BLAS)
 })
