@@ -4,7 +4,7 @@
 \alias{predict.blup_fit}
 \title{Predict with an adaptive functional BLUP fit}
 \usage{
-\method{predict}{blup_fit}(object, t = object$Tn0, newdata = NULL, h = 1L, ...)
+\method{predict}{blup_fit}(object, t = object$Tn0, newdata = NULL, horizon = 1L, ...)
 }
 \arguments{
 \item{object}{A \code{blup_fit} object.}
@@ -16,10 +16,11 @@ conditioning-curve design points.}
 fit's design points (\code{object$Tn0}), overriding \code{object$Yn0}. Used internally
 for the h-step recursion; must have length \code{object$Mn0}.}
 
-\item{h}{Integer prediction horizon (steps ahead). Default \code{1}. For \code{h > 1},
-each intermediate curve is predicted on the target grid \code{t} and fed back as
-the new conditioning curve; the conditioning quantities are recomputed for
-that grid using the cached adaptive bandwidths (works for both designs).}
+\item{horizon}{Integer prediction horizon (steps ahead). Default \code{1}. For
+\code{horizon > 1}, each intermediate curve is predicted on the target grid \code{t}
+and fed back as the new conditioning curve; the conditioning quantities are
+recomputed for that grid using the cached adaptive bandwidths (works for
+both designs).}
 
 \item{...}{Unused; for S3 compatibility.}
 }

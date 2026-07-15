@@ -72,7 +72,7 @@ test_that("predict.blup_fit handles t, newdata and h, and validates them", {
   expect_equal(pd$t, fit$Tn0)
 
   # h-step runs and returns finite predictions on the target grid
-  p2 <- predict(fit, t = tt, h = 2L)
+  p2 <- predict(fit, t = tt, horizon = 2L)
   expect_equal(nrow(p2), length(tt))
   expect_true(all(is.finite(p2$prediction)))
 
@@ -81,7 +81,7 @@ test_that("predict.blup_fit handles t, newdata and h, and validates them", {
   expect_equal(pn$prediction, p1$prediction, tolerance = 1e-10)
 
   expect_error(predict(fit, t = 1.5), "between 0 and 1")
-  expect_error(predict(fit, h = 0L), "positive integer")
+  expect_error(predict(fit, horizon = 0L), "positive integer")
   expect_error(predict(fit, newdata = c(1, 2, 3)), "length equal")
 })
 

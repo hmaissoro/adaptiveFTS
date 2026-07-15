@@ -40,7 +40,7 @@ test_that("blup() prediction matches references (h = 1 and h = 2)", {
   p <- ref_inputs()
   expect_equal(blup(p$dt, t = p$tt, bw_grid = p$bwg, kernel_name = "epanechnikov"),
                read_ref("blup_predict"), tolerance = TOL_BLAS)
-  expect_equal(blup(p$dt, t = p$tt, bw_grid = p$bwg, h = 2L, kernel_name = "epanechnikov"),
+  expect_equal(blup(p$dt, t = p$tt, bw_grid = p$bwg, horizon = 2L, kernel_name = "epanechnikov"),
                read_ref("blup_predict_h2"), tolerance = TOL_BLAS)
 })
 

@@ -19,7 +19,7 @@ blup_predict_cpp(
   homoscedastic,
   tikhonov,
   t,
-  h,
+  horizon,
   kernel_name
 )
 }
@@ -48,7 +48,7 @@ blup_predict_cpp(
 
 \item{t}{Prediction points.}
 
-\item{h}{Prediction horizon (steps ahead).}
+\item{horizon}{Prediction horizon (steps ahead).}
 
 \item{kernel_name}{Kernel name.}
 }
