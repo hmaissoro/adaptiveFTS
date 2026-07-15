@@ -199,6 +199,46 @@ arma::vec blup_one_step(const DataFrame& data, const arma::mat& opt_mean,
 
 } // anonymous namespace
 
+//' Mean at new locations using cached bandwidths (C++ core)
+//'
+//' Reuses the adaptive mean bandwidths cached in a `blup_fit` object. Called by
+//' `cv_blup_alpha()`; not intended to be used directly.
+//'
+//' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
+//' @param opt_mean Cached mean adaptive-bandwidth matrix (`t`, `optbw`).
+//' @param t Evaluation locations (assumed sorted).
+//' @param kernel_name Kernel name.
+//' @return The mean estimates at `t`.
+//' @keywords internal
+// [[Rcpp::export]]
+arma::vec blup_mean_at_cpp(const Rcpp::DataFrame data, const arma::mat opt_mean,
+                           const arma::vec t, const std::string kernel_name) {
+  arma::vec muhat = mean_at(data, opt_mean, t, kernel_name);
+  return muhat;
+}
+
+//' (Auto)covariance block at new locations using cached bandwidths (C++ core)
+//'
+//' Reuses the adaptive (auto)covariance bandwidths cached in a `blup_fit`
+//' object. Called by `cv_blup_alpha()`; not intended to be used directly.
+//'
+//' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
+//' @param opt_bw Cached (auto)covariance bandwidth matrix (`s`, `t`, `optbw_s`,
+//'   `optbw_t`).
+//' @param s,t Evaluation locations (rows indexed by `s`, columns by `t`).
+//' @param lag 0 for the covariance, 1 for the lag-1 autocovariance.
+//' @param correct_diagonal Whether to correct the covariance diagonal.
+//' @param kernel_name Kernel name.
+//' @return A `length(s)` by `length(t)` matrix of \eqn{\hat c_{lag}(s_i, t_j)}.
+//' @keywords internal
+// [[Rcpp::export]]
+arma::mat blup_autocov_at_cpp(const Rcpp::DataFrame data, const arma::mat opt_bw,
+                              const arma::vec s, const arma::vec t, const int lag,
+                              const bool correct_diagonal, const std::string kernel_name) {
+  arma::mat block = autocov_at(data, opt_bw, s, t, lag, correct_diagonal, kernel_name);
+  return block;
+}
+
 //' Fit the adaptive functional BLUP (C++ core)
 //'
 //' Estimates every prediction-point-independent component of the adaptive
