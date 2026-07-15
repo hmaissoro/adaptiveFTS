@@ -35,24 +35,33 @@ comparable across replications.}
 \item{lower, upper}{Bounds of the domain \eqn{I}; default (0, 1].}
 }
 \value{
-A list with \code{h_star} (bandwidth used), \code{bw_grid}, \code{cv_curve} (\code{NULL}
-when \code{h} is supplied), \code{kernel_name}, and \code{estimate} (the vector
-\eqn{\widehat g_{n_0,i}(T_{n_0,i})}, one value per observation point, in the
-order of \code{x}).
+A list with:
+\itemize{
+\item \code{h_star}: the bandwidth used.
+\item \code{bw_grid}: the candidate bandwidth grid (as supplied or defaulted).
+\item \code{cv_curve}: the LSCV score per candidate bandwidth, or \code{NULL} when
+\code{h} is supplied.
+\item \code{kernel_name}: the kernel used.
+\item \code{estimate}: the vector \eqn{\widehat g_{n_0,i}(T_{n_0,i})}, one value
+per observation point, in the order of \code{x}.
+}
 }
 \description{
-Computes the leave-one-out Parzen-Rosenblatt estimator of the design
-density evaluated at the observation points themselves, as required by the
-independent-design weights \eqn{\varrho_{n_0,i} = \{M_{n_0}\,\widehat
-g_{n_0,i}(T_{n_0,i})\}^{-1}} of the adaptive BLUP. For a single curve with
-observation times \eqn{T_{n_0,i}}, \eqn{1 \le i \le M_{n_0}},
+Computes the leave-one-out Parzen-Rosenblatt estimator of the design density
+evaluated at the observation points themselves, as required by the
+independent-design weights of the adaptive BLUP.
+}
+\details{
+For a single curve with observation times \eqn{T_{n_0,i}},
+\eqn{1 \le i \le M_{n_0}}, the estimator at the observation points is
 \deqn{\widehat g_{n_0,i}(T_{n_0,i}) =
       \frac{1}{(M_{n_0}-1)\,h} \sum_{j \ne i}
-      K\!\left(\frac{T_{n_0,i} - T_{n_0,j}}{h}\right).}
-The bandwidth \eqn{h} is either supplied directly (via \code{h}) or selected by
-least-squares (Rudemo-Bowman) cross-validation over \code{bw_grid}, which
-minimises an unbiased estimate (up to an \eqn{h}-independent constant) of the
-density MISE:
+      K\!\left(\frac{T_{n_0,i} - T_{n_0,j}}{h}\right),}
+feeding the independent-design weights \eqn{\varrho_{n_0,i} =
+\{M_{n_0}\,\widehat g_{n_0,i}(T_{n_0,i})\}^{-1}}. The bandwidth \eqn{h} is
+either supplied directly (via \code{h}) or selected by least-squares
+(Rudemo-Bowman) cross-validation over \code{bw_grid}, which minimises an unbiased
+estimate (up to an \eqn{h}-independent constant) of the density MISE:
 \deqn{CV(h) = \int \widehat g_h(x)^2 dx - \frac{2}{M} \sum_i \widehat
       g_h^{(-i)}(T_{n_0,i}).}
 }

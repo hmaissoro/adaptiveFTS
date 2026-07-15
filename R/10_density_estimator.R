@@ -70,18 +70,21 @@
 
 #' Leave-one-out Parzen-Rosenblatt density estimator
 #'
-#' Computes the leave-one-out Parzen-Rosenblatt estimator of the design
-#' density evaluated at the observation points themselves, as required by the
-#' independent-design weights \eqn{\varrho_{n_0,i} = \{M_{n_0}\,\widehat
-#' g_{n_0,i}(T_{n_0,i})\}^{-1}} of the adaptive BLUP. For a single curve with
-#' observation times \eqn{T_{n_0,i}}, \eqn{1 \le i \le M_{n_0}},
+#' Computes the leave-one-out Parzen-Rosenblatt estimator of the design density
+#' evaluated at the observation points themselves, as required by the
+#' independent-design weights of the adaptive BLUP.
+#'
+#' @details
+#' For a single curve with observation times \eqn{T_{n_0,i}},
+#' \eqn{1 \le i \le M_{n_0}}, the estimator at the observation points is
 #' \deqn{\widehat g_{n_0,i}(T_{n_0,i}) =
 #'       \frac{1}{(M_{n_0}-1)\,h} \sum_{j \ne i}
-#'       K\!\left(\frac{T_{n_0,i} - T_{n_0,j}}{h}\right).}
-#' The bandwidth \eqn{h} is either supplied directly (via `h`) or selected by
-#' least-squares (Rudemo-Bowman) cross-validation over `bw_grid`, which
-#' minimises an unbiased estimate (up to an \eqn{h}-independent constant) of the
-#' density MISE:
+#'       K\!\left(\frac{T_{n_0,i} - T_{n_0,j}}{h}\right),}
+#' feeding the independent-design weights \eqn{\varrho_{n_0,i} =
+#' \{M_{n_0}\,\widehat g_{n_0,i}(T_{n_0,i})\}^{-1}}. The bandwidth \eqn{h} is
+#' either supplied directly (via `h`) or selected by least-squares
+#' (Rudemo-Bowman) cross-validation over `bw_grid`, which minimises an unbiased
+#' estimate (up to an \eqn{h}-independent constant) of the density MISE:
 #' \deqn{CV(h) = \int \widehat g_h(x)^2 dx - \frac{2}{M} \sum_i \widehat
 #'       g_h^{(-i)}(T_{n_0,i}).}
 #'
@@ -101,10 +104,16 @@
 #'   "triweight", "tricube", "triangular", or "uniform".
 #' @param lower,upper Bounds of the domain \eqn{I}; default (0, 1].
 #'
-#' @return A list with `h_star` (bandwidth used), `bw_grid`, `cv_curve` (`NULL`
-#'   when `h` is supplied), `kernel_name`, and `estimate` (the vector
-#'   \eqn{\widehat g_{n_0,i}(T_{n_0,i})}, one value per observation point, in the
-#'   order of `x`).
+#' @return A list with:
+#'   \itemize{
+#'     \item `h_star`: the bandwidth used.
+#'     \item `bw_grid`: the candidate bandwidth grid (as supplied or defaulted).
+#'     \item `cv_curve`: the LSCV score per candidate bandwidth, or `NULL` when
+#'       `h` is supplied.
+#'     \item `kernel_name`: the kernel used.
+#'     \item `estimate`: the vector \eqn{\widehat g_{n_0,i}(T_{n_0,i})}, one value
+#'       per observation point, in the order of `x`.
+#'   }
 #'
 #' @export
 estimate_density <- function(x, h = NULL, bw_grid = NULL,
@@ -160,12 +169,15 @@ estimate_density <- function(x, h = NULL, bw_grid = NULL,
 #'
 #' Selects a single Parzen-Rosenblatt bandwidth for the design density by
 #' least-squares cross-validation on a subset of curves, mirroring
-#' [get_nw_optimal_bw()]. For each sampled curve the bandwidth minimising the
-#' LSCV score of [estimate_density()] over `bw_grid` is computed, and the median
-#' of these per-curve optima is returned. The adaptive BLUP calls this once and
-#' then reuses the returned bandwidth for every curve (passing it as the `h`
-#' argument of [estimate_density()]), so the design weights are consistent
-#' across curves and the cross-validation is not repeated on every call.
+#' [get_nw_optimal_bw()].
+#'
+#' @details
+#' For each sampled curve the bandwidth minimising the LSCV score of
+#' [estimate_density()] over `bw_grid` is computed, and the median of these
+#' per-curve optima is returned. The adaptive BLUP calls this once and then
+#' reuses the returned bandwidth for every curve (passing it as the `h` argument
+#' of [estimate_density()]), so the design weights are consistent across curves
+#' and the cross-validation is not repeated on every call.
 #'
 #' @inheritParams format_data
 #' @param nsubset \code{integer (positive)}. The number of curves to randomly

@@ -76,17 +76,29 @@ once via \code{\link[=get_density_optimal_bw]{get_density_optimal_bw()}}.}
 which the adaptive bandwidths are selected. Default \code{10}.}
 }
 \value{
-An object of class \code{blup_fit}: a list with the conditioning-curve
-design and values, the design weights, the mean and covariance estimates,
-the regularised variance matrix, the cached adaptive bandwidths and the
-information needed by \code{\link[=predict.blup_fit]{predict.blup_fit()}}.
+An object of class \code{blup_fit}: a list whose main elements are:
+\itemize{
+\item \code{Tn0}, \code{Yn0}: the conditioning-curve design points and values.
+\item \code{rho}, \code{root_Dn0}: the design weights and their square-root matrix.
+\item \code{muhat_Tn0}, \code{c0hat}, \code{sigma2}: the mean, covariance operator and
+noise level of the conditioning curve.
+\item \code{V}, \code{resid}: the regularised variance matrix and the conditioning
+residual.
+\item \code{opt_mean}, \code{opt_cov}, \code{opt_autocov}: the cached adaptive bandwidths.
+\item \code{data}, \code{kernel_name}, \code{is_common_design}, \code{density_bw}, \code{bw_grid},
+\code{tikhonov}, \code{homoscedastic}: the information needed by
+\code{\link[=predict.blup_fit]{predict.blup_fit()}}.
+}
 }
 \description{
 Estimates every component of the adaptive Best Linear Unbiased Predictor that
-does not depend on the prediction points, conditioning on a single curve (its
-immediate successor is what \code{predict()} reconstructs). The returned object
-caches the adaptive bandwidths so that \code{predict()} only re-runs the cheap
-plug-in estimates at the requested prediction points.
+does not depend on the prediction points.
+}
+\details{
+The fit conditions on a single curve (its immediate successor is what
+\code{predict()} reconstructs) and caches the adaptive bandwidths, so that
+\code{predict()} only re-runs the cheap plug-in estimates at the requested
+prediction points. The covariance assembly is a single lag-1 block.
 }
 \seealso{
 \code{\link[=predict.blup_fit]{predict.blup_fit()}}, \code{\link[=get_density_optimal_bw]{get_density_optimal_bw()}}.

@@ -86,13 +86,15 @@ A list with:
 }
 \description{
 Selects the Tikhonov regularisation parameter \eqn{\alpha} of the adaptive
-BLUP. Currently only \code{method = "cv"} is implemented: a one-step-ahead
-cross-validation in which each of the last \code{n_val} curves is predicted from
-its immediate predecessor and scored by the design-weighted squared
-prediction error at its observation points,
-\eqn{\sum_i \varrho_{n,i}\,(Y_{n,i} - \widehat X_n(T_{n,i};\alpha))^2}, where
-\eqn{\varrho_{n,i}} is the design weight of the held-out (target) curve. Two
-regimes:
+BLUP. Currently only \code{method = "cv"} is implemented, a one-step-ahead
+cross-validation.
+}
+\details{
+Each of the last \code{n_val} curves is predicted from its immediate predecessor
+and scored by the design-weighted squared prediction error at its observation
+points, \eqn{\sum_i \varrho_{n,i}\,(Y_{n,i} - \widehat X_n(T_{n,i};\alpha))^2},
+where \eqn{\varrho_{n,i}} is the design weight of the held-out (target) curve.
+Two regimes:
 \itemize{
 \item \strong{Common design} — the operators are estimated once on the
 training block and only the conditioning values vary across the
