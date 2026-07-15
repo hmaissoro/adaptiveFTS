@@ -25,7 +25,8 @@
 .is_common_design <- function(data, idcol = "id_curve", tcol = "tobs") {
   design_by_curve <- data[, .(tobs_list = list(sort(unique(get(tcol))))), by = idcol]
   reference_design <- design_by_curve$tobs_list[[1]]
-  all(vapply(design_by_curve$tobs_list, function(tt) identical(tt, reference_design), logical(1)))
+  return(all(vapply(design_by_curve$tobs_list,
+                    function(tt) identical(tt, reference_design), logical(1))))
 }
 
 #' Fit the adaptive functional BLUP
@@ -112,7 +113,7 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     tikhonov = tikhonov, sub_grid_length = as.integer(sub_grid_length),
     kernel_name = kernel_name)
 
-  structure(
+  return(structure(
     list(
       data = data,
       kernel_name = kernel_name,
@@ -137,7 +138,7 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       resid = cpp$resid
     ),
     class = "blup_fit"
-  )
+  ))
 }
 
 #' Predict with an adaptive functional BLUP fit
@@ -204,9 +205,9 @@ predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, horizon = 1
     tikhonov = object$tikhonov, t = as.numeric(t), horizon = horizon,
     kernel_name = object$kernel_name)
 
-  data.table::data.table(
+  return(data.table::data.table(
     horizon = as.integer(out[, 1]), t = out[, 2],
-    muhat = out[, 3], prediction = out[, 4])
+    muhat = out[, 3], prediction = out[, 4]))
 }
 
 #' Fit and predict the adaptive functional BLUP in one call
@@ -236,7 +237,7 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     tikhonov = tikhonov, bw_grid = bw_grid,
     kernel_name = kernel_name, homoscedastic = homoscedastic,
     density_bw = density_bw, sub_grid_length = sub_grid_length)
-  predict(fit, t = t, horizon = horizon)
+  return(predict(fit, t = t, horizon = horizon))
 }
 
 #' Select the Tikhonov regularisation parameter
@@ -388,11 +389,11 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
   if (l_star %in% c(1L, length(tikhonov_grid)))
     warning("tikhonov_star at a grid boundary; widen tikhonov_grid.")
 
-  list(
+  return(list(
     tikhonov_star = tikhonov_star,
     tikhonov_grid = tikhonov_grid,
     cv_curve = cv_curve,
     cv_matrix = cv_matrix,
     val_ids = ids[val_pos]
-  )
+  ))
 }

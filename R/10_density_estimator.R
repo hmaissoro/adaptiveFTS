@@ -10,7 +10,7 @@
 #'   values `K(u)`.
 #' @keywords internal
 .select_density_kernel <- function(kernel_name) {
-  switch(
+  return(switch(
     kernel_name,
     epanechnikov = epanechnikov_kernel,
     biweight     = biweight_kernel,
@@ -20,7 +20,7 @@
     uniform      = uniform_kernel,
     stop("Unsupported kernel name. Choose from: epanechnikov, biweight, ",
          "triweight, tricube, triangular, uniform.")
-  )
+  ))
 }
 
 #' Trapezoidal integration
@@ -34,7 +34,7 @@
 .trapz <- function(x, y) {
   n <- length(x)
   if (n < 2L) return(0)
-  sum((x[-1L] - x[-n]) * (y[-1L] + y[-n]) / 2)
+  return(sum((x[-1L] - x[-n]) * (y[-1L] + y[-n]) / 2))
 }
 
 #' Leave-one-out Parzen-Rosenblatt estimate at the observation points
@@ -46,9 +46,9 @@
 #' @keywords internal
 .density_loo_estimate <- function(x, hval, kern) {
   n <- length(x)
-  vapply(seq_len(n), function(i) {
+  return(vapply(seq_len(n), function(i) {
     sum(kern((x[i] - x[-i]) / hval)) / ((n - 1) * hval)
-  }, numeric(1))
+  }, numeric(1)))
 }
 
 #' Least-squares cross-validation score of the design-density bandwidth
@@ -65,7 +65,7 @@
   fvals <- vapply(zgrid, function(zi) sum(kern((zi - x) / hval)) / (n * hval), numeric(1))
   integral_term <- .trapz(zgrid, fvals ** 2)
   loo_term <- .density_loo_estimate(x, hval, kern)
-  integral_term - 2 * mean(loo_term)
+  return(integral_term - 2 * mean(loo_term))
 }
 
 #' Leave-one-out Parzen-Rosenblatt density estimator
@@ -147,13 +147,13 @@ estimate_density <- function(x, h = NULL, bw_grid = NULL,
   if (h_star %in% range(bw_grid))
     warning("h_star is at a bw_grid boundary; consider widening the grid.")
 
-  list(
+  return(list(
     h_star = h_star,
     bw_grid = bw_grid,
     cv_curve = cv_curve,
     kernel_name = kernel_name,
     estimate = .density_loo_estimate(x, h_star, kern)
-  )
+  ))
 }
 
 #' Select the design-density bandwidth on a subset of curves
@@ -219,5 +219,5 @@ get_density_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol
   if (!any(is.finite(h_stars)))
     stop("The density bandwidth could not be selected on any curve of the subset.")
 
-  stats::median(h_stars, na.rm = TRUE)
+  return(stats::median(h_stars, na.rm = TRUE))
 }
