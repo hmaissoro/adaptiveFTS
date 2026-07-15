@@ -32,10 +32,13 @@
 #' Fit the adaptive functional BLUP
 #'
 #' Estimates every component of the adaptive Best Linear Unbiased Predictor that
-#' does not depend on the prediction points, conditioning on a single curve (its
-#' immediate successor is what `predict()` reconstructs). The returned object
-#' caches the adaptive bandwidths so that `predict()` only re-runs the cheap
-#' plug-in estimates at the requested prediction points.
+#' does not depend on the prediction points.
+#'
+#' @details
+#' The fit conditions on a single curve (its immediate successor is what
+#' `predict()` reconstructs) and caches the adaptive bandwidths, so that
+#' `predict()` only re-runs the cheap plug-in estimates at the requested
+#' prediction points. The covariance assembly is a single lag-1 block.
 #'
 #' @inheritParams format_data
 #' @param id_lag Integer id of the conditioning curve. Its successor is the
@@ -53,10 +56,19 @@
 #' @param sub_grid_length Number of points per axis of the coarse sub-grid on
 #'   which the adaptive bandwidths are selected. Default `10`.
 #'
-#' @return An object of class `blup_fit`: a list with the conditioning-curve
-#'   design and values, the design weights, the mean and covariance estimates,
-#'   the regularised variance matrix, the cached adaptive bandwidths and the
-#'   information needed by [predict.blup_fit()].
+#' @return An object of class `blup_fit`: a list whose main elements are:
+#'   \itemize{
+#'     \item `Tn0`, `Yn0`: the conditioning-curve design points and values.
+#'     \item `rho`, `root_Dn0`: the design weights and their square-root matrix.
+#'     \item `muhat_Tn0`, `c0hat`, `sigma2`: the mean, covariance operator and
+#'       noise level of the conditioning curve.
+#'     \item `V`, `resid`: the regularised variance matrix and the conditioning
+#'       residual.
+#'     \item `opt_mean`, `opt_cov`, `opt_autocov`: the cached adaptive bandwidths.
+#'     \item `data`, `kernel_name`, `is_common_design`, `density_bw`, `bw_grid`,
+#'       `tikhonov`, `homoscedastic`: the information needed by
+#'       [predict.blup_fit()].
+#'   }
 #'
 #' @seealso [predict.blup_fit()], [get_density_optimal_bw()].
 #' @export
@@ -243,13 +255,15 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' Select the Tikhonov regularisation parameter
 #'
 #' Selects the Tikhonov regularisation parameter \eqn{\alpha} of the adaptive
-#' BLUP. Currently only `method = "cv"` is implemented: a one-step-ahead
-#' cross-validation in which each of the last `n_val` curves is predicted from
-#' its immediate predecessor and scored by the design-weighted squared
-#' prediction error at its observation points,
-#' \eqn{\sum_i \varrho_{n,i}\,(Y_{n,i} - \widehat X_n(T_{n,i};\alpha))^2}, where
-#' \eqn{\varrho_{n,i}} is the design weight of the held-out (target) curve. Two
-#' regimes:
+#' BLUP. Currently only `method = "cv"` is implemented, a one-step-ahead
+#' cross-validation.
+#'
+#' @details
+#' Each of the last `n_val` curves is predicted from its immediate predecessor
+#' and scored by the design-weighted squared prediction error at its observation
+#' points, \eqn{\sum_i \varrho_{n,i}\,(Y_{n,i} - \widehat X_n(T_{n,i};\alpha))^2},
+#' where \eqn{\varrho_{n,i}} is the design weight of the held-out (target) curve.
+#' Two regimes:
 #' \itemize{
 #'   \item \strong{Common design} — the operators are estimated once on the
 #'     training block and only the conditioning values vary across the

@@ -72,12 +72,15 @@ bandwidths over the subset.
 \description{
 Selects a single Parzen-Rosenblatt bandwidth for the design density by
 least-squares cross-validation on a subset of curves, mirroring
-\code{\link[=get_nw_optimal_bw]{get_nw_optimal_bw()}}. For each sampled curve the bandwidth minimising the
-LSCV score of \code{\link[=estimate_density]{estimate_density()}} over \code{bw_grid} is computed, and the median
-of these per-curve optima is returned. The adaptive BLUP calls this once and
-then reuses the returned bandwidth for every curve (passing it as the \code{h}
-argument of \code{\link[=estimate_density]{estimate_density()}}), so the design weights are consistent
-across curves and the cross-validation is not repeated on every call.
+\code{\link[=get_nw_optimal_bw]{get_nw_optimal_bw()}}.
+}
+\details{
+For each sampled curve the bandwidth minimising the LSCV score of
+\code{\link[=estimate_density]{estimate_density()}} over \code{bw_grid} is computed, and the median of these
+per-curve optima is returned. The adaptive BLUP calls this once and then
+reuses the returned bandwidth for every curve (passing it as the \code{h} argument
+of \code{\link[=estimate_density]{estimate_density()}}), so the design weights are consistent across curves
+and the cross-validation is not repeated on every call.
 }
 \seealso{
 \code{\link[=estimate_density]{estimate_density()}}, \code{\link[=get_nw_optimal_bw]{get_nw_optimal_bw()}}.
