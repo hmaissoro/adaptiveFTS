@@ -315,28 +315,34 @@ arma::mat blup_predict_cpp(const Rcpp::DataFrame data,
                            const std::string kernel_name) {
   std::function<arma::vec(const arma::vec)> kfun = select_kernel(kernel_name);
   arma::vec tpred = arma::sort(arma::unique(t));
+  arma::uword nt = tpred.n_elem;
+
+  // One row block per horizon step, stacked: [horizon, t, muhat, prediction].
+  arma::mat out(horizon * nt, 4);
 
   arma::vec muhat_t;
-  arma::vec resid0 = root_D * (Yn0 - muhat_Tn0);
+  arma::vec resid = root_D * (Yn0 - muhat_Tn0);
   arma::vec pred = blup_one_step(data, opt_mean, opt_autocov, kernel_name, tpred,
-                                 Tn0, root_D, V, resid0, muhat_t);
+                                 Tn0, root_D, V, resid, muhat_t);
+  out.submat(0, 0, nt - 1, 0).fill(1.0);
+  out.submat(0, 1, nt - 1, 1) = tpred;
+  out.submat(0, 2, nt - 1, 2) = muhat_t;
+  out.submat(0, 3, nt - 1, 3) = pred;
 
-  if (horizon > 1) {
-    // Feed each predicted curve (on `tpred`) back as the new conditioning curve.
-    arma::vec xprev = pred;
-    for (int step = 0; step < horizon - 1; ++step) {
-      arma::vec rho = compute_rho(tpred, is_common, density_bw, kfun);
-      Cond c = condition(data, opt_mean, opt_cov, tpred, xprev, rho,
-                         homoscedastic, tikhonov, kernel_name);
-      xprev = blup_one_step(data, opt_mean, opt_autocov, kernel_name, tpred,
-                            tpred, c.root_D, c.V, c.resid, muhat_t);
-    }
-    pred = xprev;
+  // Feed each predicted curve (on `tpred`) back as the new conditioning curve;
+  // the estimation data is left unchanged, only the conditioning values vary.
+  for (int step = 2; step <= horizon; ++step) {
+    arma::vec rho = compute_rho(tpred, is_common, density_bw, kfun);
+    Cond c = condition(data, opt_mean, opt_cov, tpred, pred, rho,
+                       homoscedastic, tikhonov, kernel_name);
+    pred = blup_one_step(data, opt_mean, opt_autocov, kernel_name, tpred,
+                         tpred, c.root_D, c.V, c.resid, muhat_t);
+    arma::uword r0 = (step - 1) * nt;
+    out.submat(r0, 0, r0 + nt - 1, 0).fill(static_cast<double>(step));
+    out.submat(r0, 1, r0 + nt - 1, 1) = tpred;
+    out.submat(r0, 2, r0 + nt - 1, 2) = muhat_t;
+    out.submat(r0, 3, r0 + nt - 1, 3) = pred;
   }
 
-  arma::mat out(tpred.n_elem, 3);
-  out.col(0) = tpred;
-  out.col(1) = muhat_t;
-  out.col(2) = pred;
   return out;
 }

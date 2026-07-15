@@ -63,17 +63,21 @@ test_that("predict.blup_fit handles t, newdata and h, and validates them", {
 
   p1 <- predict(fit, t = tt)
   expect_true(data.table::is.data.table(p1))
-  expect_equal(names(p1), c("t", "muhat", "prediction"))
+  expect_equal(names(p1), c("horizon", "t", "muhat", "prediction"))
   expect_equal(p1$t, tt)
+  expect_true(all(p1$horizon == 1L))
   expect_true(all(is.finite(p1$prediction)))
 
   # default t is the conditioning-curve design
   pd <- predict(fit)
   expect_equal(pd$t, fit$Tn0)
 
-  # h-step runs and returns finite predictions on the target grid
+  # multi-step returns every intermediate horizon, and its horizon-1 block
+  # equals the standalone one-step prediction.
   p2 <- predict(fit, t = tt, horizon = 2L)
-  expect_equal(nrow(p2), length(tt))
+  expect_equal(nrow(p2), 2L * length(tt))
+  expect_equal(sort(unique(p2$horizon)), c(1L, 2L))
+  expect_equal(p2[horizon == 1L, prediction], p1$prediction, tolerance = 1e-10)
   expect_true(all(is.finite(p2$prediction)))
 
   # newdata overrides the conditioning values

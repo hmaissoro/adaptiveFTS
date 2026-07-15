@@ -223,17 +223,26 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' Predict with an adaptive functional BLUP fit
 #'
 #' Evaluates the adaptive Best Linear Unbiased Predictor of the curve following
-#' the conditioning curve at the requested prediction points. For `h > 1`
-#' (h-step-ahead), each intermediate curve is predicted on the target grid `t`
-#' and fed back as the new conditioning curve, so the `(n_0 + i)`-th prediction
-#' is built from the `(n_0 + i - 1)`-th predicted curve.
+#' the conditioning curve at the requested prediction points. For `horizon > 1`
+#' (multi-step-ahead), each intermediate curve is predicted on the target grid
+#' `t` and fed back as the new conditioning curve, so the `(n_0 + i)`-th
+#' prediction is built from the `(n_0 + i - 1)`-th predicted curve, and all
+#' intermediate horizons are returned.
+#'
+#' @details
+#' During multi-step prediction the estimation data is left unchanged: the mean,
+#' the (auto)covariance operators, the adaptive bandwidths and the noise level
+#' are estimated once and held fixed, and each predicted curve enters only as the
+#' conditioning values of the next step. Injecting a predicted (denoised) curve
+#' back into the estimation sample would bias those plug-in estimates, so it is
+#' deliberately avoided.
 #'
 #' @param object A `blup_fit` object.
 #' @param t Numeric vector of prediction points in \eqn{[0, 1]}. Default is the
 #'   conditioning-curve design points.
 #' @param newdata Optional numeric vector of conditioning-curve values at the
 #'   fit's design points (`object$Tn0`), overriding `object$Yn0`. Used internally
-#'   for the h-step recursion; must have length `object$Mn0`.
+#'   for the multi-step recursion; must have length `object$Mn0`.
 #' @param horizon Integer prediction horizon (steps ahead). Default `1`. For
 #'   `horizon > 1`, each intermediate curve is predicted on the target grid `t`
 #'   and fed back as the new conditioning curve; the conditioning quantities are
@@ -241,8 +250,14 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #'   both designs).
 #' @param ... Unused; for S3 compatibility.
 #'
-#' @return A `data.table` with columns `t`, `muhat` (mean estimate) and
-#'   `prediction` (the adaptive BLUP).
+#' @return A `data.table` with one block of rows per horizon (`horizon * length(t)`
+#'   rows in total):
+#'   \itemize{
+#'     \item `horizon`: the prediction step, from `1` to `horizon`.
+#'     \item `t`: the prediction points.
+#'     \item `muhat`: the mean estimate at `t`.
+#'     \item `prediction`: the adaptive BLUP at `t` for that horizon.
+#'   }
 #'
 #' @seealso [blup_fit()].
 #' @export
@@ -269,7 +284,9 @@ predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, horizon = 1
     tikhonov = object$tikhonov_reg_param, t = as.numeric(t), horizon = horizon,
     kernel_name = object$kernel_name)
 
-  data.table::data.table(t = out[, 1], muhat = out[, 2], prediction = out[, 3])
+  data.table::data.table(
+    horizon = as.integer(out[, 1]), t = out[, 2],
+    muhat = out[, 3], prediction = out[, 4])
 }
 
 #' Fit and predict the adaptive functional BLUP in one call
@@ -282,7 +299,8 @@ predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, horizon = 1
 #' @param t Numeric vector of prediction points in \eqn{[0, 1]}.
 #' @param horizon Integer prediction horizon (steps ahead). Default `1`.
 #'
-#' @return A `data.table` with columns `t`, `muhat` and `prediction`.
+#' @return A `data.table` with columns `horizon`, `t`, `muhat` and `prediction`
+#'   (one block of rows per horizon); see [predict.blup_fit()].
 #'
 #' @seealso [blup_fit()], [predict.blup_fit()], [cv_blup_alpha()].
 #' @export

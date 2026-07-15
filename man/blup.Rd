@@ -82,7 +82,8 @@ once via \code{\link[=get_density_optimal_bw]{get_density_optimal_bw()}}.}
 which the adaptive bandwidths are selected. Default \code{10}.}
 }
 \value{
-A \code{data.table} with columns \code{t}, \code{muhat} and \code{prediction}.
+A \code{data.table} with columns \code{horizon}, \code{t}, \code{muhat} and \code{prediction}
+(one block of rows per horizon); see \code{\link[=predict.blup_fit]{predict.blup_fit()}}.
 }
 \description{
 Convenience wrapper that fits the adaptive BLUP on \code{data} and immediately
