@@ -28,7 +28,8 @@ namespace {
 // original position. Matches R's which.min() (first minimum, NAs ignored).
 arma::uword argmin_finite(const arma::vec& v) {
   arma::uvec fin = arma::find_finite(v);
-  return fin(arma::index_min(v.elem(fin)));
+  arma::uword idx = fin(arma::index_min(v.elem(fin)));
+  return idx;
 }
 
 // Nearest-neighbour indices in one dimension (squared distance, first argmin).
@@ -98,7 +99,8 @@ arma::vec mean_at(const DataFrame& data, const arma::mat& opt_mean,
   arma::vec optbw_all = opt_mean.col(1);
   arma::vec optbw = optbw_all.elem(idx);
   arma::mat m = estimate_mean_cpp(data, tq, Rcpp::wrap(optbw), R_NilValue, kernel);
-  return m.col(5);
+  arma::vec muhat = m.col(5);
+  return muhat;
 }
 
 // (Auto)covariance block c_lag(s_i, t_j) reusing the cached bandwidths.
@@ -119,7 +121,8 @@ arma::mat autocov_at(const DataFrame& data, const arma::mat& opt_bw,
   arma::vec obt = obt_all.elem(idx);
   arma::mat out = estimate_autocov_cpp(data, gs, gt, lag, Rcpp::wrap(obs), Rcpp::wrap(obt),
                                        R_NilValue, false, true, correct_diagonal, kernel);
-  return reshape_long(out, 0, 1, 13);
+  arma::mat block = reshape_long(out, 0, 1, 13);
+  return block;
 }
 
 // Design weights for a design `Td`: 1/M under the common design; the
@@ -141,13 +144,15 @@ arma::vec compute_rho(const arma::vec& Td, bool is_common, double density_bw,
     ghat(i) = arma::sum(kfun(u)) / ((M - 1) * density_bw);
   }
   arma::vec rho = 1.0 / (M * arma::clamp(ghat, 1e-6, arma::datum::inf));
-  return rho / arma::sum(rho);
+  rho /= arma::sum(rho);
+  return rho;
 }
 
 // Median over the finite entries (matches R's median(x, na.rm = TRUE)).
 double median_finite(const arma::vec& v) {
   arma::vec f = v.elem(arma::find_finite(v));
-  return arma::median(f);
+  double med = arma::median(f);
+  return med;
 }
 
 struct Cond {
@@ -194,7 +199,8 @@ arma::vec blup_one_step(const DataFrame& data, const arma::mat& opt_mean,
                         const arma::mat& Vmat, const arma::vec& resid, arma::vec& muhat_out) {
   muhat_out = mean_at(data, opt_mean, tpred, kernel);
   arma::mat c1 = autocov_at(data, opt_autocov, Td, tpred, 1, false, kernel);
-  return muhat_out + c1.t() * rootD * arma::solve(Vmat, resid);
+  arma::vec pred = muhat_out + c1.t() * rootD * arma::solve(Vmat, resid);
+  return pred;
 }
 
 } // anonymous namespace
@@ -300,7 +306,7 @@ Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data,
 
   Cond c = condition(data, opt_mean, opt_cov, Tn0, Yn0, rho, homoscedastic, tikhonov, kernel_name);
 
-  return Rcpp::List::create(
+  Rcpp::List result = Rcpp::List::create(
     Rcpp::Named("opt_mean") = opt_mean,
     Rcpp::Named("opt_cov") = opt_cov,
     Rcpp::Named("opt_autocov") = opt_autocov,
@@ -311,6 +317,7 @@ Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data,
     Rcpp::Named("sigma2") = c.sigma2,
     Rcpp::Named("V") = c.V,
     Rcpp::Named("resid") = c.resid);
+  return result;
 }
 
 //' Predict with the adaptive functional BLUP (C++ core)
