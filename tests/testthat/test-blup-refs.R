@@ -51,10 +51,11 @@ test_that("blup() wrapper equals predict(blup_fit())", {
                predict(fit, t = p$tt), tolerance = TOL)
 })
 
-test_that("cv_blup_alpha matches references", {
+test_that("select_tikhonov_parameter matches references", {
   p <- ref_inputs()
-  alpha_grid_ref <- exp(seq(-2, 0, length.out = 8))
-  cv <- suppressWarnings(cv_blup_alpha(p$dt, alpha_grid = alpha_grid_ref, n_val = 3L,
-                                       bw_grid = p$bwg, kernel_name = "epanechnikov"))
-  expect_equal(cv, read_ref("cv_blup_alpha"), tolerance = TOL_BLAS)
+  tikhonov_grid_ref <- exp(seq(-2, 0, length.out = 8))
+  cv <- suppressWarnings(select_tikhonov_parameter(
+    p$dt, tikhonov_grid = tikhonov_grid_ref, n_val = 3L,
+    bw_grid = p$bwg, kernel_name = "epanechnikov"))
+  expect_equal(cv, read_ref("select_tikhonov_parameter"), tolerance = TOL_BLAS)
 })

@@ -55,7 +55,7 @@ reference:
   - blup_fit
   - predict.blup_fit
   - blup
-  - cv_blup_alpha
+  - select_tikhonov_parameter
   - predict_curve
 - title: Design density
   contents:

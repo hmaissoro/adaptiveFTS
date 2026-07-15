@@ -12,7 +12,7 @@ blup(
   t = seq(0.01, 0.99, length.out = 99),
   id_lag = NULL,
   horizon = 1L,
-  tikhonov_reg_param = 1e-06,
+  tikhonov = 1e-06,
   bw_grid = NULL,
   kernel_name = "epanechnikov",
   homoscedastic = TRUE,
@@ -63,8 +63,8 @@ curve to be predicted. Default \code{NULL} uses the last curve in \code{data}.}
 
 \item{horizon}{Integer prediction horizon (steps ahead). Default \code{1}.}
 
-\item{tikhonov_reg_param}{Tikhonov regularisation parameter \eqn{\alpha}
-added to the variance matrix. Default \code{1e-6}.}
+\item{tikhonov}{Tikhonov regularisation parameter \eqn{\alpha} added to the
+variance matrix. Default \code{1e-6}.}
 
 \item{bw_grid}{Bandwidth grid for the adaptive mean/(auto)covariance risk.
 Default \code{NULL} sets a geometric grid from the data.}
@@ -91,5 +91,5 @@ predicts the curve following the conditioning curve at \code{t}. Equivalent to
 \code{predict(blup_fit(data, ...), t = t, h = h)}.
 }
 \seealso{
-\code{\link[=blup_fit]{blup_fit()}}, \code{\link[=predict.blup_fit]{predict.blup_fit()}}, \code{\link[=cv_blup_alpha]{cv_blup_alpha()}}.
+\code{\link[=blup_fit]{blup_fit()}}, \code{\link[=predict.blup_fit]{predict.blup_fit()}}, \code{\link[=select_tikhonov_parameter]{select_tikhonov_parameter()}}.
 }

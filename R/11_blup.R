@@ -39,8 +39,8 @@
 #' @inheritParams format_data
 #' @param id_lag Integer id of the conditioning curve. Its successor is the
 #'   curve to be predicted. Default `NULL` uses the last curve in `data`.
-#' @param tikhonov_reg_param Tikhonov regularisation parameter \eqn{\alpha}
-#'   added to the variance matrix. Default `1e-6`.
+#' @param tikhonov Tikhonov regularisation parameter \eqn{\alpha} added to the
+#'   variance matrix. Default `1e-6`.
 #' @param bw_grid Bandwidth grid for the adaptive mean/(auto)covariance risk.
 #'   Default `NULL` sets a geometric grid from the data.
 #' @param kernel_name Kernel name. Default `"epanechnikov"`.
@@ -62,7 +62,7 @@
 #' @import data.table
 #' @importFrom methods is
 blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                     id_lag = NULL, tikhonov_reg_param = 1e-6,
+                     id_lag = NULL, tikhonov = 1e-6,
                      bw_grid = NULL, kernel_name = "epanechnikov",
                      homoscedastic = TRUE, density_bw = NULL,
                      sub_grid_length = 10L) {
@@ -109,7 +109,7 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   cpp <- blup_fit_cpp(
     data = data, id_lag = as.integer(n0), bw_grid = as.numeric(bw_grid),
     rho = rho, homoscedastic = homoscedastic,
-    tikhonov = tikhonov_reg_param, sub_grid_length = as.integer(sub_grid_length),
+    tikhonov = tikhonov, sub_grid_length = as.integer(sub_grid_length),
     kernel_name = kernel_name)
 
   structure(
@@ -132,7 +132,7 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       c0hat = cpp$c0hat,
       sigma2 = if (homoscedastic) as.numeric(cpp$sigma2) else as.vector(cpp$sigma2),
       homoscedastic = homoscedastic,
-      tikhonov_reg_param = tikhonov_reg_param,
+      tikhonov = tikhonov,
       V = cpp$V,
       resid = cpp$resid
     ),
@@ -201,7 +201,7 @@ predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, horizon = 1
     muhat_Tn0 = as.numeric(object$muhat_Tn0), V = object$V, root_D = object$root_Dn0,
     Yn0 = as.numeric(Yn0), density_bw = density_bw,
     is_common = object$is_common_design, homoscedastic = object$homoscedastic,
-    tikhonov = object$tikhonov_reg_param, t = as.numeric(t), horizon = horizon,
+    tikhonov = object$tikhonov, t = as.numeric(t), horizon = horizon,
     kernel_name = object$kernel_name)
 
   data.table::data.table(
@@ -222,29 +222,30 @@ predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, horizon = 1
 #' @return A `data.table` with columns `horizon`, `t`, `muhat` and `prediction`
 #'   (one block of rows per horizon); see [predict.blup_fit()].
 #'
-#' @seealso [blup_fit()], [predict.blup_fit()], [cv_blup_alpha()].
+#' @seealso [blup_fit()], [predict.blup_fit()], [select_tikhonov_parameter()].
 #' @export
 #' @import data.table
 #' @importFrom stats predict
 blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                  t = seq(0.01, 0.99, length.out = 99), id_lag = NULL, horizon = 1L,
-                 tikhonov_reg_param = 1e-6, bw_grid = NULL,
+                 tikhonov = 1e-6, bw_grid = NULL,
                  kernel_name = "epanechnikov", homoscedastic = TRUE,
                  density_bw = NULL, sub_grid_length = 10L) {
   fit <- blup_fit(
     data = data, idcol = idcol, tcol = tcol, ycol = ycol, id_lag = id_lag,
-    tikhonov_reg_param = tikhonov_reg_param, bw_grid = bw_grid,
+    tikhonov = tikhonov, bw_grid = bw_grid,
     kernel_name = kernel_name, homoscedastic = homoscedastic,
     density_bw = density_bw, sub_grid_length = sub_grid_length)
   predict(fit, t = t, horizon = horizon)
 }
 
-#' One-step-ahead cross-validation for the Tikhonov parameter
+#' Select the Tikhonov regularisation parameter
 #'
-#' Selects the Tikhonov regularisation parameter \eqn{\alpha} by one-step-ahead
-#' cross-validation: each of the last `n_val` curves is predicted from its
-#' immediate predecessor and scored by the design-weighted squared prediction
-#' error at its observation points,
+#' Selects the Tikhonov regularisation parameter \eqn{\alpha} of the adaptive
+#' BLUP. Currently only `method = "cv"` is implemented: a one-step-ahead
+#' cross-validation in which each of the last `n_val` curves is predicted from
+#' its immediate predecessor and scored by the design-weighted squared
+#' prediction error at its observation points,
 #' \eqn{\sum_i \varrho_{n,i}\,(Y_{n,i} - \widehat X_n(T_{n,i};\alpha))^2}, where
 #' \eqn{\varrho_{n,i}} is the design weight of the held-out (target) curve. Two
 #' regimes:
@@ -261,20 +262,29 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' whole grid from a single eigendecomposition per fold.
 #'
 #' @inheritParams blup_fit
-#' @param alpha_grid Candidate values. If `NULL`, a 25-point grid
+#' @param method Selection method. Currently only `"cv"` (one-step-ahead
+#'   cross-validation) is available.
+#' @param tikhonov_grid Candidate values. If `NULL`, a 25-point grid
 #'   \eqn{\{e^{-5}, \ldots, e^0\}} is used.
 #' @param n_val Number of trailing curves used for one-step-ahead validation.
 #'
-#' @return A list with `alpha_star`, `alpha_grid`, `cv_curve`, `cv_matrix`
-#'   (fold by alpha) and `val_ids`.
+#' @return A list with:
+#'   \itemize{
+#'     \item `tikhonov_star`: the selected Tikhonov parameter.
+#'     \item `tikhonov_grid`: the candidate grid.
+#'     \item `cv_curve`: the mean cross-validation score per candidate.
+#'     \item `cv_matrix`: the per-fold cross-validation scores (fold by candidate).
+#'     \item `val_ids`: the ids of the validation curves.
+#'   }
 #'
-#' @seealso [blup_fit()].
+#' @seealso [blup_fit()], [predict.blup_fit()].
 #' @export
 #' @import data.table
-cv_blup_alpha <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                          alpha_grid = NULL, n_val = 30L, bw_grid = NULL,
-                          kernel_name = "epanechnikov", homoscedastic = TRUE,
-                          density_bw = NULL) {
+select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                                      method = c("cv"), tikhonov_grid = NULL, n_val = 30L,
+                                      bw_grid = NULL, kernel_name = "epanechnikov",
+                                      homoscedastic = TRUE, density_bw = NULL) {
+  method <- match.arg(method)
 
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   kernel_name <- match.arg(
@@ -295,9 +305,9 @@ cv_blup_alpha <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       data = data_fit, idcol = "id_curve", tcol = "tobs", ycol = "X",
       kernel_name = kernel_name, lower = 0, upper = 1)
 
-  # Estimate every alpha-free component once on the training block.
+  # Estimate every Tikhonov-free component once on the training block.
   fit <- blup_fit(
-    data = data_fit, id_lag = max(fit_ids), tikhonov_reg_param = 1e-6,
+    data = data_fit, id_lag = max(fit_ids), tikhonov = 1e-6,
     bw_grid = bw_grid, kernel_name = kernel_name, homoscedastic = homoscedastic,
     density_bw = density_bw)
 
@@ -309,7 +319,7 @@ cv_blup_alpha <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     C1rD_common <- t(c1_common) %*% fit$root_Dn0
   }
 
-  ## Phase 1: assemble the alpha-free pieces for each validation curve.
+  ## Phase 1: assemble the Tikhonov-free pieces for each validation curve.
   folds <- vector("list", n_val)
   for (k in seq_len(n_val)) {
     id_targ <- ids[val_pos[k]]
@@ -352,20 +362,21 @@ cv_blup_alpha <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     }
   }
 
-  if (is.null(alpha_grid)) alpha_grid <- exp(seq(-5, 0, length.out = 25))
+  if (is.null(tikhonov_grid)) tikhonov_grid <- exp(seq(-5, 0, length.out = 25))
 
-  ## Phase 2: only (A0 + alpha I)^{-1} depends on alpha; A0 is symmetric, so
-  ## eigendecompose once per fold and reuse across the whole grid.
-  cv_matrix <- matrix(NA_real_, nrow = n_val, ncol = length(alpha_grid))
+  ## Phase 2: only the (A0 + tikhonov * I)^{-1} step depends on the Tikhonov
+  ## parameter; A0 is symmetric, so eigendecompose once per fold and reuse it
+  ## across the whole grid.
+  cv_matrix <- matrix(NA_real_, nrow = n_val, ncol = length(tikhonov_grid))
   for (k in seq_len(n_val)) {
     f <- folds[[k]]
     eg <- eigen(f$A0, symmetric = TRUE)
     lambda <- eg$values
     z <- as.vector(crossprod(eg$vectors, f$resid))
     W <- f$C1rD %*% eg$vectors
-    for (l in seq_along(alpha_grid)) {
+    for (l in seq_along(tikhonov_grid)) {
       pred <- tryCatch(
-        f$mu_pred + as.vector(W %*% (z / (lambda + alpha_grid[l]))),
+        f$mu_pred + as.vector(W %*% (z / (lambda + tikhonov_grid[l]))),
         error = function(e) rep(NA_real_, length(f$Y_targ)))
       cv_matrix[k, l] <- sum(f$rho_targ * (f$Y_targ - pred) ^ 2)
     }
@@ -373,13 +384,13 @@ cv_blup_alpha <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 
   cv_curve <- colMeans(cv_matrix, na.rm = TRUE)
   l_star <- which.min(cv_curve)
-  alpha_star <- alpha_grid[l_star]
-  if (l_star %in% c(1L, length(alpha_grid)))
-    warning("alpha_star at a grid boundary; widen alpha_grid.")
+  tikhonov_star <- tikhonov_grid[l_star]
+  if (l_star %in% c(1L, length(tikhonov_grid)))
+    warning("tikhonov_star at a grid boundary; widen tikhonov_grid.")
 
   list(
-    alpha_star = alpha_star,
-    alpha_grid = alpha_grid,
+    tikhonov_star = tikhonov_star,
+    tikhonov_grid = tikhonov_grid,
     cv_curve = cv_curve,
     cv_matrix = cv_matrix,
     val_ids = ids[val_pos]
