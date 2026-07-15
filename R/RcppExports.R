@@ -151,6 +151,39 @@ estimate_curve_cpp <- function(data, t, id_curve = NULL, bw_grid = NULL, use_sam
     .Call(`_adaptiveFTS_estimate_curve_cpp`, data, t, id_curve, bw_grid, use_same_bw, center, correct_diagonal, kernel_name)
 }
 
+#' Mean at new locations using cached bandwidths (C++ core)
+#'
+#' Reuses the adaptive mean bandwidths cached in a `blup_fit` object. Called by
+#' `cv_blup_alpha()`; not intended to be used directly.
+#'
+#' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
+#' @param opt_mean Cached mean adaptive-bandwidth matrix (`t`, `optbw`).
+#' @param t Evaluation locations (assumed sorted).
+#' @param kernel_name Kernel name.
+#' @return The mean estimates at `t`.
+#' @keywords internal
+blup_mean_at_cpp <- function(data, opt_mean, t, kernel_name) {
+    .Call(`_adaptiveFTS_blup_mean_at_cpp`, data, opt_mean, t, kernel_name)
+}
+
+#' (Auto)covariance block at new locations using cached bandwidths (C++ core)
+#'
+#' Reuses the adaptive (auto)covariance bandwidths cached in a `blup_fit`
+#' object. Called by `cv_blup_alpha()`; not intended to be used directly.
+#'
+#' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
+#' @param opt_bw Cached (auto)covariance bandwidth matrix (`s`, `t`, `optbw_s`,
+#'   `optbw_t`).
+#' @param s,t Evaluation locations (rows indexed by `s`, columns by `t`).
+#' @param lag 0 for the covariance, 1 for the lag-1 autocovariance.
+#' @param correct_diagonal Whether to correct the covariance diagonal.
+#' @param kernel_name Kernel name.
+#' @return A `length(s)` by `length(t)` matrix of \eqn{\hat c_{lag}(s_i, t_j)}.
+#' @keywords internal
+blup_autocov_at_cpp <- function(data, opt_bw, s, t, lag, correct_diagonal, kernel_name) {
+    .Call(`_adaptiveFTS_blup_autocov_at_cpp`, data, opt_bw, s, t, lag, correct_diagonal, kernel_name)
+}
+
 #' Fit the adaptive functional BLUP (C++ core)
 #'
 #' Estimates every prediction-point-independent component of the adaptive

@@ -40,8 +40,8 @@ test_that("blup_fit returns a well-formed object", {
   bwg <- seq(0.05, 0.2, length.out = 6)
   fit <- blup_fit(dt, bw_grid = bwg)
   expect_s3_class(fit, "blup_fit")
-  expect_true(all(c("V", "c0hat", "muhat_Tn0", "rho", "Tn0", "opt_mean",
-                    "dt_optbw_mean") %in% names(fit)))
+  expect_true(all(c("V", "c0hat", "muhat_Tn0", "rho", "Tn0",
+                    "opt_mean", "opt_cov", "opt_autocov") %in% names(fit)))
   M <- fit$Mn0
   expect_equal(dim(fit$V), c(M, M))
   expect_equal(dim(fit$c0hat), c(M, M))

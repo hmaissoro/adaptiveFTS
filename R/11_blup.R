@@ -28,74 +28,6 @@
   all(vapply(design_by_curve$tobs_list, function(tt) identical(tt, reference_design), logical(1)))
 }
 
-#' Nearest-neighbour index in one dimension
-#'
-#' Returns, for each query point, the index of the nearest reference point.
-#' Base-R replacement for `RANN::nn2(..., k = 1)` in 1-D; ties are broken by the
-#' first (smallest) index, matching `which.min`.
-#'
-#' @param ref Numeric vector of reference locations.
-#' @param query Numeric vector of query locations.
-#' @return Integer vector of nearest-reference indices, one per query.
-#' @keywords internal
-.nn1_1d <- function(ref, query) {
-  vapply(query, function(q) which.min(abs(ref - q)), integer(1))
-}
-
-#' Nearest-neighbour index in two dimensions
-#'
-#' Returns, for each query row, the index of the nearest reference row under the
-#' Euclidean metric. Base-R replacement for `RANN::nn2(..., k = 1)` in 2-D.
-#'
-#' @param ref_s,ref_t Numeric vectors of reference coordinates.
-#' @param q_s,q_t Numeric vectors of query coordinates.
-#' @return Integer vector of nearest-reference indices, one per query.
-#' @keywords internal
-.nn1_2d <- function(ref_s, ref_t, q_s, q_t) {
-  vapply(seq_along(q_s), function(i) {
-    which.min((ref_s - q_s[i]) ^ 2 + (ref_t - q_t[i]) ^ 2)
-  }, integer(1))
-}
-
-#' Evaluate the mean at new locations using cached bandwidths
-#'
-#' Reuses the adaptive optimal bandwidths selected in `blup_fit` (`dt_optbw_mean`),
-#' matched by nearest neighbour to `t`, so only the plug-in `estimate_mean` is
-#' re-run; the risk minimisation is not repeated.
-#' @keywords internal
-.mean_at <- function(dt_optbw_mean, data, t, kernel_name) {
-  idx <- .nn1_1d(dt_optbw_mean$t, t)
-  optbw_t <- dt_optbw_mean$optbw[idx]
-  dt <- adaptiveFTS::estimate_mean(
-    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-    t = t, optbw = optbw_t, bw_grid = NULL, kernel_name = kernel_name)
-  dt[order(t), muhat]
-}
-
-#' Evaluate a (auto)covariance block at new locations using cached bandwidths
-#'
-#' Reuses the adaptive optimal bandwidths selected in `blup_fit`
-#' (`dt_optbw_cov` for `lag = 0`, `dt_optbw_autocov` for `lag = 1`), matched by
-#' nearest neighbour, so only the plug-in `estimate_autocov` is re-run.
-#' @return A `length(s)` x `length(t)` matrix of \eqn{\hat c_{lag}(s_i, t_j)}.
-#' @keywords internal
-.autocov_at <- function(dt_optbw, data, s, t, lag, kernel_name) {
-  grid <- data.table::as.data.table(expand.grid("s" = s, "t" = t))
-  idx <- .nn1_2d(dt_optbw$s, dt_optbw$t, grid$s, grid$t)
-  grid$optbw_s <- dt_optbw$optbw_s[idx]
-  grid$optbw_t <- dt_optbw$optbw_t[idx]
-  dt <- adaptiveFTS::estimate_autocov(
-    data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-    s = grid[, s], t = grid[, t], lag = lag,
-    optbw_s = grid[, optbw_s], optbw_t = grid[, optbw_t],
-    bw_grid = NULL, use_same_bw = FALSE, center = TRUE,
-    correct_diagonal = (lag == 0L), kernel_name = kernel_name)
-  dt_dcast <- data.table::dcast(dt[order(s, t)], formula = s ~ t, value.var = "autocov")
-  m <- as.matrix(dt_dcast[, .SD, .SDcols = !"s"])
-  colnames(m) <- NULL
-  m
-}
-
 #' Fit the adaptive functional BLUP
 #'
 #' Estimates every component of the adaptive Best Linear Unbiased Predictor that
@@ -172,22 +104,13 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   }
 
   # C++ core: bandwidth selection, mean, C0, noise and the regularised matrix V.
+  # The cached adaptive-bandwidth matrices (opt_mean/opt_cov/opt_autocov) are
+  # reused by both the C++ predict and cv_blup_alpha via blup_*_at_cpp.
   cpp <- blup_fit_cpp(
     data = data, id_lag = as.integer(n0), bw_grid = as.numeric(bw_grid),
     rho = rho, homoscedastic = homoscedastic,
     tikhonov = tikhonov_reg_param, sub_grid_length = as.integer(sub_grid_length),
     kernel_name = kernel_name)
-
-  # Cached adaptive bandwidths, exposed both as matrices (for the C++ predict)
-  # and as data.tables (for cv_blup_alpha and the R plug-in helpers).
-  dt_optbw_mean <- data.table::data.table(
-    t = cpp$opt_mean[, 1], optbw = cpp$opt_mean[, 2])
-  dt_optbw_cov <- data.table::data.table(
-    s = cpp$opt_cov[, 1], t = cpp$opt_cov[, 2],
-    optbw_s = cpp$opt_cov[, 3], optbw_t = cpp$opt_cov[, 4])
-  dt_optbw_autocov <- data.table::data.table(
-    s = cpp$opt_autocov[, 1], t = cpp$opt_autocov[, 2],
-    optbw_s = cpp$opt_autocov[, 3], optbw_t = cpp$opt_autocov[, 4])
 
   structure(
     list(
@@ -205,9 +128,6 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       opt_mean = cpp$opt_mean,
       opt_cov = cpp$opt_cov,
       opt_autocov = cpp$opt_autocov,
-      dt_optbw_mean = dt_optbw_mean,
-      dt_optbw_cov = dt_optbw_cov,
-      dt_optbw_autocov = dt_optbw_autocov,
       muhat_Tn0 = as.vector(cpp$muhat_Tn0),
       c0hat = cpp$c0hat,
       sigma2 = if (homoscedastic) as.numeric(cpp$sigma2) else as.vector(cpp$sigma2),
@@ -384,7 +304,7 @@ cv_blup_alpha <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   # Common-design invariants (the operators do not change across folds).
   if (is_common) {
     Tn0 <- fit$Tn0
-    c1_common <- .autocov_at(fit$dt_optbw_autocov, data_fit, Tn0, Tn0, lag = 1, kernel_name)
+    c1_common <- blup_autocov_at_cpp(data_fit, fit$opt_autocov, Tn0, Tn0, 1L, FALSE, kernel_name)
     A0_common <- fit$root_Dn0 %*% fit$c0hat %*% fit$root_Dn0 + diag(fit$sigma2 * fit$rho)
     C1rD_common <- t(c1_common) %*% fit$root_Dn0
   }
@@ -408,11 +328,11 @@ cv_blup_alpha <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       data_roll <- data[id_curve <= id_prev]
       Tprev <- data[id_curve == id_prev, sort(unique(tobs))]
       Ttarg <- data[id_curve == id_targ, sort(unique(tobs))]
-      c0 <- .autocov_at(fit$dt_optbw_cov, data_roll, Tprev, Tprev, lag = 0, kernel_name)
+      c0 <- blup_autocov_at_cpp(data_roll, fit$opt_cov, Tprev, Tprev, 0L, TRUE, kernel_name)
       c0 <- (c0 + t(c0)) / 2
-      c1 <- .autocov_at(fit$dt_optbw_autocov, data_roll, Tprev, Ttarg, lag = 1, kernel_name)
-      mu_prev <- .mean_at(fit$dt_optbw_mean, data_roll, Tprev, kernel_name)
-      mu_targ <- .mean_at(fit$dt_optbw_mean, data_roll, Ttarg, kernel_name)
+      c1 <- blup_autocov_at_cpp(data_roll, fit$opt_autocov, Tprev, Ttarg, 1L, FALSE, kernel_name)
+      mu_prev <- blup_mean_at_cpp(data_roll, fit$opt_mean, Tprev, kernel_name)
+      mu_targ <- blup_mean_at_cpp(data_roll, fit$opt_mean, Ttarg, kernel_name)
       sig2 <- adaptiveFTS::estimate_sigma(
         data = data_roll, idcol = "id_curve", tcol = "tobs", ycol = "X", t = Tprev)[, sig ** 2]
       if (homoscedastic) sig2 <- stats::median(sig2, na.rm = TRUE)
