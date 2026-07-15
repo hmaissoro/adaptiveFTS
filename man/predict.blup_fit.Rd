@@ -14,7 +14,7 @@ conditioning-curve design points.}
 
 \item{newdata}{Optional numeric vector of conditioning-curve values at the
 fit's design points (\code{object$Tn0}), overriding \code{object$Yn0}. Used internally
-for the h-step recursion; must have length \code{object$Mn0}.}
+for the multi-step recursion; must have length \code{object$Mn0}.}
 
 \item{horizon}{Integer prediction horizon (steps ahead). Default \code{1}. For
 \code{horizon > 1}, each intermediate curve is predicted on the target grid \code{t}
@@ -25,15 +25,30 @@ both designs).}
 \item{...}{Unused; for S3 compatibility.}
 }
 \value{
-A \code{data.table} with columns \code{t}, \code{muhat} (mean estimate) and
-\code{prediction} (the adaptive BLUP).
+A \code{data.table} with one block of rows per horizon (\code{horizon * length(t)}
+rows in total):
+\itemize{
+\item \code{horizon}: the prediction step, from \code{1} to \code{horizon}.
+\item \code{t}: the prediction points.
+\item \code{muhat}: the mean estimate at \code{t}.
+\item \code{prediction}: the adaptive BLUP at \code{t} for that horizon.
+}
 }
 \description{
 Evaluates the adaptive Best Linear Unbiased Predictor of the curve following
-the conditioning curve at the requested prediction points. For \code{h > 1}
-(h-step-ahead), each intermediate curve is predicted on the target grid \code{t}
-and fed back as the new conditioning curve, so the \code{(n_0 + i)}-th prediction
-is built from the \code{(n_0 + i - 1)}-th predicted curve.
+the conditioning curve at the requested prediction points. For \code{horizon > 1}
+(multi-step-ahead), each intermediate curve is predicted on the target grid
+\code{t} and fed back as the new conditioning curve, so the \code{(n_0 + i)}-th
+prediction is built from the \code{(n_0 + i - 1)}-th predicted curve, and all
+intermediate horizons are returned.
+}
+\details{
+During multi-step prediction the estimation data is left unchanged: the mean,
+the (auto)covariance operators, the adaptive bandwidths and the noise level
+are estimated once and held fixed, and each predicted curve enters only as the
+conditioning values of the next step. Injecting a predicted (denoised) curve
+back into the estimation sample would bias those plug-in estimates, so it is
+deliberately avoided.
 }
 \seealso{
 \code{\link[=blup_fit]{blup_fit()}}.
