@@ -25,6 +25,6 @@ A \code{length(s)} by \code{length(t)} matrix of \eqn{\hat c_{lag}(s_i, t_j)}.
 }
 \description{
 Reuses the adaptive (auto)covariance bandwidths cached in a \code{blup_fit}
-object. Called by \code{cv_blup_alpha()}; not intended to be used directly.
+object. Called by \code{select_tikhonov_parameter()}; not intended to be used directly.
 }
 \keyword{internal}

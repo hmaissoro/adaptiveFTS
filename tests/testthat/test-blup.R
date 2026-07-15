@@ -96,11 +96,11 @@ test_that("blup() equals predict(blup_fit()) and cv_blup_alpha validates n_val",
   fit <- blup_fit(dt, bw_grid = bwg)
   expect_equal(blup(dt, t = tt, bw_grid = bwg), predict(fit, t = tt), tolerance = 1e-10)
 
-  expect_error(cv_blup_alpha(dt, n_val = 100L), "smaller than the number")
-  cv <- suppressWarnings(cv_blup_alpha(dt, alpha_grid = exp(seq(-2, 0, length.out = 6)),
-                                       n_val = 3L, bw_grid = bwg))
-  expect_true(all(c("alpha_star", "cv_curve", "cv_matrix", "val_ids") %in% names(cv)))
+  expect_error(select_tikhonov_parameter(dt, n_val = 100L), "smaller than the number")
+  cv <- suppressWarnings(select_tikhonov_parameter(
+    dt, tikhonov_grid = exp(seq(-2, 0, length.out = 6)), n_val = 3L, bw_grid = bwg))
+  expect_true(all(c("tikhonov_star", "cv_curve", "cv_matrix", "val_ids") %in% names(cv)))
   expect_length(cv$cv_curve, 6L)
   expect_equal(dim(cv$cv_matrix), c(3L, 6L))
-  expect_true(is.finite(cv$alpha_star))
+  expect_true(is.finite(cv$tikhonov_star))
 })

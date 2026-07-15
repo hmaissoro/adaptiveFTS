@@ -20,6 +20,6 @@ The mean estimates at \code{t}.
 }
 \description{
 Reuses the adaptive mean bandwidths cached in a \code{blup_fit} object. Called by
-\code{cv_blup_alpha()}; not intended to be used directly.
+\code{select_tikhonov_parameter()}; not intended to be used directly.
 }
 \keyword{internal}

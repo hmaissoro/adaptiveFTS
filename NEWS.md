@@ -8,9 +8,9 @@
     caches the adaptive bandwidths; `predict()` (method `predict.blup_fit()`)
     evaluates the one-step-ahead predictor and loops for h-step-ahead
     prediction; `blup()` is a one-call wrapper.
-  * `cv_blup_alpha()` selects the Tikhonov parameter by one-step-ahead
-    cross-validation (holdout under the common design, rolling origin under the
-    independent design).
+  * `select_tikhonov_parameter(method = "cv")` selects the Tikhonov parameter by
+    one-step-ahead cross-validation (holdout under the common design, rolling
+    origin under the independent design).
   * The numerical core runs in C++ (`blup_fit_cpp()`, `blup_predict_cpp()`).
 * Design-density estimation for the independent-design weights:
   * `estimate_density()` — leave-one-out Parzen–Rosenblatt estimator with a

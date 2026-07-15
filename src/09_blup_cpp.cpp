@@ -202,7 +202,7 @@ arma::vec blup_one_step(const DataFrame& data, const arma::mat& opt_mean,
 //' Mean at new locations using cached bandwidths (C++ core)
 //'
 //' Reuses the adaptive mean bandwidths cached in a `blup_fit` object. Called by
-//' `cv_blup_alpha()`; not intended to be used directly.
+//' `select_tikhonov_parameter()`; not intended to be used directly.
 //'
 //' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
 //' @param opt_mean Cached mean adaptive-bandwidth matrix (`t`, `optbw`).
@@ -220,7 +220,7 @@ arma::vec blup_mean_at_cpp(const Rcpp::DataFrame data, const arma::mat opt_mean,
 //' (Auto)covariance block at new locations using cached bandwidths (C++ core)
 //'
 //' Reuses the adaptive (auto)covariance bandwidths cached in a `blup_fit`
-//' object. Called by `cv_blup_alpha()`; not intended to be used directly.
+//' object. Called by `select_tikhonov_parameter()`; not intended to be used directly.
 //'
 //' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
 //' @param opt_bw Cached (auto)covariance bandwidth matrix (`s`, `t`, `optbw_s`,

@@ -154,7 +154,7 @@ estimate_curve_cpp <- function(data, t, id_curve = NULL, bw_grid = NULL, use_sam
 #' Mean at new locations using cached bandwidths (C++ core)
 #'
 #' Reuses the adaptive mean bandwidths cached in a `blup_fit` object. Called by
-#' `cv_blup_alpha()`; not intended to be used directly.
+#' `select_tikhonov_parameter()`; not intended to be used directly.
 #'
 #' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
 #' @param opt_mean Cached mean adaptive-bandwidth matrix (`t`, `optbw`).
@@ -169,7 +169,7 @@ blup_mean_at_cpp <- function(data, opt_mean, t, kernel_name) {
 #' (Auto)covariance block at new locations using cached bandwidths (C++ core)
 #'
 #' Reuses the adaptive (auto)covariance bandwidths cached in a `blup_fit`
-#' object. Called by `cv_blup_alpha()`; not intended to be used directly.
+#' object. Called by `select_tikhonov_parameter()`; not intended to be used directly.
 #'
 #' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
 #' @param opt_bw Cached (auto)covariance bandwidth matrix (`s`, `t`, `optbw_s`,

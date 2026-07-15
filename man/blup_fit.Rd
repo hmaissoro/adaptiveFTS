@@ -10,7 +10,7 @@ blup_fit(
   tcol = "tobs",
   ycol = "X",
   id_lag = NULL,
-  tikhonov_reg_param = 1e-06,
+  tikhonov = 1e-06,
   bw_grid = NULL,
   kernel_name = "epanechnikov",
   homoscedastic = TRUE,
@@ -57,8 +57,8 @@ Each curve index is repeated according to the number of observation points. If \
 \item{id_lag}{Integer id of the conditioning curve. Its successor is the
 curve to be predicted. Default \code{NULL} uses the last curve in \code{data}.}
 
-\item{tikhonov_reg_param}{Tikhonov regularisation parameter \eqn{\alpha}
-added to the variance matrix. Default \code{1e-6}.}
+\item{tikhonov}{Tikhonov regularisation parameter \eqn{\alpha} added to the
+variance matrix. Default \code{1e-6}.}
 
 \item{bw_grid}{Bandwidth grid for the adaptive mean/(auto)covariance risk.
 Default \code{NULL} sets a geometric grid from the data.}
