@@ -191,12 +191,12 @@ blup_fit_cpp <- function(data, id_lag, bw_grid, rho, homoscedastic, tikhonov, su
 #' @param homoscedastic Whether to use a constant noise variance.
 #' @param tikhonov Tikhonov regularisation parameter.
 #' @param t Prediction points.
-#' @param h Prediction horizon (steps ahead).
+#' @param horizon Prediction horizon (steps ahead).
 #' @param kernel_name Kernel name.
 #'
 #' @return A matrix with columns \code{t}, \code{muhat}, \code{prediction}.
 #' @keywords internal
-blup_predict_cpp <- function(data, opt_mean, opt_cov, opt_autocov, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, h, kernel_name) {
-    .Call(`_adaptiveFTS_blup_predict_cpp`, data, opt_mean, opt_cov, opt_autocov, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, h, kernel_name)
+blup_predict_cpp <- function(data, opt_mean, opt_cov, opt_autocov, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, horizon, kernel_name) {
+    .Call(`_adaptiveFTS_blup_predict_cpp`, data, opt_mean, opt_cov, opt_autocov, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, horizon, kernel_name)
 }
 

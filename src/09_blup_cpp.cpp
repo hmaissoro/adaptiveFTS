@@ -291,7 +291,7 @@ Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data,
 //' @param homoscedastic Whether to use a constant noise variance.
 //' @param tikhonov Tikhonov regularisation parameter.
 //' @param t Prediction points.
-//' @param h Prediction horizon (steps ahead).
+//' @param horizon Prediction horizon (steps ahead).
 //' @param kernel_name Kernel name.
 //'
 //' @return A matrix with columns \code{t}, \code{muhat}, \code{prediction}.
@@ -311,7 +311,7 @@ arma::mat blup_predict_cpp(const Rcpp::DataFrame data,
                            const bool homoscedastic,
                            const double tikhonov,
                            const arma::vec t,
-                           const int h,
+                           const int horizon,
                            const std::string kernel_name) {
   std::function<arma::vec(const arma::vec)> kfun = select_kernel(kernel_name);
   arma::vec tpred = arma::sort(arma::unique(t));
@@ -321,10 +321,10 @@ arma::mat blup_predict_cpp(const Rcpp::DataFrame data,
   arma::vec pred = blup_one_step(data, opt_mean, opt_autocov, kernel_name, tpred,
                                  Tn0, root_D, V, resid0, muhat_t);
 
-  if (h > 1) {
+  if (horizon > 1) {
     // Feed each predicted curve (on `tpred`) back as the new conditioning curve.
     arma::vec xprev = pred;
-    for (int step = 0; step < h - 1; ++step) {
+    for (int step = 0; step < horizon - 1; ++step) {
       arma::vec rho = compute_rho(tpred, is_common, density_bw, kfun);
       Cond c = condition(data, opt_mean, opt_cov, tpred, xprev, rho,
                          homoscedastic, tikhonov, kernel_name);

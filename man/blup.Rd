@@ -11,7 +11,7 @@ blup(
   ycol = "X",
   t = seq(0.01, 0.99, length.out = 99),
   id_lag = NULL,
-  h = 1L,
+  horizon = 1L,
   tikhonov_reg_param = 1e-06,
   bw_grid = NULL,
   kernel_name = "epanechnikov",
@@ -61,7 +61,7 @@ Each curve index is repeated according to the number of observation points. If \
 \item{id_lag}{Integer id of the conditioning curve. Its successor is the
 curve to be predicted. Default \code{NULL} uses the last curve in \code{data}.}
 
-\item{h}{Integer prediction horizon (steps ahead). Default \code{1}.}
+\item{horizon}{Integer prediction horizon (steps ahead). Default \code{1}.}
 
 \item{tikhonov_reg_param}{Tikhonov regularisation parameter \eqn{\alpha}
 added to the variance matrix. Default \code{1e-6}.}

@@ -234,10 +234,11 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @param newdata Optional numeric vector of conditioning-curve values at the
 #'   fit's design points (`object$Tn0`), overriding `object$Yn0`. Used internally
 #'   for the h-step recursion; must have length `object$Mn0`.
-#' @param h Integer prediction horizon (steps ahead). Default `1`. For `h > 1`,
-#'   each intermediate curve is predicted on the target grid `t` and fed back as
-#'   the new conditioning curve; the conditioning quantities are recomputed for
-#'   that grid using the cached adaptive bandwidths (works for both designs).
+#' @param horizon Integer prediction horizon (steps ahead). Default `1`. For
+#'   `horizon > 1`, each intermediate curve is predicted on the target grid `t`
+#'   and fed back as the new conditioning curve; the conditioning quantities are
+#'   recomputed for that grid using the cached adaptive bandwidths (works for
+#'   both designs).
 #' @param ... Unused; for S3 compatibility.
 #'
 #' @return A `data.table` with columns `t`, `muhat` (mean estimate) and
@@ -246,11 +247,11 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @seealso [blup_fit()].
 #' @export
 #' @import data.table
-predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, h = 1L, ...) {
+predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, horizon = 1L, ...) {
   if (!(methods::is(t, "numeric") && all(t >= 0 & t <= 1)))
     stop("'t' must be a numeric vector with values between 0 and 1.")
-  h <- as.integer(h)
-  if (h < 1L) stop("'h' must be a positive integer.")
+  horizon <- as.integer(horizon)
+  if (horizon < 1L) stop("'horizon' must be a positive integer.")
 
   Yn0 <- if (is.null(newdata)) object$Yn0 else as.numeric(newdata)
   if (length(Yn0) != object$Mn0)
@@ -265,7 +266,7 @@ predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, h = 1L, ...
     muhat_Tn0 = as.numeric(object$muhat_Tn0), V = object$V, root_D = object$root_Dn0,
     Yn0 = as.numeric(Yn0), density_bw = density_bw,
     is_common = object$is_common_design, homoscedastic = object$homoscedastic,
-    tikhonov = object$tikhonov_reg_param, t = as.numeric(t), h = h,
+    tikhonov = object$tikhonov_reg_param, t = as.numeric(t), horizon = horizon,
     kernel_name = object$kernel_name)
 
   data.table::data.table(t = out[, 1], muhat = out[, 2], prediction = out[, 3])
@@ -279,7 +280,7 @@ predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, h = 1L, ...
 #'
 #' @inheritParams blup_fit
 #' @param t Numeric vector of prediction points in \eqn{[0, 1]}.
-#' @param h Integer prediction horizon (steps ahead). Default `1`.
+#' @param horizon Integer prediction horizon (steps ahead). Default `1`.
 #'
 #' @return A `data.table` with columns `t`, `muhat` and `prediction`.
 #'
@@ -288,7 +289,7 @@ predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, h = 1L, ...
 #' @import data.table
 #' @importFrom stats predict
 blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                 t = seq(0.01, 0.99, length.out = 99), id_lag = NULL, h = 1L,
+                 t = seq(0.01, 0.99, length.out = 99), id_lag = NULL, horizon = 1L,
                  tikhonov_reg_param = 1e-6, bw_grid = NULL,
                  kernel_name = "epanechnikov", homoscedastic = TRUE,
                  density_bw = NULL, sub_grid_length = 10L) {
@@ -297,7 +298,7 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     tikhonov_reg_param = tikhonov_reg_param, bw_grid = bw_grid,
     kernel_name = kernel_name, homoscedastic = homoscedastic,
     density_bw = density_bw, sub_grid_length = sub_grid_length)
-  predict(fit, t = t, h = h)
+  predict(fit, t = t, horizon = horizon)
 }
 
 #' One-step-ahead cross-validation for the Tikhonov parameter

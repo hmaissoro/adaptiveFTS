@@ -489,8 +489,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // blup_predict_cpp
-arma::mat blup_predict_cpp(const Rcpp::DataFrame data, const arma::mat opt_mean, const arma::mat opt_cov, const arma::mat opt_autocov, const arma::vec Tn0, const arma::vec muhat_Tn0, const arma::mat V, const arma::mat root_D, const arma::vec Yn0, const double density_bw, const bool is_common, const bool homoscedastic, const double tikhonov, const arma::vec t, const int h, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_blup_predict_cpp(SEXP dataSEXP, SEXP opt_meanSEXP, SEXP opt_covSEXP, SEXP opt_autocovSEXP, SEXP Tn0SEXP, SEXP muhat_Tn0SEXP, SEXP VSEXP, SEXP root_DSEXP, SEXP Yn0SEXP, SEXP density_bwSEXP, SEXP is_commonSEXP, SEXP homoscedasticSEXP, SEXP tikhonovSEXP, SEXP tSEXP, SEXP hSEXP, SEXP kernel_nameSEXP) {
+arma::mat blup_predict_cpp(const Rcpp::DataFrame data, const arma::mat opt_mean, const arma::mat opt_cov, const arma::mat opt_autocov, const arma::vec Tn0, const arma::vec muhat_Tn0, const arma::mat V, const arma::mat root_D, const arma::vec Yn0, const double density_bw, const bool is_common, const bool homoscedastic, const double tikhonov, const arma::vec t, const int horizon, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_blup_predict_cpp(SEXP dataSEXP, SEXP opt_meanSEXP, SEXP opt_covSEXP, SEXP opt_autocovSEXP, SEXP Tn0SEXP, SEXP muhat_Tn0SEXP, SEXP VSEXP, SEXP root_DSEXP, SEXP Yn0SEXP, SEXP density_bwSEXP, SEXP is_commonSEXP, SEXP homoscedasticSEXP, SEXP tikhonovSEXP, SEXP tSEXP, SEXP horizonSEXP, SEXP kernel_nameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -508,9 +508,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool >::type homoscedastic(homoscedasticSEXP);
     Rcpp::traits::input_parameter< const double >::type tikhonov(tikhonovSEXP);
     Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
-    Rcpp::traits::input_parameter< const int >::type h(hSEXP);
+    Rcpp::traits::input_parameter< const int >::type horizon(horizonSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(blup_predict_cpp(data, opt_mean, opt_cov, opt_autocov, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, h, kernel_name));
+    rcpp_result_gen = Rcpp::wrap(blup_predict_cpp(data, opt_mean, opt_cov, opt_autocov, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, horizon, kernel_name));
     return rcpp_result_gen;
 END_RCPP
 }
