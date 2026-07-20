@@ -22,20 +22,22 @@ source("./R/10_density_estimator.R")
     all(vapply(design_by_curve$tobs_list, function(tt) identical(tt, reference_design), logical(1)))
 }
 
-# Import the data
+# Nearest PSD matrix: the kernel covariance estimate is not guaranteed PSD, which
+# would make the variance matrix indefinite for small Tikhonov parameters.
+.psd_project <- function(M) {
+    e <- eigen((M + t(M)) / 2, symmetric = TRUE)
+    P <- e$vectors %*% diag(pmax(e$values, 0)) %*% t(e$vectors)
+    (P + t(P)) / 2
+}
+
 data("data_far")
-
-
-# Prepare the data
 data_prepared <- adaptiveFTS::format_data(data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X")
 data_train <- data_prepared[-which(id_curve == 150)]
 data_test <- data_prepared[which(id_curve == 150)]
 rm(data_prepared)
 
-# Prediction points of the new curve X_{n_0 + 1}
 t0 <- data_test[, sort(unique(tobs))]
 
-# Set bandwidth grid for adaptive estimation of the mean and (auto)covariance functions
 is_common_design <- .is_common_design(data = data_train, idcol = "id_curve", tcol = "tobs")
 N <- data_train[, length(unique(id_curve))]
 lambdahat <- data_train[, .(Mn = .N), by = id_curve][, mean(Mn)]
@@ -45,7 +47,6 @@ bK <- 0.05
 a <- exp((log(bK) - log(b0)) / K)
 bw_grid_blup <- b0 * a ** (seq_len(K))
 
-# Adaptive BLUP for the new curve X_{n_0 + 1}
 predict_next_curve <- function(
     data = data_train, prediction_points = t0, tikhonov_reg_param = 1e-6,
     bw_grid = bw_grid_blup, kernel_name = "epanechnikov",
@@ -56,14 +57,12 @@ predict_next_curve <- function(
     Yn0 <- data[id_curve == n0][order(tobs), X]
     Mn0 <- length(Tn0)
 
-    # Compute the weights \rho_{n0,i} for i = 1, ..., M_{n0}
     is_common_design <- .is_common_design(data = data, idcol = "id_curve", tcol = "tobs")
 
     if (is_common_design) {
         rho <- rep(1 / Mn0, Mn0)
     } else {
-        # Select the design-density bandwidth once on a subset of curves, then
-        # reuse the exact same value for every estimate_density() call.
+        # Density bandwidth selected once and reused for every estimate_density() call.
         if (is.null(density_bw))
             density_bw <- get_density_optimal_bw(
                 data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
@@ -75,7 +74,6 @@ predict_next_curve <- function(
     }
     root_Dn0 <- diag(sqrt(rho))
 
-    # Set bandwidth grid : recall that we are in the common design case
     if (is.null(bw_grid)) {
         N <- data[, length(unique(id_curve))]
         lambdahat <- data[, .(Mn = .N), by = id_curve][, mean(Mn)]
@@ -86,19 +84,14 @@ predict_next_curve <- function(
         bw_grid <- b0 * a ** (seq_len(K))
     }
 
-    # Build estimation locations for the covariance and autocovariance functions
-    grid_cov <- expand.grid("s" = Tn0, "t" = Tn0)
-    grid_cov <- data.table::as.data.table(grid_cov)
-    grid_autocov <- expand.grid("s" = Tn0, "t" = prediction_points)
-    grid_autocov <- data.table::as.data.table(grid_autocov)
+    grid_cov <- data.table::as.data.table(expand.grid("s" = Tn0, "t" = Tn0))
+    grid_autocov <- data.table::as.data.table(expand.grid("s" = Tn0, "t" = prediction_points))
 
-    ## To reduce computation time, we estimate the (auto)covariance function 
-    ## on a sub-grid and then use nearest neighbor matching to find the optimal 
-    ## bandwidths for the full grid.
+    ## (Auto)covariance bandwidths are selected on a coarse sub-grid and matched
+    ## to the full grid by nearest neighbour, to reduce computation time.
     sub_grid_vec <- seq(0.05, 0.95, length.out = 10)
     sub_grid <- expand.grid("s" = sub_grid_vec, "t" = sub_grid_vec)
 
-    # Estimate the mean function at the prediction points
     dt_risk_mean <- adaptiveFTS::estimate_mean_risk(
         data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
         t = sub_grid_vec, bw_grid = bw_grid, kernel_name = kernel_name)
@@ -119,7 +112,6 @@ predict_next_curve <- function(
         kernel_name = kernel_name)
     muhat_prediction_points <- dt_muhat_prediction_points[order(t), muhat]
 
-    # Estimate the mean function at Tn0 points
     knn_Tn0 <- RANN::nn2(
         data = matrix(dt_optbw_mean$t, ncol = 1),
         query = matrix(Tn0, ncol = 1), k = 1
@@ -131,7 +123,6 @@ predict_next_curve <- function(
         kernel_name = kernel_name)
     muhat_Tn0 <- dt_muhat_Tn0[order(t), muhat]
 
-    ## Estimate coavariance risk function
     dt_risk_cov <- adaptiveFTS::estimate_autocov_risk(
         data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
         s = sub_grid$s, t = sub_grid$t, lag = 0, bw_grid = bw_grid,
@@ -142,7 +133,6 @@ predict_next_curve <- function(
         by = c("s", "t")
     ]
 
-    ## Estimate lag-1 autocovariance risk function
     dt_risk_autocov <- adaptiveFTS::estimate_autocov_risk(
         data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
         s = sub_grid$s, t = sub_grid$t, lag = 1, bw_grid = bw_grid,
@@ -155,18 +145,15 @@ predict_next_curve <- function(
 
     
 
-    ## Matching (auto)cov grid using RANN to find nearest neighbors
-    ## Covariance
+    ## Match the sub-grid optimal bandwidths to the full grid by nearest neighbour.
     knn_cov <- RANN::nn2(data = dt_optbw_cov[, 1:2], query = grid_cov[, 1:2], k = 1)
     grid_cov$optbw_s <- dt_optbw_cov$optbw_s[knn_cov$nn.idx]
     grid_cov$optbw_t <- dt_optbw_cov$optbw_t[knn_cov$nn.idx]
 
-    ## lag-1 Autocovariance
     knn_autocov <- RANN::nn2(data = dt_optbw_autocov[, 1:2], query = grid_autocov[, 1:2], k = 1)
     grid_autocov$optbw_s <- dt_optbw_autocov$optbw_s[knn_autocov$nn.idx]
     grid_autocov$optbw_t <- dt_optbw_autocov$optbw_t[knn_autocov$nn.idx]
 
-    ## Covariance
     dt_cov <- adaptiveFTS::estimate_autocov(
         data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
         s = grid_cov[, s], t = grid_cov[, t], lag = 0,
@@ -177,9 +164,8 @@ predict_next_curve <- function(
     dt_cov_dcast <- data.table::dcast(data = dt_cov[order(s,t)], formula = s ~ t, value.var = "autocov")
     c0hat <- as.matrix(dt_cov_dcast[, .SD, .SDcols = ! "s"])
     colnames(c0hat) <- NULL
-    c0hat <- (c0hat + t(c0hat)) / 2
+    c0hat <- .psd_project(c0hat)
 
-    ## lag-1 Autocovariance
     dt_autocov <- adaptiveFTS::estimate_autocov(
         data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
         s = grid_autocov[, s], t = grid_autocov[, t], lag = 1,
@@ -191,18 +177,13 @@ predict_next_curve <- function(
     c1hat <- as.matrix(dt_autocov_dcast[, .SD, .SDcols = ! "s"])
     colnames(c1hat) <- NULL
 
-    ## Estimate sigma^2, the error variance, at Tn0 points. If homoscedastic
-    ## (default) use a single constant, the median over Tn0; otherwise keep the
-    ## t-varying vector. The noise term is diag(sigma2 * rho) either way.
+    ## Homoscedastic (default): a single median sigma^2; otherwise the t-varying vector.
     sigma2 <- adaptiveFTS::estimate_sigma(
         data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", t = Tn0)[, sig ** 2]
     if (homoscedastic) sigma2 <- stats::median(sigma2, na.rm = TRUE)
 
-    ## Compute the BLUP
-    ### Build the variance matrix
     V <- root_Dn0 %*% c0hat %*% root_Dn0 + diag(sigma2 * rho) + tikhonov_reg_param * diag(Mn0)
 
-    ### Compute the blup
     Yn0_centred_weighted <- root_Dn0 %*% matrix(data = Yn0 - muhat_Tn0, ncol = 1)
     blup <- muhat_prediction_points + t(c1hat) %*% root_Dn0 %*% solve(V, Yn0_centred_weighted)
 
@@ -389,14 +370,11 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
     data_fit <- data[id_curve %in% fit_ids]
     is_common <- .is_common_design(data = data, idcol = "id_curve", tcol = "tobs")
 
-    ## Select the design-density bandwidth once on the initial training block and
-    ## reuse it for every estimate_density() call below (independent design only).
     if (!is_common && is.null(density_bw))
         density_bw <- get_density_optimal_bw(
             data = data_fit, idcol = "id_curve", tcol = "tobs", ycol = "X",
             kernel_name = kernel_name, lower = 0, upper = 1)
 
-    ## Estimate every alpha-free component once on the training block
     fit <- predict_next_curve(
         data = data_fit, prediction_points = data_fit[id_curve == max(fit_ids), sort(unique(tobs))],
         tikhonov_reg_param = 1e-6, bw_grid = bw_grid, kernel_name = kernel_name,
@@ -412,7 +390,6 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
 
         if (is_common) {
             root_Dn0 <- diag(sqrt(fit$rho))
-            ## Design weights of the held-out (target) curve for the validation loss
             rho_targ <- rep(1 / length(Y_targ), length(Y_targ))
             folds[[k]] <- list(
                 A0 = root_Dn0 %*% fit$c0hat %*% root_Dn0 + diag(fit$sigma2 * fit$rho),
@@ -423,17 +400,12 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
                 rho_targ = rho_targ,
                 Mn0 = length(fit$rho))
         } else {
-            ## Rolling origin: re-estimate the operators on every curve observed
-            ## up to the prediction origin (id_prev), i.e. the initial training
-            ## block grown with all earlier validation curves. Equivalent to the
-            ## rbind-growth scheme, expressed as a prefix of the sorted ids. The
-            ## bandwidths stay fixed at those selected once on the initial block
-            ## (cached in `fit`), so only the plug-in estimates are refreshed.
+            ## Rolling origin: refresh the plug-in estimates on all curves up to
+            ## id_prev, with the bandwidths held fixed at those cached in `fit`.
             data_roll <- data[id_curve <= id_prev]
             Tprev <- data[id_curve == id_prev, sort(unique(tobs))]
             Ttarg <- data[id_curve == id_targ, sort(unique(tobs))]
-            c0hat <- autocov_at(fit, data_roll, Tprev, Tprev, lag = 0, kernel_name)
-            c0hat <- (c0hat + t(c0hat)) / 2
+            c0hat <- .psd_project(autocov_at(fit, data_roll, Tprev, Tprev, lag = 0, kernel_name))
             c1hat <- autocov_at(fit, data_roll, Tprev, Ttarg, lag = 1, kernel_name)
             mu_prev <- mean_at(fit, data_roll, Tprev, kernel_name)
             mu_targ <- mean_at(fit, data_roll, Ttarg, kernel_name)
@@ -446,7 +418,6 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
             rho <- rho / sum(rho)
             root_Dn0 <- diag(sqrt(rho))
 
-            ## Design weights of the held-out (target) curve for the validation loss
             ghat_targ <- estimate_density(x = Ttarg, h = density_bw, kernel_name = kernel_name,
                                           lower = 0, upper = 1)$estimate
             rho_targ <- 1 / (length(Ttarg) * pmax(ghat_targ, 1e-6))
@@ -467,26 +438,20 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
         alpha_grid <- exp(seq(-5, 0, length.out = 25))
     }
 
-    ## Phase 2 : only the (A0 + alpha I)^{-1} step depends on alpha. A0 is
-    ## symmetric (root_Dn0 %*% c0hat %*% root_Dn0 + a diagonal), so eigendecompose
-    ## it once per fold, A0 = Q Lambda Q^T, and reuse it for every alpha:
-    ##   (A0 + alpha I)^{-1} resid = Q diag(1 / (lambda + alpha)) Q^T resid.
-    ## Each alpha then costs an O(M) rescale instead of an O(M^3) solve, and the
-    ## conditioning is explicit in (lambda + alpha).
+    ## Phase 2 : only (A0 + alpha I)^{-1} depends on alpha; eigendecompose A0 once
+    ## per fold and reuse it across the whole grid.
     cv_matrix <- matrix(NA_real_, nrow = n_val, ncol = length(alpha_grid))
     for (k in seq_len(n_val)) {
         f <- folds[[k]]
         eg <- eigen(f$A0, symmetric = TRUE)
-        lambda <- eg$values
-        z <- as.vector(crossprod(eg$vectors, f$resid))   # Q^T resid
-        W <- f$C1rD %*% eg$vectors                        # C1rD Q, reused across alpha
+        lambda <- pmax(eg$values, 0)
+        z <- as.vector(crossprod(eg$vectors, f$resid))
+        W <- f$C1rD %*% eg$vectors
         for (l in seq_along(alpha_grid)) {
             pred <- tryCatch(
                 f$mu_pred + as.vector(W %*% (z / (lambda + alpha_grid[l]))),
                 error = function(e) rep(NA_real_, length(f$Y_targ)))
-            ## Design-weighted validation loss: sum_i varrho_{n,i} (Y_{n,i} - Xhat_i)^2.
-            ## Common design collapses to the plain MSE; independent design applies
-            ## the importance-sampling correction so the score targets the L^2(I) risk.
+            ## Design-weighted validation loss.
             cv_matrix[k, l] <- sum(f$rho_targ * (f$Y_targ - pred) ^ 2)
         }
     }
@@ -510,50 +475,50 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
 ## =============================================================================
 ## Example
 ## =============================================================================
-if (FALSE) {
 
-    cv <- cv_alpha_blup(
-        data = data_train,
-        alpha_grid = exp(seq(0.3, 1, length.out = 25)),
-        n_val = 30L,
-        bw_grid = bw_grid_blup
-    )
-    cv$alpha_star
+cv <- cv_alpha_blup(
+    data = data_train,
+    alpha_grid = exp(seq(0.3, 1, length.out = 25)),
+    n_val = 30L,
+    bw_grid = bw_grid_blup
+)
+cv$alpha_star
 
-    dt_cv <- data.table::data.table(alpha = cv$alpha_grid, cv = cv$cv_curve)
-    ggplot(dt_cv, aes(x = alpha, y = cv)) +
-        geom_line() + geom_point() +
-        geom_vline(xintercept = cv$alpha_star, linetype = 2, colour = "red") +
-        scale_x_log10() +
-        labs(x = expression(alpha), y = expression(CV(alpha)),
-             title = "Holdout CV for the Tikhonov parameter") +
-        theme_minimal()
 
-    fit <- predict_next_curve(
-        data = data_train, prediction_points = t0,
-        tikhonov_reg_param = cv$alpha_star, bw_grid = bw_grid_blup)
+dt_cv <- data.table::data.table(alpha = cv$alpha_grid, cv = cv$cv_curve)
+ggplot(dt_cv, aes(x = alpha, y = cv)) +
+    geom_line() + geom_point() +
+    geom_vline(xintercept = cv$alpha_star, linetype = 2, colour = "red") +
+    scale_x_log10() +
+    labs(x = expression(alpha), y = expression(CV(alpha)),
+            title = "Holdout CV for the Tikhonov parameter") +
+    theme_minimal()
 
-    dt_blup_cv <- merge(
-        data_test[, .(tobs, X)], fit$blup, by.x = "tobs", by.y = "t", all.x = TRUE
-    )
+fit <- predict_next_curve(
+    data = data_train, prediction_points = t0,
+    tikhonov_reg_param = cv$alpha_star, bw_grid = bw_grid_blup)
 
-    dt_graph_cv <- rbind(
-        dt_blup_cv[, .("t" = tobs, "Quantity" = "blup", value = blup)],
-        dt_blup_cv[, .("t" = tobs, "Quantity" = "Xtrue", value = X)]
-    )
+dt_blup_cv <- merge(
+    data_test[, .(tobs, X)], fit$blup, by.x = "tobs", by.y = "t", all.x = TRUE
+)
 
-    ggplot(data = dt_graph_cv,
-           mapping = aes(x = t, y = value, group = Quantity, colour = Quantity)) +
-        geom_line() +
-        xlab("t") +
-        theme_minimal() +
-        theme(plot.title = element_text(size = 12, hjust = 0.5, vjust = 0),
-              axis.title = element_text(size = 12),
-              axis.title.x = element_text(size = 12, margin = margin(t = 10, r = 0, b = 0, l = 0)),
-              axis.text.x = element_text(size = 10),
-              axis.text.y = element_text(size = 10),
-              legend.text = element_text(size = 10),
-              legend.title = element_text(size = 10),
-              legend.key.width = unit(0.8, 'cm'),
-              legend.position = "top")
-}
+dt_graph_cv <- rbind(
+    dt_blup_cv[, .("t" = tobs, "Quantity" = "blup", value = blup)],
+    dt_blup_cv[, .("t" = tobs, "Quantity" = "Xtrue", value = X)]
+)
+
+ggplot(data = dt_graph_cv,
+        mapping = aes(x = t, y = value, group = Quantity, colour = Quantity)) +
+    geom_line() +
+    xlab("t") +
+    theme_minimal() +
+    theme(plot.title = element_text(size = 12, hjust = 0.5, vjust = 0),
+            axis.title = element_text(size = 12),
+            axis.title.x = element_text(size = 12, margin = margin(t = 10, r = 0, b = 0, l = 0)),
+            axis.text.x = element_text(size = 10),
+            axis.text.y = element_text(size = 10),
+            legend.text = element_text(size = 10),
+            legend.title = element_text(size = 10),
+            legend.key.width = unit(0.8, 'cm'),
+            legend.position = "top")
+
