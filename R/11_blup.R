@@ -1,20 +1,7 @@
-## =============================================================================
-## Adaptive functional BLUP: fit / predict engine
-##
-## `blup_fit()` estimates every component that does not depend on the
-## prediction points (the design-weighted covariance operator of the
-## conditioning curve, its mean, the noise level, the design weights, the
-## adaptive bandwidths and the regularised variance matrix) and returns a
-## `blup_fit` object. `predict.blup_fit()` then evaluates the one-step-ahead
-## adaptive BLUP at arbitrary prediction points, and loops for h-step-ahead
-## prediction by feeding each predicted curve back as the new conditioning
-## curve. The split mirrors `stats::lm()` / `stats::predict()`.
-##
-## The method is the design-weighted, Tikhonov-regularised adaptive BLUP of
-## Maissoro, Patilea and Vimond: it conditions on the previous curve only
-## (single lag-1 block). The internal covariance assembly is kept separable so
-## the multi-lag generalisation can be added later without a rewrite.
-## =============================================================================
+## Adaptive functional BLUP: fit / predict engine. The design-weighted,
+## Tikhonov-regularised BLUP conditions on the previous curve only (single lag-1
+## block); the covariance assembly is kept separable so the multi-lag case can be
+## added later without a rewrite.
 
 #' Check whether all curves share the same observation design
 #'
@@ -116,9 +103,8 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     bw_grid <- b0 * a ** (seq_len(K))
   }
 
-  # C++ core: bandwidth selection, mean, C0, noise and the regularised matrix V.
-  # The cached adaptive-bandwidth matrices (opt_mean/opt_cov/opt_autocov) are
-  # reused by both the C++ predict and cv_blup_alpha via blup_*_at_cpp.
+  # opt_mean/opt_cov/opt_autocov are reused by predict and by
+  # select_tikhonov_parameter through blup_*_at_cpp.
   cpp <- blup_fit_cpp(
     data = data, id_lag = as.integer(n0), bw_grid = as.numeric(bw_grid),
     rho = rho, homoscedastic = homoscedastic,
@@ -314,19 +300,17 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
   data_fit <- data[id_curve %in% fit_ids]
   is_common <- .is_common_design(data = data, idcol = "id_curve", tcol = "tobs")
 
-  # Select the design-density bandwidth once on the initial training block.
   if (!is_common && is.null(density_bw))
     density_bw <- get_density_optimal_bw(
       data = data_fit, idcol = "id_curve", tcol = "tobs", ycol = "X",
       kernel_name = kernel_name, lower = 0, upper = 1)
 
-  # Estimate every Tikhonov-free component once on the training block.
   fit <- blup_fit(
     data = data_fit, id_lag = max(fit_ids), tikhonov = 1e-6,
     bw_grid = bw_grid, kernel_name = kernel_name, homoscedastic = homoscedastic,
     density_bw = density_bw)
 
-  # Common-design invariants (the operators do not change across folds).
+  # Common design: the operators are constant across folds.
   if (is_common) {
     Tn0 <- fit$Tn0
     c1_common <- blup_autocov_at_cpp(data_fit, fit$opt_autocov, Tn0, Tn0, 1L, FALSE, kernel_name)

@@ -21,3 +21,6 @@ inst/doc
 # *.rds on case-insensitive filesystems such as Windows).
 !tests/testthat/_refs/
 !tests/testthat/_refs/*.rds
+
+# stray plotting artifact
+Rplots.pdf
