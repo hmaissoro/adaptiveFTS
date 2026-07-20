@@ -38,7 +38,7 @@ bw_grid_blup <- b0 * exp((log(bK) - log(b0)) / K) ** seq_len(K)
 set.seed(1)
 h_density <- get_density_optimal_bw(data = data_train, nsubset = 30L)
 ghat <- estimate_density(x = t0, h = h_density)$estimate
-
+plot(t0, ghat, type = "l", main = "Estimated design density", xlab = "t", ylab = "g(t)")
 ## ---- One-step-ahead prediction ------------------------------------------
 fit <- blup_fit(data = data_train, bw_grid = bw_grid_blup,
                 density_bw = h_density, kernel_name = "epanechnikov")
@@ -94,4 +94,15 @@ if (FALSE) {
   ## Refit with the selected parameter and predict.
   fit_cv <- blup_fit(data = data_train, tikhonov = cv$tikhonov_star, bw_grid = bw_grid_blup)
   pred_cv <- predict(fit_cv, t = t0)
+  
+  dt_cmp_cv <- merge(data_test[, .(t = tobs, Xtrue = X)], pred_cv[, .(t, prediction)], by = "t")
+  ggplot(dt_cmp_cv, aes(x = t)) +
+    geom_line(aes(y = prediction, colour = "prediction")) +
+    geom_line(aes(y = Xtrue, colour = "Xtrue")) +
+    theme_minimal() +
+    theme(legend.position = "top") +
+    labs(x = "t", y = NULL, colour = NULL,
+         title = "Adaptive BLUP: one-step-ahead prediction with CV-selected Tikhonov")
+
+  
 }

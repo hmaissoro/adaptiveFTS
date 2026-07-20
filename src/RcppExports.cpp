@@ -470,6 +470,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// psd_project_cpp
+arma::mat psd_project_cpp(const arma::mat M);
+RcppExport SEXP _adaptiveFTS_psd_project_cpp(SEXP MSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::mat >::type M(MSEXP);
+    rcpp_result_gen = Rcpp::wrap(psd_project_cpp(M));
+    return rcpp_result_gen;
+END_RCPP
+}
 // blup_mean_at_cpp
 arma::vec blup_mean_at_cpp(const Rcpp::DataFrame data, const arma::mat opt_mean, const arma::vec t, const std::string kernel_name);
 RcppExport SEXP _adaptiveFTS_blup_mean_at_cpp(SEXP dataSEXP, SEXP opt_meanSEXP, SEXP tSEXP, SEXP kernel_nameSEXP) {
@@ -580,6 +591,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_get_nearest_best_mean_bw", (DL_FUNC) &_adaptiveFTS_get_nearest_best_mean_bw, 2},
     {"_adaptiveFTS_ensure_positive_definite", (DL_FUNC) &_adaptiveFTS_ensure_positive_definite, 2},
     {"_adaptiveFTS_estimate_curve_cpp", (DL_FUNC) &_adaptiveFTS_estimate_curve_cpp, 8},
+    {"_adaptiveFTS_psd_project_cpp", (DL_FUNC) &_adaptiveFTS_psd_project_cpp, 1},
     {"_adaptiveFTS_blup_mean_at_cpp", (DL_FUNC) &_adaptiveFTS_blup_mean_at_cpp, 4},
     {"_adaptiveFTS_blup_autocov_at_cpp", (DL_FUNC) &_adaptiveFTS_blup_autocov_at_cpp, 7},
     {"_adaptiveFTS_blup_fit_cpp", (DL_FUNC) &_adaptiveFTS_blup_fit_cpp, 8},

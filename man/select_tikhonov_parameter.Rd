@@ -58,7 +58,7 @@ Each curve index is repeated according to the number of observation points. If \
 cross-validation) is available.}
 
 \item{tikhonov_grid}{Candidate values. If \code{NULL}, a 25-point grid
-\eqn{\{e^{-5}, \ldots, e^0\}} is used.}
+\eqn{\{e^{-5}, \ldots, e^3\}} is used.}
 
 \item{n_val}{Number of trailing curves used for one-step-ahead validation.}
 
