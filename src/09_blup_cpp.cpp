@@ -155,6 +155,19 @@ double median_finite(const arma::vec& v) {
   return med;
 }
 
+// Nearest PSD matrix: symmetrise and floor the eigenvalues at zero. The kernel
+// covariance estimate C0 is not guaranteed PSD; without this the regularised
+// system A0 + tikhonov*I stays indefinite for small tikhonov.
+arma::mat psd_project(const arma::mat& M) {
+  arma::vec eval;
+  arma::mat evec;
+  arma::eig_sym(eval, evec, 0.5 * (M + M.t()));
+  eval = arma::clamp(eval, 0.0, arma::datum::inf);
+  arma::mat out = evec * arma::diagmat(eval) * evec.t();
+  out = 0.5 * (out + out.t());
+  return out;
+}
+
 struct Cond {
   arma::vec muhat;    // mean at the design
   arma::mat c0;       // symmetrised covariance
@@ -173,7 +186,7 @@ Cond condition(const DataFrame& data, const arma::mat& opt_mean, const arma::mat
   c.root_D = arma::diagmat(arma::sqrt(rho));
   c.muhat = mean_at(data, opt_mean, Td, kernel);
   arma::mat c0 = autocov_at(data, opt_cov, Td, Td, 0, true, kernel);
-  c.c0 = 0.5 * (c0 + c0.t());
+  c.c0 = psd_project(c0);
   arma::vec sig2 = arma::square(estimate_sigma_cpp(data, Td).col(1));
   arma::vec noise;
   if (homoscedastic) {
@@ -204,6 +217,20 @@ arma::vec blup_one_step(const DataFrame& data, const arma::mat& opt_mean,
 }
 
 } // anonymous namespace
+
+//' Project a matrix onto the PSD cone (C++ core)
+//'
+//' Symmetrises `M` and floors its eigenvalues at zero. Called by
+//' `select_tikhonov_parameter()`; not intended to be used directly.
+//'
+//' @param M A numeric matrix.
+//' @return The nearest positive-semidefinite matrix.
+//' @keywords internal
+// [[Rcpp::export]]
+arma::mat psd_project_cpp(const arma::mat M) {
+  arma::mat out = psd_project(M);
+  return out;
+}
 
 //' Mean at new locations using cached bandwidths (C++ core)
 //'

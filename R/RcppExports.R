@@ -151,6 +151,18 @@ estimate_curve_cpp <- function(data, t, id_curve = NULL, bw_grid = NULL, use_sam
     .Call(`_adaptiveFTS_estimate_curve_cpp`, data, t, id_curve, bw_grid, use_same_bw, center, correct_diagonal, kernel_name)
 }
 
+#' Project a matrix onto the PSD cone (C++ core)
+#'
+#' Symmetrises `M` and floors its eigenvalues at zero. Called by
+#' `select_tikhonov_parameter()`; not intended to be used directly.
+#'
+#' @param M A numeric matrix.
+#' @return The nearest positive-semidefinite matrix.
+#' @keywords internal
+psd_project_cpp <- function(M) {
+    .Call(`_adaptiveFTS_psd_project_cpp`, M)
+}
+
 #' Mean at new locations using cached bandwidths (C++ core)
 #'
 #' Reuses the adaptive mean bandwidths cached in a `blup_fit` object. Called by

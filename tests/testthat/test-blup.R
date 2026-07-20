@@ -45,12 +45,10 @@ test_that("blup_fit returns a well-formed object", {
   M <- fit$Mn0
   expect_equal(dim(fit$V), c(M, M))
   expect_equal(dim(fit$c0hat), c(M, M))
-  # V is symmetric (root_D C0 root_D + noise + tikhonov I); it is finite and its
-  # diagonal is positive (noise + regularisation), though not necessarily PD at
-  # the default tiny Tikhonov parameter on a small sample.
+  # V is symmetric positive-definite: C0 is projected onto the PSD cone, so
+  # V = D half %*% C0 %*% D half + noise + tikhonov I is PD.
   expect_equal(fit$V, t(fit$V), tolerance = 1e-10)
-  expect_true(all(is.finite(fit$V)))
-  expect_true(all(diag(fit$V) > 0))
+  expect_true(all(eigen(fit$V, symmetric = TRUE, only.values = TRUE)$values > 0))
   # design weights sum to one
   expect_equal(sum(fit$rho), 1, tolerance = 1e-10)
 })

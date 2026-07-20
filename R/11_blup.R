@@ -280,7 +280,7 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @param method Selection method. Currently only `"cv"` (one-step-ahead
 #'   cross-validation) is available.
 #' @param tikhonov_grid Candidate values. If `NULL`, a 25-point grid
-#'   \eqn{\{e^{-5}, \ldots, e^0\}} is used.
+#'   \eqn{\{e^{-5}, \ldots, e^3\}} is used.
 #' @param n_val Number of trailing curves used for one-step-ahead validation.
 #'
 #' @return A list with:
@@ -354,7 +354,7 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
       Tprev <- data[id_curve == id_prev, sort(unique(tobs))]
       Ttarg <- data[id_curve == id_targ, sort(unique(tobs))]
       c0 <- blup_autocov_at_cpp(data_roll, fit$opt_cov, Tprev, Tprev, 0L, TRUE, kernel_name)
-      c0 <- (c0 + t(c0)) / 2
+      c0 <- psd_project_cpp(c0)
       c1 <- blup_autocov_at_cpp(data_roll, fit$opt_autocov, Tprev, Ttarg, 1L, FALSE, kernel_name)
       mu_prev <- blup_mean_at_cpp(data_roll, fit$opt_mean, Tprev, kernel_name)
       mu_targ <- blup_mean_at_cpp(data_roll, fit$opt_mean, Ttarg, kernel_name)
@@ -377,7 +377,7 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
     }
   }
 
-  if (is.null(tikhonov_grid)) tikhonov_grid <- exp(seq(-5, 0, length.out = 25))
+  if (is.null(tikhonov_grid)) tikhonov_grid <- exp(seq(-5, 3, length.out = 25))
 
   ## Phase 2: only the (A0 + tikhonov * I)^{-1} step depends on the Tikhonov
   ## parameter; A0 is symmetric, so eigendecompose once per fold and reuse it
