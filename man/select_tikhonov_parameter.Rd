@@ -11,7 +11,7 @@ select_tikhonov_parameter(
   ycol = "X",
   method = c("cv"),
   tikhonov_grid = NULL,
-  n_val = 30L,
+  n_cv_tikhonov = 30L,
   bw_grid = NULL,
   kernel_name = "epanechnikov",
   homoscedastic = TRUE,
@@ -60,7 +60,7 @@ cross-validation) is available.}
 \item{tikhonov_grid}{Candidate values. If \code{NULL}, a 25-point grid
 \eqn{\{e^{-5}, \ldots, e^3\}} is used.}
 
-\item{n_val}{Number of trailing curves used for one-step-ahead validation.}
+\item{n_cv_tikhonov}{Number of trailing curves used for one-step-ahead validation.}
 
 \item{bw_grid}{Bandwidth grid for the adaptive mean/(auto)covariance risk.
 Default \code{NULL} sets a geometric grid from the data.}
@@ -90,7 +90,7 @@ BLUP. Currently only \code{method = "cv"} is implemented, a one-step-ahead
 cross-validation.
 }
 \details{
-Each of the last \code{n_val} curves is predicted from its immediate predecessor
+Each of the last \code{n_cv_tikhonov} curves is predicted from its immediate predecessor
 and scored by the design-weighted squared prediction error at its observation
 points, \eqn{\sum_i \varrho_{n,i}\,(Y_{n,i} - \widehat X_n(T_{n,i};\alpha))^2},
 where \eqn{\varrho_{n,i}} is the design weight of the held-out (target) curve.

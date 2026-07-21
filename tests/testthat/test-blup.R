@@ -87,16 +87,16 @@ test_that("predict.blup_fit handles t, newdata and h, and validates them", {
   expect_error(predict(fit, newdata = c(1, 2, 3)), "length equal")
 })
 
-test_that("blup() equals predict(blup_fit()) and cv_blup_alpha validates n_val", {
+test_that("blup() equals predict(blup_fit()) and cv_blup_alpha validates n_cv_tikhonov", {
   dt <- fixture_data_far(12L)
   bwg <- seq(0.05, 0.2, length.out = 6)
   tt <- c(0.3, 0.6)
   fit <- blup_fit(dt, bw_grid = bwg)
   expect_equal(blup(dt, t = tt, bw_grid = bwg), predict(fit, t = tt), tolerance = 1e-10)
 
-  expect_error(select_tikhonov_parameter(dt, n_val = 100L), "smaller than the number")
+  expect_error(select_tikhonov_parameter(dt, n_cv_tikhonov = 100L), "smaller than the number")
   cv <- suppressWarnings(select_tikhonov_parameter(
-    dt, tikhonov_grid = exp(seq(-2, 0, length.out = 6)), n_val = 3L, bw_grid = bwg))
+    dt, tikhonov_grid = exp(seq(-2, 0, length.out = 6)), n_cv_tikhonov = 3L, bw_grid = bwg))
   expect_true(all(c("tikhonov_star", "cv_curve", "cv_matrix", "val_ids") %in% names(cv)))
   expect_length(cv$cv_curve, 6L)
   expect_equal(dim(cv$cv_matrix), c(3L, 6L))

@@ -17,7 +17,7 @@ blup(
   kernel_name = "epanechnikov",
   homoscedastic = TRUE,
   density_bw = NULL,
-  sub_grid_length = 10L
+  n_subgrid_bw = 10L
 )
 }
 \arguments{
@@ -78,7 +78,7 @@ the pointwise estimates) is used; otherwise the t-varying estimates.}
 \code{estimate_density} call (independent design only). Default \code{NULL} selects it
 once via \code{\link[=get_density_optimal_bw]{get_density_optimal_bw()}}.}
 
-\item{sub_grid_length}{Number of points per axis of the coarse sub-grid on
+\item{n_subgrid_bw}{Number of points per axis of the coarse sub-grid on
 which the adaptive bandwidths are selected. Default \code{10}.}
 }
 \value{
