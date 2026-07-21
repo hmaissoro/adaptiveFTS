@@ -40,7 +40,7 @@
 #' @param density_bw Optional fixed design-density bandwidth reused for every
 #'   `estimate_density` call (independent design only). Default `NULL` selects it
 #'   once via [get_density_optimal_bw()].
-#' @param sub_grid_length Number of points per axis of the coarse sub-grid on
+#' @param n_subgrid_bw Number of points per axis of the coarse sub-grid on
 #'   which the adaptive bandwidths are selected. Default `10`.
 #'
 #' @return An object of class `blup_fit`: a list whose main elements are:
@@ -65,7 +65,7 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                      id_lag = NULL, tikhonov = 1e-6,
                      bw_grid = NULL, kernel_name = "epanechnikov",
                      homoscedastic = TRUE, density_bw = NULL,
-                     sub_grid_length = 10L) {
+                     n_subgrid_bw = 10L) {
 
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   kernel_name <- match.arg(
@@ -108,7 +108,7 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   cpp <- blup_fit_cpp(
     data = data, id_lag = as.integer(n0), bw_grid = as.numeric(bw_grid),
     rho = rho, homoscedastic = homoscedastic,
-    tikhonov = tikhonov, sub_grid_length = as.integer(sub_grid_length),
+    tikhonov = tikhonov, n_subgrid_bw = as.integer(n_subgrid_bw),
     kernel_name = kernel_name)
 
   return(structure(
@@ -229,12 +229,12 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                  t = seq(0.01, 0.99, length.out = 99), id_lag = NULL, horizon = 1L,
                  tikhonov = 1e-6, bw_grid = NULL,
                  kernel_name = "epanechnikov", homoscedastic = TRUE,
-                 density_bw = NULL, sub_grid_length = 10L) {
+                 density_bw = NULL, n_subgrid_bw = 10L) {
   fit <- blup_fit(
     data = data, idcol = idcol, tcol = tcol, ycol = ycol, id_lag = id_lag,
     tikhonov = tikhonov, bw_grid = bw_grid,
     kernel_name = kernel_name, homoscedastic = homoscedastic,
-    density_bw = density_bw, sub_grid_length = sub_grid_length)
+    density_bw = density_bw, n_subgrid_bw = n_subgrid_bw)
   return(predict(fit, t = t, horizon = horizon))
 }
 
@@ -245,7 +245,7 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' cross-validation.
 #'
 #' @details
-#' Each of the last `n_val` curves is predicted from its immediate predecessor
+#' Each of the last `n_cv_tikhonov` curves is predicted from its immediate predecessor
 #' and scored by the design-weighted squared prediction error at its observation
 #' points, \eqn{\sum_i \varrho_{n,i}\,(Y_{n,i} - \widehat X_n(T_{n,i};\alpha))^2},
 #' where \eqn{\varrho_{n,i}} is the design weight of the held-out (target) curve.
@@ -267,7 +267,7 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #'   cross-validation) is available.
 #' @param tikhonov_grid Candidate values. If `NULL`, a 25-point grid
 #'   \eqn{\{e^{-5}, \ldots, e^3\}} is used.
-#' @param n_val Number of trailing curves used for one-step-ahead validation.
+#' @param n_cv_tikhonov Number of trailing curves used for one-step-ahead validation.
 #'
 #' @return A list with:
 #'   \itemize{
@@ -282,7 +282,7 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @export
 #' @import data.table
 select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                                      method = c("cv"), tikhonov_grid = NULL, n_val = 30L,
+                                      method = c("cv"), tikhonov_grid = NULL, n_cv_tikhonov = 30L,
                                       bw_grid = NULL, kernel_name = "epanechnikov",
                                       homoscedastic = TRUE, density_bw = NULL) {
   method <- match.arg(method)
@@ -294,9 +294,9 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
 
   ids <- data[, sort(unique(id_curve))]
   n <- length(ids)
-  if (n_val >= n) stop("'n_val' must be smaller than the number of curves.")
-  fit_ids <- ids[seq_len(n - n_val)]
-  val_pos <- (n - n_val + 1L):n
+  if (n_cv_tikhonov >= n) stop("'n_cv_tikhonov' must be smaller than the number of curves.")
+  fit_ids <- ids[seq_len(n - n_cv_tikhonov)]
+  val_pos <- (n - n_cv_tikhonov + 1L):n
   data_fit <- data[id_curve %in% fit_ids]
   is_common <- .is_common_design(data = data, idcol = "id_curve", tcol = "tobs")
 
@@ -319,8 +319,8 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
   }
 
   ## Phase 1: assemble the Tikhonov-free pieces for each validation curve.
-  folds <- vector("list", n_val)
-  for (k in seq_len(n_val)) {
+  folds <- vector("list", n_cv_tikhonov)
+  for (k in seq_len(n_cv_tikhonov)) {
     id_targ <- ids[val_pos[k]]
     id_prev <- ids[val_pos[k] - 1L]
     Y_prev <- data[id_curve == id_prev][order(tobs), X]
@@ -366,8 +366,8 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
   ## Phase 2: only the (A0 + tikhonov * I)^{-1} step depends on the Tikhonov
   ## parameter; A0 is symmetric, so eigendecompose once per fold and reuse it
   ## across the whole grid.
-  cv_matrix <- matrix(NA_real_, nrow = n_val, ncol = length(tikhonov_grid))
-  for (k in seq_len(n_val)) {
+  cv_matrix <- matrix(NA_real_, nrow = n_cv_tikhonov, ncol = length(tikhonov_grid))
+  for (k in seq_len(n_cv_tikhonov)) {
     f <- folds[[k]]
     eg <- eigen(f$A0, symmetric = TRUE)
     lambda <- eg$values

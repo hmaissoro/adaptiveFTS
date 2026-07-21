@@ -208,14 +208,14 @@ blup_autocov_at_cpp <- function(data, opt_bw, s, t, lag, correct_diagonal, kerne
 #' @param rho Design weights of the conditioning curve.
 #' @param homoscedastic Whether to use a constant noise variance.
 #' @param tikhonov Tikhonov regularisation parameter.
-#' @param sub_grid_length Number of points per axis of the bandwidth sub-grid.
+#' @param n_subgrid_bw Number of points per axis of the bandwidth sub-grid.
 #' @param kernel_name Kernel name.
 #'
 #' @return A list with the cached bandwidths, the covariance operator, the
 #'   mean, the noise level, the regularised variance matrix and the residual.
 #' @keywords internal
-blup_fit_cpp <- function(data, id_lag, bw_grid, rho, homoscedastic, tikhonov, sub_grid_length, kernel_name) {
-    .Call(`_adaptiveFTS_blup_fit_cpp`, data, id_lag, bw_grid, rho, homoscedastic, tikhonov, sub_grid_length, kernel_name)
+blup_fit_cpp <- function(data, id_lag, bw_grid, rho, homoscedastic, tikhonov, n_subgrid_bw, kernel_name) {
+    .Call(`_adaptiveFTS_blup_fit_cpp`, data, id_lag, bw_grid, rho, homoscedastic, tikhonov, n_subgrid_bw, kernel_name)
 }
 
 #' Predict with the adaptive functional BLUP (C++ core)

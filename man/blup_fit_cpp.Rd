@@ -11,7 +11,7 @@ blup_fit_cpp(
   rho,
   homoscedastic,
   tikhonov,
-  sub_grid_length,
+  n_subgrid_bw,
   kernel_name
 )
 }
@@ -28,7 +28,7 @@ blup_fit_cpp(
 
 \item{tikhonov}{Tikhonov regularisation parameter.}
 
-\item{sub_grid_length}{Number of points per axis of the bandwidth sub-grid.}
+\item{n_subgrid_bw}{Number of points per axis of the bandwidth sub-grid.}
 
 \item{kernel_name}{Kernel name.}
 }

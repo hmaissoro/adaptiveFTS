@@ -513,8 +513,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // blup_fit_cpp
-Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data, const int id_lag, const arma::vec bw_grid, const arma::vec rho, const bool homoscedastic, const double tikhonov, const int sub_grid_length, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_blup_fit_cpp(SEXP dataSEXP, SEXP id_lagSEXP, SEXP bw_gridSEXP, SEXP rhoSEXP, SEXP homoscedasticSEXP, SEXP tikhonovSEXP, SEXP sub_grid_lengthSEXP, SEXP kernel_nameSEXP) {
+Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data, const int id_lag, const arma::vec bw_grid, const arma::vec rho, const bool homoscedastic, const double tikhonov, const int n_subgrid_bw, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_blup_fit_cpp(SEXP dataSEXP, SEXP id_lagSEXP, SEXP bw_gridSEXP, SEXP rhoSEXP, SEXP homoscedasticSEXP, SEXP tikhonovSEXP, SEXP n_subgrid_bwSEXP, SEXP kernel_nameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -524,9 +524,9 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec >::type rho(rhoSEXP);
     Rcpp::traits::input_parameter< const bool >::type homoscedastic(homoscedasticSEXP);
     Rcpp::traits::input_parameter< const double >::type tikhonov(tikhonovSEXP);
-    Rcpp::traits::input_parameter< const int >::type sub_grid_length(sub_grid_lengthSEXP);
+    Rcpp::traits::input_parameter< const int >::type n_subgrid_bw(n_subgrid_bwSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(blup_fit_cpp(data, id_lag, bw_grid, rho, homoscedastic, tikhonov, sub_grid_length, kernel_name));
+    rcpp_result_gen = Rcpp::wrap(blup_fit_cpp(data, id_lag, bw_grid, rho, homoscedastic, tikhonov, n_subgrid_bw, kernel_name));
     return rcpp_result_gen;
 END_RCPP
 }

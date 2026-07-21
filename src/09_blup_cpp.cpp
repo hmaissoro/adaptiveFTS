@@ -284,7 +284,7 @@ arma::mat blup_autocov_at_cpp(const Rcpp::DataFrame data, const arma::mat opt_bw
 //' @param rho Design weights of the conditioning curve.
 //' @param homoscedastic Whether to use a constant noise variance.
 //' @param tikhonov Tikhonov regularisation parameter.
-//' @param sub_grid_length Number of points per axis of the bandwidth sub-grid.
+//' @param n_subgrid_bw Number of points per axis of the bandwidth sub-grid.
 //' @param kernel_name Kernel name.
 //'
 //' @return A list with the cached bandwidths, the covariance operator, the
@@ -297,7 +297,7 @@ Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data,
                         const arma::vec rho,
                         const bool homoscedastic,
                         const double tikhonov,
-                        const int sub_grid_length,
+                        const int n_subgrid_bw,
                         const std::string kernel_name) {
   arma::mat data_mat(data.nrows(), 3);
   data_mat.col(0) = as<arma::vec>(data["id_curve"]);
@@ -312,7 +312,7 @@ Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data,
   arma::uvec ord = arma::sort_index(Traw);
   arma::vec Yn0 = Yraw.elem(ord);
 
-  arma::vec sub_vec = arma::linspace(0.05, 0.95, sub_grid_length);
+  arma::vec sub_vec = arma::linspace(0.05, 0.95, n_subgrid_bw);
   arma::uword ng = sub_vec.n_elem;
   arma::vec gs(ng * ng), gt(ng * ng);
   for (arma::uword j = 0; j < ng; ++j)
