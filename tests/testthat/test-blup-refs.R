@@ -25,7 +25,7 @@ test_that("design-density estimator matches references", {
 
 test_that("blup_fit components match references", {
   p <- ref_inputs()
-  fit <- blup_fit(p$dt, bw_grid = p$bwg, kernel_name = "epanechnikov")
+  fit <- blup_fit(p$dt, tikhonov = 1e-6, bw_grid = p$bwg, kernel_name = "epanechnikov")
   ref <- read_ref("blup_fit_components")
   expect_equal(fit$c0hat, ref$c0hat, tolerance = TOL)
   expect_equal(fit$V, ref$V, tolerance = TOL)
@@ -38,16 +38,16 @@ test_that("blup_fit components match references", {
 
 test_that("blup() prediction matches references (h = 1 and h = 2)", {
   p <- ref_inputs()
-  expect_equal(blup(p$dt, t = p$tt, bw_grid = p$bwg, kernel_name = "epanechnikov"),
+  expect_equal(blup(p$dt, t = p$tt, tikhonov = 1e-6, bw_grid = p$bwg, kernel_name = "epanechnikov")$prediction,
                read_ref("blup_predict"), tolerance = TOL_BLAS)
-  expect_equal(blup(p$dt, t = p$tt, bw_grid = p$bwg, horizon = 2L, kernel_name = "epanechnikov"),
+  expect_equal(blup(p$dt, t = p$tt, horizon = 2L, tikhonov = 1e-6, bw_grid = p$bwg, kernel_name = "epanechnikov")$prediction,
                read_ref("blup_predict_h2"), tolerance = TOL_BLAS)
 })
 
 test_that("blup() wrapper equals predict(blup_fit())", {
   p <- ref_inputs()
-  fit <- blup_fit(p$dt, bw_grid = p$bwg, kernel_name = "epanechnikov")
-  expect_equal(blup(p$dt, t = p$tt, bw_grid = p$bwg, kernel_name = "epanechnikov"),
+  fit <- blup_fit(p$dt, tikhonov = 1e-6, bw_grid = p$bwg, kernel_name = "epanechnikov")
+  expect_equal(blup(p$dt, t = p$tt, tikhonov = 1e-6, bw_grid = p$bwg, kernel_name = "epanechnikov")$prediction,
                predict(fit, t = p$tt), tolerance = TOL)
 })
 

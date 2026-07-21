@@ -28,20 +28,26 @@
 #' prediction points. The covariance assembly is a single lag-1 block.
 #'
 #' @inheritParams format_data
-#' @param id_lag Integer id of the conditioning curve. Its successor is the
-#'   curve to be predicted. Default `NULL` uses the last curve in `data`.
-#' @param tikhonov Tikhonov regularisation parameter \eqn{\alpha} added to the
-#'   variance matrix. Default `1e-6`.
-#' @param bw_grid Bandwidth grid for the adaptive mean/(auto)covariance risk.
-#'   Default `NULL` sets a geometric grid from the data.
 #' @param kernel_name Kernel name. Default `"epanechnikov"`.
 #' @param homoscedastic If `TRUE` (default) a constant noise variance (median of
 #'   the pointwise estimates) is used; otherwise the t-varying estimates.
+#' @param n_subgrid_bw Number of points per axis of the coarse sub-grid on which
+#'   the adaptive bandwidths are selected. Default `10`.
+#' @param n_cv_tikhonov Number of trailing curves used for the Tikhonov
+#'   cross-validation when `tikhonov` is `NULL`. Default `30`.
+#' @param id_lag Integer id of the conditioning curve. Its successor is the
+#'   curve to be predicted. Default `NULL` uses the last curve in `data`.
+#' @param tikhonov Tikhonov regularisation parameter \eqn{\alpha}. Default `NULL`
+#'   selects it by cross-validation (see [select_tikhonov_parameter()]) over
+#'   `tikhonov_grid`; pass a numeric value to use it directly.
+#' @param tikhonov_grid Candidate values for the cross-validation when `tikhonov`
+#'   is `NULL`. Default `NULL` uses the default grid of
+#'   [select_tikhonov_parameter()].
+#' @param bw_grid Bandwidth grid for the adaptive mean/(auto)covariance risk.
+#'   Default `NULL` sets a geometric grid from the data.
 #' @param density_bw Optional fixed design-density bandwidth reused for every
 #'   `estimate_density` call (independent design only). Default `NULL` selects it
 #'   once via [get_density_optimal_bw()].
-#' @param n_subgrid_bw Number of points per axis of the coarse sub-grid on
-#'   which the adaptive bandwidths are selected. Default `10`.
 #'
 #' @return An object of class `blup_fit`: a list whose main elements are:
 #'   \itemize{
@@ -55,6 +61,8 @@
 #'     \item `data`, `kernel_name`, `is_common_design`, `density_bw`, `bw_grid`,
 #'       `tikhonov`, `homoscedastic`: the information needed by
 #'       [predict.blup_fit()].
+#'     \item `tikhonov_cv`: the [select_tikhonov_parameter()] output when
+#'       `tikhonov` was selected, otherwise `NULL`.
 #'   }
 #'
 #' @seealso [predict.blup_fit()], [get_density_optimal_bw()].
@@ -62,10 +70,10 @@
 #' @import data.table
 #' @importFrom methods is
 blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                     id_lag = NULL, tikhonov = 1e-6,
-                     bw_grid = NULL, kernel_name = "epanechnikov",
-                     homoscedastic = TRUE, density_bw = NULL,
-                     n_subgrid_bw = 10L) {
+                     kernel_name = "epanechnikov", homoscedastic = TRUE,
+                     n_subgrid_bw = 10L, n_cv_tikhonov = 30L,
+                     id_lag = NULL, tikhonov = NULL, tikhonov_grid = NULL,
+                     bw_grid = NULL, density_bw = NULL) {
 
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   kernel_name <- match.arg(
@@ -103,6 +111,20 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     bw_grid <- b0 * a ** (seq_len(K))
   }
 
+  # tikhonov = NULL: select it by cross-validation (like optbw for bw_grid). The
+  # inner blup_fit call inside select_tikhonov_parameter passes an explicit
+  # tikhonov, so this does not recurse.
+  if (is.null(tikhonov)) {
+    tikhonov_cv <- select_tikhonov_parameter(
+      data = data, method = "cv", kernel_name = kernel_name,
+      homoscedastic = homoscedastic, n_subgrid_bw = n_subgrid_bw,
+      n_cv_tikhonov = n_cv_tikhonov, tikhonov_grid = tikhonov_grid,
+      bw_grid = bw_grid, density_bw = density_bw)
+    tikhonov <- tikhonov_cv$tikhonov_star
+  } else {
+    tikhonov_cv <- NULL
+  }
+
   # opt_mean/opt_cov/opt_autocov are reused by predict and by
   # select_tikhonov_parameter through blup_*_at_cpp.
   cpp <- blup_fit_cpp(
@@ -132,6 +154,7 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       sigma2 = if (homoscedastic) as.numeric(cpp$sigma2) else as.vector(cpp$sigma2),
       homoscedastic = homoscedastic,
       tikhonov = tikhonov,
+      tikhonov_cv = tikhonov_cv,
       V = cpp$V,
       resid = cpp$resid
     ),
@@ -159,14 +182,14 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @param object A `blup_fit` object.
 #' @param t Numeric vector of prediction points in \eqn{[0, 1]}. Default is the
 #'   conditioning-curve design points.
-#' @param newdata Optional numeric vector of conditioning-curve values at the
-#'   fit's design points (`object$Tn0`), overriding `object$Yn0`. Used internally
-#'   for the multi-step recursion; must have length `object$Mn0`.
 #' @param horizon Integer prediction horizon (steps ahead). Default `1`. For
 #'   `horizon > 1`, each intermediate curve is predicted on the target grid `t`
 #'   and fed back as the new conditioning curve; the conditioning quantities are
 #'   recomputed for that grid using the cached adaptive bandwidths (works for
 #'   both designs).
+#' @param newdata Optional numeric vector of conditioning-curve values at the
+#'   fit's design points (`object$Tn0`), overriding `object$Yn0`. Used internally
+#'   for the multi-step recursion; must have length `object$Mn0`.
 #' @param ... Unused; for S3 compatibility.
 #'
 #' @return A `data.table` with one block of rows per horizon (`horizon * length(t)`
@@ -181,7 +204,7 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @seealso [blup_fit()].
 #' @export
 #' @import data.table
-predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, horizon = 1L, ...) {
+predict.blup_fit <- function(object, t = object$Tn0, horizon = 1L, newdata = NULL, ...) {
   if (!(methods::is(t, "numeric") && all(t >= 0 & t <= 1)))
     stop("'t' must be a numeric vector with values between 0 and 1.")
   horizon <- as.integer(horizon)
@@ -212,30 +235,43 @@ predict.blup_fit <- function(object, t = object$Tn0, newdata = NULL, horizon = 1
 #'
 #' Convenience wrapper that fits the adaptive BLUP on `data` and immediately
 #' predicts the curve following the conditioning curve at `t`. Equivalent to
-#' `predict(blup_fit(data, ...), t = t, h = h)`.
+#' `predict(blup_fit(data, ...), t = t, horizon = horizon)`, plus the Tikhonov
+#' selection carried alongside the prediction.
 #'
 #' @inheritParams blup_fit
 #' @param t Numeric vector of prediction points in \eqn{[0, 1]}.
 #' @param horizon Integer prediction horizon (steps ahead). Default `1`.
 #'
-#' @return A `data.table` with columns `horizon`, `t`, `muhat` and `prediction`
-#'   (one block of rows per horizon); see [predict.blup_fit()].
+#' @return An object of class `blup`: a list with
+#'   \itemize{
+#'     \item `prediction`: a `data.table` with columns `horizon`, `t`, `muhat`
+#'       and `prediction` (one block of rows per horizon; see
+#'       [predict.blup_fit()]).
+#'     \item `tikhonov`: the Tikhonov parameter used.
+#'     \item `tikhonov_cv`: the [select_tikhonov_parameter()] output when
+#'       `tikhonov` was selected, otherwise `NULL`.
+#'   }
 #'
 #' @seealso [blup_fit()], [predict.blup_fit()], [select_tikhonov_parameter()].
 #' @export
 #' @import data.table
 #' @importFrom stats predict
 blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                 t = seq(0.01, 0.99, length.out = 99), id_lag = NULL, horizon = 1L,
-                 tikhonov = 1e-6, bw_grid = NULL,
+                 t = seq(0.01, 0.99, length.out = 99), horizon = 1L,
                  kernel_name = "epanechnikov", homoscedastic = TRUE,
-                 density_bw = NULL, n_subgrid_bw = 10L) {
+                 n_subgrid_bw = 10L, n_cv_tikhonov = 30L,
+                 id_lag = NULL, tikhonov = NULL, tikhonov_grid = NULL,
+                 bw_grid = NULL, density_bw = NULL) {
   fit <- blup_fit(
-    data = data, idcol = idcol, tcol = tcol, ycol = ycol, id_lag = id_lag,
-    tikhonov = tikhonov, bw_grid = bw_grid,
+    data = data, idcol = idcol, tcol = tcol, ycol = ycol,
     kernel_name = kernel_name, homoscedastic = homoscedastic,
-    density_bw = density_bw, n_subgrid_bw = n_subgrid_bw)
-  return(predict(fit, t = t, horizon = horizon))
+    n_subgrid_bw = n_subgrid_bw, n_cv_tikhonov = n_cv_tikhonov,
+    id_lag = id_lag, tikhonov = tikhonov, tikhonov_grid = tikhonov_grid,
+    bw_grid = bw_grid, density_bw = density_bw)
+  return(structure(
+    list(prediction = predict(fit, t = t, horizon = horizon),
+         tikhonov = fit$tikhonov, tikhonov_cv = fit$tikhonov_cv),
+    class = "blup"))
 }
 
 #' Select the Tikhonov regularisation parameter
@@ -267,7 +303,6 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #'   cross-validation) is available.
 #' @param tikhonov_grid Candidate values. If `NULL`, a 25-point grid
 #'   \eqn{\{e^{-5}, \ldots, e^3\}} is used.
-#' @param n_cv_tikhonov Number of trailing curves used for one-step-ahead validation.
 #'
 #' @return A list with:
 #'   \itemize{
@@ -282,9 +317,9 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @export
 #' @import data.table
 select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                                      method = c("cv"), tikhonov_grid = NULL, n_cv_tikhonov = 30L,
-                                      bw_grid = NULL, kernel_name = "epanechnikov",
-                                      homoscedastic = TRUE, density_bw = NULL) {
+                                      method = c("cv"), kernel_name = "epanechnikov",
+                                      homoscedastic = TRUE, n_subgrid_bw = 10L, n_cv_tikhonov = 30L,
+                                      tikhonov_grid = NULL, bw_grid = NULL, density_bw = NULL) {
   method <- match.arg(method)
 
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
@@ -294,7 +329,10 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
 
   ids <- data[, sort(unique(id_curve))]
   n <- length(ids)
-  if (n_cv_tikhonov >= n) stop("'n_cv_tikhonov' must be smaller than the number of curves.")
+  if (n_cv_tikhonov >= n) {
+    n_cv_tikhonov <- floor(n / 2)
+    warning("'n_cv_tikhonov' >= the number of curves; using n_cv_tikhonov = ", n_cv_tikhonov, ".")
+  }
   fit_ids <- ids[seq_len(n - n_cv_tikhonov)]
   val_pos <- (n - n_cv_tikhonov + 1L):n
   data_fit <- data[id_curve %in% fit_ids]
@@ -306,9 +344,9 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
       kernel_name = kernel_name, lower = 0, upper = 1)
 
   fit <- blup_fit(
-    data = data_fit, id_lag = max(fit_ids), tikhonov = 1e-6,
-    bw_grid = bw_grid, kernel_name = kernel_name, homoscedastic = homoscedastic,
-    density_bw = density_bw)
+    data = data_fit, kernel_name = kernel_name, homoscedastic = homoscedastic,
+    n_subgrid_bw = n_subgrid_bw, id_lag = max(fit_ids), tikhonov = 1e-6,
+    bw_grid = bw_grid, density_bw = density_bw)
 
   # Common design: the operators are constant across folds.
   if (is_common) {
