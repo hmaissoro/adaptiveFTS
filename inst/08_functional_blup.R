@@ -478,9 +478,9 @@ cv_alpha_blup <- function(data = data_train, alpha_grid = NULL, n_val = 30L,
 
 cv <- cv_alpha_blup(
     data = data_train,
-    alpha_grid = exp(seq(0.3, 1, length.out = 25)),
+    alpha_grid = exp(seq(-5, 3, length.out = 25)),
     n_val = 30L,
-    bw_grid = bw_grid_blup
+    bw_grid = bw_grid_blup,
 )
 cv$alpha_star
 
