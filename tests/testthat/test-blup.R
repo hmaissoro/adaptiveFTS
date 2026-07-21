@@ -38,7 +38,7 @@ test_that("get_density_optimal_bw is deterministic and validates nsubset", {
 test_that("blup_fit returns a well-formed object", {
   dt <- fixture_data_far(12L)
   bwg <- seq(0.05, 0.2, length.out = 6)
-  fit <- blup_fit(dt, bw_grid = bwg)
+  fit <- blup_fit(dt, tikhonov = 1e-6, bw_grid = bwg)
   expect_s3_class(fit, "blup_fit")
   expect_true(all(c("V", "c0hat", "muhat_Tn0", "rho", "Tn0",
                     "opt_mean", "opt_cov", "opt_autocov") %in% names(fit)))
@@ -56,7 +56,7 @@ test_that("blup_fit returns a well-formed object", {
 test_that("predict.blup_fit handles t, newdata and h, and validates them", {
   dt <- fixture_data_far(12L)
   bwg <- seq(0.05, 0.2, length.out = 6)
-  fit <- blup_fit(dt, bw_grid = bwg)
+  fit <- blup_fit(dt, tikhonov = 1e-6, bw_grid = bwg)
   tt <- c(0.25, 0.5, 0.75)
 
   p1 <- predict(fit, t = tt)
@@ -87,18 +87,52 @@ test_that("predict.blup_fit handles t, newdata and h, and validates them", {
   expect_error(predict(fit, newdata = c(1, 2, 3)), "length equal")
 })
 
-test_that("blup() equals predict(blup_fit()) and cv_blup_alpha validates n_cv_tikhonov", {
+test_that("blup() equals predict(blup_fit()) and select_tikhonov_parameter shrinks n_cv_tikhonov", {
   dt <- fixture_data_far(12L)
   bwg <- seq(0.05, 0.2, length.out = 6)
   tt <- c(0.3, 0.6)
-  fit <- blup_fit(dt, bw_grid = bwg)
-  expect_equal(blup(dt, t = tt, bw_grid = bwg), predict(fit, t = tt), tolerance = 1e-10)
+  fit <- blup_fit(dt, tikhonov = 1e-6, bw_grid = bwg)
+  expect_equal(blup(dt, t = tt, tikhonov = 1e-6, bw_grid = bwg)$prediction,
+               predict(fit, t = tt), tolerance = 1e-10)
 
-  expect_error(select_tikhonov_parameter(dt, n_cv_tikhonov = 100L), "smaller than the number")
+  # Too many validation curves: shrink n_cv_tikhonov to floor(N/2) and warn
+  # instead of erroring (the CV on such a tiny sample may itself fail; we only
+  # assert the shrink-warning and its value here).
+  w <- NULL
+  tryCatch(
+    withCallingHandlers(
+      select_tikhonov_parameter(dt, tikhonov_grid = exp(seq(-2, 0, length.out = 4)),
+                                n_cv_tikhonov = 100L, bw_grid = bwg),
+      warning = function(cnd) { w <<- c(w, conditionMessage(cnd)); invokeRestart("muffleWarning") }),
+    error = function(e) NULL)
+  expect_true(any(grepl("number of curves", w)))
+  expect_true(any(grepl("= 6", w)))
+
   cv <- suppressWarnings(select_tikhonov_parameter(
     dt, tikhonov_grid = exp(seq(-2, 0, length.out = 6)), n_cv_tikhonov = 3L, bw_grid = bwg))
   expect_true(all(c("tikhonov_star", "cv_curve", "cv_matrix", "val_ids") %in% names(cv)))
   expect_length(cv$cv_curve, 6L)
   expect_equal(dim(cv$cv_matrix), c(3L, 6L))
   expect_true(is.finite(cv$tikhonov_star))
+})
+
+test_that("blup_fit / blup auto-select the Tikhonov parameter", {
+  dt <- fixture_data_far(12L)
+  bwg <- seq(0.05, 0.2, length.out = 6)
+  grid <- exp(seq(-2, 0, length.out = 5))
+
+  fit <- suppressWarnings(blup_fit(dt, tikhonov_grid = grid, n_cv_tikhonov = 3L, bw_grid = bwg))
+  expect_false(is.null(fit$tikhonov_cv))
+  expect_equal(fit$tikhonov, fit$tikhonov_cv$tikhonov_star)
+  expect_true(fit$tikhonov %in% grid)
+
+  # A supplied tikhonov skips selection.
+  fit_fixed <- blup_fit(dt, tikhonov = 1e-6, bw_grid = bwg)
+  expect_null(fit_fixed$tikhonov_cv)
+
+  b <- suppressWarnings(blup(dt, t = c(0.3, 0.6), tikhonov_grid = grid,
+                             n_cv_tikhonov = 3L, bw_grid = bwg))
+  expect_s3_class(b, "blup")
+  expect_equal(names(b), c("prediction", "tikhonov", "tikhonov_cv"))
+  expect_true(data.table::is.data.table(b$prediction))
 })

@@ -9,13 +9,15 @@ blup_fit(
   idcol = "id_curve",
   tcol = "tobs",
   ycol = "X",
-  id_lag = NULL,
-  tikhonov = 1e-06,
-  bw_grid = NULL,
   kernel_name = "epanechnikov",
   homoscedastic = TRUE,
-  density_bw = NULL,
-  n_subgrid_bw = 10L
+  n_subgrid_bw = 10L,
+  n_cv_tikhonov = 30L,
+  id_lag = NULL,
+  tikhonov = NULL,
+  tikhonov_grid = NULL,
+  bw_grid = NULL,
+  density_bw = NULL
 )
 }
 \arguments{
@@ -54,26 +56,34 @@ Each curve index is repeated according to the number of observation points. If \
 
 \item{ycol}{\code{character}. The name of the column with observed values for the curves.}
 
-\item{id_lag}{Integer id of the conditioning curve. Its successor is the
-curve to be predicted. Default \code{NULL} uses the last curve in \code{data}.}
-
-\item{tikhonov}{Tikhonov regularisation parameter \eqn{\alpha} added to the
-variance matrix. Default \code{1e-6}.}
-
-\item{bw_grid}{Bandwidth grid for the adaptive mean/(auto)covariance risk.
-Default \code{NULL} sets a geometric grid from the data.}
-
 \item{kernel_name}{Kernel name. Default \code{"epanechnikov"}.}
 
 \item{homoscedastic}{If \code{TRUE} (default) a constant noise variance (median of
 the pointwise estimates) is used; otherwise the t-varying estimates.}
 
+\item{n_subgrid_bw}{Number of points per axis of the coarse sub-grid on which
+the adaptive bandwidths are selected. Default \code{10}.}
+
+\item{n_cv_tikhonov}{Number of trailing curves used for the Tikhonov
+cross-validation when \code{tikhonov} is \code{NULL}. Default \code{30}.}
+
+\item{id_lag}{Integer id of the conditioning curve. Its successor is the
+curve to be predicted. Default \code{NULL} uses the last curve in \code{data}.}
+
+\item{tikhonov}{Tikhonov regularisation parameter \eqn{\alpha}. Default \code{NULL}
+selects it by cross-validation (see \code{\link[=select_tikhonov_parameter]{select_tikhonov_parameter()}}) over
+\code{tikhonov_grid}; pass a numeric value to use it directly.}
+
+\item{tikhonov_grid}{Candidate values for the cross-validation when \code{tikhonov}
+is \code{NULL}. Default \code{NULL} uses the default grid of
+\code{\link[=select_tikhonov_parameter]{select_tikhonov_parameter()}}.}
+
+\item{bw_grid}{Bandwidth grid for the adaptive mean/(auto)covariance risk.
+Default \code{NULL} sets a geometric grid from the data.}
+
 \item{density_bw}{Optional fixed design-density bandwidth reused for every
 \code{estimate_density} call (independent design only). Default \code{NULL} selects it
 once via \code{\link[=get_density_optimal_bw]{get_density_optimal_bw()}}.}
-
-\item{n_subgrid_bw}{Number of points per axis of the coarse sub-grid on
-which the adaptive bandwidths are selected. Default \code{10}.}
 }
 \value{
 An object of class \code{blup_fit}: a list whose main elements are:
@@ -88,6 +98,8 @@ residual.
 \item \code{data}, \code{kernel_name}, \code{is_common_design}, \code{density_bw}, \code{bw_grid},
 \code{tikhonov}, \code{homoscedastic}: the information needed by
 \code{\link[=predict.blup_fit]{predict.blup_fit()}}.
+\item \code{tikhonov_cv}: the \code{\link[=select_tikhonov_parameter]{select_tikhonov_parameter()}} output when
+\code{tikhonov} was selected, otherwise \code{NULL}.
 }
 }
 \description{

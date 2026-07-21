@@ -10,11 +10,12 @@ select_tikhonov_parameter(
   tcol = "tobs",
   ycol = "X",
   method = c("cv"),
-  tikhonov_grid = NULL,
-  n_cv_tikhonov = 30L,
-  bw_grid = NULL,
   kernel_name = "epanechnikov",
   homoscedastic = TRUE,
+  n_subgrid_bw = 10L,
+  n_cv_tikhonov = 30L,
+  tikhonov_grid = NULL,
+  bw_grid = NULL,
   density_bw = NULL
 )
 }
@@ -57,18 +58,22 @@ Each curve index is repeated according to the number of observation points. If \
 \item{method}{Selection method. Currently only \code{"cv"} (one-step-ahead
 cross-validation) is available.}
 
-\item{tikhonov_grid}{Candidate values. If \code{NULL}, a 25-point grid
-\eqn{\{e^{-5}, \ldots, e^3\}} is used.}
-
-\item{n_cv_tikhonov}{Number of trailing curves used for one-step-ahead validation.}
-
-\item{bw_grid}{Bandwidth grid for the adaptive mean/(auto)covariance risk.
-Default \code{NULL} sets a geometric grid from the data.}
-
 \item{kernel_name}{Kernel name. Default \code{"epanechnikov"}.}
 
 \item{homoscedastic}{If \code{TRUE} (default) a constant noise variance (median of
 the pointwise estimates) is used; otherwise the t-varying estimates.}
+
+\item{n_subgrid_bw}{Number of points per axis of the coarse sub-grid on which
+the adaptive bandwidths are selected. Default \code{10}.}
+
+\item{n_cv_tikhonov}{Number of trailing curves used for the Tikhonov
+cross-validation when \code{tikhonov} is \code{NULL}. Default \code{30}.}
+
+\item{tikhonov_grid}{Candidate values. If \code{NULL}, a 25-point grid
+\eqn{\{e^{-5}, \ldots, e^3\}} is used.}
+
+\item{bw_grid}{Bandwidth grid for the adaptive mean/(auto)covariance risk.
+Default \code{NULL} sets a geometric grid from the data.}
 
 \item{density_bw}{Optional fixed design-density bandwidth reused for every
 \code{estimate_density} call (independent design only). Default \code{NULL} selects it
