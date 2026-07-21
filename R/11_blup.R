@@ -433,3 +433,56 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
     val_ids = ids[val_pos]
   ))
 }
+
+#' @keywords internal
+.format_tikhonov <- function(object) {
+  if (is.null(object$tikhonov_cv))
+    return(sprintf("%s (supplied)", formatC(object$tikhonov, digits = 4, format = "g")))
+  sprintf("%s (CV-selected, min CV = %s)",
+          formatC(object$tikhonov, digits = 4, format = "g"),
+          formatC(min(object$tikhonov_cv$cv_curve, na.rm = TRUE), digits = 4, format = "g"))
+}
+
+#' Summarise an adaptive functional BLUP fit
+#'
+#' @param object A `blup_fit` object.
+#' @param ... Unused.
+#' @return `object`, invisibly.
+#' @export
+summary.blup_fit <- function(object, ...) {
+  design <- if (object$is_common_design) "common" else "independent"
+  n_curves <- object$data[, length(unique(id_curve))]
+  sigma2 <- object$sigma2
+  noise <- if (length(sigma2) == 1L)
+    formatC(sigma2, digits = 4, format = "g")
+  else
+    sprintf("%s to %s (t-varying)", formatC(min(sigma2), digits = 3, format = "g"),
+            formatC(max(sigma2), digits = 3, format = "g"))
+  cat("Adaptive functional BLUP fit\n")
+  cat(sprintf("  Design             : %s\n", design))
+  cat(sprintf("  Training curves    : %d\n", n_curves))
+  cat(sprintf("  Conditioning curve : id %s, M = %d points\n", object$id_lag, object$Mn0))
+  cat(sprintf("  Kernel             : %s (%s)\n", object$kernel_name,
+              if (object$homoscedastic) "homoscedastic" else "heteroscedastic"))
+  cat(sprintf("  Noise variance     : %s\n", noise))
+  cat(sprintf("  Tikhonov           : %s\n", .format_tikhonov(object)))
+  invisible(object)
+}
+
+#' Summarise an adaptive functional BLUP prediction
+#'
+#' @param object A `blup` object (from [blup()]).
+#' @param ... Unused.
+#' @return `object`, invisibly.
+#' @export
+summary.blup <- function(object, ...) {
+  pred <- object$prediction
+  cat("Adaptive functional BLUP prediction\n")
+  cat(sprintf("  Prediction points : %d\n", length(unique(pred$t))))
+  cat(sprintf("  Horizons          : %s\n", paste(sort(unique(pred$horizon)), collapse = ", ")))
+  cat(sprintf("  Prediction range  : [%s, %s]\n",
+              formatC(min(pred$prediction), digits = 3, format = "g"),
+              formatC(max(pred$prediction), digits = 3, format = "g")))
+  cat(sprintf("  Tikhonov          : %s\n", .format_tikhonov(object)))
+  invisible(object)
+}
