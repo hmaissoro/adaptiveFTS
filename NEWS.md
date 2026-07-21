@@ -6,11 +6,15 @@
   `lm()`/`predict()`-style interface:
   * `blup_fit()` estimates every prediction-point-independent component and
     caches the adaptive bandwidths; `predict()` (method `predict.blup_fit()`)
-    evaluates the one-step-ahead predictor and loops for h-step-ahead
-    prediction; `blup()` is a one-call wrapper.
-  * `select_tikhonov_parameter(method = "cv")` selects the Tikhonov parameter by
-    one-step-ahead cross-validation (holdout under the common design, rolling
+    evaluates the predictor and, for `horizon > 1`, returns every intermediate
+    multi-step-ahead prediction; `blup()` is a one-call wrapper.
+  * The Tikhonov parameter is selected automatically by default (`tikhonov =
+    NULL`), like `optbw` for `bw_grid`: `blup_fit()`/`blup()` cross-validate over
+    `tikhonov_grid` and return the selection as `tikhonov_cv`. Pass a numeric
+    `tikhonov` to skip selection. `select_tikhonov_parameter(method = "cv")`
+    exposes the selection directly (holdout under the common design, rolling
     origin under the independent design).
+  * `summary()` methods for `blup_fit` and `blup` objects.
   * The numerical core runs in C++ (`blup_fit_cpp()`, `blup_predict_cpp()`).
 * Design-density estimation for the independent-design weights:
   * `estimate_density()` — leave-one-out Parzen–Rosenblatt estimator with a
