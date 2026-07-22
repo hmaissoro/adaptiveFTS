@@ -425,16 +425,11 @@ using namespace arma;
      mat_st.row(k) = {std::min(s(k), t(k)), std::max(s(k), t(k))};
    }
 
-   // Remove duplicated rows. Deduplicate on the EXACT (min, max) double values
-   // so the result stays consistent with the exact `==` look-ups performed
-   // downstream (e.g. the lower-triangle fill in estimate_autocov_cpp). A former
-   // version keyed on std::to_string(), which rounds to 6 decimals and could
-   // collapse two genuinely distinct observation points (e.g. 0.8065727 and
-   // 0.8065730 both format to "0.806573"). That dropped a couple from the
-   // deduplicated set, and the later exact look-up for the dropped point then
-   // matched neither the upper nor the lower triangle, indexing an empty
-   // uvec -> "Mat::operator(): index out of bounds". Keying on the exact values
-   // is bit-identical for any input without such a 6-decimal collision.
+   // Remove duplicated rows, keying on the EXACT (min, max) doubles so the
+   // couple set stays consistent with the exact `==` look-ups downstream (the
+   // lower-triangle fill in estimate_autocov_cpp). NB: do not key on a rounded
+   // string here -- it can collapse distinct points and drop a couple, causing
+   // an out-of-bounds look-up later.
    std::set<std::pair<double, double>> seen;
    std::vector<arma::uword> unique_indices;
 
