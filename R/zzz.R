@@ -12,4 +12,5 @@ globalVariables(
     "Q0", "Q1", "S0", "S1", "S2", "Tn_minus_t", "Tn_minus_t_over_h", "V2",
     "XsXt_var", "dependence_coef", "gamma_cross_lag", ".", "n",
     "cov_segment_hat", "covseg_correction", "cov_segment_hat_corrected",
-    "optbw_s", "optbw_t"))
+    "optbw_s", "optbw_t", "h", "hs", "ht", "cov_segment_risk",
+    "parameter", "value", "grp", "facf"))

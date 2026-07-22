@@ -142,7 +142,10 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
     x = dt_autocov_risk,
     new = c("s", "t", "hs", "ht", "PNl", "locreg_bw", "Hs", "Ls", "Ht", "Lt",
             "bias_term", "variance_term", "dependence_term", "autocov_risk"))
-  return(dt_autocov_risk)
+  return(.as_adaptive_est(dt_autocov_risk, "autocov_risk",
+                          meta = list(kernel = kernel_name, N = N, lag = lag,
+                                      use_same_bw = use_same_bw, center = center,
+                                      n_bw = length(bw_grid))))
 }
 
 #' Estimate the Covariance or Autocovariance Function
@@ -261,7 +264,9 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     new = c("s", "t", "optbw_s", "optbw_t", "Hs", "Ls", "Ht", "Lt",
             "PNs", "muhat_s", "PNt", "muhat_t", "PNl", "autocov"))
 
-  return(dt_autocov)
+  return(.as_adaptive_est(dt_autocov, "autocov_est",
+                          meta = list(kernel = kernel_name, N = N, lag = lag,
+                                      use_same_bw = use_same_bw, center = center)))
 }
 
 # Autocovariance function estimator : Rubìn et Paranaretos (2020) ----
