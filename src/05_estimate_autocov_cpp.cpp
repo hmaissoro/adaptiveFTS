@@ -3,6 +3,7 @@
 #include <omp.h>
 #endif
 #include <map>
+#include <set>
 #include <utility>
 
 // [[Rcpp::depends(RcppArmadillo)]]
@@ -424,14 +425,22 @@ using namespace arma;
      mat_st.row(k) = {std::min(s(k), t(k)), std::max(s(k), t(k))};
    }
 
-   // Remove duplicated rows
-   std::unordered_set<std::string> seen;
+   // Remove duplicated rows. Deduplicate on the EXACT (min, max) double values
+   // so the result stays consistent with the exact `==` look-ups performed
+   // downstream (e.g. the lower-triangle fill in estimate_autocov_cpp). A former
+   // version keyed on std::to_string(), which rounds to 6 decimals and could
+   // collapse two genuinely distinct observation points (e.g. 0.8065727 and
+   // 0.8065730 both format to "0.806573"). That dropped a couple from the
+   // deduplicated set, and the later exact look-up for the dropped point then
+   // matched neither the upper nor the lower triangle, indexing an empty
+   // uvec -> "Mat::operator(): index out of bounds". Keying on the exact values
+   // is bit-identical for any input without such a 6-decimal collision.
+   std::set<std::pair<double, double>> seen;
    std::vector<arma::uword> unique_indices;
 
    for (arma::uword i = 0; i < mat_st.n_rows; ++i) {
-     std::string row_str = std::to_string(mat_st(i, 0)) + "," + std::to_string(mat_st(i, 1));
-     if (seen.find(row_str) == seen.end()) {
-       seen.insert(row_str);
+     std::pair<double, double> key(mat_st(i, 0), mat_st(i, 1));
+     if (seen.insert(key).second) {
        unique_indices.push_back(i);
      }
    }
