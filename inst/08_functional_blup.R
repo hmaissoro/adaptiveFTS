@@ -3,6 +3,21 @@ library(ggplot2)
 Rcpp::sourceCpp("./src/08_estimate_curve_cpp.cpp")
 source("./R/10_density_estimator.R")
 
+## Shared plotting style.
+theme_set(theme_minimal(base_size = 13))
+blup_theme <- theme(legend.position = "bottom",
+                    plot.title = element_text(hjust = 0.5, face = "bold"))
+col_true <- "#154360"  # true curve
+col_pred <- "#C0392B"  # prediction
+pred_scales <- list(
+  scale_colour_manual(name = NULL,
+                      values = c(Xtrue = col_true, blup = col_pred),
+                      labels = c(Xtrue = "True curve", blup = "Adaptive BLUP")),
+  scale_linetype_manual(name = NULL,
+                        values = c(Xtrue = "solid", blup = "dashed"),
+                        labels = c(Xtrue = "True curve", blup = "Adaptive BLUP")),
+  guides(colour = guide_legend(override.aes = list(linewidth = 1.2))))
+
 
 #' Check whether all curves share the same observation design
 #'
@@ -231,24 +246,14 @@ dt_blup <- merge(
 )
 
 dt_graph <- rbind(
-  dt_blup[, .("t" = tobs, "Quantity" = "blup", value = blup)],
-  dt_blup[, .("t" = tobs, "Quantity" = "Xtrue", value = X)]
+  dt_blup[, .("t" = tobs, "curve" = "blup", value = blup)],
+  dt_blup[, .("t" = tobs, "curve" = "Xtrue", value = X)]
 )
 
-ggplot(data = dt_graph, mapping = aes(x = t, y = value, group = Quantity, colour = Quantity)) +
-  geom_line() +
-  xlab("t") +
-  theme_minimal() +
-  theme(plot.title = element_text(size = 12, hjust = 0.5, vjust = 0),
-        axis.title = element_text(size = 12),
-        axis.title.x = element_text(size = 12, margin = margin(t = 10, r = 0, b = 0, l = 0)),
-        # axis.title.y = element_text(size = 11, margin = margin(t = 10, r = 10, b = 0, l = 0)),
-        axis.text.x =  element_text(size = 10),
-        axis.text.y =  element_text(size = 10),
-        legend.text = element_text(size = 10),
-        legend.title = element_text(size = 10),
-        legend.key.width= unit(0.8, 'cm'),
-        legend.position = "top")
+ggplot(dt_graph, aes(x = t, y = value, colour = curve, linetype = curve)) +
+  geom_line(linewidth = 0.7) +
+  pred_scales + blup_theme +
+  labs(x = "t", y = NULL, title = "One-step-ahead adaptive BLUP")
 
 #==========================================================================
 ## Cross-validation to select the optimal Tikhonov regularization parameter
@@ -480,19 +485,19 @@ cv <- cv_alpha_blup(
     data = data_train,
     alpha_grid = exp(seq(-5, 3, length.out = 25)),
     n_val = 30L,
-    bw_grid = bw_grid_blup,
+    bw_grid = bw_grid_blup
 )
 cv$alpha_star
 
 
 dt_cv <- data.table::data.table(alpha = cv$alpha_grid, cv = cv$cv_curve)
 ggplot(dt_cv, aes(x = alpha, y = cv)) +
-    geom_line() + geom_point() +
-    geom_vline(xintercept = cv$alpha_star, linetype = 2, colour = "red") +
-    scale_x_log10() +
+    geom_line(colour = col_true) +
+    geom_point(colour = col_true, size = 1.2) +
+    geom_vline(xintercept = cv$alpha_star, linetype = "dashed", colour = col_pred) +
+    scale_x_log10() + blup_theme +
     labs(x = expression(alpha), y = expression(CV(alpha)),
-            title = "Holdout CV for the Tikhonov parameter") +
-    theme_minimal()
+         title = "Tikhonov parameter cross-validation")
 
 fit <- predict_next_curve(
     data = data_train, prediction_points = t0,
@@ -503,22 +508,12 @@ dt_blup_cv <- merge(
 )
 
 dt_graph_cv <- rbind(
-    dt_blup_cv[, .("t" = tobs, "Quantity" = "blup", value = blup)],
-    dt_blup_cv[, .("t" = tobs, "Quantity" = "Xtrue", value = X)]
+    dt_blup_cv[, .("t" = tobs, "curve" = "blup", value = blup)],
+    dt_blup_cv[, .("t" = tobs, "curve" = "Xtrue", value = X)]
 )
 
-ggplot(data = dt_graph_cv,
-        mapping = aes(x = t, y = value, group = Quantity, colour = Quantity)) +
-    geom_line() +
-    xlab("t") +
-    theme_minimal() +
-    theme(plot.title = element_text(size = 12, hjust = 0.5, vjust = 0),
-            axis.title = element_text(size = 12),
-            axis.title.x = element_text(size = 12, margin = margin(t = 10, r = 0, b = 0, l = 0)),
-            axis.text.x = element_text(size = 10),
-            axis.text.y = element_text(size = 10),
-            legend.text = element_text(size = 10),
-            legend.title = element_text(size = 10),
-            legend.key.width = unit(0.8, 'cm'),
-            legend.position = "top")
+ggplot(dt_graph_cv, aes(x = t, y = value, colour = curve, linetype = curve)) +
+    geom_line(linewidth = 0.7) +
+    pred_scales + blup_theme +
+    labs(x = "t", y = NULL, title = "Adaptive BLUP with CV-selected Tikhonov")
 
