@@ -6,6 +6,21 @@ library(adaptiveFTS)
 library(data.table)
 library(ggplot2)
 
+## Shared plotting style.
+theme_set(theme_minimal(base_size = 13))
+blup_theme <- theme(legend.position = "bottom",
+                    plot.title = element_text(hjust = 0.5, face = "bold"))
+col_true <- "#154360"  # true curve
+col_pred <- "#C0392B"  # prediction
+pred_scales <- list(
+  scale_colour_manual(name = NULL,
+                      values = c(Xtrue = col_true, prediction = col_pred),
+                      labels = c(Xtrue = "True curve", prediction = "Adaptive prediction")),
+  scale_linetype_manual(name = NULL,
+                        values = c(Xtrue = "solid", prediction = "dashed"),
+                        labels = c(Xtrue = "True curve", prediction = "Adaptive prediction")),
+  guides(colour = guide_legend(override.aes = list(linewidth = 1.2))))
+
 data("data_far")
 data_prepared <- format_data(data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X")
 
@@ -37,21 +52,23 @@ pred <- predict(fit, t = t0)
 
 dt_cmp <- merge(data_test[, .(t = tobs, Xtrue = X)], pred[, .(t, prediction)], by = "t")
 dt_long <- rbind(
-  dt_cmp[, .(t, Quantity = "prediction", value = prediction)],
-  dt_cmp[, .(t, Quantity = "Xtrue",      value = Xtrue)])
+  dt_cmp[, .(t, curve = "Xtrue",      value = Xtrue)],
+  dt_cmp[, .(t, curve = "prediction", value = prediction)])
 
-ggplot(dt_long, aes(x = t, y = value, colour = Quantity)) +
-  geom_line() + theme_minimal() + theme(legend.position = "top") +
-  labs(x = "t", y = NULL, title = "Adaptive BLUP: one-step-ahead prediction")
+ggplot(dt_long, aes(x = t, y = value, colour = curve, linetype = curve)) +
+  geom_line(linewidth = 0.7) +
+  pred_scales + blup_theme +
+  labs(x = "t", y = NULL, title = "One-step-ahead adaptive BLUP")
 
 ## The Tikhonov cross-validation is carried in the fit.
 cv <- fit$tikhonov_cv
 ggplot(data.table(tikhonov = cv$tikhonov_grid, cv = cv$cv_curve), aes(x = tikhonov, y = cv)) +
-  geom_line() + geom_point() +
-  geom_vline(xintercept = cv$tikhonov_star, linetype = 2, colour = "red") +
-  scale_x_log10() + theme_minimal() +
+  geom_line(colour = col_true) +
+  geom_point(colour = col_true, size = 1.2) +
+  geom_vline(xintercept = cv$tikhonov_star, linetype = "dashed", colour = col_pred) +
+  scale_x_log10() + blup_theme +
   labs(x = expression(alpha), y = expression(CV(alpha)),
-       title = "Holdout CV for the Tikhonov parameter")
+       title = "Tikhonov parameter cross-validation")
 
 ## ---- One-call wrapper ---------------------------------------------------
 ## Reuse the selected Tikhonov to avoid re-running the cross-validation.
@@ -64,6 +81,7 @@ stopifnot(isTRUE(all.equal(pred$prediction, res$prediction$prediction)))
 pred_multi <- predict(fit, t = t0, horizon = 3L)
 
 ggplot(pred_multi, aes(x = t, y = prediction, colour = factor(horizon))) +
-  geom_line() + theme_minimal() + theme(legend.position = "top") +
-  labs(x = "t", y = "prediction", colour = "horizon",
-       title = "Adaptive BLUP: multi-step-ahead prediction")
+  geom_line(linewidth = 0.7) +
+  scale_colour_viridis_d(name = "Horizon", end = 0.85) +
+  blup_theme +
+  labs(x = "t", y = "prediction", title = "Multi-step-ahead adaptive BLUP")
