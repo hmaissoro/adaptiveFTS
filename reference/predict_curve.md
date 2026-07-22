@@ -1,5 +1,19 @@
 # Curve prediction using the Best Linear Unbiased Predictor (BLUP).
 
+**Deprecated.** `predict_curve()` is deprecated and will be removed in a
+future release. It reconstructs a curve from a block system conditioning
+on the neighbouring curve and the target curve's own partial
+observations. For the design-weighted, Tikhonov-regularised adaptive
+BLUP (one-step-ahead prediction of the curve following a conditioning
+curve), use
+[`blup_fit()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup_fit.md)
+with
+[`predict.blup_fit()`](https://hmaissoro.github.io/adaptiveFTS/reference/predict.blup_fit.md),
+or the one-call wrapper
+[`blup()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup.md).
+Note that these compute a different quantity, so results are not
+interchangeable.
+
 This function predict a curve using the adaptive Best Linear Unbiased
 Predictor proposed by Maissoro et al. (2025) .
 
@@ -135,7 +149,8 @@ Functional Times Series.” *arXiv preprint arXiv:2501.xxxxx*.
 
 ## See also
 
-[`estimate_locreg()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_locreg.md),
+[`blup_fit()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup_fit.md),
+[`predict.blup_fit()`](https://hmaissoro.github.io/adaptiveFTS/reference/predict.blup_fit.md),
+[`blup()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup.md),
 [`estimate_mean()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean.md),
-[`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md),
-[`estimate_nw()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_nw.md).
+[`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md).

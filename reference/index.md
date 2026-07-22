@@ -97,8 +97,27 @@
 
 ## Prediction (BLUP)
 
+- [`blup_fit()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup_fit.md)
+  : Fit the adaptive functional BLUP
+- [`predict(`*`<blup_fit>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/predict.blup_fit.md)
+  : Predict with an adaptive functional BLUP fit
+- [`blup()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup.md)
+  : Fit and predict the adaptive functional BLUP in one call
+- [`select_tikhonov_parameter()`](https://hmaissoro.github.io/adaptiveFTS/reference/select_tikhonov_parameter.md)
+  : Select the Tikhonov regularisation parameter
+- [`summary(`*`<blup_fit>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/summary.blup_fit.md)
+  : Summarise an adaptive functional BLUP fit
+- [`summary(`*`<blup>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/summary.blup.md)
+  : Summarise an adaptive functional BLUP prediction
 - [`predict_curve()`](https://hmaissoro.github.io/adaptiveFTS/reference/predict_curve.md)
   : Curve prediction using the Best Linear Unbiased Predictor (BLUP).
+
+## Design density
+
+- [`estimate_density()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_density.md)
+  : Leave-one-out Parzen-Rosenblatt density estimator
+- [`get_density_optimal_bw()`](https://hmaissoro.github.io/adaptiveFTS/reference/get_density_optimal_bw.md)
+  : Select the design-density bandwidth on a subset of curves
 
 ## Real-data helpers
 

@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">adaptiveFTS</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,6 +33,31 @@
       <small>Source: <a href="https://github.com/hmaissoro/adaptiveFTS/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.2.0" id="adaptivefts-020">adaptiveFTS 0.2.0<a class="anchor" aria-label="anchor" href="#adaptivefts-020"></a></h2>
+<div class="section level3">
+<h3 id="new-features-0-2-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-2-0"></a></h3>
+<ul><li>Design-weighted, Tikhonov-regularised adaptive functional BLUP with an <code><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm()</a></code>/<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>-style interface:
+<ul><li>
+<code><a href="../reference/blup_fit.html">blup_fit()</a></code> estimates every prediction-point-independent component and caches the adaptive bandwidths; <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> (method <code><a href="../reference/predict.blup_fit.html">predict.blup_fit()</a></code>) evaluates the predictor and, for <code>horizon &gt; 1</code>, returns every intermediate multi-step-ahead prediction; <code><a href="../reference/blup.html">blup()</a></code> is a one-call wrapper.</li>
+<li>The Tikhonov parameter is selected automatically by default (<code>tikhonov = NULL</code>), like <code>optbw</code> for <code>bw_grid</code>: <code><a href="../reference/blup_fit.html">blup_fit()</a></code>/<code><a href="../reference/blup.html">blup()</a></code> cross-validate over <code>tikhonov_grid</code> and return the selection as <code>tikhonov_cv</code>. Pass a numeric <code>tikhonov</code> to skip selection. <code>select_tikhonov_parameter(method = "cv")</code> exposes the selection directly (holdout under the common design, rolling origin under the independent design).</li>
+<li>
+<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> methods for <code>blup_fit</code> and <code>blup</code> objects.</li>
+<li>The numerical core runs in C++ (<code><a href="../reference/blup_fit_cpp.html">blup_fit_cpp()</a></code>, <code><a href="../reference/blup_predict_cpp.html">blup_predict_cpp()</a></code>).</li>
+</ul></li>
+<li>Design-density estimation for the independent-design weights:
+<ul><li>
+<code><a href="../reference/estimate_density.html">estimate_density()</a></code> — leave-one-out Parzen–Rosenblatt estimator with a least-squares cross-validation or fixed-bandwidth path.</li>
+<li>
+<code><a href="../reference/get_density_optimal_bw.html">get_density_optimal_bw()</a></code> — selects the density bandwidth on a subset of curves (median of the per-curve LSCV optima).</li>
+</ul></li>
+</ul></div>
+<div class="section level3">
+<h3 id="deprecations-0-2-0">Deprecations<a class="anchor" aria-label="anchor" href="#deprecations-0-2-0"></a></h3>
+<ul><li>
+<code><a href="../reference/predict_curve.html">predict_curve()</a></code> is deprecated in favour of <code><a href="../reference/blup_fit.html">blup_fit()</a></code>/<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> and <code><a href="../reference/blup.html">blup()</a></code>. It still works (with a warning) this release and will be removed in a future version. Note the new functions compute a different quantity (the design-weighted adaptive BLUP), so results are not interchangeable.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.1" id="adaptivefts-011">adaptiveFTS 0.1.1<a class="anchor" aria-label="anchor" href="#adaptivefts-011"></a></h2>
 <p>First CRAN-targeted release.</p>

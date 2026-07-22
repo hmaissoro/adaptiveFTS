@@ -10,13 +10,13 @@ Source:
 [`DESCRIPTION`](https://github.com/hmaissoro/adaptiveFTS/blob/main/DESCRIPTION)
 
 Maissoro H (2026). *adaptiveFTS: Adaptive Functional Time Series
-Analysis*. R package version 0.1.1,
+Analysis*. R package version 0.2.0,
 <https://github.com/hmaissoro/adaptiveFTS>.
 
     @Manual{,
       title = {adaptiveFTS: Adaptive Functional Time Series Analysis},
       author = {Hassan Maissoro},
       year = {2026},
-      note = {R package version 0.1.1},
+      note = {R package version 0.2.0},
       url = {https://github.com/hmaissoro/adaptiveFTS},
     }
