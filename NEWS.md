@@ -21,6 +21,26 @@
     least-squares cross-validation or fixed-bandwidth path.
   * `get_density_optimal_bw()` — selects the density bandwidth on a subset of
     curves (median of the per-curve LSCV optima).
+* The adaptive estimators now return classed `data.table`s (see
+  `?adaptiveFTS_est`) so they gain `summary()`, `plot()` and
+  `ggplot2::autoplot()` methods:
+  * `estimate_mean()`, `estimate_locreg()`, `estimate_autocov()`,
+    `estimate_cov_segment()` and their `*_risk()` counterparts print a compact,
+    design-aware `summary()` and draw a diagnostic `ggplot2` plot (mean/segment
+    curves, a regularity panel, a covariance surface, and risk-vs-bandwidth
+    curves marking the minimiser). The returned objects remain genuine
+    `data.table`s, so existing code is unaffected. `ggplot2` stays a suggested
+    dependency.
+* Descriptive statistics:
+  * `estimate_acf()` — adaptive functional autocorrelation function (FACF),
+    `rho_l = ||Gamma_l|| / integral Gamma_0(t, t) dt`, built on
+    `estimate_autocov()` and handling both the common and independent designs.
+    Returns a classed `fts_acf` object with `summary()`, `plot()` and
+    `ggplot2::autoplot()` (an ACF-style lag plot).
+* `save_plot_tikz()` — export a `ggplot` (or any printable figure) to a
+  standalone TikZ/LaTeX `.tex` file (optionally compiled to PDF), so the helper
+  no longer has to be copied between projects. `tikzDevice` is a new suggested
+  dependency.
 
 ## Deprecations
 

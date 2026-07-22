@@ -50,6 +50,16 @@ reference:
   - estimate_empirical_autocov
   - estimate_empirical_mom
   - estimate_empirical_XsXt_autocov
+- title: Descriptive statistics
+  contents:
+  - estimate_acf
+- title: Summaries and plots
+  contents:
+  - adaptiveFTS-summary
+  - adaptiveFTS-autoplot
+- title: Export
+  contents:
+  - save_plot_tikz
 - title: Prediction (BLUP)
   contents:
   - blup_fit
