@@ -19,6 +19,11 @@ manipulateWidget::combineWidgets(
   nrow = 3
 )
 
+# The risk output is a classed data.table (see ?adaptiveFTS_est): summary()
+# reports the risk-minimising bandwidth per t, plot() draws the risk curves.
+summary(dt_mean_risk)
+plot(dt_mean_risk)       # risk vs bandwidth, one series per t (requires ggplot2)
+
 # Estimate mean function
 dt_mean <- estimate_mean(
   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
@@ -26,6 +31,10 @@ dt_mean <- estimate_mean(
 
 # Table of the estimates of the mean function
 DT::datatable(data = dt_mean[, lapply(.SD, function(X) round(X, 5))])
+
+# Text summary and quick diagnostic plot of the adaptive mean estimate.
+summary(dt_mean)
+plot(dt_mean)            # muhat against t (requires ggplot2)
 
 # Estimate mean function using Rubìn and Panaretos (2020) method
 ## Estimate the bandwidth by Cross-Validation
