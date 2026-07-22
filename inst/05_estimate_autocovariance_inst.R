@@ -34,6 +34,11 @@ manipulateWidget::combineWidgets(
   nrow = 3
 )
 
+# The risk output is a classed data.table (see ?adaptiveFTS_est): summary()
+# reports the risk-minimising bandwidths per (s, t), plot() draws the curves.
+summary(dt_autocov_risk)
+plot(dt_autocov_risk)    # risk vs bandwidth, one series per (s, t) (requires ggplot2)
+
 ## Using Two bandwiths
 dt_autocov_risk_2bw <- estimate_autocov_risk(
   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
@@ -42,3 +47,15 @@ dt_autocov_risk_2bw <- estimate_autocov_risk(
   center = TRUE, kernel_name = "epanechnikov")
 
 dt_autocov_risk[, .(s,t, hs, ht, autocov_risk)]
+
+# Estimate the lag-0 covariance surface on a grid and visualise it.
+tgrid <- seq(0.2, 0.8, len = 10)
+cov_grid <- data.table::CJ(s = tgrid, t = tgrid)
+dt_cov_surface <- estimate_autocov(
+  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  s = cov_grid[, s], t = cov_grid[, t], lag = 0,
+  bw_grid = NULL, use_same_bw = TRUE, center = TRUE,
+  kernel_name = "epanechnikov")
+
+summary(dt_cov_surface)
+plot(dt_cov_surface)     # covariance surface heatmap (requires ggplot2)
