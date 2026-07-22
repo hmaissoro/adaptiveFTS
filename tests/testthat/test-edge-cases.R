@@ -48,3 +48,26 @@ test_that("predict_curve returns a reconstruction on the requested grid", {
     "deprecated")
   expect_true(is.list(pc) || data.table::is.data.table(pc) || is.matrix(pc))
 })
+
+test_that("get_upper_tri_couple keeps points that collide only at 6 decimals", {
+  # Regression for the "Mat::operator(): index out of bounds" crash: the couple
+  # de-duplication must key on the exact double values, not a 6-decimal string.
+  # 0.8065727 and 0.8065730 both format to "0.806573" but are distinct points.
+  s <- c(0.8065727, 0.8065730)
+  t <- c(0.8065727, 0.8065730)
+  up <- adaptiveFTS:::get_upper_tri_couple(s, t)
+  # The two distinct diagonal couples must both survive de-duplication.
+  expect_equal(nrow(unique(round(up, 10))), 2L)
+})
+
+test_that("predict_curve survives near-duplicate observation points (index OOB)", {
+  # Slice ending at curve 8 carries two observation points equal to 6 decimals
+  # but distinct beyond, which used to abort estimate_autocov_cpp(lag = 0).
+  dt <- fixture_data_far(8L)
+  expect_warning(
+    pc <- predict_curve(dt, t = c(0.2, 0.4, 0.6, 0.8), id_curve_to_predict = 8L,
+                        bw_grid = seq(0.05, 0.2, length.out = 5)),
+    "deprecated")
+  expect_true(data.table::is.data.table(pc))
+  expect_true(all(is.finite(pc[["prediction"]])))
+})
