@@ -104,7 +104,9 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
                        new = c("t", "h", "PN", "locreg_bw", "Ht", "Lt", "bias_term",
                                "variance_term", "dependence_term", "mean_risk"))
 
-    return(dt_mean_risk)
+    return(.as_adaptive_est(dt_mean_risk, "mean_risk",
+                            meta = list(kernel = kernel_name, N = N,
+                                        n_bw = length(bw_grid))))
 }
 
 
@@ -199,7 +201,8 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   dt_muhat <- estimate_mean_cpp(data = data, t = t, optbw = optbw, bw_grid = bw_grid, kernel_name = kernel_name)
   dt_muhat <- data.table::as.data.table(dt_muhat)
   data.table::setnames(x = dt_muhat, new = c("t", "optbw", "Ht", "Lt", "PN", "muhat"))
-  return(dt_muhat)
+  return(.as_adaptive_est(dt_muhat, "mean_est",
+                          meta = list(kernel = kernel_name, N = N)))
 }
 
 

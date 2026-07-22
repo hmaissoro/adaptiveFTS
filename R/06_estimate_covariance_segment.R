@@ -88,7 +88,9 @@ estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", y
   data.table::setnames(x = dt_risk,
                        new = c("t", "h", "PN", "locreg_bw", "Ht", "Lt", "bias_term",
                                "variance_term", "dependence_term", "cov_segment_risk"))
-  return(dt_risk)
+  return(.as_adaptive_est(dt_risk, "cov_segment_risk",
+                          meta = list(kernel = kernel_name, N = N, center = center,
+                                      n_bw = length(bw_grid))))
 }
 
 
@@ -169,5 +171,6 @@ estimate_cov_segment <- function(data, idcol = "id_curve", tcol = "tobs", ycol =
   data.table::setnames(x = dt_res, new = c("t", "optbw", "Ht", "Lt", "PN", "cov_segment_hat",
                                            "covseg_correction", "cov_segment_hat_corrected"))
   dt_res[cov_segment_hat < covseg_correction, cov_segment_hat_corrected := cov_segment_hat]
-  return(dt_res)
+  return(.as_adaptive_est(dt_res, "cov_segment_est",
+                          meta = list(kernel = kernel_name, N = N, center = center)))
 }

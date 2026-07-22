@@ -80,5 +80,6 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   dt_reg <- data.table::as.data.table(mat_reg)
   data.table::setnames(x = dt_reg, new = c("t", "locreg_bw", "Delta", "Nused", "Ht", "Lt"))
 
-  return(dt_reg)
+  return(.as_adaptive_est(dt_reg, "locreg_est",
+                          meta = list(kernel = kernel_name, center = center)))
 }
