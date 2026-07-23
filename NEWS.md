@@ -1,3 +1,31 @@
+# adaptiveFTS 0.3.0 (in development)
+
+## Breaking changes
+
+* `format_data()` now validates its result instead of passing questionable data
+  on to the estimators. It fails when the observation points fall outside
+  `[0, 1]` (the domain the estimators assume), when the observation points or
+  the observed values are not numeric, and when any value is missing; it warns
+  when a curve carries repeated observation points. Data that used to flow
+  through and yield `NaN` estimates now stops at the formatting step.
+
+## Bug fixes
+
+* `format_data()` mis-assigned observations when the rows of a curve were not
+  contiguous in the input: the curve index was rebuilt from run lengths counted
+  by value but written back in row order, scattering a curve's observation
+  points across its neighbours. Curves are now identified by value, and the
+  result is always sorted by `id_curve` then `tobs`.
+
+## Documentation
+
+* `format_data()` gained runnable examples, an explicit description of the three
+  accepted input layouts, and a stated output contract (columns, curve
+  renumbering by order of first appearance, sorting).
+* The `data`, `idcol`, `tcol` and `ycol` descriptions inherited by every
+  estimator are now two lines pointing at `format_data()`, instead of a
+  27-line copy of its input specification repeated on 25 help pages.
+
 # adaptiveFTS 0.2.0
 
 ## Breaking changes
