@@ -1,7 +1,3 @@
-## Functional autocorrelation function (FACF), built on the adaptive
-## (auto)covariance estimator. Both designs are handled by estimate_autocov();
-## only the default evaluation grid is chosen design-aware here.
-
 #' Estimate the functional autocorrelation function (FACF)
 #'
 #' Computes the functional autocorrelation \eqn{\widehat\rho_\ell} for lags
@@ -41,12 +37,14 @@
 #'   }
 #'
 #' @references
-#' \insertRef{horvath2016}{adaptiveFTS}
+#' Horváth, L., Rice, G. and Whipple, S. (2016). Adaptive bandwidth selection
+#' in the long run covariance estimator of functional time series.
+#' \emph{Computational Statistics and Data Analysis}, 100, 676--693.
+#' \doi{10.1016/j.csda.2014.06.008}
 #'
 #' @seealso [estimate_autocov()], [autoplot.fts_acf()], [summary.fts_acf()].
 #' @export
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #'
 #' @examples
 #' \dontrun{

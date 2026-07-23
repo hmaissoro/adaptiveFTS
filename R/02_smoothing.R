@@ -25,7 +25,6 @@
 #' @seealso \code{\link{estimate_nw_bw}}
 #'
 #' @examples
-#' \dontrun{
 #' # Define the true regression function
 #' m <- function(t) 4 * sin(1.5 * pi * t)
 #'
@@ -55,7 +54,7 @@
 #'      main = "Estimated and true regression function")
 #' lines(x = dt_nw[, tnew], y = m(dt_nw[, tnew]), col = "red")
 #' legend(x = 0.64, y = 4.1, fill = c("blue", "red"), legend = c("Estimated m", "True m"))
-#' }
+#'
 #'
 estimate_nw <- function(y, t, tnew, h = NULL, kernel_name = "epanechnikov"){
   if (! is.numeric(y) | ! is.numeric(t) | ! is.numeric(tnew))
@@ -105,7 +104,6 @@ estimate_nw <- function(y, t, tnew, h = NULL, kernel_name = "epanechnikov"){
 #' @seealso \code{\link{estimate_nw}}
 #'
 #' @examples
-#' \dontrun{
 #' # Define the true regression function
 #' m <- function(t) 4 * sin(1.5 * pi * t)
 #'
@@ -137,7 +135,7 @@ estimate_nw <- function(y, t, tnew, h = NULL, kernel_name = "epanechnikov"){
 #'      main = "Estimated and true regression function")
 #' lines(x = dt_nw[, tnew], y = m(dt_nw[, tnew]), col = "red")
 #' legend(x = 0.64, y = 4.1, fill = c("blue", "red"), legend = c("Estimated m", "True m"))
-#' }
+#'
 #'
 estimate_nw_bw <- function(y, t, bw_grid = NULL, kernel_name = "epanechnikov") {
   if (! is.numeric(y) | ! is.numeric(t))
@@ -188,7 +186,6 @@ estimate_nw_bw <- function(y, t, bw_grid = NULL, kernel_name = "epanechnikov") {
 #' @import data.table
 #'
 #' @examples
-#' \dontrun{
 #' # Load the dataset
 #' data(data_far)
 #'
@@ -197,7 +194,7 @@ estimate_nw_bw <- function(y, t, bw_grid = NULL, kernel_name = "epanechnikov") {
 #'                            bw_grid = NULL, nsubset = 30, kernel_name = "epanechnikov")
 #' # Display the optimal bandwidth
 #' hbest
-#' }
+#'
 #'
 #'
 get_nw_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",

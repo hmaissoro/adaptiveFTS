@@ -1,6 +1,3 @@
-## Reusable TikZ export for ggplot (and other printable) figures. Wraps
-## tikzDevice::tikz(); tikzDevice is a suggested dependency.
-
 #' Save a plot as a (standalone) TikZ/LaTeX figure
 #'
 #' Renders a plot to a `.tex` file through [tikzDevice::tikz()] and, optionally,
@@ -55,7 +52,7 @@ save_plot_tikz <- function(plot, file, width = 7, height = 5,
 
   tikzDevice::tikz(file = file, width = width, height = height,
                    standAlone = standalone, package = packages, ...)
-  # Guarantee the device is closed exactly once, even if printing errors.
+  # Close the device even if printing errors.
   tryCatch(print(plot), finally = grDevices::dev.off())
 
   if (compile) {

@@ -1,6 +1,3 @@
-## ggplot2 autoplot()/plot() methods for the adaptive-estimator objects. ggplot2
-## is a Suggested dependency, so entry points guard with requireNamespace().
-
 #' @keywords internal
 .require_ggplot2 <- function() {
   if (!requireNamespace("ggplot2", quietly = TRUE))
@@ -36,16 +33,15 @@
 #' @seealso [adaptiveFTS-summary], [estimate_mean()], [estimate_autocov()].
 #'
 #' @examples
-#' \dontrun{
 #' data("data_far")
 #' if (requireNamespace("ggplot2", quietly = TRUE)) {
-#'   ggplot2::autoplot(estimate_mean(data = data_far,
-#'                                   t = seq(0.1, 0.9, length.out = 20)))
-#' }
+#'   dt_mean <- estimate_mean(data = data_far[data_far$id_curve <= 20, ],
+#'                            t = seq(0.1, 0.9, length.out = 20),
+#'                            bw_grid = seq(0.04, 0.15, length.out = 5))
+#'   ggplot2::autoplot(dt_mean)
 #' }
 NULL
 
-# ---- mean function ---------------------------------------------------------
 
 #' @rdname adaptiveFTS-autoplot
 #' @exportS3Method ggplot2::autoplot
@@ -65,7 +61,6 @@ plot.mean_est <- function(x, ...) {
   p <- autoplot.mean_est(x, ...); print(p); invisible(p)
 }
 
-# ---- local regularity ------------------------------------------------------
 
 #' @rdname adaptiveFTS-autoplot
 #' @exportS3Method ggplot2::autoplot
@@ -88,7 +83,6 @@ plot.locreg_est <- function(x, ...) {
   p <- autoplot.locreg_est(x, ...); print(p); invisible(p)
 }
 
-# ---- covariance segment ----------------------------------------------------
 
 #' @rdname adaptiveFTS-autoplot
 #' @exportS3Method ggplot2::autoplot
@@ -108,7 +102,6 @@ plot.cov_segment_est <- function(x, ...) {
   p <- autoplot.cov_segment_est(x, ...); print(p); invisible(p)
 }
 
-# ---- (auto)covariance surface ----------------------------------------------
 
 #' @rdname adaptiveFTS-autoplot
 #' @exportS3Method ggplot2::autoplot
@@ -140,7 +133,6 @@ plot.autocov_est <- function(x, ...) {
   p <- autoplot.autocov_est(x, ...); print(p); invisible(p)
 }
 
-# ---- risk curves -----------------------------------------------------------
 
 #' @rdname adaptiveFTS-autoplot
 #' @exportS3Method ggplot2::autoplot

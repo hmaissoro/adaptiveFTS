@@ -123,7 +123,7 @@ predict_next_curve <- function(
     optbw_mean_prediction_points <- dt_optbw_mean$optbw[knn_mean_pred$nn.idx]
     dt_muhat_prediction_points <- adaptiveFTS::estimate_mean(
         data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-        t = prediction_points, optbw = optbw_mean_prediction_points, bw_grid = bw_grid,
+        t = prediction_points, bw = optbw_mean_prediction_points, bw_grid = bw_grid,
         kernel_name = kernel_name)
     muhat_prediction_points <- dt_muhat_prediction_points[order(t), muhat]
 
@@ -134,14 +134,14 @@ predict_next_curve <- function(
     optbw_Tn0 <- dt_optbw_mean$optbw[knn_Tn0$nn.idx]
     dt_muhat_Tn0 <- adaptiveFTS::estimate_mean(
         data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-        t = Tn0, optbw = optbw_Tn0, bw_grid = bw_grid,
+        t = Tn0, bw = optbw_Tn0, bw_grid = bw_grid,
         kernel_name = kernel_name)
     muhat_Tn0 <- dt_muhat_Tn0[order(t), muhat]
 
     dt_risk_cov <- adaptiveFTS::estimate_autocov_risk(
         data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
         s = sub_grid$s, t = sub_grid$t, lag = 0, bw_grid = bw_grid,
-        use_same_bw = FALSE, center = TRUE, kernel_name = kernel_name)
+        common_bw = FALSE, center_curves = TRUE, kernel_name = kernel_name)
     dt_optbw_cov <- dt_risk_cov[
         ,
         .("optbw_s" = hs[which.min(autocov_risk)], "optbw_t" = ht[which.min(autocov_risk)]),
@@ -151,7 +151,7 @@ predict_next_curve <- function(
     dt_risk_autocov <- adaptiveFTS::estimate_autocov_risk(
         data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
         s = sub_grid$s, t = sub_grid$t, lag = 1, bw_grid = bw_grid,
-        use_same_bw = FALSE, center = TRUE, kernel_name = kernel_name)
+        common_bw = FALSE, center_curves = TRUE, kernel_name = kernel_name)
     dt_optbw_autocov <- dt_risk_autocov[
         ,
         .("optbw_s" = hs[which.min(autocov_risk)], "optbw_t" = ht[which.min(autocov_risk)]),
@@ -172,8 +172,8 @@ predict_next_curve <- function(
     dt_cov <- adaptiveFTS::estimate_autocov(
         data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
         s = grid_cov[, s], t = grid_cov[, t], lag = 0,
-        optbw_s = grid_cov[, optbw_s], optbw_t = grid_cov[, optbw_t],
-        bw_grid = NULL, use_same_bw = FALSE, center = TRUE,
+        bw_s = grid_cov[, optbw_s], bw_t = grid_cov[, optbw_t],
+        bw_grid = NULL, common_bw = FALSE, center_curves = TRUE,
         correct_diagonal = TRUE, kernel_name = kernel_name)
 
     dt_cov_dcast <- data.table::dcast(data = dt_cov[order(s,t)], formula = s ~ t, value.var = "autocov")
@@ -184,8 +184,8 @@ predict_next_curve <- function(
     dt_autocov <- adaptiveFTS::estimate_autocov(
         data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
         s = grid_autocov[, s], t = grid_autocov[, t], lag = 1,
-        optbw_s = grid_autocov[, optbw_s], optbw_t = grid_autocov[, optbw_t],
-        bw_grid = NULL, use_same_bw = FALSE, center = TRUE,
+        bw_s = grid_autocov[, optbw_s], bw_t = grid_autocov[, optbw_t],
+        bw_grid = NULL, common_bw = FALSE, center_curves = TRUE,
         correct_diagonal = FALSE, kernel_name = kernel_name)
 
     dt_autocov_dcast <- data.table::dcast(data = dt_autocov[order(s,t)], formula = s ~ t, value.var = "autocov")
@@ -281,7 +281,7 @@ mean_at <- function(fit, data, t, kernel_name = "epanechnikov") {
 
     dt <- adaptiveFTS::estimate_mean(
         data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-        t = t, optbw = optbw_t, bw_grid = NULL,
+        t = t, bw = optbw_t, bw_grid = NULL,
         kernel_name = kernel_name)
 
     return(dt[order(t), muhat])

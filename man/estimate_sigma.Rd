@@ -34,20 +34,21 @@ values observed at those points.}
 A data.table with two columns: \code{t} and \code{sig} corresponding to the estimated standard deviation.
 }
 \description{
-This function estimates the the standard deviation of the observation error using the estimator proposed by \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}.
+This function estimates the the standard deviation of the observation error using the estimator proposed by Maissoro, Patilea and Vimond (2025).
 }
 \examples{
-\dontrun{
 # Load data
 data("data_far")
 
 # Estimate the standar-deviation of the error term
 estimate_sigma(data = data_far, t = c(1/4, 1/2, 3/4))
 
-}
+
 
 
 }
 \references{
-\insertAllCited{}
+Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+Analysis}. \doi{10.1111/jtsa.70006}
 }

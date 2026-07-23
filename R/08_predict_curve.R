@@ -10,7 +10,7 @@
 #' with [predict.blup_fit()], or the one-call wrapper [blup()]. Note that these
 #' compute a different quantity, so results are not interchangeable.
 #'
-#' This function predict a curve using the adaptive Best Linear Unbiased Predictor proposed by \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+#' This function predict a curve using the adaptive Best Linear Unbiased Predictor proposed by Maissoro, Patilea and Vimond (2026).
 #'
 #' @inheritParams format_data
 #' @param t A numeric vector specifying the time points at which to predict the curve \code{id_curve_to_predict}.
@@ -34,11 +34,11 @@
 #' @seealso [blup_fit()], [predict.blup_fit()], [blup()], [estimate_mean()], [estimate_autocov()].
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
-#' \insertAllCited{}
+#' Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+#' Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 #'
 #'
 predict_curve <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",

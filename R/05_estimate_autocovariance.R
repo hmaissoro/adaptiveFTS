@@ -9,10 +9,10 @@
 #' @details
 #' Two estimators are covered. With \code{common_bw = TRUE} a single bandwidth is
 #' selected for both arguments, the one-bandwidth estimator of
-#' \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}; the returned \code{hs}
+#' Maissoro, Patilea and Vimond (2025); the returned \code{hs}
 #' and \code{ht} then hold the same value. With \code{common_bw = FALSE}
 #' (default) the risk is minimised over pairs \eqn{(h_s, h_t)}, the two-bandwidth
-#' estimator of \insertCite{maissoro2024pred;textual}{adaptiveFTS}, which adapts
+#' estimator of Maissoro, Patilea and Vimond (2026), which adapts
 #' to the regularity of the process at \code{s} and at \code{t} separately. The
 #' second is the more flexible but explores the square of the grid, so it costs
 #' noticeably more.
@@ -67,11 +67,15 @@
 #' @seealso [estimate_autocov()], [estimate_locreg()], [estimate_sigma()].
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
-#' \insertAllCited{}
+#' Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+#' Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+#' Analysis}. \doi{10.1111/jtsa.70006}
+#'
+#' Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+#' Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 #'
 #' @examples
 #' data("data_far")
@@ -154,9 +158,9 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 #' Unless \code{bw_s} and \code{bw_t} are supplied, the bandwidths are selected
 #' pair by pair by minimising the risk of \link{estimate_autocov_risk} over
 #' \code{bw_grid}. Set \code{common_bw = TRUE} for the one-bandwidth estimator of
-#' \insertCite{maissoro2024adaptive;textual}{adaptiveFTS} and \code{FALSE}
+#' Maissoro, Patilea and Vimond (2025) and \code{FALSE}
 #' (default) for the two-bandwidth estimator of
-#' \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+#' Maissoro, Patilea and Vimond (2026).
 #'
 #' \code{center_curves} chooses how the mean is removed. With \code{TRUE}
 #' (default) the curves are centred before smoothing, which estimates
@@ -201,11 +205,15 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 #' @seealso [estimate_autocov_risk()], [estimate_facf()], [estimate_mean()].
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
-#' \insertAllCited{}
+#' Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+#' Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+#' Analysis}. \doi{10.1111/jtsa.70006}
+#'
+#' Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+#' Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 #'
 #' @examples
 #' data("data_far")
@@ -283,7 +291,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' Weight Sum \eqn{S_{pq}^{(\ell)}} of the Rubìn-Panaretos Autocovariance Estimator
 #'
 #' Computes the \eqn{S_{pq}^{(\ell)}} term of Equation (B.7) of
-#' \insertCite{rubin2020;textual}{adaptiveFTS}, the kernel weight sum over all
+#' Rubìn and Panaretos (2020), the kernel weight sum over all
 #' pairs of observation points of two curves \eqn{\ell} apart.
 #'
 #' @inheritParams format_data
@@ -300,11 +308,12 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' "uniform".
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
-#' \insertAllCited{}
+#' Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+#' series: estimation and prediction. \emph{Electronic Journal of Statistics},
+#' 14(1), 1137--1210. \doi{10.1214/20-EJS1690}
 #'
 #' @return A \code{numeric} scalar.
 #' @keywords internal
@@ -358,7 +367,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' Weighted Cross-Product \eqn{Q_{pq}^{(\ell)}} of the Rubìn-Panaretos Estimator
 #'
 #' Computes the \eqn{Q_{pq}^{(\ell)}} term of Equation (B.7) of
-#' \insertCite{rubin2020;textual}{adaptiveFTS}, the counterpart of
+#' Rubìn and Panaretos (2020), the counterpart of
 #' \link{.Spq_fun} weighting the centred cross-products of the observed values.
 #'
 #' @inheritParams .Spq_fun
@@ -369,11 +378,12 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' estimator, used only when \code{mean_rp} is \code{NULL}.
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
-#' \insertAllCited{}
+#' Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+#' series: estimation and prediction. \emph{Electronic Journal of Statistics},
+#' 14(1), 1137--1210. \doi{10.1214/20-EJS1690}
 #'
 #' @return A \code{numeric} scalar.
 #' @keywords internal
@@ -469,7 +479,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' Estimate the Autocovariance Function by the Rubìn-Panaretos Method
 #'
 #' Estimates the lag-\eqn{\ell} autocovariance function with the local-linear
-#' estimator of \insertCite{rubin2020;textual}{adaptiveFTS}, which smooths every
+#' estimator of Rubìn and Panaretos (2020), which smooths every
 #' pair of observation points of curves \eqn{\ell} apart with a single bandwidth.
 #' It is provided for comparison with the adaptive estimator of
 #' \link{estimate_autocov}.
@@ -495,11 +505,12 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' "uniform".
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
-#' \insertAllCited{}
+#' Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+#' series: estimation and prediction. \emph{Electronic Journal of Statistics},
+#' 14(1), 1137--1210. \doi{10.1214/20-EJS1690}
 #'
 #' @return A \code{data.table} with one row per pair (\code{s}, \code{t}) and
 #' columns:
@@ -621,7 +632,7 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
 #'
 #' Selects the bandwidth of \link{estimate_autocov_rp} by \eqn{K}-fold
 #' cross-validation over the curves, as described in
-#' \insertCite{rubin2020;textual}{adaptiveFTS}. Each fold is scored by the squared
+#' Rubìn and Panaretos (2020). Each fold is scored by the squared
 #' error between the empirical cross-products of the held-out curves and the
 #' lag-0 autocovariance estimated on the others.
 #'
@@ -652,11 +663,12 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
 #' @export
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
-#' \insertAllCited{}
+#' Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+#' series: estimation and prediction. \emph{Electronic Journal of Statistics},
+#' 14(1), 1137--1210. \doi{10.1214/20-EJS1690}
 #'
 #' @seealso [estimate_autocov_rp()], [estimate_mean_bw_rp()].
 #'

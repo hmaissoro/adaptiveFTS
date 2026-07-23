@@ -142,7 +142,6 @@ estimate_density <- function(x, h = NULL, bw_grid = NULL,
   }
 
   if (is.null(bw_grid)) {
-    # Fixed log-spaced grid, kept aligned with the reference Monte Carlo setup.
     bw_grid <- exp(seq(log(0.01), log(0.3), length.out = 30))
   }
 

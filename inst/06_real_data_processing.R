@@ -1,5 +1,4 @@
 library(data.table)
-library(magrittr)
 library(ggplot2)
 library(latex2exp)
 
@@ -84,7 +83,7 @@ dt <- dt[, .(date, "tobs" = t, "voltage" = Voltage)]
 
 ## Empirical mean function
 dt_mu <- dt[order(tobs), .("mu" = mean(voltage, na.rm = TRUE)), by = "tobs"]
-dygraphs::dygraph(dt_mu)
+plot(dt_mu, type = "l")
 
 ## Regression to estimate coefficients
 
@@ -112,7 +111,7 @@ mu_coef <- coef(mu_model)
 paste0(mu_coef, collapse = ", ")
 
 mu <- predict(mu_model, mat_covariable)
-dygraphs::dygraph(data = data.table::data.table(tobs, mu))
+plot(tobs, mu, type = "l", xlab = "t", ylab = "mu")
 
 ## mean function construction
 
@@ -323,7 +322,7 @@ paste0(beta_coef, collapse = ", ")
 CC1_prev <- predict(beta_model, FF)
 
 ### Build kernel function
-get_real_data_far_kenel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
+get_real_data_far_kernel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
   # Basis coefficient
   # For each fixed {\eta_k(s), k = 1,...,K} and {\theta_l(t), l = 1,...,L}, we have
   # c(b_{11}, b_{12}, ..., b_{1L},
@@ -371,12 +370,11 @@ tvec <- (1:1500) / 1500
 
 dt_grid <- expand.grid(s = svec, t = tvec)
 
-dt_far_ker <- get_real_data_far_kenel(s = dt_grid$s, t = dt_grid$t, operator_norm = 0.7)
+dt_far_ker <- get_real_data_far_kernel(s = dt_grid$s, t = dt_grid$t, operator_norm = 0.7)
 mat_far_ker <- matrix(dt_far_ker, ncol = length(tvec))
 
-plotly::plot_ly(x = svec, y = tvec, z = mat_far_ker) %>%
-  plotly::add_surface() %>%
-  plotly::layout(title = "Operator kernel")
+persp(x = svec, y = tvec, z = mat_far_ker, theta = 30, phi = 25,
+      xlab = "s", ylab = "t", zlab = "kernel")
 
 ## Calcul de la norm
 op_norm <- max(apply(X = mat_far_ker, MARGIN = 1, FUN = function(r){
@@ -389,7 +387,7 @@ ggrid <- expand.grid(s = (1:1440) / 1440, t = (1:1440) / 1440)
 dt_kernel <- data.table::data.table(
   "s" = ggrid$s,
   "t" = ggrid$t,
-  "Kernel_value" = get_real_data_far_kenel(s = ggrid$s, t = ggrid$t, operator_norm = 0.9128311)
+  "Kernel_value" = get_real_data_far_kernel(s = ggrid$s, t = ggrid$t, operator_norm = 0.9128311)
 )
 
 #### Contour plot
@@ -418,7 +416,7 @@ ggrid <- expand.grid(s = svec, t = tvec)
 dt_kernel <- data.table::data.table(
   "s" = ggrid$s,
   "t" = ggrid$t,
-  "Kernel_value" = get_real_data_far_kenel(s = ggrid$s, t = ggrid$t, operator_norm = 4.588783)
+  "Kernel_value" = get_real_data_far_kernel(s = ggrid$s, t = ggrid$t, operator_norm = 4.588783)
 )
 ker_mat <- matrix(dt_kernel$Kernel_value, ncol = length(tvec))
 plot3D::persp3D(x = seq(0.01, 0.99, len = 200),

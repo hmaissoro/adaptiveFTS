@@ -64,7 +64,7 @@ A \link[data.table]{data.table} containing the following columns:
 \description{
 Estimates the covariance segment function \eqn{\Gamma_{N,0}(t,t;h_t,h_t)} for functional data
 using the Nadaraya–Watson estimator with a specified kernel. This is part of the methodology
-described in \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+described in Maissoro, Patilea and Vimond (2026).
 }
 \examples{
 data("data_far")
@@ -78,7 +78,8 @@ dt_cov_segment
 
 }
 \references{
-\insertAllCited{}
+Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 }
 \seealso{
 \link{estimate_cov_segment_risk}, \link{estimate_locreg}, \link{estimate_sigma},

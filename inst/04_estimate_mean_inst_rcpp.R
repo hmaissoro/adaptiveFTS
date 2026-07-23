@@ -22,4 +22,4 @@ res_mean_estim <- estimate_mean_cpp(
 dt_mean_estim <- data.table::as.data.table(res_mean_estim)
 names(dt_mean_estim) <- c("t", "optbw", "Ht", "Lt2", "PN", "muhat")
 
-dygraphs::dygraph(dt_mean_estim[, .(t, muhat)])
+plot(dt_mean_estim[, .(t, muhat)], type = "l", xlab = "t", ylab = "muhat")

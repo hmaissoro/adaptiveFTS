@@ -65,10 +65,12 @@ A \code{numeric} scalar.
 }
 \description{
 Computes the \eqn{Q_{pq}^{(\ell)}} term of Equation (B.7) of
-\insertCite{rubin2020;textual}{adaptiveFTS}, the counterpart of
+Rubìn and Panaretos (2020), the counterpart of
 \link{.Spq_fun} weighting the centred cross-products of the observed values.
 }
 \references{
-\insertAllCited{}
+Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+series: estimation and prediction. \emph{Electronic Journal of Statistics},
+14(1), 1137--1210. \doi{10.1214/20-EJS1690}
 }
 \keyword{internal}

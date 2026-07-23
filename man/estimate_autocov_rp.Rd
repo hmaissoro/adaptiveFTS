@@ -72,7 +72,7 @@ columns:
 }
 \description{
 Estimates the lag-\eqn{\ell} autocovariance function with the local-linear
-estimator of \insertCite{rubin2020;textual}{adaptiveFTS}, which smooths every
+estimator of Rubìn and Panaretos (2020), which smooths every
 pair of observation points of curves \eqn{\ell} apart with a single bandwidth.
 It is provided for comparison with the adaptive estimator of
 \link{estimate_autocov}.
@@ -91,7 +91,9 @@ dt_autocov_rp
 
 }
 \references{
-\insertAllCited{}
+Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+series: estimation and prediction. \emph{Electronic Journal of Statistics},
+14(1), 1137--1210. \doi{10.1214/20-EJS1690}
 }
 \seealso{
 \code{\link[=estimate_autocov_bw_rp]{estimate_autocov_bw_rp()}}, \code{\link[=estimate_autocov]{estimate_autocov()}}.

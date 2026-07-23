@@ -55,10 +55,9 @@ the estimated \eqn{p}-th order moment of \eqn{X(t)} at each time point specified
 }
 \description{
 This function estimates the \eqn{p}-th order moment of \eqn{X(t)}, used in the empirical study section
-of the papers \insertCite{maissoro2024adaptive;textual}{adaptiveFTS} and \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+of the papers Maissoro, Patilea and Vimond (2025) and Maissoro, Patilea and Vimond (2026).
 }
 \examples{
-\dontrun{
 # Load example data
 data("data_far")  # Replace with actual data containing observed curves
 
@@ -79,11 +78,16 @@ moment_estimates <- estimate_empirical_mom(
 
 # View the result
 print(moment_estimates)
-}
+
 
 }
 \references{
-\insertAllCited{}
+Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+Analysis}. \doi{10.1111/jtsa.70006}
+
+Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 }
 \seealso{
 \code{\link[=get_nw_optimal_bw]{get_nw_optimal_bw()}}.

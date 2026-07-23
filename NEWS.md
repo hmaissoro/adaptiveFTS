@@ -54,8 +54,30 @@
   points across its neighbours. Curves are now identified by value, and the
   result is always sorted by `id_curve` then `tobs`.
 
+## Dependencies
+
+* **Requires R >= 4.1** (was 3.5.0), for the native `|>` pipe used in the
+  vignette and the `inst/` demo scripts.
+* `Rdpack` is no longer an `Imports`, and `RdMacros` is dropped. The four
+  references are written directly in the `\references{}` sections, with their
+  DOIs. `inst/REFERENCES.bib` remains as the bibliography source, and a new
+  `inst/CITATION` provides `citation("adaptiveFTS")`.
+* `Suggests` goes from twelve packages to five (`ggplot2`, `knitr`, `rmarkdown`,
+  `testthat`, `tikzDevice`). `crosstalk`, `DT`, `dygraphs`, `ggpubr`,
+  `magrittr`, `manipulateWidget` and `plotly` are dropped: the examples, the
+  `inst/` demos, the vignette and the README now use the package's own
+  `plot()`/`autoplot()` methods, plain `ggplot2`, or base graphics.
+
 ## Documentation
 
+* The references are updated: the estimation paper is published in the
+  *Journal of Time Series Analysis* (2025, \doi:10.1111/jtsa.70006) and the
+  prediction paper is a 2026 preprint.
+* Nearly every example is now runnable rather than wrapped in `\dontrun{}`, and
+  the estimator examples use a subset of `data_far` so they stay fast.
+* The vignette covers the mean, the autocovariance with one and with two
+  bandwidths, the functional autocorrelation and the BLUP; those sections were
+  previously empty headings.
 * `format_data()` gained runnable examples, an explicit description of the three
   accepted input layouts, and a stated output contract (columns, curve
   renumbering by order of first appearance, sorting).

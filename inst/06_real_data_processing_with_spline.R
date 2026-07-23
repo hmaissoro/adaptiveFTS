@@ -1,5 +1,4 @@
 library(data.table)
-library(magrittr)
 library(ggplot2)
 library(latex2exp)
 library(splines2)
@@ -119,16 +118,16 @@ bw <- unlist(lapply(date_vec, function(di, data, bw_grid){
   estimate_nw_bw(
     y = data[date == di, voltage],
     t = data[date == di, tobs],
-    bw_grid = bw_grid, smooth_ker = epanechnikov)
+    bw_grid = bw_grid, kernel_name = "epanechnikov")
 }, data = dt, bw_grid))
 
 ## Estimate the local regularity parameters
 dt_locreg <- estimate_locreg(
   data = dt, idcol = "date", tcol = "tobs", ycol = "voltage",
   t = seq(0.1, 0.9, len = 100), Delta = delta,
-  h = bw, smooth_ker = epanechnikov)
+  presmooth_bw = bw, kernel_name = "epanechnikov")
 
-dygraphs::dygraph(data = dt_locreg[, .(t, Ht)])
+plot(dt_locreg[, t], dt_locreg[, Ht], type = "l", xlab = "t", ylab = "Ht")
 
 
 # Mean function estimation ----
@@ -141,7 +140,7 @@ dt <- fread(file = "../electricity_consumption_data/household_voltage_autumn2009
 
 ## Empirical mean function
 dt_mu <- dt[order(tobs), .("mu" = mean(voltage, na.rm = TRUE)), by = "tobs"]
-dygraphs::dygraph(dt_mu)
+plot(dt_mu, type = "l")
 
 ## Regression to estimate coefficients
 
@@ -163,7 +162,7 @@ mu_model <- glmnet::glmnet(x = mat_covariable, y = dt_mu[, mu],
 mu_coef <- coef(mu_model)
 
 mu <- predict(mu_model, mat_covariable)
-dygraphs::dygraph(data = data.table::data.table(tobs, mu))
+plot(tobs, mu, type = "l", xlab = "t", ylab = "mu")
 
 ## mean function construction
 
@@ -360,7 +359,7 @@ beta_coef <- coef(beta_model)
 CC1_prev <- predict(beta_model, FF)
 
 ### Build kernel function
-get_real_data_far_kenel <- function(s = 0.2, t = 0.3, operator_norm = 0.7){
+get_real_data_far_kernel <- function(s = 0.2, t = 0.3, operator_norm = 0.7){
   # Basis coefficient
   # For each fixed {\eta_k(s), k = 1,...,K} and {\theta_l(t), l = 1,...,L}, we have
   # c(b_{11}, b_{12}, ..., b_{1L},
@@ -417,7 +416,7 @@ ggrid <- expand.grid(s = (1:1440) / 1440, t = (1:1440) / 1440)
 dt_kernel <- data.table::data.table(
   "s" = ggrid$s,
   "t" = ggrid$t,
-  "Kernel_value" = get_real_data_far_kenel(s = ggrid$s, t = ggrid$t, operator_norm = 4.588783)
+  "Kernel_value" = get_real_data_far_kernel(s = ggrid$s, t = ggrid$t, operator_norm = 4.588783)
 )
 
 #### Contour plot
@@ -445,7 +444,7 @@ ggrid <- expand.grid(s = svec, t = tvec)
 dt_kernel <- data.table::data.table(
   "s" = ggrid$s,
   "t" = ggrid$t,
-  "Kernel_value" = get_real_data_far_kenel(s = ggrid$s, t = ggrid$t, operator_norm = 4.588783)
+  "Kernel_value" = get_real_data_far_kernel(s = ggrid$s, t = ggrid$t, operator_norm = 4.588783)
 )
 ker_mat <- matrix(dt_kernel$Kernel_value, ncol = length(tvec))
 plot3D::persp3D(x = seq(0.01, 0.99, len = 200),
@@ -465,13 +464,13 @@ dt_grid <- expand.grid(
   s = svec, t = tvec
 )
 
-dt_far_ker <- get_real_data_far_kenel(
+dt_far_ker <- get_real_data_far_kernel(
   s = dt_grid$s, t = dt_grid$t, operator_norm = 0.7
 )
 mat_far_ker <- matrix(dt_far_ker, ncol = length(tvec))
 
-plot_ly(x = svec, y = tvec, z = mat_far_ker) %>%
-  add_surface() %>%
+plot_ly(x = svec, y = tvec, z = mat_far_ker) |>
+  add_surface() |>
   layout(title = "Operator kernel")
 
 ## Calcul de la norm

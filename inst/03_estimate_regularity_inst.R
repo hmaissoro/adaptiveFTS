@@ -14,7 +14,9 @@ dt_locreg <- estimate_locreg(data = data_far,
                              h = NULL,
                              kernel_name = "epanechnikov",
                              center = TRUE)
-DT::datatable(dt_locreg)
+dt_locreg
+summary(dt_locreg)
+plot(dt_locreg)
 
 # Summary and diagnostic plot
 summary(dt_locreg)

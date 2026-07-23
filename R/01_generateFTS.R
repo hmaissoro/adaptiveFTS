@@ -333,7 +333,6 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #'
 #' @examples
 #'
-#'\dontrun{
 #' dt_far <- simulate_far(N = 2L, lambda = 70L,
 #'                        design = "random",
 #'                        M_distribution = rpois,
@@ -347,7 +346,7 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #'                        n_burnin = 100L,
 #'                        remove_burnin = TRUE)
 #'
-#'}
+#'
 #'
 simulate_far <- function(N = 2L, lambda = 70L,
                          design = "random",
@@ -500,7 +499,6 @@ simulate_far <- function(N = 2L, lambda = 70L,
 #'
 #' @examples
 #'
-#'\dontrun{
 #' dt_fma <- simulate_fma(N = 2L, lambda = 70L,
 #'                        design = "random",
 #'                        M_distribution = rpois,
@@ -522,7 +520,7 @@ simulate_far <- function(N = 2L, lambda = 70L,
 #'   scale_colour_grey() +
 #'   theme_minimal()
 #'
-#'}
+#'
 #'
 simulate_fma <- function(N = 2L, lambda = 70L,
                          design = "random",

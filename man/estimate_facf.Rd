@@ -97,7 +97,10 @@ if (requireNamespace("ggplot2", quietly = TRUE)) ggplot2::autoplot(facf)
 }
 }
 \references{
-\insertRef{horvath2016}{adaptiveFTS}
+Horváth, L., Rice, G. and Whipple, S. (2016). Adaptive bandwidth selection
+in the long run covariance estimator of functional time series.
+\emph{Computational Statistics and Data Analysis}, 100, 676--693.
+\doi{10.1016/j.csda.2014.06.008}
 }
 \seealso{
 \code{\link[=estimate_autocov]{estimate_autocov()}}, \code{\link[=autoplot.fts_acf]{autoplot.fts_acf()}}, \code{\link[=summary.fts_acf]{summary.fts_acf()}}.

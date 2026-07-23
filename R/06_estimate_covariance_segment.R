@@ -1,7 +1,7 @@
 #' Estimate the Risk of the Covariance Segment Function
 #'
 #' Estimates the risk \eqn{R_{\Gamma_0}(t; h)} associated with the covariance segment line estimation
-#' proposed by \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+#' proposed by Maissoro, Patilea and Vimond (2026).
 #'
 #' @inheritParams format_data
 #' @param t A numeric vector. Observation points where the mean function of the underlying process is estimated.
@@ -38,11 +38,11 @@
 #'          \link{estimate_nw}, \link{estimate_empirical_autocov}
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
-#' \insertAllCited{}
+#' Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+#' Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 #'
 #' @examples
 #' data("data_far")
@@ -102,7 +102,7 @@ estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", y
 #'
 #' Estimates the covariance segment function \eqn{\Gamma_{N,0}(t,t;h_t,h_t)} for functional data
 #' using the Nadaraya–Watson estimator with a specified kernel. This is part of the methodology
-#' described in \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+#' described in Maissoro, Patilea and Vimond (2026).
 #'
 #' @inheritParams estimate_cov_segment_risk
 #' @param bw A numeric vector. Bandwidth to use at each point of \code{t},
@@ -126,10 +126,10 @@ estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", y
 #'          \link{estimate_nw}, \link{estimate_empirical_autocov}
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #'
 #' @references
-#' \insertAllCited{}
+#' Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+#' Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 #'
 #' @examples
 #' data("data_far")

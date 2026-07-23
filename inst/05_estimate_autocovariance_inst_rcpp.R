@@ -27,7 +27,8 @@ res_gammahat_risk_2bw_cpp <- estimate_autocov_risk_cpp(
 res_gammahat_risk_2bw_cpp
 
 dt_risk <- as.data.table(res_gammahat_risk_2bw_cpp)
-dygraphs::dygraph(dt_risk[V1 == 0.2 & V2 == 0.8][, .(V3, V14)])
+plot(dt_risk[V1 == 0.2 & V2 == 0.8][, .(V3, V14)], type = "l",
+     xlab = "h", ylab = "risk function")
 
 # autoCovariance function
 res_cov <- estimate_autocov_cpp(

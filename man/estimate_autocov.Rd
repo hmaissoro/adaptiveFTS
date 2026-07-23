@@ -100,9 +100,9 @@ at each pair of points the bandwidths that minimise the estimated risk.
 Unless \code{bw_s} and \code{bw_t} are supplied, the bandwidths are selected
 pair by pair by minimising the risk of \link{estimate_autocov_risk} over
 \code{bw_grid}. Set \code{common_bw = TRUE} for the one-bandwidth estimator of
-\insertCite{maissoro2024adaptive;textual}{adaptiveFTS} and \code{FALSE}
+Maissoro, Patilea and Vimond (2025) and \code{FALSE}
 (default) for the two-bandwidth estimator of
-\insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+Maissoro, Patilea and Vimond (2026).
 
 \code{center_curves} chooses how the mean is removed. With \code{TRUE}
 (default) the curves are centred before smoothing, which estimates
@@ -141,7 +141,12 @@ dt_cov[, list(s, t, PNl, autocov)]
 
 }
 \references{
-\insertAllCited{}
+Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+Analysis}. \doi{10.1111/jtsa.70006}
+
+Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 }
 \seealso{
 \code{\link[=estimate_autocov_risk]{estimate_autocov_risk()}}, \code{\link[=estimate_facf]{estimate_facf()}}, \code{\link[=estimate_mean]{estimate_mean()}}.

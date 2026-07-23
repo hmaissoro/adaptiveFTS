@@ -88,10 +88,10 @@ its bandwidths.
 \details{
 Two estimators are covered. With \code{common_bw = TRUE} a single bandwidth is
 selected for both arguments, the one-bandwidth estimator of
-\insertCite{maissoro2024adaptive;textual}{adaptiveFTS}; the returned \code{hs}
+Maissoro, Patilea and Vimond (2025); the returned \code{hs}
 and \code{ht} then hold the same value. With \code{common_bw = FALSE}
 (default) the risk is minimised over pairs \eqn{(h_s, h_t)}, the two-bandwidth
-estimator of \insertCite{maissoro2024pred;textual}{adaptiveFTS}, which adapts
+estimator of Maissoro, Patilea and Vimond (2026), which adapts
 to the regularity of the process at \code{s} and at \code{t} separately. The
 second is the more flexible but explores the square of the grid, so it costs
 noticeably more.
@@ -120,7 +120,12 @@ dt_autocov_risk[, list(hs = hs[which.min(autocov_risk)]), by = c("s", "t")]
 
 }
 \references{
-\insertAllCited{}
+Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+Analysis}. \doi{10.1111/jtsa.70006}
+
+Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 }
 \seealso{
 \code{\link[=estimate_autocov]{estimate_autocov()}}, \code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_sigma]{estimate_sigma()}}.

@@ -60,7 +60,7 @@ A \code{data.table} with one row per point of \code{t} and columns:
 }
 \description{
 Estimates the mean function of the underlying process with the adaptive
-estimator of \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}, using at
+estimator of Maissoro, Patilea and Vimond (2025), using at
 each point the bandwidth that minimises the estimated risk.
 }
 \details{
@@ -85,7 +85,9 @@ summary(dt_mean)
 
 }
 \references{
-\insertAllCited{}
+Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+Analysis}. \doi{10.1111/jtsa.70006}
 }
 \seealso{
 \code{\link[=estimate_mean_risk]{estimate_mean_risk()}}, \code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_autocov]{estimate_autocov()}}.

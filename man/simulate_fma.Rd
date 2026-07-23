@@ -65,7 +65,6 @@ Functional Moving Average process of order 1 (FMA(1)) simulation
 }
 \examples{
 
-\dontrun{
 dt_fma <- simulate_fma(N = 2L, lambda = 70L,
                        design = "random",
                        M_distribution = rpois,
@@ -87,6 +86,6 @@ ggplot(data = dt_fma[ttag == "trandom", .("id_curve" = as.factor(id_curve), tobs
   scale_colour_grey() +
   theme_minimal()
 
-}
+
 
 }

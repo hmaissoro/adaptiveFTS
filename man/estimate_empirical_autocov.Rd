@@ -49,10 +49,9 @@ A \code{data.table} with three columns: \code{t}, \code{lag}, and \code{autocov}
 }
 \description{
 This function estimates the empirical autocovariance function used in the empirical study section
-of the papers \insertCite{maissoro2024adaptive;textual}{adaptiveFTS} and \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+of the papers Maissoro, Patilea and Vimond (2025) and Maissoro, Patilea and Vimond (2026).
 }
 \examples{
-\dontrun{
 # Load data
 data("data_far")
 
@@ -69,11 +68,16 @@ dt_empirical_autocov_cv <- estimate_empirical_autocov(
   t = c(1/4, 1/2, 3/4), lag = c(1, 2), presmooth_bw = NULL,
   kernel_name = "epanechnikov")
 dt_empirical_autocov_cv
-}
+
 
 }
 \references{
-\insertAllCited{}
+Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+Analysis}. \doi{10.1111/jtsa.70006}
+
+Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 }
 \seealso{
 \code{\link[=get_nw_optimal_bw]{get_nw_optimal_bw()}}.

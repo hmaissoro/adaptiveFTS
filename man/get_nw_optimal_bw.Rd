@@ -47,7 +47,6 @@ This function estimates the median optimal bandwidth for the Nadaraya-Watson ker
 This function performs cross-validation to determine the optimal bandwidth for each curve in a specified subset. It returns the median of these best bandwidths as the final estimate, providing a representative bandwidth that can generalize across curves.
 }
 \examples{
-\dontrun{
 # Load the dataset
 data(data_far)
 
@@ -56,7 +55,7 @@ hbest <- get_nw_optimal_bw(data = data_far, idcol = "id_curve", tcol = "tobs", y
                            bw_grid = NULL, nsubset = 30, kernel_name = "epanechnikov")
 # Display the optimal bandwidth
 hbest
-}
+
 
 
 }

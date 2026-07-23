@@ -1,8 +1,3 @@
-## Adaptive functional BLUP: fit / predict engine. The design-weighted,
-## Tikhonov-regularised BLUP conditions on the previous curve only (single lag-1
-## block); the covariance assembly is kept separable so the multi-lag case can be
-## added later without a rewrite.
-
 #' Check whether all curves share the same observation design
 #'
 #' @param data A prepared functional data.table.
@@ -112,8 +107,7 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     bw_grid <- b0 * a ** (seq_len(K))
   }
 
-  # tikhonov = NULL: select it by cross-validation (like optbw for bw_grid). The
-  # inner blup_fit call inside select_tikhonov_parameter passes an explicit
+  # The inner blup_fit() call in select_tikhonov_parameter() passes an explicit
   # tikhonov, so this does not recurse.
   if (is.null(tikhonov)) {
     tikhonov_cv <- select_tikhonov_parameter(
@@ -126,8 +120,6 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     tikhonov_cv <- NULL
   }
 
-  # opt_mean/opt_cov/opt_autocov are reused by predict and by
-  # select_tikhonov_parameter through blup_*_at_cpp.
   cpp <- blup_fit_cpp(
     data = data, id_lag = as.integer(n0), bw_grid = as.numeric(bw_grid),
     rho = rho, homoscedastic = homoscedastic,
@@ -215,7 +207,7 @@ predict.blup_fit <- function(object, t = object$Tn0, horizon = 1L, newdata = NUL
   if (length(Yn0) != object$Mn0)
     stop("'newdata' must have length equal to the fit's design (", object$Mn0, ").")
 
-  # density_bw is unused under the common design; pass a dummy positive value.
+  # density_bw is unused under the common design, but must still be positive.
   density_bw <- if (is.null(object$density_bw)) 0.1 else object$density_bw
 
   out <- blup_predict_cpp(
@@ -350,7 +342,7 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
     bw_subgrid_size = bw_subgrid_size, id_conditioning_curve = max(fit_ids),
     tikhonov = 1e-6, bw_grid = bw_grid, density_bw = density_bw)
 
-  # Common design: the operators are constant across folds.
+  # Under the common design the operators do not vary across folds.
   if (is_common) {
     Tn0 <- fit$Tn0
     c1_common <- blup_autocov_at_cpp(data_fit, fit$opt_autocov, Tn0, Tn0, 1L, FALSE, kernel_name)
@@ -358,7 +350,7 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
     C1rD_common <- t(c1_common) %*% fit$root_Dn0
   }
 
-  ## Phase 1: assemble the Tikhonov-free pieces for each validation curve.
+  # Everything that does not depend on the Tikhonov parameter, per fold.
   folds <- vector("list", n_cv_curves)
   for (k in seq_len(n_cv_curves)) {
     id_targ <- ids[val_pos[k]]
@@ -372,8 +364,7 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
         resid = fit$root_Dn0 %*% matrix(Y_prev - fit$muhat_Tn0, ncol = 1),
         Y_targ = Y_targ, rho_targ = rep(1 / length(Y_targ), length(Y_targ)))
     } else {
-      # Rolling origin: refresh the plug-in estimates on the grown window with
-      # the bandwidths held fixed at those cached in `fit`.
+      # Rolling origin, with the bandwidths held fixed at those cached in `fit`.
       data_roll <- data[id_curve <= id_prev]
       Tprev <- data[id_curve == id_prev, sort(unique(tobs))]
       Ttarg <- data[id_curve == id_targ, sort(unique(tobs))]
@@ -403,9 +394,8 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
 
   if (is.null(tikhonov_grid)) tikhonov_grid <- exp(seq(-5, 3, length.out = 25))
 
-  ## Phase 2: only the (A0 + tikhonov * I)^{-1} step depends on the Tikhonov
-  ## parameter; A0 is symmetric, so eigendecompose once per fold and reuse it
-  ## across the whole grid.
+  # Only (A0 + tikhonov * I)^{-1} depends on the parameter, and A0 is symmetric,
+  # so one eigendecomposition per fold serves the whole grid.
   cv_matrix <- matrix(NA_real_, nrow = n_cv_curves, ncol = length(tikhonov_grid))
   for (k in seq_len(n_cv_curves)) {
     f <- folds[[k]]

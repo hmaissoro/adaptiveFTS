@@ -1,12 +1,9 @@
-## Adaptive functional BLUP demo using the package API: get_density_optimal_bw /
-## estimate_density, blup_fit / predict (with automatic Tikhonov selection), the
-## blup() wrapper, and the summary methods. Mirrors inst/08_functional_blup.R.
+# Adaptive functional BLUP through the package API.
 
 library(adaptiveFTS)
 library(data.table)
 library(ggplot2)
 
-## Shared plotting style.
 theme_set(theme_minimal(base_size = 13))
 blup_theme <- theme(legend.position = "bottom",
                     plot.title = element_text(hjust = 0.5, face = "bold"))
@@ -24,14 +21,13 @@ pred_scales <- list(
 data("data_far")
 data_prepared <- format_data(data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X")
 
-## Hold out the last curve as the target; condition on its predecessor.
+# Hold out the last curve as the target; condition on its predecessor.
 n0 <- data_prepared[, max(id_curve)]
 data_train <- data_prepared[id_curve != n0]
 data_test  <- data_prepared[id_curve == n0]
 t0 <- data_test[, sort(unique(tobs))]
 
-## Bandwidth grid for the adaptive risk (blup_fit uses a comparable default when
-## bw_grid = NULL).
+# Bandwidth grid for the adaptive risk.
 N <- data_train[, length(unique(id_curve))]
 lambdahat <- data_train[, .N, by = id_curve][, mean(N)]
 K <- 15
@@ -39,12 +35,12 @@ b0 <- 0.5 / ((N * lambdahat) ** (1 / 2))
 bK <- 0.05
 bw_grid_blup <- b0 * exp((log(bK) - log(b0)) / K) ** seq_len(K)
 
-## Density bandwidth, selected once and reused (set.seed for a reproducible subset).
+# Density bandwidth, selected once and reused.
 set.seed(1)
 h_density <- get_density_optimal_bw(data = data_train, nsubset = 30L)
 
-## ---- One-step-ahead prediction ------------------------------------------
-## tikhonov defaults to NULL, so blup_fit() selects it by cross-validation.
+# One-step-ahead prediction
+# tikhonov defaults to NULL, so blup_fit() selects it by cross-validation.
 fit <- blup_fit(data = data_train, bw_grid = bw_grid_blup, density_bw = h_density,
                 n_cv_tikhonov = 20L)
 summary(fit)
@@ -70,14 +66,14 @@ ggplot(data.table(tikhonov = cv$tikhonov_grid, cv = cv$cv_curve), aes(x = tikhon
   labs(x = expression(alpha), y = expression(CV(alpha)),
        title = "Tikhonov parameter cross-validation")
 
-## ---- One-call wrapper ---------------------------------------------------
+# One-call wrapper
 ## Reuse the selected Tikhonov to avoid re-running the cross-validation.
 res <- blup(data = data_train, t = t0, tikhonov = fit$tikhonov,
             bw_grid = bw_grid_blup, density_bw = h_density)
 summary(res)
 stopifnot(isTRUE(all.equal(pred$prediction, res$prediction$prediction)))
 
-## ---- Multi-step-ahead prediction ----------------------------------------
+# Multi-step-ahead prediction
 pred_multi <- predict(fit, t = t0, horizon = 3L)
 
 ggplot(pred_multi, aes(x = t, y = prediction, colour = factor(horizon))) +

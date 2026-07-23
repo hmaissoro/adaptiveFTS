@@ -14,4 +14,4 @@ dt_locreg_cpp <- estimate_locreg_cpp(
   t = t0, Delta = NULL, h = NULL,
   kernel_name = "epanechnikov", center = TRUE)
 
-DT::datatable(dt_locreg_cpp)
+dt_locreg_cpp

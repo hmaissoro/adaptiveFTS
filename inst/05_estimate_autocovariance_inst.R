@@ -1,51 +1,30 @@
-# Load data
+# Adaptive lag-l autocovariance estimation, with one and with two bandwidths.
+
+library(data.table)
+
 data("data_far")
 
 # Estimate risk function
-## Using One bandwith
+## Using one bandwidth
 dt_autocov_risk <- estimate_autocov_risk(
   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
   s = c(1/5, 2/5, 4/5), t = c(1/4, 1/2, 3/4),
-  lag = 3, bw_grid = NULL, use_same_bw = TRUE,
-  center = TRUE, kernel_name = "epanechnikov")
+  lag = 3, bw_grid = NULL, common_bw = TRUE,
+  center_curves = TRUE, kernel_name = "epanechnikov")
 
-dt_autocov_risk[, .(s,t, hs, ht, autocov_risk)]
+dt_autocov_risk[, .(s, t, hs, ht, autocov_risk)]
 
-## Plot the risk function
-dt_dcast <- data.table::dcast(data = dt_autocov_risk,
-                              formula = hs ~ s + t ,
-                              value.var = "autocov_risk")
-
-manipulateWidget::combineWidgets(
-  list = list(
-    dygraphs::dygraph(data = dt_dcast[, .(hs, "(s, t) = (0.2, 0.25)" = `0.2_0.25`)],
-                      main = "lag = 3 - (s, t) = (0.2, 0.25)",
-                      xlab = "h",
-                      ylab = "risk function"),
-    dygraphs::dygraph(data = dt_dcast[, .(hs, "(s, t) = (0.4, 0.5)" = `0.4_0.5`)],
-                      main = "lag = 3 - (s, t) = (0.4, 0.5)",
-                      xlab = "h",
-                      ylab = "risk function"),
-    dygraphs::dygraph(data = dt_dcast[, .(hs, "(s, t) = (0.8, 0.75)" = `0.8_0.75`)],
-                      main = "lag = 3 - (s, t) = (0.8, 0.75)",
-                      xlab = "h",
-                      ylab = "risk function")
-  ),
-  nrow = 3
-)
-
-# Summary and risk plot
 summary(dt_autocov_risk)
 plot(dt_autocov_risk)
 
-## Using Two bandwiths
+## Using two bandwidths
 dt_autocov_risk_2bw <- estimate_autocov_risk(
   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
   s = c(1/5, 2/5, 4/5), t = c(1/4, 1/2, 3/4),
-  lag = 3, bw_grid = NULL, use_same_bw = FALSE,
-  center = TRUE, kernel_name = "epanechnikov")
+  lag = 3, bw_grid = NULL, common_bw = FALSE,
+  center_curves = TRUE, kernel_name = "epanechnikov")
 
-dt_autocov_risk[, .(s,t, hs, ht, autocov_risk)]
+dt_autocov_risk_2bw[, .(s, t, hs, ht, autocov_risk)]
 
 # Lag-0 covariance surface on a grid
 tgrid <- seq(0.2, 0.8, len = 10)
@@ -53,7 +32,7 @@ cov_grid <- data.table::CJ(s = tgrid, t = tgrid)
 dt_cov_surface <- estimate_autocov(
   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
   s = cov_grid[, s], t = cov_grid[, t], lag = 0,
-  bw_grid = NULL, use_same_bw = TRUE, center = TRUE,
+  bw_grid = NULL, common_bw = TRUE, center_curves = TRUE,
   kernel_name = "epanechnikov")
 
 summary(dt_cov_surface)
