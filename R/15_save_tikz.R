@@ -1,5 +1,4 @@
-## A reusable TikZ export for ggplot (and other printable) figures, so the same
-## helper no longer has to be copied from project to project. Wraps
+## Reusable TikZ export for ggplot (and other printable) figures. Wraps
 ## tikzDevice::tikz(); tikzDevice is a suggested dependency.
 
 #' Save a plot as a (standalone) TikZ/LaTeX figure

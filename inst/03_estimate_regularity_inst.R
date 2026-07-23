@@ -16,7 +16,6 @@ dt_locreg <- estimate_locreg(data = data_far,
                              center = TRUE)
 DT::datatable(dt_locreg)
 
-# The result is a classed data.table (see ?adaptiveFTS_est): inspect it with the
-# dedicated summary() and plot() methods.
+# Summary and diagnostic plot
 summary(dt_locreg)
-plot(dt_locreg)          # Ht and Lt against t (requires ggplot2)
+plot(dt_locreg)

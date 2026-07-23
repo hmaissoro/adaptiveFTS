@@ -1,8 +1,5 @@
-## S3 identity for the adaptive-estimator outputs. Every adaptive estimator
-## returns a data.table; `.as_adaptive_est()` tags it with a lightweight class
-## (plus a metadata attribute) so that `summary()` / `plot()` / `autoplot()`
-## methods have something to dispatch on, without changing the data.table
-## behaviour or the returned columns.
+## S3 identity for the adaptive-estimator outputs: a class plus a metadata
+## attribute for summary()/plot()/autoplot() to dispatch on.
 
 #' Adaptive functional time series estimator objects
 #'
@@ -73,11 +70,11 @@ NULL
 #' @keywords internal
 .fmt_num <- function(x, digits = 4L) formatC(x, digits = digits, format = "g")
 
-#' Format a numeric vector as a "[min, max]" range for the summary methods
+#' Format a numeric vector as a bracketed min-to-max range string
 #'
 #' @param x \code{numeric}.
 #' @param digits \code{integer}. Significant digits. Default \code{3}.
-#' @return A \code{character} scalar \code{"[min, max]"} (\code{NA} preserved).
+#' @return A \code{character} scalar giving the min and max, or \code{"NA"}.
 #' @keywords internal
 .fmt_range <- function(x, digits = 3L) {
   x <- x[is.finite(x)]

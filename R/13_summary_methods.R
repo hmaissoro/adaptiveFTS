@@ -1,6 +1,5 @@
-## Text summaries for the adaptive-estimator objects. Each method mirrors the
-## style of summary.blup_fit (cat-based, returns the object invisibly) and reads
-## the design/kernel context from the `adaptive_meta` attribute.
+## Text summaries for the adaptive-estimator objects, in the style of
+## summary.blup_fit (cat-based, returns the object invisibly).
 
 #' Summarise an adaptive functional time series estimator
 #'
@@ -38,8 +37,8 @@ summary.locreg_est <- function(object, ...) {
   cat(sprintf("  Delta              : %s\n",
               if (length(delta) == 1L) .fmt_num(delta) else .fmt_range(object$Delta)))
   cat(sprintf("  Curves used (Nused): %s\n", .fmt_range(object$Nused)))
-  cat(sprintf("  Ht (exponent)      : %s\n", .fmt_range(object$Ht)))
-  cat(sprintf("  Lt (Holder const.) : %s\n", .fmt_range(object$Lt)))
+  cat(sprintf("  Ht                 : %s\n", .fmt_range(object$Ht)))
+  cat(sprintf("  L2t                : %s\n", .fmt_range(object$Lt)))
   invisible(object)
 }
 
@@ -95,15 +94,16 @@ summary.autocov_est <- function(object, ...) {
   invisible(object)
 }
 
-## Shared body for the risk-function summaries: prints the grid/design context
-## and the risk-minimising bandwidth per evaluation point.
+## Shared body for the risk-function summaries. Lists the risk-minimising
+## bandwidth per point for small grids; for larger grids reports the bandwidth
+## ranges and the single best point instead of flooding the console.
 #' @keywords internal
-.summary_risk <- function(object, title, risk_col, by_cols, bw_cols) {
+.summary_risk <- function(object, title, risk_col, by_cols, bw_cols, max_show = 10L) {
   cat(title, "\n", sep = "")
-  key <- unique(object[, ..by_cols])
+  n_pts <- nrow(unique(object[, by_cols, with = FALSE]))
   n_bw <- .est_meta(object, "n_bw")
   if (is.null(n_bw)) n_bw <- length(unique(object[[bw_cols[1]]]))
-  cat(sprintf("  Evaluation points  : %d\n", nrow(key)))
+  cat(sprintf("  Evaluation points  : %d\n", n_pts))
   cat(sprintf("  Bandwidth grid     : %s values\n", n_bw))
   cat(sprintf("  Training curves    : %s\n", .est_meta(object, "N")))
   cat(sprintf("  Kernel             : %s\n", .est_meta(object, "kernel")))
@@ -112,13 +112,20 @@ summary.autocov_est <- function(object, ...) {
     c(lapply(bw_cols, function(b) get(b)[i]), list(risk = get(risk_col)[i]))
   }, by = by_cols]
   data.table::setnames(best, c(by_cols, bw_cols, "risk"))
-  cat("  Risk-minimising bandwidth per point:\n")
-  for (r in seq_len(nrow(best))) {
-    pt <- paste(sprintf("%s = %s", by_cols, vapply(by_cols, function(cc)
-      .fmt_num(best[[cc]][r]), character(1))), collapse = ", ")
-    bw <- paste(sprintf("%s* = %s", bw_cols, vapply(bw_cols, function(cc)
-      .fmt_num(best[[cc]][r]), character(1))), collapse = ", ")
-    cat(sprintf("    (%s): %s (risk = %s)\n", pt, bw, .fmt_num(best$risk[r])))
+  fmt_pt <- function(r) paste(sprintf("%s = %s", by_cols,
+    vapply(by_cols, function(cc) .fmt_num(best[[cc]][r]), character(1))), collapse = ", ")
+  if (nrow(best) <= max_show) {
+    cat("  Risk-minimising bandwidth per point:\n")
+    for (r in seq_len(nrow(best))) {
+      bw <- paste(sprintf("%s* = %s", bw_cols, vapply(bw_cols, function(cc)
+        .fmt_num(best[[cc]][r]), character(1))), collapse = ", ")
+      cat(sprintf("    (%s): %s (risk = %s)\n", fmt_pt(r), bw, .fmt_num(best$risk[r])))
+    }
+  } else {
+    for (b in bw_cols)
+      cat(sprintf("  Optimal %-11s: %s\n", b, .fmt_range(best[[b]])))
+    imin <- which.min(best$risk)
+    cat(sprintf("  Smallest risk      : %s at (%s)\n", .fmt_num(best$risk[imin]), fmt_pt(imin)))
   }
   invisible(object)
 }
