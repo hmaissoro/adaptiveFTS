@@ -1,121 +1,134 @@
-#' Convert Data to a \code{data.table} Format
+#' Convert Raw Curve Observations to the Package Data Format
 #'
-#' This function converts raw data into a \code{data.table} with three columns: the index of the curve, the observed points, and the observed values for each curve.
+#' Reshapes raw curve observations into the three-column \code{data.table} that
+#' every estimator of the package consumes, and checks that the result meets the
+#' assumptions those estimators rely on. All exported estimators call
+#' \code{format_data} on their \code{data} argument, so it rarely needs to be
+#' called directly.
 #'
-#' @param data A \code{data.table} (or \code{data.frame}), a \code{list} of \code{data.table} (or \code{data.frame}), or a \code{list} of \code{list}.
+#' @details
+#' Three input layouts are accepted.
 #' \itemize{
-#'    \item{If \code{data.table}:}{
-#'        It should contain the raw curve observations in at least three columns.
-#'        \itemize{
-#'          \item{\code{idcol} :}{ The name of the column containing the curve index in the sample.
-#'                              Each curve index is repeated according to the number of observation points.}
-#'          \item{\code{tcol} :}{ The name of the column with observation points associated with each curve index.}
-#'          \item{\code{ycol} :}{ The name of the column with observed values at each observation point for each curve index.}
-#'        }
-#'    }
-#'    \item{If \code{list} of \code{data.table}:}{
-#'         In this case, each element in the \code{list} represents the observation data of a curve in the form of a \code{data.table} or \code{data.frame}.
-#'         Each \code{data.table} contains at least two columns.
-#'         \itemize{
-#'          \item{\code{tcol} :}{ The name of the column with observation points for the curve.}
-#'          \item{\code{ycol} :}{ The name of the column with observed values for the curve.}
-#'        }
-#'    }
-#'    \item{If \code{list} of \code{list}:}{
-#'      In this case, \code{data} is a list where each element is the observation data of a curve, given as a \code{list} of two vectors.
-#'      \itemize{
-#'          \item{\code{tcol} :}{ The vector containing observation points for the curve.}
-#'          \item{\code{ycol} :}{ The vector containing observed values for the curve.}
-#'        }
-#'    }
+#'   \item A \code{data.table} (or \code{data.frame}) in long format, with one row
+#'     per observation point and at least the columns \code{idcol}, \code{tcol}
+#'     and \code{ycol}. The curve index is repeated once per observation point of
+#'     that curve.
+#'   \item A \code{list} with one element per curve, each element a
+#'     \code{data.table} (or \code{data.frame}) holding at least the columns
+#'     \code{tcol} and \code{ycol}. Set \code{idcol = NULL}: the curve index is
+#'     the position in the list.
+#'   \item A \code{list} with one element per curve, each element a \code{list} of
+#'     two vectors of equal length named \code{tcol} and \code{ycol}. Set
+#'     \code{idcol = NULL}.
 #' }
-#' @param idcol \code{character}. If \code{data} is given as a \code{data.table} or \code{data.frame}, this is the name of the column that holds the curve index.
-#' Each curve index is repeated according to the number of observation points. If \code{data} is a \code{list} of \code{data.table} (or \code{data.frame}) or a \code{list} of \code{list}, set \code{idcol = NULL}.
-#' @param tcol \code{character}. The name of the column (or vector) containing the observation points for the curves.
-#' @param ycol \code{character}. The name of the column with observed values for the curves.
 #'
-#' @return A \code{data.table} with three columns:
-#'          \itemize{
-#'            \item{\code{id_curve} :}{ The index of the curve.}
-#'            \item{\code{tobs} :}{ The observation points for each curve \code{id_curve}.}
-#'            \item{\code{X} :}{ The observed values of the curve at each \code{tobs} point.}
-#'         }
+#' Curves are renumbered \eqn{1, \ldots, N} in order of first appearance in
+#' \code{data}. That order defines the order of the series: the lag-\eqn{\ell}
+#' estimators pair curve \eqn{n} with curve \eqn{n + \ell}, so the curves must
+#' arrive in chronological order. Within a curve, rows need neither be contiguous
+#' nor sorted; the returned table is always sorted by \code{id_curve}, then by
+#' \code{tobs}.
+#'
+#' The observation points must lie in \eqn{[0, 1]}, the domain the estimators
+#' assume for the curves; rescale them beforehand if they are recorded on another
+#' scale. Missing values are rejected rather than dropped, so that the number of
+#' observation points per curve is the one the caller intends.
+#'
+#' @param data Raw curve observations, as a \code{data.table} (or
+#' \code{data.frame}) in long format, or as a \code{list} with one element per
+#' curve. See \code{\link{format_data}} for the accepted layouts and for the
+#' \code{id_curve} / \code{tobs} / \code{X} columns they are converted to.
+#' @param idcol \code{character(1)} or \code{NULL}. Name of the column holding the
+#' curve index when \code{data} is a single table. Must be \code{NULL} when
+#' \code{data} is a list of curves.
+#' @param tcol \code{character(1)}. Name of the column (or vector) holding the
+#' observation points of the curves.
+#' @param ycol \code{character(1)}. Name of the column (or vector) holding the
+#' values observed at those points.
+#'
+#' @return A \code{data.table} with three columns, sorted by \code{id_curve} then
+#' \code{tobs}:
+#' \itemize{
+#'   \item \code{id_curve}: the curve index, renumbered \eqn{1, \ldots, N} in
+#'     order of first appearance in \code{data}.
+#'   \item \code{tobs}: the observation points of each curve.
+#'   \item \code{X}: the values observed at each \code{tobs}.
+#' }
 #'
 #' @import data.table
-#' @importFrom methods is
 #'
 #' @export
 #'
+#' @examples
+#' data("data_far")
+#'
+#' # Long format: one row per observation point.
+#' dt <- format_data(data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X")
+#' head(dt)
+#'
+#' # One list element per curve: the curve index is the position in the list.
+#' curves <- split(dt, by = "id_curve", keep.by = FALSE)
+#' head(format_data(data = curves, tcol = "tobs", ycol = "X"))
+#'
 format_data <- function(data, idcol = NULL, tcol = "tobs", ycol = "X"){
-  # Check if data is a data.table or data.frame
-  is_dt_or_df <- methods::is(data, "data.table") | methods::is(data, "data.frame")
+  if (! (is.character(tcol) & length(tcol) == 1) |
+      ! (is.character(ycol) & length(ycol) == 1))
+    stop("'tcol' and 'ycol' must each be a single column name.", call. = FALSE)
 
-  # Check if data is a list of data.table (or data.frame)
-  is_list_dt_or_df <- methods::is(data, "list") &
-    all(unlist(lapply(data, function(element){
-      methods::is(element,"data.table") | methods::is(element,"data.frame")
-    })))
+  is_table <- is.data.frame(data)
+  is_curve_list <- (! is_table) & is.list(data)
+  if (! (is_table | is_curve_list))
+    stop("'data' must be a data.table (or data.frame), a list of data.table ",
+         "(or data.frame), or a list of list.", call. = FALSE)
 
-  # Check if data is a list of list
-  is_list_of_list <- methods::is(data, "list") &
-    all(unlist(lapply(data, function(element){
-      methods::is(element,"list")
-    })))
-
-  if (! (is_dt_or_df | is_list_dt_or_df | is_list_of_list))
-    stop("'data' must of class data.table (or data.frame) or a list of data.table (or data.table) or a list of list.")
-
-  if (is_dt_or_df) {
+  if (is_table) {
     if (is.null(idcol))
-      stop("If the class of 'data' is data.table (or data.frame), 'idcol' need to be specifyed.")
-    if (! all(c(idcol, tcol, ycol) %in% colnames(data))){
-      stop("The specified column name 'idcol' or 'tcol' or 'ycol' is incorrect.")
-    } else {
-      data <- data.table::as.data.table(data)
-      data <- data[, .SD, .SDcols = c(idcol, tcol, ycol)]
-      names(data) <- c("id_curve", "tobs", "X")
-      data <- data[, list(id_curve, tobs, X)]
-      Mn <- data[, .N, by = id_curve][, N]
-      N <- length(Mn)
-      id <- unlist(lapply(1:N, function(n, Mn){
-        rep(n, Mn[n])
-      }, Mn = Mn))
-      data[, id_curve := id]
-      rm(Mn, N, id)
-    }
-  } else if (is_list_dt_or_df) {
-    if (! is.null(idcol))
-      stop("If 'data' is a list of data.table (or data.table) or a list of list, 'idcol' must be NULL.")
-    check_colname <- all(unlist(lapply(data, function(element, tcol, ycol){
-      all(c(tcol, ycol) %in% colnames(element))
-    }, tcol = tcol, ycol = ycol)))
-    if (! check_colname) {
-      stop("The specified column name 'tcol' or 'ycol' is incorrect.")
-    } else {
-      data <- data.table::rbindlist(lapply(1:length(data), function(i, tcol, ycol){
-        data[[i]] <- data.table::as.data.table(data[[i]])
-        data.table::setnames(x = data[[i]], old = c(tcol, ycol), new = c("tobs", "X"))
-        dt <- data.table::data.table("id_curve" = i, data[[i]][, list(tobs, X)])
-      }, tcol = tcol, ycol = ycol))
-    }
-
-  } else if (is_list_of_list) {
-    if (! is.null(idcol))
-      stop("If 'data' is a list of data.table (or data.table) or a list of list, 'idcol' must be NULL.")
-    check_vecname <- all(unlist(lapply(data, function(element, tcol, ycol){
-      all(c(tcol, ycol) %in% names(element))
-    }, tcol = tcol, ycol = ycol)))
-    if (! check_vecname) {
-      stop("The specified vector name 'tcol' or 'ycol' is incorrect.")
-    } else {
-      data <- data.table::rbindlist(lapply(1:length(data), function(i, tcol, ycol){
-        data[[i]] <- data.table::as.data.table(data[[i]])
-        data.table::setnames(x = data[[i]], old = c(tcol, ycol), new = c("tobs", "X"))
-        dt <- data.table::data.table("id_curve" = i, data[[i]][, list(tobs, X)])
-      }, tcol = tcol, ycol = ycol))
-    }
+      stop("'idcol' must name the curve index column when 'data' is a ",
+           "data.table (or data.frame).", call. = FALSE)
+    absent <- setdiff(c(idcol, tcol, ycol), names(data))
+    if (length(absent))
+      stop("'data' has no column named ",
+           paste0("'", absent, "'", collapse = ", "), ".", call. = FALSE)
+    dt <- data.table::as.data.table(data)[, .SD, .SDcols = c(idcol, tcol, ycol)]
+    data.table::setnames(x = dt, new = c("id_curve", "tobs", "X"))
   } else {
-    NA
+    if (! is.null(idcol))
+      stop("'idcol' must be NULL when 'data' is a list of curves: the curve ",
+           "index is the position in the list.", call. = FALSE)
+    if (! length(data))
+      stop("'data' is an empty list: there is no curve to format.", call. = FALSE)
+    dt <- data.table::rbindlist(lapply(seq_along(data), function(i){
+      curve <- data[[i]]
+      if (! is.list(curve) | ! all(c(tcol, ycol) %in% names(curve)))
+        stop("Element ", i, " of 'data' must be a data.table (or data.frame) ",
+             "or a list holding '", tcol, "' and '", ycol, "'.", call. = FALSE)
+      if (length(curve[[tcol]]) != length(curve[[ycol]]))
+        stop("In element ", i, " of 'data', '", tcol, "' and '", ycol,
+             "' have different lengths.", call. = FALSE)
+      data.table::data.table("id_curve" = i, "tobs" = curve[[tcol]],
+                             "X" = curve[[ycol]])
+    }))
   }
-  return(data)
+
+  if (! is.numeric(dt[["tobs"]]) | ! is.numeric(dt[["X"]]))
+    stop("The observation points ('", tcol, "') and the observed values ('",
+         ycol, "') must be numeric.", call. = FALSE)
+  if (anyNA(dt))
+    stop("'data' holds missing values; remove them before formatting.",
+         call. = FALSE)
+  if (! all(data.table::between(dt[["tobs"]], 0, 1)))
+    stop("The observation points must lie in [0, 1], the domain the estimators ",
+         "assume; rescale them before formatting.", call. = FALSE)
+
+  # match() against the unique values numbers the curves in order of first
+  # appearance whatever the type of the original index, and without assuming
+  # that the rows of a curve are contiguous.
+  original_id <- dt[["id_curve"]]
+  dt[, id_curve := match(original_id, unique(original_id))]
+  data.table::setorder(dt, id_curve, tobs)
+
+  if (anyDuplicated(dt, by = c("id_curve", "tobs")))
+    warning("Some curves carry repeated observation points.", call. = FALSE)
+
+  return(dt[])
 }

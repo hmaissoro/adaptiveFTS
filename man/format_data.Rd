@@ -2,54 +2,80 @@
 % Please edit documentation in R/00_format_data.R
 \name{format_data}
 \alias{format_data}
-\title{Convert Data to a \code{data.table} Format}
+\title{Convert Raw Curve Observations to the Package Data Format}
 \usage{
 format_data(data, idcol = NULL, tcol = "tobs", ycol = "X")
 }
 \arguments{
-\item{data}{A \code{data.table} (or \code{data.frame}), a \code{list} of \code{data.table} (or \code{data.frame}), or a \code{list} of \code{list}.
-\itemize{
-\item{If \code{data.table}:}{
-It should contain the raw curve observations in at least three columns.
-\itemize{
-\item{\code{idcol} :}{ The name of the column containing the curve index in the sample.
-Each curve index is repeated according to the number of observation points.}
-\item{\code{tcol} :}{ The name of the column with observation points associated with each curve index.}
-\item{\code{ycol} :}{ The name of the column with observed values at each observation point for each curve index.}
-}
-}
-\item{If \code{list} of \code{data.table}:}{
-In this case, each element in the \code{list} represents the observation data of a curve in the form of a \code{data.table} or \code{data.frame}.
-Each \code{data.table} contains at least two columns.
-\itemize{
-\item{\code{tcol} :}{ The name of the column with observation points for the curve.}
-\item{\code{ycol} :}{ The name of the column with observed values for the curve.}
-}
-}
-\item{If \code{list} of \code{list}:}{
-In this case, \code{data} is a list where each element is the observation data of a curve, given as a \code{list} of two vectors.
-\itemize{
-\item{\code{tcol} :}{ The vector containing observation points for the curve.}
-\item{\code{ycol} :}{ The vector containing observed values for the curve.}
-}
-}
-}}
+\item{data}{Raw curve observations, as a \code{data.table} (or
+\code{data.frame}) in long format, or as a \code{list} with one element per
+curve. See \code{\link{format_data}} for the accepted layouts and for the
+\code{id_curve} / \code{tobs} / \code{X} columns they are converted to.}
 
-\item{idcol}{\code{character}. If \code{data} is given as a \code{data.table} or \code{data.frame}, this is the name of the column that holds the curve index.
-Each curve index is repeated according to the number of observation points. If \code{data} is a \code{list} of \code{data.table} (or \code{data.frame}) or a \code{list} of \code{list}, set \code{idcol = NULL}.}
+\item{idcol}{\code{character(1)} or \code{NULL}. Name of the column holding the
+curve index when \code{data} is a single table. Must be \code{NULL} when
+\code{data} is a list of curves.}
 
-\item{tcol}{\code{character}. The name of the column (or vector) containing the observation points for the curves.}
+\item{tcol}{\code{character(1)}. Name of the column (or vector) holding the
+observation points of the curves.}
 
-\item{ycol}{\code{character}. The name of the column with observed values for the curves.}
+\item{ycol}{\code{character(1)}. Name of the column (or vector) holding the
+values observed at those points.}
 }
 \value{
-A \code{data.table} with three columns:
+A \code{data.table} with three columns, sorted by \code{id_curve} then
+\code{tobs}:
 \itemize{
-\item{\code{id_curve} :}{ The index of the curve.}
-\item{\code{tobs} :}{ The observation points for each curve \code{id_curve}.}
-\item{\code{X} :}{ The observed values of the curve at each \code{tobs} point.}
+\item \code{id_curve}: the curve index, renumbered \eqn{1, \ldots, N} in
+order of first appearance in \code{data}.
+\item \code{tobs}: the observation points of each curve.
+\item \code{X}: the values observed at each \code{tobs}.
 }
 }
 \description{
-This function converts raw data into a \code{data.table} with three columns: the index of the curve, the observed points, and the observed values for each curve.
+Reshapes raw curve observations into the three-column \code{data.table} that
+every estimator of the package consumes, and checks that the result meets the
+assumptions those estimators rely on. All exported estimators call
+\code{format_data} on their \code{data} argument, so it rarely needs to be
+called directly.
+}
+\details{
+Three input layouts are accepted.
+\itemize{
+\item A \code{data.table} (or \code{data.frame}) in long format, with one row
+per observation point and at least the columns \code{idcol}, \code{tcol}
+and \code{ycol}. The curve index is repeated once per observation point of
+that curve.
+\item A \code{list} with one element per curve, each element a
+\code{data.table} (or \code{data.frame}) holding at least the columns
+\code{tcol} and \code{ycol}. Set \code{idcol = NULL}: the curve index is
+the position in the list.
+\item A \code{list} with one element per curve, each element a \code{list} of
+two vectors of equal length named \code{tcol} and \code{ycol}. Set
+\code{idcol = NULL}.
+}
+
+Curves are renumbered \eqn{1, \ldots, N} in order of first appearance in
+\code{data}. That order defines the order of the series: the lag-\eqn{\ell}
+estimators pair curve \eqn{n} with curve \eqn{n + \ell}, so the curves must
+arrive in chronological order. Within a curve, rows need neither be contiguous
+nor sorted; the returned table is always sorted by \code{id_curve}, then by
+\code{tobs}.
+
+The observation points must lie in \eqn{[0, 1]}, the domain the estimators
+assume for the curves; rescale them beforehand if they are recorded on another
+scale. Missing values are rejected rather than dropped, so that the number of
+observation points per curve is the one the caller intends.
+}
+\examples{
+data("data_far")
+
+# Long format: one row per observation point.
+dt <- format_data(data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X")
+head(dt)
+
+# One list element per curve: the curve index is the position in the list.
+curves <- split(dt, by = "id_curve", keep.by = FALSE)
+head(format_data(data = curves, tcol = "tobs", ycol = "X"))
+
 }
