@@ -51,6 +51,16 @@
 <li>
 <code><a href="../reference/get_density_optimal_bw.html">get_density_optimal_bw()</a></code> — selects the density bandwidth on a subset of curves (median of the per-curve LSCV optima).</li>
 </ul></li>
+<li>The adaptive estimators now return classed <code>data.table</code>s (see <code><a href="../reference/adaptiveFTS_est.html">?adaptiveFTS_est</a></code>) so they gain <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> and <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">ggplot2::autoplot()</a></code> methods:
+<ul><li>
+<code><a href="../reference/estimate_mean.html">estimate_mean()</a></code>, <code><a href="../reference/estimate_locreg.html">estimate_locreg()</a></code>, <code><a href="../reference/estimate_autocov.html">estimate_autocov()</a></code>, <code><a href="../reference/estimate_cov_segment.html">estimate_cov_segment()</a></code> and their <code>*_risk()</code> counterparts print a compact, design-aware <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> and draw a diagnostic <code>ggplot2</code> plot (mean/segment curves, a regularity panel, a covariance surface, and risk-vs-bandwidth curves marking the minimiser). The returned objects remain genuine <code>data.table</code>s, so existing code is unaffected. <code>ggplot2</code> stays a suggested dependency.</li>
+</ul></li>
+<li>Descriptive statistics:
+<ul><li>
+<code><a href="../reference/estimate_facf.html">estimate_facf()</a></code> — adaptive functional autocorrelation function (FACF), <code>rho_l = ||Gamma_l|| / integral Gamma_0(t, t) dt</code>, built on <code><a href="../reference/estimate_autocov.html">estimate_autocov()</a></code> and handling both the common and independent designs. Returns a classed <code>fts_acf</code> object with <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> and <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">ggplot2::autoplot()</a></code> (an ACF-style lag plot).</li>
+</ul></li>
+<li>
+<code><a href="../reference/save_plot_tikz.html">save_plot_tikz()</a></code> — export a <code>ggplot</code> (or any printable figure) to a standalone TikZ/LaTeX <code>.tex</code> file (optionally compiled to PDF), so the helper no longer has to be copied between projects. <code>tikzDevice</code> is a new suggested dependency.</li>
 </ul></div>
 <div class="section level3">
 <h3 id="deprecations-0-2-0">Deprecations<a class="anchor" aria-label="anchor" href="#deprecations-0-2-0"></a></h3>

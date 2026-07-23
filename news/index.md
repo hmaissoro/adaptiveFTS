@@ -36,6 +36,38 @@
   - [`get_density_optimal_bw()`](https://hmaissoro.github.io/adaptiveFTS/reference/get_density_optimal_bw.md)
     — selects the density bandwidth on a subset of curves (median of the
     per-curve LSCV optima).
+- The adaptive estimators now return classed `data.table`s (see
+  [`?adaptiveFTS_est`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS_est.md))
+  so they gain [`summary()`](https://rdrr.io/r/base/summary.html),
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html) and
+  [`ggplot2::autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  methods:
+  - [`estimate_mean()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean.md),
+    [`estimate_locreg()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_locreg.md),
+    [`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md),
+    [`estimate_cov_segment()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_cov_segment.md)
+    and their `*_risk()` counterparts print a compact, design-aware
+    [`summary()`](https://rdrr.io/r/base/summary.html) and draw a
+    diagnostic `ggplot2` plot (mean/segment curves, a regularity panel,
+    a covariance surface, and risk-vs-bandwidth curves marking the
+    minimiser). The returned objects remain genuine `data.table`s, so
+    existing code is unaffected. `ggplot2` stays a suggested dependency.
+- Descriptive statistics:
+  - [`estimate_facf()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_facf.md)
+    — adaptive functional autocorrelation function (FACF),
+    `rho_l = ||Gamma_l|| / integral Gamma_0(t, t) dt`, built on
+    [`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md)
+    and handling both the common and independent designs. Returns a
+    classed `fts_acf` object with
+    [`summary()`](https://rdrr.io/r/base/summary.html),
+    [`plot()`](https://rdrr.io/r/graphics/plot.default.html) and
+    [`ggplot2::autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+    (an ACF-style lag plot).
+- [`save_plot_tikz()`](https://hmaissoro.github.io/adaptiveFTS/reference/save_plot_tikz.md)
+  — export a `ggplot` (or any printable figure) to a standalone
+  TikZ/LaTeX `.tex` file (optionally compiled to PDF), so the helper no
+  longer has to be copied between projects. `tikzDevice` is a new
+  suggested dependency.
 
 ### Deprecations
 

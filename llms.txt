@@ -334,6 +334,46 @@ details.
   : Estimate Empirical \\X_0(s)X\_{\ell}(t)\\ Autocovariance Function
   for \\\ell\\ = 0, 1, ...
 
+## Descriptive statistics
+
+- [`estimate_facf()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_facf.md)
+  : Estimate the functional autocorrelation function (FACF)
+
+## Summaries and plots
+
+- [`summary(`*`<locreg_est>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-summary.md)
+  [`summary(`*`<mean_est>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-summary.md)
+  [`summary(`*`<cov_segment_est>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-summary.md)
+  [`summary(`*`<autocov_est>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-summary.md)
+  [`summary(`*`<mean_risk>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-summary.md)
+  [`summary(`*`<cov_segment_risk>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-summary.md)
+  [`summary(`*`<autocov_risk>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-summary.md)
+  [`summary(`*`<adaptiveFTS_est>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-summary.md)
+  [`summary(`*`<fts_acf>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-summary.md)
+  : Summarise an adaptive functional time series estimator
+- [`autoplot.mean_est()`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`plot(`*`<mean_est>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`autoplot.locreg_est()`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`plot(`*`<locreg_est>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`autoplot.cov_segment_est()`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`plot(`*`<cov_segment_est>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`autoplot.autocov_est()`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`plot(`*`<autocov_est>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`autoplot.mean_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`plot(`*`<mean_risk>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`autoplot.cov_segment_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`plot(`*`<cov_segment_risk>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`autoplot.autocov_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`plot(`*`<autocov_risk>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`autoplot.fts_acf()`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  [`plot(`*`<fts_acf>`*`)`](https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.md)
+  : Plot an adaptive functional time series estimator
+
+## Export
+
+- [`save_plot_tikz()`](https://hmaissoro.github.io/adaptiveFTS/reference/save_plot_tikz.md)
+  : Save a plot as a (standalone) TikZ/LaTeX figure
+
 ## Prediction (BLUP)
 
 - [`blup_fit()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup_fit.md)

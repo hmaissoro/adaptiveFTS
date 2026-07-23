@@ -8,6 +8,9 @@
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/authors.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/index.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/news/index.html</loc></url>
+<url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-autoplot.html</loc></url>
+<url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS-summary.html</loc></url>
+<url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/adaptiveFTS_est.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/biweight.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/blup.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/blup_autocov_at_cpp.html</loc></url>
@@ -18,10 +21,14 @@
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/data_far.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-Qpq_fun.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-Spq_fun.html</loc></url>
+<url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-as_adaptive_est.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-constant_d.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-covariance_mfBm.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-density_cv_score.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-density_loo_estimate.html</loc></url>
+<url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-est_meta.html</loc></url>
+<url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-fmt_num.html</loc></url>
+<url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-fmt_range.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-is_common_design.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-random_design.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-select_density_kernel.html</loc></url>
@@ -37,6 +44,7 @@
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/estimate_empirical_XsXt_autocov.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/estimate_empirical_autocov.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/estimate_empirical_mom.html</loc></url>
+<url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/estimate_facf.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/estimate_locreg.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_bw_rp.html</loc></url>
@@ -57,6 +65,7 @@
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/predict.blup_fit.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/predict_curve.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/psd_project_cpp.html</loc></url>
+<url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/save_plot_tikz.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/select_tikhonov_parameter.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fBm.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.html</loc></url>
