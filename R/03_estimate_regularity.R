@@ -20,7 +20,7 @@
 #'   \item{\code{Delta} :}{ The neighborhood length around each \code{t} used in local regularity estimation.}
 #'   \item{\code{Nused} :}{ The number of curves contributing non-degenerate estimates around each \code{t}.}
 #'   \item{\code{Ht} :}{ Local exponent estimates, denoted by \eqn{H_t}.}
-#'   \item{\code{Lt} :}{ Hölder constant estimates, corresponding to \eqn{L_t^2}.}
+#'   \item{\code{Lt2} :}{ Hölder constant estimates, corresponding to \eqn{L_t^2}.}
 #' }
 #'
 #' @export
@@ -78,7 +78,7 @@ estimate_locreg <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   mat_reg <- estimate_locreg_cpp(data = data, t = t, Delta = Delta, h = h,
                                     kernel_name = kernel_name, center = center)
   dt_reg <- data.table::as.data.table(mat_reg)
-  data.table::setnames(x = dt_reg, new = c("t", "locreg_bw", "Delta", "Nused", "Ht", "Lt"))
+  data.table::setnames(x = dt_reg, new = c("t", "locreg_bw", "Delta", "Nused", "Ht", "Lt2"))
 
   return(.as_adaptive_est(dt_reg, "locreg_est",
                           meta = list(kernel = kernel_name, center = center)))

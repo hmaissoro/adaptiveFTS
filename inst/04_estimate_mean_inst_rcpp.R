@@ -20,6 +20,6 @@ res_mean_estim <- estimate_mean_cpp(
   data = data_far, t = t0, optbw = NULL,
   bw_grid = NULL, kernel_name = "epanechnikov")
 dt_mean_estim <- data.table::as.data.table(res_mean_estim)
-names(dt_mean_estim) <- c("t", "optbw", "Ht", "Lt", "PN", "muhat")
+names(dt_mean_estim) <- c("t", "optbw", "Ht", "Lt2", "PN", "muhat")
 
 dygraphs::dygraph(dt_mean_estim[, .(t, muhat)])

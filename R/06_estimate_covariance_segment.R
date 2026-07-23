@@ -19,7 +19,7 @@
 #'   \item \code{PN}: The number of curves used to estimate the mean at \code{t}, i.e., \eqn{P_N(t;h)}.
 #'   \item \code{locreg_bw}: The bandwidth used to estimate the local regularity parameters.
 #'   \item \code{Ht}: The estimates of the local exponent \eqn{H_t}.
-#'   \item \code{Lt}: The estimates of the Hölder constant \eqn{L_t^2}.
+#'   \item \code{Lt2}: The estimates of the Hölder constant \eqn{L_t^2}.
 #'   \item \code{bias_term}: The bias term of the risk function.
 #'   \item \code{variance_term}: The variance term of the risk function.
 #'   \item \code{dependence_term}: The dependence term of the risk function.
@@ -86,7 +86,7 @@ estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", y
     center = center, kernel_name = kernel_name)
   dt_risk <- data.table::as.data.table(dt_risk)
   data.table::setnames(x = dt_risk,
-                       new = c("t", "h", "PN", "locreg_bw", "Ht", "Lt", "bias_term",
+                       new = c("t", "h", "PN", "locreg_bw", "Ht", "Lt2", "bias_term",
                                "variance_term", "dependence_term", "cov_segment_risk"))
   return(.as_adaptive_est(dt_risk, "cov_segment_risk",
                           meta = list(kernel = kernel_name, N = N, center = center,
@@ -109,7 +109,7 @@ estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", y
 #'   \item{\code{t} :}{ The observation points at which the covariance segment function is estimated.}
 #'   \item{\code{optbw} :}{ The optimal bandwidth used to estimate covariance segment function at each \code{t}.}
 #'   \item{\code{Ht} :}{ Local exponent estimates for each \code{t}, corresponding to \eqn{H_t}.}
-#'   \item{\code{Lt} :}{ Estimates of the Hölder constant for each \code{t}, corresponding to \eqn{L_t^2}.}
+#'   \item{\code{Lt2} :}{ Estimates of the Hölder constant for each \code{t}, corresponding to \eqn{L_t^2}.}
 #'   \item{\code{PN} :}{ The number of selected curves used in the estimation for each \code{t}.}
 #'   \item{\code{cov_segment_hat} :}{ Uncorrected covariance segment estimate. }
 #'   \item{\code{covseg_correction} :}{ Correction term based on measurement error variance. }
@@ -168,7 +168,7 @@ estimate_cov_segment <- function(data, idcol = "id_curve", tcol = "tobs", ycol =
   # Estimate covariance segment function using C++  function
   dt_res <- estimate_cov_segment_cpp(data = data, t = t, optbw = optbw, bw_grid = bw_grid, center = center, kernel_name = kernel_name)
   dt_res <- data.table::as.data.table(dt_res)
-  data.table::setnames(x = dt_res, new = c("t", "optbw", "Ht", "Lt", "PN", "cov_segment_hat",
+  data.table::setnames(x = dt_res, new = c("t", "optbw", "Ht", "Lt2", "PN", "cov_segment_hat",
                                            "covseg_correction", "cov_segment_hat_corrected"))
   dt_res[cov_segment_hat < covseg_correction, cov_segment_hat_corrected := cov_segment_hat]
   return(.as_adaptive_est(dt_res, "cov_segment_est",

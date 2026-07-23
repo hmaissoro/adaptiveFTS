@@ -78,9 +78,9 @@ A \code{data.table} containing the following columns:
 \item{\code{PNl} :}{ Number of curves used in the autocovariance estimation at (\code{s}, \code{t}). Corresponds to \eqn{P_{N,\ell}(s,t;h_s, h_t)}.}
 \item{\code{locreg_bw} :}{ Bandwidth used for estimating local regularity parameters.}
 \item{\code{Hs} :}{ Local exponent estimates for \code{s}, denoted as \eqn{H_s}.}
-\item{\code{Ls} :}{ Estimates of the Hölder constant for \code{s}, corresponding to \eqn{L_s^2}.}
+\item{\code{Ls2} :}{ Estimates of the Hölder constant for \code{s}, corresponding to \eqn{L_s^2}.}
 \item{\code{Ht} :}{ Local exponent estimates for \code{t}, denoted as \eqn{H_t}.}
-\item{\code{Lt} :}{ Estimates of the Hölder constant for \code{t}, corresponding to \eqn{L_t^2}.}
+\item{\code{Lt2} :}{ Estimates of the Hölder constant for \code{t}, corresponding to \eqn{L_t^2}.}
 \item{\code{bias_term} :}{ Bias term of the risk function.}
 \item{\code{variance_term} :}{ Variance term of the risk function.}
 \item{\code{dependence_term} :}{ Dependence term of the risk function.}

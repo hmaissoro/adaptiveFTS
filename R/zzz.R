@@ -4,7 +4,7 @@ globalVariables(
     "B", "PN", "Vmu", "Xhat", "autocov", "bn2H", "cn", "N", "autocovhat_rp",
     "lag", "lr_var", "mean_risk", "muhat", "muhat_RP", "optbw",
     "pi_n", "rho", "wmax", "x", "Bs", "Bt", "EX2_s", "EX2_t", "Hs",
-    "Ht", "Lt", "PNl", "Vgamma", "Vgamma1", "Vgamma2", "Xhat_s", "Xhat_t",
+    "Ht", "Lt2", "Ls2", "PNl", "Vgamma", "Vgamma1", "Vgamma2", "Xhat_s", "Xhat_t",
     "XsXt_autocov", "autocov_risk", "autocovhat", "bn2H_s", "bn2H_t", "cn_s",
     "cn_t", "gammahat", "id_curve.x", "id_curve.y", "id_lag", "locreg_bw",
     "locreg_bw_s", "locreg_bw_t", "long_run_var", "muhat_s", "muhat_t", "pin_s",

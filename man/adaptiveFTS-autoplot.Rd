@@ -24,7 +24,7 @@ autoplot.mean_est(object, ...)
 
 \method{plot}{mean_est}(x, ...)
 
-autoplot.locreg_est(object, which = c("Ht", "Lt"), ...)
+autoplot.locreg_est(object, which = c("Ht", "Lt2"), ...)
 
 \method{plot}{locreg_est}(x, ...)
 
@@ -59,7 +59,7 @@ autoplot.fts_acf(object, ...)
 unused.}
 
 \item{which}{For \code{locreg_est}, the regularity parameters to display; a subset
-of \code{c("Ht", "Lt")}. Default both.}
+of \code{c("Ht", "Lt2")}. Default both.}
 }
 \value{
 A \link[ggplot2:ggplot]{ggplot2::ggplot} object (\code{plot} methods return it invisibly, after

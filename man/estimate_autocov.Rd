@@ -87,9 +87,9 @@ A \code{data.table} containing the following columns.
 \item{optbw_s : The optimal bandwidth for the first argument of the autocovariance function. If \code{use_same_bw = TRUE}, the same bandwidth candidate is used for \code{s} and for \code{t}, so the 3rd and 4th columns contain the same values.}
 \item{optbw_t : The optimal bandwidth for the second argument of the autocovariance function.}
 \item{Hs : The estimates of the local exponent for each \code{s}. It corresponds to \eqn{H_s}.}
-\item{Ls : The estimates of the Hölder constant for each \code{s}. It corresponds to \eqn{L_s^2}.}
+\item{Ls2 : The estimates of the Hölder constant for each \code{s}. It corresponds to \eqn{L_s^2}.}
 \item{Ht : The estimates of the local exponent for each \code{t}. It corresponds to \eqn{H_t}.}
-\item{Lt : The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
+\item{Lt2 : The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
 \item{PNs : The number of curves used to estimate the mean at \code{s}. It corresponds to \eqn{P_N(s;h)}.}
 \item{muhat_s : The estimates of the mean at \code{s}. It corresponds to \eqn{\widehat{\mu}_N(s;h)}.}
 \item{PNt : The number of curves used to estimate the mean at \code{t}. It corresponds to \eqn{P_N(t;h)}.}
