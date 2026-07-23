@@ -6,12 +6,12 @@
 \usage{
 estimate_empirical_mom(
   data,
-  idcol = NULL,
+  idcol = "id_curve",
   tcol = "tobs",
   ycol = "X",
   t = c(1/4, 1/2, 3/4),
   mom_order = 1,
-  h = NULL,
+  presmooth_bw = NULL,
   center = TRUE,
   kernel_name = "epanechnikov"
 )
@@ -37,11 +37,11 @@ Each element should be a value between 0 and 1.}
 
 \item{mom_order}{\code{numeric (positive scalar)}. The order of the moment to be computed (e.g., 1 for mean, 2 for variance).}
 
-\item{h}{\code{numeric (positive vector or scalar)}. The smoothing bandwidth parameter.
-Default \code{h = NULL}, in which case the bandwidth will be estimated by Cross-Validation on a subset of curves.
-If \code{h} is a scalar, then all curves will be smoothed with the same bandwidth.
-If \code{h} is a vector, its length must equal the number of curves in \code{data}, with each element corresponding
-to a curve in the same order as in \code{data}.}
+\item{presmooth_bw}{\code{numeric (positive vector or scalar)}. Bandwidth used
+to presmooth each curve before the estimation. A scalar applies the same
+bandwidth to every curve; a vector must hold one bandwidth per curve, in the
+order the curves appear in \code{data}. Default \code{NULL} selects it by
+cross-validation, see \link{get_nw_optimal_bw}.}
 
 \item{center}{\code{logical}. If \code{TRUE}, then the \eqn{p}-th order moment of the centered \eqn{X(t)} is estimated.
 Default is \code{TRUE}.}
@@ -72,7 +72,7 @@ moment_estimates <- estimate_empirical_mom(
   data = data_far,
   t = observation_points,
   mom_order = moment_order,
-  h = NULL,
+  presmooth_bw = NULL,
   center = TRUE,
   kernel_name = "epanechnikov"
 )

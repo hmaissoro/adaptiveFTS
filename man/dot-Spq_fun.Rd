@@ -2,7 +2,7 @@
 % Please edit documentation in R/05_estimate_autocovariance.R
 \name{.Spq_fun}
 \alias{.Spq_fun}
-\title{\eqn{S_{pq}^{(\ell)}}, (\eqn{\ell \leq 0}) function. See \insertCite{rubin2020;textual}{adaptiveFTS} Equation (B.7)}
+\title{Weight Sum \eqn{S_{pq}^{(\ell)}} of the Rubìn-Panaretos Autocovariance Estimator}
 \usage{
 .Spq_fun(
   data,
@@ -15,7 +15,7 @@
   p = 1,
   q = 1,
   h,
-  smooth_ker = epanechnikov
+  kernel_name = "epanechnikov"
 )
 }
 \arguments{
@@ -34,31 +34,32 @@ observation points of the curves.}
 \item{ycol}{\code{character(1)}. Name of the column (or vector) holding the
 values observed at those points.}
 
-\item{s}{\code{vector (numeric)}. First argument of the autocovariance function.
-It corresponds to the observation points \code{s} in the pair (\code{s}, \code{t}).
-It has to be of the same length as the \code{t}}
+\item{s}{\code{numeric (scalar)}. First argument of the autocovariance
+function.}
 
-\item{t}{\code{vector (numeric)}. Second argument of the autocovariance function.
-It corresponds to the observation points \code{t} in the pair (\code{s}, \code{t}).
-It has to be of the same length as the \code{s}.}
+\item{t}{\code{numeric (scalar)}. Second argument of the autocovariance
+function.}
 
-\item{lag}{\code{integer (positive integer)}. Lag of the autocovariance.}
+\item{lag}{\code{integer (non-negative)}. Lag of the autocovariance.}
 
-\item{p}{\code{numeric (integer)}. It is used as exponent.}
+\item{p, q}{\code{numeric (integer)}. Exponents of the centred and scaled
+observation points in the sum.}
 
-\item{q}{\code{numeric (integer)}. It is used as exponent.}
+\item{h}{\code{numeric (positive scalar)}. Bandwidth of the estimator.}
 
-\item{h}{\code{numeric (positive scalar)}. The bandwidth of the estimator.}
-
-\item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator.
-Default \code{smooth_ker = epanechnikov}.}
+\item{kernel_name}{\code{string}. Kernel of the smoothing estimator, one of
+"epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
+"uniform".}
 }
 \value{
 A \code{numeric} scalar.
 }
 \description{
-\eqn{S_{pq}^{(\ell)}}, (\eqn{\ell \leq 0}) function. See \insertCite{rubin2020;textual}{adaptiveFTS} Equation (B.7)
+Computes the \eqn{S_{pq}^{(\ell)}} term of Equation (B.7) of
+\insertCite{rubin2020;textual}{adaptiveFTS}, the kernel weight sum over all
+pairs of observation points of two curves \eqn{\ell} apart.
 }
 \references{
 \insertAllCited{}
 }
+\keyword{internal}

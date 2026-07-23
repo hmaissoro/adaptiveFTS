@@ -2,7 +2,7 @@
 % Please edit documentation in R/04_estimate_mean.R
 \name{estimate_mean_risk}
 \alias{estimate_mean_risk}
-\title{Estimate the Risk Function of the Mean Function}
+\title{Estimate the Risk of the Mean Function Estimator}
 \usage{
 estimate_mean_risk(
   data,
@@ -30,70 +30,70 @@ observation points of the curves.}
 \item{ycol}{\code{character(1)}. Name of the column (or vector) holding the
 values observed at those points.}
 
-\item{t}{\code{vector (numeric)}. Observation points where the mean function of the underlying process is estimated.}
+\item{t}{\code{vector (numeric)}. Points of \eqn{[0, 1]} at which the risk is
+estimated.}
 
-\item{bw_grid}{\code{vector (numeric)}. A bandwidth grid from which the best smoothing parameter is selected for each \code{t}.
-Default is \code{NULL}, in which case it is defined as an exponential grid of \eqn{N \lambda}.}
+\item{bw_grid}{\code{vector (numeric)}. Candidate bandwidths, from which
+\link{estimate_mean} picks the risk-minimising one at each \code{t}. Default
+\code{NULL} builds the grid from the data; see Details.}
 
-\item{kernel_name}{\code{string}. Specifies the kernel function for estimation; default is "epanechnikov".
-Supported kernels include: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".}
+\item{kernel_name}{\code{string}. Kernel of the smoothing estimator, one of
+"epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
+"uniform".}
 }
 \value{
-A \code{data.table} with columns:
+A \code{data.table} with one row per (\code{t}, \code{h}) pair and
+columns:
 \itemize{
-\item{\code{t} :}{ The observation points where the risk function is estimated.}
-\item{\code{h} :}{ The candidate bandwidth values tested.}
-\item{\code{PN} :}{ The number of curves used to estimate the mean at each \code{t}, corresponding to \eqn{P_N(t;h)}.}
-\item{\code{locreg_bw} :}{ The bandwidth used to estimate the local regularity parameters.}
-\item{\code{Ht} :}{ Estimates of the local exponent at each \code{t}, corresponding to \eqn{H_t}.}
-\item{\code{Lt2} :}{ Estimates of the Hölder constant at each \code{t}, corresponding to \eqn{L_t^2}.}
-\item{\code{bias_term} :}{ The bias term component of the risk function.}
-\item{\code{variance_term} :}{ The variance term component of the risk function.}
-\item{\code{dependence_term} :}{ The dependence term component of the risk function.}
-\item{\code{mean_risk} :}{ The estimated risk function for the mean.}
+\item \code{t}: the point at which the risk is estimated.
+\item \code{h}: the candidate bandwidth.
+\item \code{PN}: the number of curves contributing to the estimate at
+\code{t}, \eqn{P_N(t;h)}.
+\item \code{locreg_bw}: the bandwidth used to estimate the local regularity.
+\item \code{Ht}: the estimated local exponent \eqn{H_t}.
+\item \code{Lt2}: the estimated squared Hölder constant \eqn{L_t^2}.
+\item \code{bias_term}, \code{variance_term}, \code{dependence_term}: the
+three components of the risk.
+\item \code{mean_risk}: the estimated risk.
 }
 }
 \description{
-This function estimates the risk function \eqn{R_\mu(t;h)} for the mean function estimation as described in
-Section 4.1 of \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}.
+Estimates the risk \eqn{R_\mu(t;h)} of the adaptive mean function estimator
+over a grid of candidate bandwidths, as described in Section 4.1 of
+\insertCite{maissoro2024adaptive;textual}{adaptiveFTS}. Minimising it over
+\code{h} at each \code{t} is what \link{estimate_mean} does to select its
+bandwidth.
+}
+\details{
+The risk bound splits into three terms, returned separately so that the
+selected bandwidth can be traced back to what drove it: a bias term growing
+with \eqn{h^{2H_t}} through the local regularity, a variance term decreasing in
+\eqn{h} through the number of usable points, and a dependence term reflecting
+the serial dependence between curves. The local regularity parameters are
+estimated internally at each \code{t}, so \code{Ht} and \code{Lt2} are reported
+alongside the risk.
+
+Left to \code{NULL}, \code{bw_grid} is a 20-point geometric grid running from
+\eqn{4(N\widehat\lambda)^{-0.9}} to \eqn{4(N\widehat\lambda)^{-1/3}}, where
+\eqn{N} is the number of curves and \eqn{\widehat\lambda} the average number of
+observation points per curve.
 }
 \examples{
-\dontrun{
-# Load data
 data("data_far")
 
-# Estimate the risk function for mean estimation
 dt_mean_risk <- estimate_mean_risk(
-  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  t = c(1/4, 1/2, 3/4), bw_grid = NULL,
-  kernel_name = "epanechnikov"
-)
+  data = data_far[data_far$id_curve <= 20, ],
+  idcol = "id_curve", tcol = "tobs", ycol = "X",
+  t = c(1/4, 1/2, 3/4), bw_grid = seq(0.02, 0.15, length.out = 8),
+  kernel_name = "epanechnikov")
 
-# Plot the mean risk function at different points
-dt_dcast <- data.table::dcast(data = dt_mean_risk, formula = h ~ t, value.var = "mean_risk")
-manipulateWidget::combineWidgets(
-  list = list(
-    dygraphs::dygraph(
-      data = dt_dcast[, list(h, "t = 0.25" = `0.25`)],
-      main = "t = 0.25", xlab = "h", ylab = "Risk Function"
-    ),
-    dygraphs::dygraph(
-      data = dt_dcast[, list(h, "t = 0.5" = `0.5`)],
-      main = "t = 0.5", xlab = "h", ylab = "Risk Function"
-    ),
-    dygraphs::dygraph(
-      data = dt_dcast[, list(h, "t = 0.75" = `0.75`)],
-      main = "t = 0.75", xlab = "h", ylab = "Risk Function"
-    )
-  ),
-  nrow = 3
-)
-}
+# The risk-minimising bandwidth at each t.
+dt_mean_risk[, list(h = h[which.min(mean_risk)]), by = "t"]
 
 }
 \references{
 \insertAllCited{}
 }
 \seealso{
-\code{\link[=estimate_mean]{estimate_mean()}}, \code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_sigma]{estimate_sigma()}}, \code{\link[=estimate_nw]{estimate_nw()}}, \code{\link[=estimate_empirical_autocov]{estimate_empirical_autocov()}}.
+\code{\link[=estimate_mean]{estimate_mean()}}, \code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_sigma]{estimate_sigma()}}.
 }

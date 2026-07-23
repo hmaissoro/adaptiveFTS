@@ -20,16 +20,16 @@ fixture_far_small <- function(seed = 42L, N = 20L, lambda = 30L) {
   set.seed(seed)
   simulate_far(
     N = N, lambda = lambda,
-    tdesign = "random",
-    Mdistribution = stats::rpois,
-    tdistribution = stats::runif,
-    tcommon = NULL,
+    design = "random",
+    M_distribution = stats::rpois,
+    t_distribution = stats::runif,
+    t_common = NULL,
     hurst_fun = hurst_logistic,
     L = 4,
     far_kernel = function(s, t) 9 / 4 * exp(-(t + 2 * s) ** 2),
     far_mean = function(t) 4 * sin(1.5 * pi * t),
-    int_grid = 100L,
-    burnin = 100L,
+    n_int_grid = 100L,
+    n_burnin = 100L,
     remove_burnin = TRUE
   )
 }

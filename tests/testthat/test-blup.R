@@ -96,19 +96,19 @@ test_that("blup() equals predict(blup_fit()) and select_tikhonov_parameter retur
                predict(fit, t = tt), tolerance = 1e-10)
 
   cv <- suppressWarnings(select_tikhonov_parameter(
-    dt, tikhonov_grid = exp(seq(-2, 0, length.out = 6)), n_cv_tikhonov = 3L, bw_grid = bwg))
+    dt, tikhonov_grid = exp(seq(-2, 0, length.out = 6)), n_cv_curves = 3L, bw_grid = bwg))
   expect_true(all(c("tikhonov_star", "cv_curve", "cv_matrix", "val_ids") %in% names(cv)))
   expect_length(cv$cv_curve, 6L)
   expect_equal(dim(cv$cv_matrix), c(3L, 6L))
   expect_true(is.finite(cv$tikhonov_star))
 })
 
-test_that("select_tikhonov_parameter shrinks n_cv_tikhonov with a warning", {
+test_that("select_tikhonov_parameter shrinks n_cv_curves with a warning", {
   dt <- fixture_data_far(18L)
   bwg <- seq(0.05, 0.2, length.out = 5)
   w <- testthat::capture_warnings(
     cv <- select_tikhonov_parameter(dt, tikhonov_grid = exp(seq(-2, 0, length.out = 4)),
-                                    n_cv_tikhonov = 100L, n_subgrid_bw = 5L, bw_grid = bwg))
+                                    n_cv_curves = 100L, bw_subgrid_size = 5L, bw_grid = bwg))
   expect_true(any(grepl("number of curves", w)))
   expect_length(cv$val_ids, floor(18 / 2))
 })
@@ -118,7 +118,7 @@ test_that("blup_fit / blup auto-select the Tikhonov parameter", {
   bwg <- seq(0.05, 0.2, length.out = 6)
   grid <- exp(seq(-2, 0, length.out = 5))
 
-  fit <- suppressWarnings(blup_fit(dt, tikhonov_grid = grid, n_cv_tikhonov = 3L, bw_grid = bwg))
+  fit <- suppressWarnings(blup_fit(dt, tikhonov_grid = grid, n_cv_curves = 3L, bw_grid = bwg))
   expect_false(is.null(fit$tikhonov_cv))
   expect_equal(fit$tikhonov, fit$tikhonov_cv$tikhonov_star)
   expect_true(fit$tikhonov %in% grid)
@@ -128,7 +128,7 @@ test_that("blup_fit / blup auto-select the Tikhonov parameter", {
   expect_null(fit_fixed$tikhonov_cv)
 
   b <- suppressWarnings(blup(dt, t = c(0.3, 0.6), tikhonov_grid = grid,
-                             n_cv_tikhonov = 3L, bw_grid = bwg))
+                             n_cv_curves = 3L, bw_grid = bwg))
   expect_s3_class(b, "blup")
   expect_equal(names(b), c("prediction", "tikhonov", "tikhonov_cv"))
   expect_true(data.table::is.data.table(b$prediction))

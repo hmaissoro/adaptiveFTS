@@ -86,7 +86,7 @@ summary.autocov_est <- function(object, ...) {
   cat(sprintf("  Training curves    : %s\n", .est_meta(object, "N")))
   cat(sprintf("  Kernel             : %s (centred: %s)\n",
               .est_meta(object, "kernel"), .est_meta(object, "center")))
-  cat(sprintf("  Same bw for s, t   : %s\n", .est_meta(object, "use_same_bw")))
+  cat(sprintf("  Common bw for s, t : %s\n", .est_meta(object, "common_bw")))
   cat(sprintf("  Bandwidth (s)      : %s\n", .fmt_range(object$optbw_s)))
   cat(sprintf("  Bandwidth (t)      : %s\n", .fmt_range(object$optbw_t)))
   cat(sprintf("  Curves used (PNl)  : %s\n", .fmt_range(object$PNl)))

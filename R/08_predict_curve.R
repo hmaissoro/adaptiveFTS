@@ -17,8 +17,10 @@
 #' @param id_curve_to_predict An integer specifying the index of the curve to be predicted. Default is \code{NULL}, which considers the last curve in \code{data}.
 #' @param bw_grid A numeric vector of bandwidth grid values for selecting optimal bandwidth parameters for (auto)covariance estimation.
 #' Default is \code{NULL}, which sets it in the function.
-#' @param use_same_bw A logical value indicating whether the same bandwidth should be used for the arguments \code{s} and \code{t} in the (auto)covariance estimation. Default is \code{FALSE}.
-#' @param center A logical value indicating whether the data should be centered before estimating the (auto)covariance. Default is \code{TRUE}.
+#' @param common_bw A logical value indicating whether a single bandwidth is used
+#' for both arguments of the (auto)covariance. Default is \code{FALSE}.
+#' @param center_curves A logical value indicating whether the curves are centred
+#' before smoothing. Default is \code{TRUE}.
 #' @param correct_diagonal A logical value indicating whether the diagonal of the covariances should be corrected. Default is \code{TRUE}.
 #' @param kernel_name A string specifying the kernel to use for estimation. Supported values are \code{"epanechnikov"}, \code{"biweight"},
 #'  \code{"triweight"}, \code{"tricube"}, \code{"triangular"}, and \code{"uniform"}. Default is \code{"epanechnikov"}.
@@ -43,8 +45,8 @@ predict_curve <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                           t = seq(0.01, 0.99, len = 99),
                           id_curve_to_predict = NULL,
                           bw_grid = NULL,
-                          use_same_bw = FALSE,
-                          center = TRUE,
+                          common_bw = FALSE,
+                          center_curves = TRUE,
                           correct_diagonal = TRUE,
                           kernel_name = "epanechnikov"){
 
@@ -58,10 +60,10 @@ predict_curve <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   # Control easy checkable arguments
   if (! (methods::is(t, "numeric") & all(t >= 0 & t <= 1)))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
-  if (! (methods::is(use_same_bw, "logical")))
-    stop("'use_same_bw' must be TRUE or FALSE.")
-  if (! (methods::is(center, "logical")))
-    stop("'center' must be TRUE or FALSE.")
+  if (! (methods::is(common_bw, "logical")))
+    stop("'common_bw' must be TRUE or FALSE.")
+  if (! (methods::is(center_curves, "logical")))
+    stop("'center_curves' must be TRUE or FALSE.")
   if (! (methods::is(correct_diagonal, "logical")))
     stop("'correct_diagonal' must be TRUE or FALSE.")
 
@@ -78,7 +80,7 @@ predict_curve <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   # Estimate the BLUP
   res_blup_one <- estimate_curve_cpp(
     data = data, t = t, id_curve = id_curve_to_predict,
-    bw_grid = bw_grid, use_same_bw = use_same_bw, center = center,
+    bw_grid = bw_grid, use_same_bw = common_bw, center = center_curves,
     correct_diagonal = correct_diagonal,
     kernel_name = kernel_name)
 

@@ -31,12 +31,13 @@
 #' @param kernel_name Kernel name. Default `"epanechnikov"`.
 #' @param homoscedastic If `TRUE` (default) a constant noise variance (median of
 #'   the pointwise estimates) is used; otherwise the t-varying estimates.
-#' @param n_subgrid_bw Number of points per axis of the coarse sub-grid on which
-#'   the adaptive bandwidths are selected. Default `10`.
-#' @param n_cv_tikhonov Number of trailing curves used for the Tikhonov
+#' @param bw_subgrid_size Number of points per axis of the coarse sub-grid on
+#'   which the adaptive bandwidths are selected. Default `10`.
+#' @param n_cv_curves Number of trailing curves held out for the Tikhonov
 #'   cross-validation when `tikhonov` is `NULL`. Default `30`.
-#' @param id_lag Integer id of the conditioning curve. Its successor is the
-#'   curve to be predicted. Default `NULL` uses the last curve in `data`.
+#' @param id_conditioning_curve Integer id of the curve conditioned on. Its
+#'   successor is the curve that `predict()` reconstructs. Default `NULL` uses
+#'   the last curve in `data`.
 #' @param tikhonov Tikhonov regularisation parameter \eqn{\alpha}. Default `NULL`
 #'   selects it by cross-validation (see [select_tikhonov_parameter()]) over
 #'   `tikhonov_grid`; pass a numeric value to use it directly.
@@ -71,16 +72,16 @@
 #' @importFrom methods is
 blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                      kernel_name = "epanechnikov", homoscedastic = TRUE,
-                     n_subgrid_bw = 10L, n_cv_tikhonov = 30L,
-                     id_lag = NULL, tikhonov = NULL, tikhonov_grid = NULL,
-                     bw_grid = NULL, density_bw = NULL) {
+                     bw_subgrid_size = 10L, n_cv_curves = 30L,
+                     id_conditioning_curve = NULL, tikhonov = NULL,
+                     tikhonov_grid = NULL, bw_grid = NULL, density_bw = NULL) {
 
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   kernel_name <- match.arg(
     arg = kernel_name,
     choices = c("epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform"))
 
-  n0 <- if (is.null(id_lag)) data[, max(id_curve)] else as.integer(id_lag)
+  n0 <- if (is.null(id_conditioning_curve)) data[, max(id_curve)] else as.integer(id_conditioning_curve)
   Tn0 <- data[id_curve == n0, sort(unique(tobs))]
   Yn0 <- data[id_curve == n0][order(tobs), X]
   Mn0 <- length(Tn0)
@@ -117,8 +118,8 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   if (is.null(tikhonov)) {
     tikhonov_cv <- select_tikhonov_parameter(
       data = data, method = "cv", kernel_name = kernel_name,
-      homoscedastic = homoscedastic, n_subgrid_bw = n_subgrid_bw,
-      n_cv_tikhonov = n_cv_tikhonov, tikhonov_grid = tikhonov_grid,
+      homoscedastic = homoscedastic, bw_subgrid_size = bw_subgrid_size,
+      n_cv_curves = n_cv_curves, tikhonov_grid = tikhonov_grid,
       bw_grid = bw_grid, density_bw = density_bw)
     tikhonov <- tikhonov_cv$tikhonov_star
   } else {
@@ -130,7 +131,7 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   cpp <- blup_fit_cpp(
     data = data, id_lag = as.integer(n0), bw_grid = as.numeric(bw_grid),
     rho = rho, homoscedastic = homoscedastic,
-    tikhonov = tikhonov, n_subgrid_bw = as.integer(n_subgrid_bw),
+    tikhonov = tikhonov, n_subgrid_bw = as.integer(bw_subgrid_size),
     kernel_name = kernel_name)
 
   return(structure(
@@ -138,7 +139,7 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       data = data,
       kernel_name = kernel_name,
       is_common_design = is_common_design,
-      id_lag = n0,
+      id_conditioning_curve = n0,
       Tn0 = as.vector(cpp$Tn0),
       Yn0 = as.vector(cpp$Yn0),
       Mn0 = Mn0,
@@ -259,15 +260,15 @@ predict.blup_fit <- function(object, t = object$Tn0, horizon = 1L, newdata = NUL
 blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                  t = seq(0.01, 0.99, length.out = 99), horizon = 1L,
                  kernel_name = "epanechnikov", homoscedastic = TRUE,
-                 n_subgrid_bw = 10L, n_cv_tikhonov = 30L,
-                 id_lag = NULL, tikhonov = NULL, tikhonov_grid = NULL,
-                 bw_grid = NULL, density_bw = NULL) {
+                 bw_subgrid_size = 10L, n_cv_curves = 30L,
+                 id_conditioning_curve = NULL, tikhonov = NULL,
+                 tikhonov_grid = NULL, bw_grid = NULL, density_bw = NULL) {
   fit <- blup_fit(
     data = data, idcol = idcol, tcol = tcol, ycol = ycol,
     kernel_name = kernel_name, homoscedastic = homoscedastic,
-    n_subgrid_bw = n_subgrid_bw, n_cv_tikhonov = n_cv_tikhonov,
-    id_lag = id_lag, tikhonov = tikhonov, tikhonov_grid = tikhonov_grid,
-    bw_grid = bw_grid, density_bw = density_bw)
+    bw_subgrid_size = bw_subgrid_size, n_cv_curves = n_cv_curves,
+    id_conditioning_curve = id_conditioning_curve, tikhonov = tikhonov,
+    tikhonov_grid = tikhonov_grid, bw_grid = bw_grid, density_bw = density_bw)
   return(structure(
     list(prediction = predict(fit, t = t, horizon = horizon),
          tikhonov = fit$tikhonov, tikhonov_cv = fit$tikhonov_cv),
@@ -281,7 +282,7 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' cross-validation.
 #'
 #' @details
-#' Each of the last `n_cv_tikhonov` curves is predicted from its immediate predecessor
+#' Each of the last `n_cv_curves` curves is predicted from its immediate predecessor
 #' and scored by the design-weighted squared prediction error at its observation
 #' points, \eqn{\sum_i \varrho_{n,i}\,(Y_{n,i} - \widehat X_n(T_{n,i};\alpha))^2},
 #' where \eqn{\varrho_{n,i}} is the design weight of the held-out (target) curve.
@@ -318,8 +319,9 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @import data.table
 select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                       method = c("cv"), kernel_name = "epanechnikov",
-                                      homoscedastic = TRUE, n_subgrid_bw = 10L, n_cv_tikhonov = 30L,
-                                      tikhonov_grid = NULL, bw_grid = NULL, density_bw = NULL) {
+                                      homoscedastic = TRUE, bw_subgrid_size = 10L,
+                                      n_cv_curves = 30L, tikhonov_grid = NULL,
+                                      bw_grid = NULL, density_bw = NULL) {
   method <- match.arg(method)
 
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
@@ -329,12 +331,12 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
 
   ids <- data[, sort(unique(id_curve))]
   n <- length(ids)
-  if (n_cv_tikhonov >= n) {
-    n_cv_tikhonov <- floor(n / 2)
-    warning("'n_cv_tikhonov' >= the number of curves; using n_cv_tikhonov = ", n_cv_tikhonov, ".")
+  if (n_cv_curves >= n) {
+    n_cv_curves <- floor(n / 2)
+    warning("'n_cv_curves' >= the number of curves; using n_cv_curves = ", n_cv_curves, ".")
   }
-  fit_ids <- ids[seq_len(n - n_cv_tikhonov)]
-  val_pos <- (n - n_cv_tikhonov + 1L):n
+  fit_ids <- ids[seq_len(n - n_cv_curves)]
+  val_pos <- (n - n_cv_curves + 1L):n
   data_fit <- data[id_curve %in% fit_ids]
   is_common <- .is_common_design(data = data, idcol = "id_curve", tcol = "tobs")
 
@@ -345,8 +347,8 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
 
   fit <- blup_fit(
     data = data_fit, kernel_name = kernel_name, homoscedastic = homoscedastic,
-    n_subgrid_bw = n_subgrid_bw, id_lag = max(fit_ids), tikhonov = 1e-6,
-    bw_grid = bw_grid, density_bw = density_bw)
+    bw_subgrid_size = bw_subgrid_size, id_conditioning_curve = max(fit_ids),
+    tikhonov = 1e-6, bw_grid = bw_grid, density_bw = density_bw)
 
   # Common design: the operators are constant across folds.
   if (is_common) {
@@ -357,8 +359,8 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
   }
 
   ## Phase 1: assemble the Tikhonov-free pieces for each validation curve.
-  folds <- vector("list", n_cv_tikhonov)
-  for (k in seq_len(n_cv_tikhonov)) {
+  folds <- vector("list", n_cv_curves)
+  for (k in seq_len(n_cv_curves)) {
     id_targ <- ids[val_pos[k]]
     id_prev <- ids[val_pos[k] - 1L]
     Y_prev <- data[id_curve == id_prev][order(tobs), X]
@@ -404,8 +406,8 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
   ## Phase 2: only the (A0 + tikhonov * I)^{-1} step depends on the Tikhonov
   ## parameter; A0 is symmetric, so eigendecompose once per fold and reuse it
   ## across the whole grid.
-  cv_matrix <- matrix(NA_real_, nrow = n_cv_tikhonov, ncol = length(tikhonov_grid))
-  for (k in seq_len(n_cv_tikhonov)) {
+  cv_matrix <- matrix(NA_real_, nrow = n_cv_curves, ncol = length(tikhonov_grid))
+  for (k in seq_len(n_cv_curves)) {
     f <- folds[[k]]
     eg <- eigen(f$A0, symmetric = TRUE)
     lambda <- eg$values
@@ -461,7 +463,7 @@ summary.blup_fit <- function(object, ...) {
   cat("Adaptive functional BLUP fit\n")
   cat(sprintf("  Design             : %s\n", design))
   cat(sprintf("  Training curves    : %d\n", n_curves))
-  cat(sprintf("  Conditioning curve : id %s, M = %d points\n", object$id_lag, object$Mn0))
+  cat(sprintf("  Conditioning curve : id %s, M = %d points\n", object$id_conditioning_curve, object$Mn0))
   cat(sprintf("  Kernel             : %s (%s)\n", object$kernel_name,
               if (object$homoscedastic) "homoscedastic" else "heteroscedastic"))
   cat(sprintf("  Noise variance     : %s\n", noise))

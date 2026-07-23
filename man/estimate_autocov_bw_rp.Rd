@@ -2,18 +2,18 @@
 % Please edit documentation in R/05_estimate_autocovariance.R
 \name{estimate_autocov_bw_rp}
 \alias{estimate_autocov_bw_rp}
-\title{Bandwidth estimation using cross-validation for the \insertCite{rubin2020;textual}{adaptiveFTS} autocovariance function estimator.}
+\title{Select the Bandwidth of the Rubìn-Panaretos Autocovariance Estimator}
 \usage{
 estimate_autocov_bw_rp(
   data,
   idcol = "id_curve",
   tcol = "tobs",
   ycol = "X",
-  Kfold = 10,
+  n_folds = 10,
   bw_grid = seq(0.001, 0.15, len = 45),
-  optbw_mean = NULL,
-  dt_mean_rp = NULL,
-  smooth_ker = epanechnikov
+  bw_mean = NULL,
+  mean_rp = NULL,
+  kernel_name = "epanechnikov"
 )
 }
 \arguments{
@@ -32,32 +32,45 @@ observation points of the curves.}
 \item{ycol}{\code{character(1)}. Name of the column (or vector) holding the
 values observed at those points.}
 
-\item{Kfold}{\code{integer (positive)}. Number of fold for the cross-validation.}
+\item{n_folds}{\code{integer (positive)}. Number of cross-validation folds.}
 
-\item{bw_grid}{\code{vector (numeric)}. The bandwidth grid.}
+\item{bw_grid}{\code{vector (numeric)}. Candidate bandwidths.}
 
-\item{optbw_mean}{\code{numeric (positive scalar)}. Optimal bandwidth for the mean function estimator.
-It is \code{NULL} if \code{dt_mean_rp} is not \code{NULL}.}
+\item{bw_mean}{\code{numeric (positive scalar)}. Bandwidth of the mean function
+estimator, used only when \code{mean_rp} is \code{NULL}.}
 
-\item{dt_mean_rp}{\code{data.table}. It contains the estimates of the mean function at each observation point for each curve.
-The name of the curve identification column must be \code{id_curve}, the observation points column \code{tobs} and the mean estimates column \code{muhat_RP}.
-Default \code{dt_mean_rp = NULL} and so it will be estimated.}
+\item{mean_rp}{\code{data.table}. Mean function estimated at every observation
+point of every curve, with columns \code{id_curve}, \code{tobs} and
+\code{muhat_RP}. Default \code{NULL} estimates it from \code{bw_mean}.}
 
-\item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.}
+\item{kernel_name}{\code{string}. Kernel of the smoothing estimator, one of
+"epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
+"uniform".}
 }
 \value{
-A \code{data.table} containing the following columns.
+A \code{data.table} with one row per candidate bandwidth and columns:
 \itemize{
-\item{h :}{ The candidate bandwidth.}
-\item{cv_error :}{ The estimates of the Cross-Validation error for each \code{h}.}
+\item \code{h}: the candidate bandwidth.
+\item \code{cv_error}: the cross-validation error at \code{h}. The bandwidth
+minimising it is the one to pass to \link{estimate_autocov_rp}.
 }
 }
 \description{
-Bandwidth estimation using cross-validation for the \insertCite{rubin2020;textual}{adaptiveFTS} autocovariance function estimator.
+Selects the bandwidth of \link{estimate_autocov_rp} by \eqn{K}-fold
+cross-validation over the curves, as described in
+\insertCite{rubin2020;textual}{adaptiveFTS}. Each fold is scored by the squared
+error between the empirical cross-products of the held-out curves and the
+lag-0 autocovariance estimated on the others.
+}
+\details{
+Every candidate bandwidth requires a Rubìn-Panaretos estimate at every pair of
+observation points of the held-out curves, so the runtime grows with the fourth
+power of the number of points per curve. Keep \code{bw_grid} short and the
+number of curves small.
 }
 \references{
 \insertAllCited{}
 }
 \seealso{
-\code{\link[=estimate_mean_rp]{estimate_mean_rp()}}, \code{\link[=estimate_mean_bw_rp]{estimate_mean_bw_rp()}}, \code{\link[=estimate_autocov_rp]{estimate_autocov_rp()}}
+\code{\link[=estimate_autocov_rp]{estimate_autocov_rp()}}, \code{\link[=estimate_mean_bw_rp]{estimate_mean_bw_rp()}}.
 }

@@ -11,9 +11,9 @@ blup_fit(
   ycol = "X",
   kernel_name = "epanechnikov",
   homoscedastic = TRUE,
-  n_subgrid_bw = 10L,
-  n_cv_tikhonov = 30L,
-  id_lag = NULL,
+  bw_subgrid_size = 10L,
+  n_cv_curves = 30L,
+  id_conditioning_curve = NULL,
   tikhonov = NULL,
   tikhonov_grid = NULL,
   bw_grid = NULL,
@@ -41,14 +41,15 @@ values observed at those points.}
 \item{homoscedastic}{If \code{TRUE} (default) a constant noise variance (median of
 the pointwise estimates) is used; otherwise the t-varying estimates.}
 
-\item{n_subgrid_bw}{Number of points per axis of the coarse sub-grid on which
-the adaptive bandwidths are selected. Default \code{10}.}
+\item{bw_subgrid_size}{Number of points per axis of the coarse sub-grid on
+which the adaptive bandwidths are selected. Default \code{10}.}
 
-\item{n_cv_tikhonov}{Number of trailing curves used for the Tikhonov
+\item{n_cv_curves}{Number of trailing curves held out for the Tikhonov
 cross-validation when \code{tikhonov} is \code{NULL}. Default \code{30}.}
 
-\item{id_lag}{Integer id of the conditioning curve. Its successor is the
-curve to be predicted. Default \code{NULL} uses the last curve in \code{data}.}
+\item{id_conditioning_curve}{Integer id of the curve conditioned on. Its
+successor is the curve that \code{predict()} reconstructs. Default \code{NULL} uses
+the last curve in \code{data}.}
 
 \item{tikhonov}{Tikhonov regularisation parameter \eqn{\alpha}. Default \code{NULL}
 selects it by cross-validation (see \code{\link[=select_tikhonov_parameter]{select_tikhonov_parameter()}}) over

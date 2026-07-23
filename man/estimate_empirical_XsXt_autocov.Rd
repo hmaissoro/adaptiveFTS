@@ -6,14 +6,14 @@
 \usage{
 estimate_empirical_XsXt_autocov(
   data,
-  idcol = NULL,
+  idcol = "id_curve",
   tcol = "tobs",
   ycol = "X",
   s = c(1/5, 2/5, 4/5),
   t = c(1/4, 1/2, 3/4),
   cross_lag = 1,
-  lag = c(0, 1, 2),
-  h = NULL,
+  autocov_lag = c(0, 1, 2),
+  presmooth_bw = NULL,
   center = FALSE,
   kernel_name = "epanechnikov"
 )
@@ -42,12 +42,16 @@ Must be of the same length as \code{s}.}
 
 \item{cross_lag}{\code{integer (positive integer)}. The lag \eqn{\ell} in \eqn{X_0(s)X_{\ell}(t)}.}
 
-\item{lag}{\code{vector (integer)}. Lag for the autocovariance of \eqn{X_0(s)X_{\ell}(t)}.
-If \code{lag = NULL}, only \eqn{\mathbb{E}X_0(s)X_{\ell}(t)} is returned.}
+\item{autocov_lag}{\code{vector (integer)}. Lags at which the autocovariance of
+the scalar series \eqn{n \mapsto X_n(s)X_{n+\ell}(t)} is estimated, \eqn{\ell}
+being \code{cross_lag}. If \code{NULL}, only \eqn{\mathbb{E}X_0(s)X_{\ell}(t)}
+is returned.}
 
-\item{h}{\code{numeric (positive vector or scalar)}. Smoothing bandwidth parameter.
-Defaults to \code{NULL}, in which case \code{h} is estimated via Cross-Validation on a subset of curves.
-If \code{h} is a scalar, all curves are smoothed with the same bandwidth; if a vector, it should match the number of curves in \code{data}.}
+\item{presmooth_bw}{\code{numeric (positive vector or scalar)}. Bandwidth used
+to presmooth each curve before the estimation. A scalar applies the same
+bandwidth to every curve; a vector must hold one bandwidth per curve, in the
+order the curves appear in \code{data}. Default \code{NULL} selects it by
+cross-validation, see \link{get_nw_optimal_bw}.}
 
 \item{center}{\code{logical}. If \code{TRUE}, the estimated autocovariance is centered: \eqn{\mathbb{E}(X_0(s) - \mu(s))(X_{\ell}(t) - \mu(t))}. Defaults to \code{FALSE}, providing \eqn{\mathbb{E}X_0(s)X_{\ell}(t)}.}
 
@@ -59,9 +63,9 @@ A \code{data.table} with columns:
 \item{s :}{ First argument in \eqn{X_0(s)X_{\ell}(t)}.}
 \item{t :}{ Second argument in \eqn{X_0(s)X_{\ell}(t)}.}
 \item{cross_lag :}{ Lag \eqn{\ell} in \eqn{X_0(s)X_{\ell}(t)}.}
-\item{lag :}{ Lags for autocovariance estimation of \eqn{X_0(s)X_{\ell}(t)}; contains \code{NA} if \code{lag = NULL}.}
+\item{lag :}{ The lags at which the autocovariance of \eqn{X_0(s)X_{\ell}(t)} is estimated; \code{NA} if \code{autocov_lag = NULL}.}
 \item{EXsXt_cross_lag :}{ Mean of \eqn{X_0(s)X_{\ell}(t)}.}
-\item{XsXt_autocov :}{ Autocovariance estimates of \eqn{X_0(s)X_{\ell}(t)} for each \code{lag}; contains \code{NA} if \code{lag = NULL}.}
+\item{XsXt_autocov :}{ Autocovariance estimates of \eqn{X_0(s)X_{\ell}(t)} for each \code{autocov_lag}; \code{NA} if \code{autocov_lag = NULL}.}
 }
 }
 \description{
@@ -82,8 +86,8 @@ dt_empirical_cov <- estimate_empirical_XsXt_autocov(
   s = c(1/5, 2/5, 4/5),
   t = c(1/4, 1/2, 3/4),
   cross_lag = 1,
-  lag = c(0, 1, 2),
-  h = 0.1,
+  autocov_lag = c(0, 1, 2),
+  presmooth_bw = 0.1,
   center = FALSE,
   kernel_name = "epanechnikov"
 )
@@ -98,8 +102,8 @@ dt_empirical_cov_centered <- estimate_empirical_XsXt_autocov(
   s = c(1/5, 2/5, 4/5),
   t = c(1/4, 1/2, 3/4),
   cross_lag = 1,
-  lag = c(0, 1, 2),
-  h = 0.1,
+  autocov_lag = c(0, 1, 2),
+  presmooth_bw = 0.1,
   center = TRUE,
   kernel_name = "epanechnikov"
 )

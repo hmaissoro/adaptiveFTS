@@ -7,7 +7,8 @@
 #' @param t A numeric vector. Observation points where the mean function of the underlying process is estimated.
 #' @param bw_grid A numeric vector. A bandwidth grid from which the best smoothing parameter is selected for each \code{t}.
 #' Default is \code{NULL}, in which case it is defined as an exponential grid of \eqn{N \times \lambda}.
-#' @param center Logical. If \code{TRUE}, centers the data before estimation. Default is \code{TRUE}.
+#' @param center_curves Logical. If \code{TRUE} (default), the curves are centred
+#' before smoothing.
 #' @param kernel_name Character string. Specifies the kernel function for estimation; default is \code{"epanechnikov"}.
 #' Supported kernels include: \code{"epanechnikov"}, \code{"biweight"}, \code{"triweight"}, \code{"tricube"},
 #' \code{"triangular"}, and \code{"uniform"}.
@@ -44,14 +45,23 @@
 #' \insertAllCited{}
 #'
 #' @examples
-#' # Example coming soon
+#' data("data_far")
+#'
+#' dt_risk <- estimate_cov_segment_risk(
+#'   data = data_far[data_far$id_curve <= 20, ],
+#'   idcol = "id_curve", tcol = "tobs", ycol = "X",
+#'   t = c(1/4, 1/2, 3/4), bw_grid = seq(0.04, 0.15, length.out = 5),
+#'   center_curves = TRUE, kernel_name = "epanechnikov")
+#'
+#' # The risk-minimising bandwidth at each t.
+#' dt_risk[, list(h = h[which.min(cov_segment_risk)]), by = "t"]
 #'
 #' @export
 #'
 estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                       t = c(1/4, 1/2, 3/4),
                                       bw_grid = NULL,
-                                      center = TRUE,
+                                      center_curves = TRUE,
                                       kernel_name = "epanechnikov"){
   # Control easy checkable arguments
   if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
@@ -71,25 +81,19 @@ estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", y
     if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
       stop("If 'bw_grid' is not NULL, it must be a vector of positive values between 0 and 1.")
   } else {
-    lambdahat <- mean(data[, .N, by = "id_curve"][, N])
-    K <- 20
-    b0 <- 4 * (N * lambdahat) ** (- 0.9)
-    bK <- 4 * (N * lambdahat) ** (- 1 / 3)
-    a <- exp((log(bK) - log(b0)) / K)
-    bw_grid <- b0 * a ** (seq_len(K))
-    rm(K, b0, bK, a, lambdahat) ; gc()
+    bw_grid <- .default_bw_grid(data)
   }
 
   # Estimate risk function using C++  function
   dt_risk <- estimate_cov_segment_risk_cpp(
     data = data, t = t, bw_grid = bw_grid,
-    center = center, kernel_name = kernel_name)
+    center = center_curves, kernel_name = kernel_name)
   dt_risk <- data.table::as.data.table(dt_risk)
   data.table::setnames(x = dt_risk,
                        new = c("t", "h", "PN", "locreg_bw", "Ht", "Lt2", "bias_term",
                                "variance_term", "dependence_term", "cov_segment_risk"))
   return(.as_adaptive_est(dt_risk, "cov_segment_risk",
-                          meta = list(kernel = kernel_name, N = N, center = center,
+                          meta = list(kernel = kernel_name, N = N, center = center_curves,
                                       n_bw = length(bw_grid))))
 }
 
@@ -101,8 +105,9 @@ estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", y
 #' described in \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
 #'
 #' @inheritParams estimate_cov_segment_risk
-#' @param optbw A numeric vector. Optimal bandwidth parameters for covariance segment function estimation at each \code{t}.
-#' Default is \code{NULL}, in which case it will be estimated using the \link{estimate_cov_segment_risk} function.
+#' @param bw A numeric vector. Bandwidth to use at each point of \code{t},
+#' recycled if a scalar. Default \code{NULL} selects it by minimising the risk
+#' estimated by \link{estimate_cov_segment_risk}.
 #'
 #' @return A \link[data.table]{data.table} containing the following columns:
 #' \itemize{
@@ -127,16 +132,22 @@ estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", y
 #' \insertAllCited{}
 #'
 #' @examples
-#' # Example coming soon
+#' data("data_far")
 #'
+#' dt_cov_segment <- estimate_cov_segment(
+#'   data = data_far[data_far$id_curve <= 20, ],
+#'   idcol = "id_curve", tcol = "tobs", ycol = "X",
+#'   t = c(1/4, 1/2, 3/4), bw_grid = seq(0.04, 0.15, length.out = 5),
+#'   center_curves = TRUE, kernel_name = "epanechnikov")
+#' dt_cov_segment
 #'
 #' @export
 #'
 estimate_cov_segment <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                  t = c(1/4, 1/2, 3/4),
-                                 optbw = NULL,
+                                 bw = NULL,
                                  bw_grid = NULL,
-                                 center = TRUE,
+                                 center_curves = TRUE,
                                  kernel_name = "epanechnikov"){
   # Control easy checkable arguments
   if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
@@ -156,21 +167,15 @@ estimate_cov_segment <- function(data, idcol = "id_curve", tcol = "tobs", ycol =
     if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
       stop("If 'bw_grid' is not NULL, it must be a vector of positive values between 0 and 1.")
   } else {
-    lambdahat <- mean(data[, .N, by = "id_curve"][, N])
-    K <- 20
-    b0 <- 4 * (N * lambdahat) ** (- 0.9)
-    bK <- 4 * (N * lambdahat) ** (- 1 / 3)
-    a <- exp((log(bK) - log(b0)) / K)
-    bw_grid <- b0 * a ** (seq_len(K))
-    rm(K, b0, bK, a, lambdahat) ; gc()
+    bw_grid <- .default_bw_grid(data)
   }
 
   # Estimate covariance segment function using C++  function
-  dt_res <- estimate_cov_segment_cpp(data = data, t = t, optbw = optbw, bw_grid = bw_grid, center = center, kernel_name = kernel_name)
+  dt_res <- estimate_cov_segment_cpp(data = data, t = t, optbw = bw, bw_grid = bw_grid, center = center_curves, kernel_name = kernel_name)
   dt_res <- data.table::as.data.table(dt_res)
   data.table::setnames(x = dt_res, new = c("t", "optbw", "Ht", "Lt2", "PN", "cov_segment_hat",
                                            "covseg_correction", "cov_segment_hat_corrected"))
   dt_res[cov_segment_hat < covseg_correction, cov_segment_hat_corrected := cov_segment_hat]
   return(.as_adaptive_est(dt_res, "cov_segment_est",
-                          meta = list(kernel = kernel_name, N = N, center = center)))
+                          meta = list(kernel = kernel_name, N = N, center = center_curves)))
 }

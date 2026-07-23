@@ -1,31 +1,52 @@
-#' Estimate the Risk Function of the Mean Function
+#' Estimate the Risk of the Mean Function Estimator
 #'
-#' This function estimates the risk function \eqn{R_\mu(t;h)} for the mean function estimation as described in
-#' Section 4.1 of \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}.
+#' Estimates the risk \eqn{R_\mu(t;h)} of the adaptive mean function estimator
+#' over a grid of candidate bandwidths, as described in Section 4.1 of
+#' \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}. Minimising it over
+#' \code{h} at each \code{t} is what \link{estimate_mean} does to select its
+#' bandwidth.
+#'
+#' @details
+#' The risk bound splits into three terms, returned separately so that the
+#' selected bandwidth can be traced back to what drove it: a bias term growing
+#' with \eqn{h^{2H_t}} through the local regularity, a variance term decreasing in
+#' \eqn{h} through the number of usable points, and a dependence term reflecting
+#' the serial dependence between curves. The local regularity parameters are
+#' estimated internally at each \code{t}, so \code{Ht} and \code{Lt2} are reported
+#' alongside the risk.
+#'
+#' Left to \code{NULL}, \code{bw_grid} is a 20-point geometric grid running from
+#' \eqn{4(N\widehat\lambda)^{-0.9}} to \eqn{4(N\widehat\lambda)^{-1/3}}, where
+#' \eqn{N} is the number of curves and \eqn{\widehat\lambda} the average number of
+#' observation points per curve.
 #'
 #' @inheritParams format_data
-#' @param t \code{vector (numeric)}. Observation points where the mean function of the underlying process is estimated.
-#' @param bw_grid \code{vector (numeric)}. A bandwidth grid from which the best smoothing parameter is selected for each \code{t}.
-#' Default is \code{NULL}, in which case it is defined as an exponential grid of \eqn{N \lambda}.
-#' @param kernel_name \code{string}. Specifies the kernel function for estimation; default is "epanechnikov".
-#' Supported kernels include: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".
+#' @param t \code{vector (numeric)}. Points of \eqn{[0, 1]} at which the risk is
+#' estimated.
+#' @param bw_grid \code{vector (numeric)}. Candidate bandwidths, from which
+#' \link{estimate_mean} picks the risk-minimising one at each \code{t}. Default
+#' \code{NULL} builds the grid from the data; see Details.
+#' @param kernel_name \code{string}. Kernel of the smoothing estimator, one of
+#' "epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
+#' "uniform".
 #'
-#' @return A \code{data.table} with columns:
+#' @return A \code{data.table} with one row per (\code{t}, \code{h}) pair and
+#' columns:
 #' \itemize{
-#'   \item{\code{t} :}{ The observation points where the risk function is estimated.}
-#'   \item{\code{h} :}{ The candidate bandwidth values tested.}
-#'   \item{\code{PN} :}{ The number of curves used to estimate the mean at each \code{t}, corresponding to \eqn{P_N(t;h)}.}
-#'   \item{\code{locreg_bw} :}{ The bandwidth used to estimate the local regularity parameters.}
-#'   \item{\code{Ht} :}{ Estimates of the local exponent at each \code{t}, corresponding to \eqn{H_t}.}
-#'   \item{\code{Lt2} :}{ Estimates of the Hölder constant at each \code{t}, corresponding to \eqn{L_t^2}.}
-#'   \item{\code{bias_term} :}{ The bias term component of the risk function.}
-#'   \item{\code{variance_term} :}{ The variance term component of the risk function.}
-#'   \item{\code{dependence_term} :}{ The dependence term component of the risk function.}
-#'   \item{\code{mean_risk} :}{ The estimated risk function for the mean.}
+#'   \item \code{t}: the point at which the risk is estimated.
+#'   \item \code{h}: the candidate bandwidth.
+#'   \item \code{PN}: the number of curves contributing to the estimate at
+#'     \code{t}, \eqn{P_N(t;h)}.
+#'   \item \code{locreg_bw}: the bandwidth used to estimate the local regularity.
+#'   \item \code{Ht}: the estimated local exponent \eqn{H_t}.
+#'   \item \code{Lt2}: the estimated squared Hölder constant \eqn{L_t^2}.
+#'   \item \code{bias_term}, \code{variance_term}, \code{dependence_term}: the
+#'     three components of the risk.
+#'   \item \code{mean_risk}: the estimated risk.
 #' }
 #'
 #' @export
-#' @seealso [estimate_mean()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_empirical_autocov()].
+#' @seealso [estimate_mean()], [estimate_locreg()], [estimate_sigma()].
 #'
 #' @import data.table
 #' @importFrom Rdpack reprompt
@@ -35,37 +56,16 @@
 #' \insertAllCited{}
 #'
 #' @examples
-#' \dontrun{
-#' # Load data
 #' data("data_far")
 #'
-#' # Estimate the risk function for mean estimation
 #' dt_mean_risk <- estimate_mean_risk(
-#'   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-#'   t = c(1/4, 1/2, 3/4), bw_grid = NULL,
-#'   kernel_name = "epanechnikov"
-#' )
+#'   data = data_far[data_far$id_curve <= 20, ],
+#'   idcol = "id_curve", tcol = "tobs", ycol = "X",
+#'   t = c(1/4, 1/2, 3/4), bw_grid = seq(0.02, 0.15, length.out = 8),
+#'   kernel_name = "epanechnikov")
 #'
-#' # Plot the mean risk function at different points
-#' dt_dcast <- data.table::dcast(data = dt_mean_risk, formula = h ~ t, value.var = "mean_risk")
-#' manipulateWidget::combineWidgets(
-#'   list = list(
-#'     dygraphs::dygraph(
-#'       data = dt_dcast[, list(h, "t = 0.25" = `0.25`)],
-#'       main = "t = 0.25", xlab = "h", ylab = "Risk Function"
-#'     ),
-#'     dygraphs::dygraph(
-#'       data = dt_dcast[, list(h, "t = 0.5" = `0.5`)],
-#'       main = "t = 0.5", xlab = "h", ylab = "Risk Function"
-#'     ),
-#'     dygraphs::dygraph(
-#'       data = dt_dcast[, list(h, "t = 0.75" = `0.75`)],
-#'       main = "t = 0.75", xlab = "h", ylab = "Risk Function"
-#'     )
-#'   ),
-#'   nrow = 3
-#' )
-#' }
+#' # The risk-minimising bandwidth at each t.
+#' dt_mean_risk[, list(h = h[which.min(mean_risk)]), by = "t"]
 #'
 estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                t = c(1/4, 1/2, 3/4), bw_grid = NULL,
@@ -88,13 +88,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
     if (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1))
       stop("If 'bw_grid' is not NULL, it must be a vector of positive values between 0 and 1.")
   } else {
-    lambdahat <- mean(data[, .N, by = "id_curve"][, N])
-    K <- 20
-    b0 <- 4 * (N * lambdahat) ** (- 0.9)
-    bK <- 4 * (N * lambdahat) ** (- 1 / 3)
-    a <- exp((log(bK) - log(b0)) / K)
-    bw_grid <- b0 * a ** (seq_len(K))
-    rm(K, b0, bK, a, lambdahat) ; gc()
+    bw_grid <- .default_bw_grid(data)
   }
 
   # Estimate risk function using C++  function
@@ -110,28 +104,39 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 }
 
 
-#' Estimate Mean Function
+#' Estimate the Mean Function
 #'
-#' This function estimates the mean function of an underlying process using the adaptive estimator described in
-#' \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}.
+#' Estimates the mean function of the underlying process with the adaptive
+#' estimator of \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}, using at
+#' each point the bandwidth that minimises the estimated risk.
+#'
+#' @details
+#' Unless \code{bw} is supplied, the bandwidth is selected point by point by
+#' minimising the risk of \link{estimate_mean_risk} over \code{bw_grid}, so
+#' neighbouring points may be smoothed differently according to the local
+#' regularity of the process. Supplying \code{bw} skips the risk estimation
+#' entirely, which is worth doing when the same bandwidths are reused across
+#' many calls.
 #'
 #' @inheritParams estimate_mean_risk
-#' @param optbw \code{vector (numeric)}. Optimal bandwidth parameters for mean function estimation at each \code{t}.
-#' If \code{optbw = NULL} (default), it will be estimated using the \link{estimate_mean_risk} function.
+#' @param bw \code{vector (numeric)}. Bandwidth to use at each point of \code{t},
+#' recycled if a scalar. Default \code{NULL} selects it by minimising the risk
+#' estimated by \link{estimate_mean_risk}.
 #'
-#' @return A \code{data.table} containing the following columns:
+#' @return A \code{data.table} with one row per point of \code{t} and columns:
 #' \itemize{
-#'   \item{\code{t} :}{ The observation points at which the mean function is estimated.}
-#'   \item{\code{optbw} :}{ The optimal bandwidth used to estimate the mean function at each \code{t}.}
-#'   \item{\code{Ht} :}{ Local exponent estimates for each \code{t}, corresponding to \eqn{H_t}.}
-#'   \item{\code{Lt2} :}{ Estimates of the Hölder constant for each \code{t}, corresponding to \eqn{L_t^2}.}
-#'   \item{\code{PN} :}{ The number of selected curves used in the estimation for each \code{t}.}
-#'   \item{\code{muhat} :}{ Estimated values of the mean function at each \code{t}.}
+#'   \item \code{t}: the point at which the mean function is estimated.
+#'   \item \code{optbw}: the bandwidth used at \code{t}.
+#'   \item \code{Ht}: the estimated local exponent \eqn{H_t}.
+#'   \item \code{Lt2}: the estimated squared Hölder constant \eqn{L_t^2}.
+#'   \item \code{PN}: the number of curves contributing to the estimate at
+#'     \code{t}.
+#'   \item \code{muhat}: the estimated mean function.
 #' }
 #'
 #' @export
 #'
-#' @seealso [estimate_mean_risk()], [estimate_locreg()], [estimate_sigma()], [estimate_nw()], [estimate_empirical_autocov()].
+#' @seealso [estimate_mean_risk()], [estimate_locreg()], [estimate_autocov()].
 #'
 #' @import data.table
 #' @importFrom Rdpack reprompt
@@ -140,49 +145,21 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #' \insertAllCited{}
 #'
 #' @examples
-#' \dontrun{
-#' # Load data
 #' data("data_far")
 #'
-#' # Estimate risk function for the mean
-#' dt_mean_risk <- estimate_mean_risk(
-#'   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-#'   t = c(1/4, 1/2, 3/4), bw_grid = NULL,
-#'   kernel_name = "epanechnikov"
-#' )
-#'
-#' # Visualize mean risk at various observation points
-#' dt_dcast <- data.table::dcast(data = dt_mean_risk, formula = h ~ t, value.var = "mean_risk")
-#' manipulateWidget::combineWidgets(
-#'   list = list(
-#'     dygraphs::dygraph(
-#'       data = dt_dcast[, list(h, "t = 0.25" = `0.25`)],
-#'       main = "t = 0.25", xlab = "h", ylab = "Risk Function"),
-#'     dygraphs::dygraph(
-#'       data = dt_dcast[, list(h, "t = 0.5" = `0.5`)],
-#'       main = "t = 0.5", xlab = "h", ylab = "Risk Function"),
-#'     dygraphs::dygraph(
-#'       data = dt_dcast[, list(h, "t = 0.75" = `0.75`)],
-#'       main = "t = 0.75", xlab = "h", ylab = "Risk Function")
-#'   ),
-#'   nrow = 3
-#' )
-#'
-#' # Estimate mean function with optimal bandwidths
 #' dt_mean <- estimate_mean(
-#'   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-#'   t = c(1/4, 1/2, 3/4), bw_grid = seq(0.005, 0.15, len = 45),
-#'   kernel_name = "epanechnikov"
-#' )
+#'   data = data_far[data_far$id_curve <= 20, ],
+#'   idcol = "id_curve", tcol = "tobs", ycol = "X",
+#'   t = c(1/4, 1/2, 3/4), bw_grid = seq(0.02, 0.15, length.out = 8),
+#'   kernel_name = "epanechnikov")
+#' dt_mean
 #'
-#' # Display rounded estimates of the mean function
-#' DT::datatable(data = dt_mean[, lapply(.SD, function(X) round(X, 3))])
-#' }
+#' summary(dt_mean)
 #'
 estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                          t = c(1/4, 1/2, 3/4), optbw = NULL, bw_grid = NULL,
+                          t = c(1/4, 1/2, 3/4), bw = NULL, bw_grid = NULL,
                           kernel_name = "epanechnikov"){
-  # Control on t, optbw and smooth_ker arguments
+  # Control on t, bw and kernel_name arguments
   # NB : The remaining arguments are controlled using the format_data and estimate_mean_risk functions, if required.
   if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
@@ -198,7 +175,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   N <- data[, length(unique(id_curve))]
 
   # Estimate mean function using C++  function
-  dt_muhat <- estimate_mean_cpp(data = data, t = t, optbw = optbw, bw_grid = bw_grid, kernel_name = kernel_name)
+  dt_muhat <- estimate_mean_cpp(data = data, t = t, optbw = bw, bw_grid = bw_grid, kernel_name = kernel_name)
   dt_muhat <- data.table::as.data.table(dt_muhat)
   data.table::setnames(x = dt_muhat, new = c("t", "optbw", "Ht", "Lt2", "PN", "muhat"))
   return(.as_adaptive_est(dt_muhat, "mean_est",
@@ -206,62 +183,52 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 }
 
 
-#' Estimate mean function using \insertCite{rubin2020;textual}{adaptiveFTS} method.
+#' Estimate the Mean Function by the Rubìn-Panaretos Method
 #'
-#' This function estimates the mean function of a set of curves using the method proposed
-#' by \insertCite{rubin2020;textual}{adaptiveFTS}.
+#' Estimates the mean function with the local-linear estimator of
+#' \insertCite{rubin2020;textual}{adaptiveFTS}, which pools the observation points
+#' of all curves and smooths them with a single bandwidth. It is provided for
+#' comparison with the adaptive estimator of \link{estimate_mean}.
 #'
 #' @inheritParams format_data
-#' @param t \code{vector (numeric)}. Observation points at which we want to estimate the mean function of the underlying process.
-#' @param h \code{numeric (positive scalar)}. The bandwidth of the estimator.
-#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
+#' @param t \code{vector (numeric)}. Points of \eqn{[0, 1]} at which the mean
+#' function is estimated.
+#' @param h \code{numeric (positive scalar)}. Bandwidth of the estimator, common
+#' to every point of \code{t}. See \link{estimate_mean_bw_rp} to select it by
+#' cross-validation.
+#' @param kernel_name \code{string}. Kernel of the smoothing estimator, one of
+#' "epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
+#' "uniform".
 #'
-#' @return A \code{data.table} containing the following columns.
-#'          \itemize{
-#'            \item{t :}{ The Observation points at which the mean function is estimated.}
-#'            \item{h :}{ The bandwidth parameter.}
-#'            \item{muhat_RP :}{ The estimates of the mean function using Rubìn and Panaretos (2020) method.}
-#'         }
+#' @return A \code{data.table} with one row per point of \code{t} and columns:
+#' \itemize{
+#'   \item \code{t}: the point at which the mean function is estimated.
+#'   \item \code{h}: the bandwidth used.
+#'   \item \code{muhat_RP}: the estimated mean function.
+#' }
 #' @export
 #'
-#' @seealso [estimate_mean_bw_rp()]
+#' @seealso [estimate_mean_bw_rp()], [estimate_mean()].
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #'
 #' @references
-#' \insertRef{rubin2020}{adaptiveFTS}
+#' \insertAllCited{}
 #'
 #' @examples
-#' \dontrun{
-#' # Generate a FAR A process
-#' dt_far <- simulate_far(N = 50, lambda = 70,
-#'                        tdesign = "random",
-#'                        Mdistribution = rpois,
-#'                        tdistribution = runif,
-#'                        tcommon = NULL,
-#'                        hurst_fun = hurst_logistic,
-#'                        L = 4,
-#'                        far_kernel = get_real_data_far_kenel,
-#'                        far_mean = get_real_data_mean,
-#'                        int_grid = 100L,
-#'                        burnin = 100L,
-#'                        remove_burnin = TRUE)
+#' data("data_far")
 #'
-#' # Add noise
-#' dt_far[, X := X + rnorm(n = .N, mean = 0, sd = 0.9 ** (0.1)), by = id_curve]
-#'
-#' # Estimate mean function using Rubìn and Panaretos (2020) method
 #' dt_mean_rp <- estimate_mean_rp(
-#'   data = dt_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-#'   t = c(1/4, 1/2, 3/4), h = 5/70, smooth_ker = epanechnikov)
-#'
-#' DT::datatable(data = dt_mean_rp[, lapply(.SD, function(X) round(X, 5))])
-#'
-#' }
+#'   data = data_far[data_far$id_curve <= 20, ],
+#'   idcol = "id_curve", tcol = "tobs", ycol = "X",
+#'   t = c(1/4, 1/2, 3/4), h = 5/70, kernel_name = "epanechnikov")
+#' dt_mean_rp
 #'
 estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                             t = c(1/4, 1/2, 3/4), h, smooth_ker = epanechnikov){
+                             t = c(1/4, 1/2, 3/4), h, kernel_name = "epanechnikov"){
+  smooth_ker <- .select_kernel(kernel_name)
+
   # Format data
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
@@ -358,84 +325,72 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   return(dt_res)
 }
 
-#' Bandwidth estimation using cross-validation for the \insertCite{rubin2020;textual}{adaptiveFTS} mean function estimator.
+#' Select the Bandwidth of the Rubìn-Panaretos Mean Estimator
 #'
-#' This function estimates the optimal bandwidth for the mean function estimator
-#' using cross-validation, as described in \insertCite{rubin2020;textual}{adaptiveFTS}.
+#' Selects the bandwidth of \link{estimate_mean_rp} by \eqn{K}-fold
+#' cross-validation over the curves, as described in
+#' \insertCite{rubin2020;textual}{adaptiveFTS}. Curves are split into folds; each
+#' fold is predicted from the mean function estimated on the others, and the
+#' squared prediction errors are averaged.
 #'
 #' @inheritParams format_data
-#' @param Kfold \code{integer (positive)}. Number of fold for the cross-validation.
-#' @param bw_grid \code{vector (numeric)}. The bandwidth grid.
-#' @param smooth_ker \code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.
+#' @param n_folds \code{integer (positive)}. Number of cross-validation folds.
+#' @param bw_grid \code{vector (numeric)}. Candidate bandwidths.
+#' @param kernel_name \code{string}. Kernel of the smoothing estimator, one of
+#' "epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
+#' "uniform".
 #'
-#' @return A \code{data.table} containing the following columns.
-#'          \itemize{
-#'            \item{h :}{ The candidate bandwidth.}
-#'            \item{cv_error :}{ The estimates of the Cross-Validation error for each \code{h}.}
-#'         }
+#' @return A \code{data.table} with one row per candidate bandwidth and columns:
+#' \itemize{
+#'   \item \code{h}: the candidate bandwidth.
+#'   \item \code{cv_error}: the cross-validation error at \code{h}. The bandwidth
+#'     minimising it is the one to pass to \link{estimate_mean_rp}.
+#' }
 #' @export
-#' @seealso [estimate_mean_rp()]
+#' @seealso [estimate_mean_rp()].
 #'
 #' @import data.table
-#' @import Rdpack
+#' @importFrom Rdpack reprompt
 #'
 #' @references
-#' \insertRef{rubin2020}{adaptiveFTS}
+#' \insertAllCited{}
 #'
 #' @examples
-#' \dontrun{
-#' # Generate a FAR A process
-#' dt_far <- simulate_far(N = 50, lambda = 70,
-#'                        tdesign = "random",
-#'                        Mdistribution = rpois,
-#'                        tdistribution = runif,
-#'                        tcommon = NULL,
-#'                        hurst_fun = hurst_logistic,
-#'                        L = 4,
-#'                        far_kernel = get_real_data_far_kenel,
-#'                        far_mean = get_real_data_mean,
-#'                        int_grid = 100L,
-#'                        burnin = 100L,
-#'                        remove_burnin = TRUE)
+#' \donttest{
+#' data("data_far")
+#' dt_small <- data_far[data_far$id_curve <= 10, ]
 #'
-#' # Add noise
-#' dt_far[, X := X + rnorm(n = .N, mean = 0, sd = 0.9 ** (0.1)), by = id_curve]
+#' dt_bw <- estimate_mean_bw_rp(
+#'   data = dt_small, idcol = "id_curve", tcol = "tobs", ycol = "X",
+#'   n_folds = 5, bw_grid = seq(0.02, 0.15, length.out = 5),
+#'   kernel_name = "epanechnikov")
 #'
-#' ## Estimate the bandwidth by Cross-Validation
-#' dt_bw_mean_rp <- estimate_mean_bw_rp(
-#'   data = dt_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-#'   Kfold = 10, bw_grid = seq(0.001, 0.15, len = 45),
-#'   smooth_ker = epanechnikov)
-#'
-#' ## Plot the Cross-Validation error
-#' dygraphs::dygraph(dt_bw_mean_rp)
-#'
-#' ## Select the best bandwidth
-#' optbw <- dt_bw_mean_rp[, h[which.min(cv_error)]]
-#'
-#' ## Estimate the mean function
 #' dt_mean_rp <- estimate_mean_rp(
-#'   data = dt_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-#'   t = c(1/4, 1/2, 3/4), h = optbw, smooth_ker = epanechnikov)
-#'
-#' DT::datatable(data = dt_mean_rp[, lapply(.SD, function(X) round(X, 5))])
-#'
+#'   data = dt_small, idcol = "id_curve", tcol = "tobs", ycol = "X",
+#'   t = c(1/4, 1/2, 3/4), h = dt_bw[, h[which.min(cv_error)]],
+#'   kernel_name = "epanechnikov")
+#' dt_mean_rp
 #' }
 #'
 estimate_mean_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                                Kfold = 10, bw_grid = seq(0.001, 0.15, len = 45),
-                                smooth_ker = epanechnikov){
+                                n_folds = 10, bw_grid = seq(0.001, 0.15, len = 45),
+                                kernel_name = "epanechnikov"){
+  kernel_name <- match.arg(
+    arg = kernel_name,
+    choices = c("epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform")
+  )
+
   # Format data
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
-  # Create Kfold folds
-  fold <- .create_folds(y = unique(data[, id_curve]), k = Kfold, list = TRUE)
+  # Create n_folds folds
+  fold <- .create_folds(y = unique(data[, id_curve]), k = n_folds, list = TRUE)
 
   # Get risk for each bandwidth in the grid
-  dt_bw <- data.table::rbindlist(lapply(bw_grid, function(Bmu0, data, fold, kernel_smooth){
+  dt_bw <- data.table::rbindlist(lapply(bw_grid, function(Bmu0, data, fold, kernel_name){
 
     # Compute the cross-validation error for each f in fold
     err_fold <- tryCatch(
-      expr = sapply(fold, function(f, data, Bmu0, kernel_smooth){
+      expr = sapply(fold, function(f, data, Bmu0, kernel_name){
         # split train - test
         dt_test <- data[id_curve %in% unlist(f)]
         dt_test <- dt_test[order(tobs)]
@@ -445,12 +400,12 @@ estimate_mean_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
         # Estimation of mean on fold\f and test on f
         dt_mu <- estimate_mean_rp(
           data = dt_train, idcol = "id_curve", tcol = "tobs", ycol = "X",
-          t = dt_test[, tobs], h = Bmu0, smooth_ker = kernel_smooth)
+          t = dt_test[, tobs], h = Bmu0, kernel_name = kernel_name)
 
         Sqerror <- (dt_test[, X] - dt_mu[, muhat_RP]) ** 2
         err <- sum(Sqerror)
         return(err)
-      }, data = data, Bmu0 = Bmu0, kernel_smooth = kernel_smooth, simplify = TRUE),
+      }, data = data, Bmu0 = Bmu0, kernel_name = kernel_name, simplify = TRUE),
       error = function(e){
         message("Error in estimating the mean function:")
         print(e)
@@ -465,9 +420,8 @@ estimate_mean_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
     dt_res <- data.table::data.table("h" = Bmu0, "cv_error" = cv_err)
     return(dt_res)
 
-  }, data = data, fold = fold, kernel_smooth = smooth_ker))
+  }, data = data, fold = fold, kernel_name = kernel_name))
   rm(data, fold) ; gc() ; gc()
 
   return(dt_bw)
 }
-

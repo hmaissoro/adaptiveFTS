@@ -57,8 +57,8 @@
 #' }
 estimate_facf <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                           lag.max = 5L, t = NULL, n_grid = 25L,
-                          bw_grid = NULL, use_same_bw = FALSE,
-                          center = TRUE, kernel_name = "epanechnikov") {
+                          bw_grid = NULL, common_bw = FALSE,
+                          center_curves = TRUE, kernel_name = "epanechnikov") {
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   kernel_name <- match.arg(
     arg = kernel_name,
@@ -92,7 +92,7 @@ estimate_facf <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   # Denominator: integral of the lag-0 variance function Gamma_0(t, t).
   dt_cov0 <- estimate_autocov(
     data = data, s = t, t = t, lag = 0L, bw_grid = bw_grid,
-    use_same_bw = use_same_bw, center = center, correct_diagonal = FALSE,
+    common_bw = common_bw, center_curves = center_curves, correct_diagonal = FALSE,
     kernel_name = kernel_name)
   vec_cov0 <- dt_cov0[order(s), autocov]
   vec_cov0[is.nan(vec_cov0)] <- 0
@@ -105,7 +105,7 @@ estimate_facf <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   norms <- vapply(seq_len(lag.max), function(l) {
     dt_l <- estimate_autocov(
       data = data, s = grid$s, t = grid$t, lag = l, bw_grid = bw_grid,
-      use_same_bw = use_same_bw, center = center, correct_diagonal = FALSE,
+      common_bw = common_bw, center_curves = center_curves, correct_diagonal = FALSE,
       kernel_name = kernel_name)
     dt_l[is.nan(autocov), autocov := 0]
     m <- as.matrix(
