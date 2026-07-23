@@ -66,9 +66,9 @@ NULL
 #'
 #' @param x \code{numeric}.
 #' @param digits \code{integer}. Significant digits. Default \code{4}.
-#' @return A formatted \code{character} scalar.
+#' @return A formatted \code{character} scalar, without padding.
 #' @keywords internal
-.fmt_num <- function(x, digits = 4L) formatC(x, digits = digits, format = "g")
+.fmt_num <- function(x, digits = 4L) trimws(formatC(x, digits = digits, format = "g"))
 
 #' Format a numeric vector as a bracketed min-to-max range string
 #'
