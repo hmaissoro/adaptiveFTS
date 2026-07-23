@@ -2,7 +2,7 @@
 % Please edit documentation in R/12_estimator_class.R
 \name{.fmt_range}
 \alias{.fmt_range}
-\title{Format a numeric vector as a "\link{min, max}" range for the summary methods}
+\title{Format a numeric vector as a bracketed min-to-max range string}
 \usage{
 .fmt_range(x, digits = 3L)
 }
@@ -12,9 +12,9 @@
 \item{digits}{\code{integer}. Significant digits. Default \code{3}.}
 }
 \value{
-A \code{character} scalar \code{"[min, max]"} (\code{NA} preserved).
+A \code{character} scalar giving the min and max, or \code{"NA"}.
 }
 \description{
-Format a numeric vector as a "\link{min, max}" range for the summary methods
+Format a numeric vector as a bracketed min-to-max range string
 }
 \keyword{internal}

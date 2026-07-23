@@ -1,8 +1,5 @@
-## ggplot2 visualisations for the adaptive-estimator objects. `autoplot.*`
-## builds and returns a ggplot object (the ggplot2 idiom); `plot.*` is a thin
-## wrapper that draws it and returns it invisibly. ggplot2 is only a Suggested
-## dependency, so every entry point guards with requireNamespace() and refers to
-## ggplot2 functions with the `ggplot2::` prefix.
+## ggplot2 autoplot()/plot() methods for the adaptive-estimator objects. ggplot2
+## is a Suggested dependency, so entry points guard with requireNamespace().
 
 #' @keywords internal
 .require_ggplot2 <- function() {
@@ -13,12 +10,11 @@
 
 #' @keywords internal
 .gg_base <- function() {
-  ggplot2::theme_minimal(base_size = 11)
+  ggplot2::theme_minimal(base_size = 14) +
+    ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
 }
 
-# Shared colours (kept consistent with the inst/ demos).
 .col_main <- "#2c3e50"
-.col_accent <- "#c0392b"
 
 #' Plot an adaptive functional time series estimator
 #'
@@ -131,8 +127,7 @@ autoplot.autocov_est <- function(object, ...) {
   } else {
     ggplot2::ggplot(object, ggplot2::aes(x = s, y = t, fill = autocov)) +
       ggplot2::geom_tile() +
-      ggplot2::scale_fill_gradient2(low = "#2166ac", mid = "white",
-                                    high = .col_accent, midpoint = 0) +
+      ggplot2::scale_fill_gradient(low = "grey90", high = "grey10") +
       ggplot2::labs(title = paste0("Adaptive (auto)covariance surface", lag_txt),
                     x = "s", y = "t", fill = "autocov") +
       .gg_base()
