@@ -12,7 +12,7 @@
 \item{digits}{\code{integer}. Significant digits. Default \code{4}.}
 }
 \value{
-A formatted \code{character} scalar.
+A formatted \code{character} scalar, without padding.
 }
 \description{
 Compact numeric formatter shared by the summary methods
