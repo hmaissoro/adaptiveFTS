@@ -44,9 +44,9 @@ using namespace arma;
  //'            \item{PNl : The number of curves used in the estimation the autocovariance at (s,t). It corresponds to \eqn{P_{N,\ell}(s,t;h_s, h_t)}.}
  //'            \item{locreg_bw : The bandwidth used to estimate the local regularity parameters.}
  //'            \item{Hs : The estimates of the local exponent for each t. It corresponds to \eqn{H_s}.}
- //'            \item{Ls : The estimates of the Hölder constant for each t. It corresponds to \eqn{L_s^2}.}
+ //'            \item{Ls2 : The estimates of the Hölder constant for each t. It corresponds to \eqn{L_s^2}.}
  //'            \item{Ht : The estimates of the local exponent for each t. It corresponds to \eqn{H_t}.}
- //'            \item{Lt : The estimates of the Hölder constant for each t. It corresponds to \eqn{L_t^2}.}
+ //'            \item{Lt2 : The estimates of the Hölder constant for each t. It corresponds to \eqn{L_t^2}.}
  //'            \item{bias_term : The bias term of the risk function.}
  //'            \item{variance_term : The variance term of the risk function.}
  //'            \item{dependence_term : The dependence term of the risk function.}
@@ -513,9 +513,9 @@ using namespace arma;
  //'            \item{optbw_s : The optimal bandwidth for the first argument of the autocovariance function. If \code{use_same_bw = TRUE}, the same bandwidth candidate is used for \code{s} and for \code{t}, so the 3rd and 4th columns contain the same values.}
  //'            \item{optbw_t : The optimal bandwidth for the second argument of the autocovariance function.}
  //'            \item{Hs : The estimates of the local exponent for each \code{s}. It corresponds to \eqn{H_s}.}
- //'            \item{Ls : The estimates of the Hölder constant for each \code{s}. It corresponds to \eqn{L_s^2}.}
+ //'            \item{Ls2 : The estimates of the Hölder constant for each \code{s}. It corresponds to \eqn{L_s^2}.}
  //'            \item{Ht : The estimates of the local exponent for each \code{t}. It corresponds to \eqn{H_t}.}
- //'            \item{Lt : The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
+ //'            \item{Lt2 : The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
  //'            \item{PNs : The number of curves used to estimate the mean at \code{s}. It corresponds to \eqn{P_N(s;h)}.}
  //'            \item{muhat_s : The estimates of the mean at \code{s}. It corresponds to \eqn{\widehat{\mu}_N(s;h)}.}
  //'            \item{PNt : The number of curves used to estimate the mean at \code{t}. It corresponds to \eqn{P_N(t;h)}.}

@@ -17,7 +17,7 @@
 #'   \item{\code{PN} :}{ The number of curves used to estimate the mean at each \code{t}, corresponding to \eqn{P_N(t;h)}.}
 #'   \item{\code{locreg_bw} :}{ The bandwidth used to estimate the local regularity parameters.}
 #'   \item{\code{Ht} :}{ Estimates of the local exponent at each \code{t}, corresponding to \eqn{H_t}.}
-#'   \item{\code{Lt} :}{ Estimates of the Hölder constant at each \code{t}, corresponding to \eqn{L_t^2}.}
+#'   \item{\code{Lt2} :}{ Estimates of the Hölder constant at each \code{t}, corresponding to \eqn{L_t^2}.}
 #'   \item{\code{bias_term} :}{ The bias term component of the risk function.}
 #'   \item{\code{variance_term} :}{ The variance term component of the risk function.}
 #'   \item{\code{dependence_term} :}{ The dependence term component of the risk function.}
@@ -101,7 +101,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
   dt_mean_risk <- estimate_mean_risk_cpp(data = data, t = t, bw_grid = bw_grid, kernel_name = kernel_name)
   dt_mean_risk <- data.table::as.data.table(dt_mean_risk)
   data.table::setnames(x = dt_mean_risk,
-                       new = c("t", "h", "PN", "locreg_bw", "Ht", "Lt", "bias_term",
+                       new = c("t", "h", "PN", "locreg_bw", "Ht", "Lt2", "bias_term",
                                "variance_term", "dependence_term", "mean_risk"))
 
     return(.as_adaptive_est(dt_mean_risk, "mean_risk",
@@ -124,7 +124,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #'   \item{\code{t} :}{ The observation points at which the mean function is estimated.}
 #'   \item{\code{optbw} :}{ The optimal bandwidth used to estimate the mean function at each \code{t}.}
 #'   \item{\code{Ht} :}{ Local exponent estimates for each \code{t}, corresponding to \eqn{H_t}.}
-#'   \item{\code{Lt} :}{ Estimates of the Hölder constant for each \code{t}, corresponding to \eqn{L_t^2}.}
+#'   \item{\code{Lt2} :}{ Estimates of the Hölder constant for each \code{t}, corresponding to \eqn{L_t^2}.}
 #'   \item{\code{PN} :}{ The number of selected curves used in the estimation for each \code{t}.}
 #'   \item{\code{muhat} :}{ Estimated values of the mean function at each \code{t}.}
 #' }
@@ -200,7 +200,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   # Estimate mean function using C++  function
   dt_muhat <- estimate_mean_cpp(data = data, t = t, optbw = optbw, bw_grid = bw_grid, kernel_name = kernel_name)
   dt_muhat <- data.table::as.data.table(dt_muhat)
-  data.table::setnames(x = dt_muhat, new = c("t", "optbw", "Ht", "Lt", "PN", "muhat"))
+  data.table::setnames(x = dt_muhat, new = c("t", "optbw", "Ht", "Lt2", "PN", "muhat"))
   return(.as_adaptive_est(dt_muhat, "mean_est",
                           meta = list(kernel = kernel_name, N = N)))
 }

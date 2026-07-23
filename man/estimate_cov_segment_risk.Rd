@@ -70,7 +70,7 @@ A \link[data.table]{data.table} with columns:
 \item \code{PN}: The number of curves used to estimate the mean at \code{t}, i.e., \eqn{P_N(t;h)}.
 \item \code{locreg_bw}: The bandwidth used to estimate the local regularity parameters.
 \item \code{Ht}: The estimates of the local exponent \eqn{H_t}.
-\item \code{Lt}: The estimates of the Hölder constant \eqn{L_t^2}.
+\item \code{Lt2}: The estimates of the Hölder constant \eqn{L_t^2}.
 \item \code{bias_term}: The bias term of the risk function.
 \item \code{variance_term}: The variance term of the risk function.
 \item \code{dependence_term}: The dependence term of the risk function.

@@ -25,6 +25,6 @@ res_cov_segment_estim <- estimate_cov_segment_cpp(
   kernel_name = "epanechnikov")
 
 dt_covseg_estim <- data.table::as.data.table(res_cov_segment_estim)
-names(dt_covseg_estim) <- c("t", "optbw", "Ht", "Lt", "PN", "covseghat", "corr_term", "covseghat_corrected")
+names(dt_covseg_estim) <- c("t", "optbw", "Ht", "Lt2", "PN", "covseghat", "corr_term", "covseghat_corrected")
 
 dygraphs::dygraph(dt_covseg_estim[, .(t, covseghat, covseghat_corrected)])

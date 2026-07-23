@@ -38,5 +38,5 @@ test_that("locreg autoplot honours the `which` argument", {
   d <- fixture_data_far(12L)
   x <- estimate_locreg(d, t = tt)
   expect_s3_class(ggplot2::autoplot(x, which = "Ht"), "ggplot")
-  expect_s3_class(ggplot2::autoplot(x, which = c("Ht", "Lt")), "ggplot")
+  expect_s3_class(ggplot2::autoplot(x, which = c("Ht", "Lt2")), "ggplot")
 })

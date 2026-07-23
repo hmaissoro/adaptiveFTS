@@ -74,7 +74,7 @@ A \code{data.table} with columns:
 \item{\code{Delta} :}{ The neighborhood length around each \code{t} used in local regularity estimation.}
 \item{\code{Nused} :}{ The number of curves contributing non-degenerate estimates around each \code{t}.}
 \item{\code{Ht} :}{ Local exponent estimates, denoted by \eqn{H_t}.}
-\item{\code{Lt} :}{ Hölder constant estimates, corresponding to \eqn{L_t^2}.}
+\item{\code{Lt2} :}{ Hölder constant estimates, corresponding to \eqn{L_t^2}.}
 }
 }
 \description{

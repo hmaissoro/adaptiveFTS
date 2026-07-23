@@ -22,9 +22,9 @@
 #'   \item{\code{PNl} :}{ Number of curves used in the autocovariance estimation at (\code{s}, \code{t}). Corresponds to \eqn{P_{N,\ell}(s,t;h_s, h_t)}.}
 #'   \item{\code{locreg_bw} :}{ Bandwidth used for estimating local regularity parameters.}
 #'   \item{\code{Hs} :}{ Local exponent estimates for \code{s}, denoted as \eqn{H_s}.}
-#'   \item{\code{Ls} :}{ Estimates of the Hölder constant for \code{s}, corresponding to \eqn{L_s^2}.}
+#'   \item{\code{Ls2} :}{ Estimates of the Hölder constant for \code{s}, corresponding to \eqn{L_s^2}.}
 #'   \item{\code{Ht} :}{ Local exponent estimates for \code{t}, denoted as \eqn{H_t}.}
-#'   \item{\code{Lt} :}{ Estimates of the Hölder constant for \code{t}, corresponding to \eqn{L_t^2}.}
+#'   \item{\code{Lt2} :}{ Estimates of the Hölder constant for \code{t}, corresponding to \eqn{L_t^2}.}
 #'   \item{\code{bias_term} :}{ Bias term of the risk function.}
 #'   \item{\code{variance_term} :}{ Variance term of the risk function.}
 #'   \item{\code{dependence_term} :}{ Dependence term of the risk function.}
@@ -140,7 +140,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   dt_autocov_risk <- data.table::as.data.table(mat_autocov_risk)
   data.table::setnames(
     x = dt_autocov_risk,
-    new = c("s", "t", "hs", "ht", "PNl", "locreg_bw", "Hs", "Ls", "Ht", "Lt",
+    new = c("s", "t", "hs", "ht", "PNl", "locreg_bw", "Hs", "Ls2", "Ht", "Lt2",
             "bias_term", "variance_term", "dependence_term", "autocov_risk"))
   return(.as_adaptive_est(dt_autocov_risk, "autocov_risk",
                           meta = list(kernel = kernel_name, N = N, lag = lag,
@@ -175,9 +175,9 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 #'            \item{optbw_s : The optimal bandwidth for the first argument of the autocovariance function. If \code{use_same_bw = TRUE}, the same bandwidth candidate is used for \code{s} and for \code{t}, so the 3rd and 4th columns contain the same values.}
 #'            \item{optbw_t : The optimal bandwidth for the second argument of the autocovariance function.}
 #'            \item{Hs : The estimates of the local exponent for each \code{s}. It corresponds to \eqn{H_s}.}
-#'            \item{Ls : The estimates of the Hölder constant for each \code{s}. It corresponds to \eqn{L_s^2}.}
+#'            \item{Ls2 : The estimates of the Hölder constant for each \code{s}. It corresponds to \eqn{L_s^2}.}
 #'            \item{Ht : The estimates of the local exponent for each \code{t}. It corresponds to \eqn{H_t}.}
-#'            \item{Lt : The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
+#'            \item{Lt2 : The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
 #'            \item{PNs : The number of curves used to estimate the mean at \code{s}. It corresponds to \eqn{P_N(s;h)}.}
 #'            \item{muhat_s : The estimates of the mean at \code{s}. It corresponds to \eqn{\widehat{\mu}_N(s;h)}.}
 #'            \item{PNt : The number of curves used to estimate the mean at \code{t}. It corresponds to \eqn{P_N(t;h)}.}
@@ -261,7 +261,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 
   data.table::setnames(
     x = dt_autocov,
-    new = c("s", "t", "optbw_s", "optbw_t", "Hs", "Ls", "Ht", "Lt",
+    new = c("s", "t", "optbw_s", "optbw_t", "Hs", "Ls2", "Ht", "Lt2",
             "PNs", "muhat_s", "PNt", "muhat_t", "PNl", "autocov"))
 
   return(.as_adaptive_est(dt_autocov, "autocov_est",

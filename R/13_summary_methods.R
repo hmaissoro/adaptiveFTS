@@ -38,7 +38,7 @@ summary.locreg_est <- function(object, ...) {
               if (length(delta) == 1L) .fmt_num(delta) else .fmt_range(object$Delta)))
   cat(sprintf("  Curves used (Nused): %s\n", .fmt_range(object$Nused)))
   cat(sprintf("  Ht                 : %s\n", .fmt_range(object$Ht)))
-  cat(sprintf("  L2t                : %s\n", .fmt_range(object$Lt)))
+  cat(sprintf("  Lt2                : %s\n", .fmt_range(object$Lt2)))
   invisible(object)
 }
 

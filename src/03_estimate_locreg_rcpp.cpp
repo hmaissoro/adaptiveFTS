@@ -26,7 +26,7 @@ using namespace arma;
  //'   \item Delta: The length of the neighborhood of \code{t} around which the local regularity is to be estimated.
  //'   \item Nused: The number of curves that give non-degenerate estimates around \code{t}.
  //'   \item Ht: The local exponent estimates for each \code{t}.
- //'   \item Lt: The Hölder constant estimates for each \code{t}.
+ //'   \item Lt2: The Hölder constant estimates for each \code{t}.
  //' }
  //'
  //' @examples

@@ -26,7 +26,7 @@
 #'
 #' @param object,x An adaptive-estimator object (see [adaptiveFTS_est]).
 #' @param which For `locreg_est`, the regularity parameters to display; a subset
-#'   of `c("Ht", "Lt")`. Default both.
+#'   of `c("Ht", "Lt2")`. Default both.
 #' @param ... Passed to the corresponding `autoplot` method (for `plot`) or
 #'   unused.
 #' @return A [ggplot2::ggplot] object (`plot` methods return it invisibly, after
@@ -69,9 +69,9 @@ plot.mean_est <- function(x, ...) {
 
 #' @rdname adaptiveFTS-autoplot
 #' @exportS3Method ggplot2::autoplot
-autoplot.locreg_est <- function(object, which = c("Ht", "Lt"), ...) {
+autoplot.locreg_est <- function(object, which = c("Ht", "Lt2"), ...) {
   .require_ggplot2()
-  which <- match.arg(which, choices = c("Ht", "Lt"), several.ok = TRUE)
+  which <- match.arg(which, choices = c("Ht", "Lt2"), several.ok = TRUE)
   long <- data.table::melt(object, id.vars = "t", measure.vars = which,
                            variable.name = "parameter", value.name = "value")
   ggplot2::ggplot(long, ggplot2::aes(x = t, y = value)) +

@@ -171,9 +171,9 @@ using namespace arma;
  //'   \item \code{4}: PNl - The number of curves used in the estimation of the autocovariance at (s,t).
  //'   \item \code{5}: locreg_bw - The bandwidth used to estimate the local regularity parameters.
  //'   \item \code{6}: Hs - The estimates of the local exponent for each t, corresponding to H_s.
- //'   \item \code{7}: Ls - The estimates of the Hölder constant for each t, corresponding to L_s^2.
+ //'   \item \code{7}: Ls2 - The estimates of the Hölder constant for each t, corresponding to L_s^2.
  //'   \item \code{8}: Ht - The estimates of the local exponent for each t, corresponding to H_t.
- //'   \item \code{9}: Lt - The estimates of the Hölder constant for each t, corresponding to L_t^2.
+ //'   \item \code{9}: Lt2 - The estimates of the Hölder constant for each t, corresponding to L_t^2.
  //'   \item \code{10}: bias_term - The bias term of the risk function.
  //'   \item \code{11}: variance_term - The variance term of the risk function.
  //'   \item \code{12}: dependence_term - The dependence term of the risk function.
@@ -268,7 +268,7 @@ using namespace arma;
  //'   \item{PN : The number of curves used to estimate the mean at t.}
  //'   \item{locreg_bw : The bandwidth used to estimate the local regularity parameters.}
  //'   \item{Ht : The estimates of the local exponent for each t.}
- //'   \item{Lt : The estimates of the Hölder constant for each t.}
+ //'   \item{Lt2 : The estimates of the Hölder constant for each t.}
  //'   \item{bias_term : The bias term of the risk function.}
  //'   \item{variance_term : The variance term of the risk function.}
  //'   \item{dependence_term : The dependence term of the risk function.}

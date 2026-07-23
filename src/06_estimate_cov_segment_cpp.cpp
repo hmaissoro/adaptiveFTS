@@ -30,7 +30,7 @@ using namespace arma;
  //'            \item{PN : The number of curves used to estimate the mean at t. It corresponds to \eqn{P_N(t;h)}.}
  //'            \item{locreg_bw : The bandwidth used to estimate the local regularity parameters.}
  //'            \item{Ht : The estimates of the local exponent for each t. It corresponds to \eqn{H_t}}
- //'            \item{Lt : The estimates of the Hölder constant for each t. It corresponds to \eqn{L_t^2}.}
+ //'            \item{Lt2 : The estimates of the Hölder constant for each t. It corresponds to \eqn{L_t^2}.}
  //'            \item{bias_term : The bias term of the risk function.}
  //'            \item{variance_term : The variance term of the risk function.}
  //'            \item{dependence_term : The dependence term of the risk function.}

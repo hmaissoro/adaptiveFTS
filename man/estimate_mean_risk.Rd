@@ -66,7 +66,7 @@ A \code{data.table} with columns:
 \item{\code{PN} :}{ The number of curves used to estimate the mean at each \code{t}, corresponding to \eqn{P_N(t;h)}.}
 \item{\code{locreg_bw} :}{ The bandwidth used to estimate the local regularity parameters.}
 \item{\code{Ht} :}{ Estimates of the local exponent at each \code{t}, corresponding to \eqn{H_t}.}
-\item{\code{Lt} :}{ Estimates of the Hölder constant at each \code{t}, corresponding to \eqn{L_t^2}.}
+\item{\code{Lt2} :}{ Estimates of the Hölder constant at each \code{t}, corresponding to \eqn{L_t^2}.}
 \item{\code{bias_term} :}{ The bias term component of the risk function.}
 \item{\code{variance_term} :}{ The variance term component of the risk function.}
 \item{\code{dependence_term} :}{ The dependence term component of the risk function.}
