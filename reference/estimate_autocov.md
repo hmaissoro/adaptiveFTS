@@ -159,14 +159,14 @@ A `data.table` containing the following columns.
 - Hs : The estimates of the local exponent for each `s`. It corresponds
   to \\H_s\\.
 
-- Ls : The estimates of the Hölder constant for each `s`. It corresponds
-  to \\L_s^2\\.
+- Ls2 : The estimates of the Hölder constant for each `s`. It
+  corresponds to \\L_s^2\\.
 
 - Ht : The estimates of the local exponent for each `t`. It corresponds
   to \\H_t\\.
 
-- Lt : The estimates of the Hölder constant for each `t`. It corresponds
-  to \\L_t^2\\.
+- Lt2 : The estimates of the Hölder constant for each `t`. It
+  corresponds to \\L_t^2\\.
 
 - PNs : The number of curves used to estimate the mean at `s`. It
   corresponds to \\P_N(s;h)\\.

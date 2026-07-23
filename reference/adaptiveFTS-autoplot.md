@@ -19,7 +19,7 @@ autoplot.mean_est(object, ...)
 # S3 method for class 'mean_est'
 plot(x, ...)
 
-autoplot.locreg_est(object, which = c("Ht", "Lt"), ...)
+autoplot.locreg_est(object, which = c("Ht", "Lt2"), ...)
 
 # S3 method for class 'locreg_est'
 plot(x, ...)
@@ -69,7 +69,7 @@ plot(x, ...)
 - which:
 
   For `locreg_est`, the regularity parameters to display; a subset of
-  `c("Ht", "Lt")`. Default both.
+  `c("Ht", "Lt2")`. Default both.
 
 ## Value
 

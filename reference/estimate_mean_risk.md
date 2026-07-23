@@ -109,7 +109,7 @@ A `data.table` with columns:
 - `Ht` : Estimates of the local exponent at each `t`, corresponding to
   \\H_t\\.
 
-- `Lt` : Estimates of the Hölder constant at each `t`, corresponding to
+- `Lt2` : Estimates of the Hölder constant at each `t`, corresponding to
   \\L_t^2\\.
 
 - `bias_term` : The bias term component of the risk function.

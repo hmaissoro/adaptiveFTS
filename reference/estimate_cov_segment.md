@@ -123,8 +123,8 @@ containing the following columns:
 - `Ht` : Local exponent estimates for each `t`, corresponding to
   \\H_t\\.
 
-- `Lt` : Estimates of the Hölder constant for each `t`, corresponding to
-  \\L_t^2\\.
+- `Lt2` : Estimates of the Hölder constant for each `t`, corresponding
+  to \\L_t^2\\.
 
 - `PN` : The number of selected curves used in the estimation for each
   `t`.

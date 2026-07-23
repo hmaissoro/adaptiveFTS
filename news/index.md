@@ -2,6 +2,18 @@
 
 ## adaptiveFTS 0.2.0
 
+### Breaking changes
+
+- The Hölder-constant columns are renamed from `Lt`/`Ls` to `Lt2`/`Ls2`
+  in the output of
+  [`estimate_locreg()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_locreg.md),
+  [`estimate_mean()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean.md)/[`estimate_mean_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_risk.md),
+  [`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md)/[`estimate_autocov_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_risk.md)
+  and
+  [`estimate_cov_segment()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_cov_segment.md)/[`estimate_cov_segment_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_cov_segment_risk.md),
+  because the estimate is the squared constant (L_t^2 / L_s^2), not L_t
+  / L_s. Update any code that referred to the `Lt`/`Ls` columns.
+
 ### New features
 
 - Design-weighted, Tikhonov-regularised adaptive functional BLUP with an

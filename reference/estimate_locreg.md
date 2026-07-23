@@ -123,7 +123,7 @@ A `data.table` with columns:
 
 - `Ht` : Local exponent estimates, denoted by \\H_t\\.
 
-- `Lt` : Hölder constant estimates, corresponding to \\L_t^2\\.
+- `Lt2` : Hölder constant estimates, corresponding to \\L_t^2\\.
 
 ## References
 

@@ -61,7 +61,7 @@ Second, we explain the data
 To estimate the local regularity parameters, call the function
 `estimate_locreg`.
 
-    #>        t  locreg_bw     Delta Nused        Ht       Lt
+    #>        t  locreg_bw     Delta Nused        Ht      Lt2
     #>    <num>      <num>     <num> <num>     <num>    <num>
     #> 1:   0.1 0.01740629 0.1923983   105 0.3861327 3.839216
     #> 2:   0.2 0.01740629 0.1923983   118 0.5645557 9.870244

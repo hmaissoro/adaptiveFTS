@@ -36,6 +36,10 @@
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0" id="adaptivefts-020">adaptiveFTS 0.2.0<a class="anchor" aria-label="anchor" href="#adaptivefts-020"></a></h2>
 <div class="section level3">
+<h3 id="breaking-changes-0-2-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-2-0"></a></h3>
+<ul><li>The Hölder-constant columns are renamed from <code>Lt</code>/<code>Ls</code> to <code>Lt2</code>/<code>Ls2</code> in the output of <code><a href="../reference/estimate_locreg.html">estimate_locreg()</a></code>, <code><a href="../reference/estimate_mean.html">estimate_mean()</a></code>/<code><a href="../reference/estimate_mean_risk.html">estimate_mean_risk()</a></code>, <code><a href="../reference/estimate_autocov.html">estimate_autocov()</a></code>/<code><a href="../reference/estimate_autocov_risk.html">estimate_autocov_risk()</a></code> and <code><a href="../reference/estimate_cov_segment.html">estimate_cov_segment()</a></code>/<code><a href="../reference/estimate_cov_segment_risk.html">estimate_cov_segment_risk()</a></code>, because the estimate is the squared constant (L_t^2 / L_s^2), not L_t / L_s. Update any code that referred to the <code>Lt</code>/<code>Ls</code> columns.</li>
+</ul></div>
+<div class="section level3">
 <h3 id="new-features-0-2-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-2-0"></a></h3>
 <ul><li>Design-weighted, Tikhonov-regularised adaptive functional BLUP with an <code><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm()</a></code>/<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code>-style interface:
 <ul><li>

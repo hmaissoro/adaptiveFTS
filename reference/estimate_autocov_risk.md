@@ -139,12 +139,12 @@ A `data.table` containing the following columns:
 
 - `Hs` : Local exponent estimates for `s`, denoted as \\H_s\\.
 
-- `Ls` : Estimates of the Hölder constant for `s`, corresponding to
+- `Ls2` : Estimates of the Hölder constant for `s`, corresponding to
   \\L_s^2\\.
 
 - `Ht` : Local exponent estimates for `t`, denoted as \\H_t\\.
 
-- `Lt` : Estimates of the Hölder constant for `t`, corresponding to
+- `Lt2` : Estimates of the Hölder constant for `t`, corresponding to
   \\L_t^2\\.
 
 - `bias_term` : Bias term of the risk function.

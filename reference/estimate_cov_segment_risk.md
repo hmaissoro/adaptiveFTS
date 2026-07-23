@@ -115,7 +115,7 @@ columns:
 
 - `Ht`: The estimates of the local exponent \\H_t\\.
 
-- `Lt`: The estimates of the Hölder constant \\L_t^2\\.
+- `Lt2`: The estimates of the Hölder constant \\L_t^2\\.
 
 - `bias_term`: The bias term of the risk function.
 
