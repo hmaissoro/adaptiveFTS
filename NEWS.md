@@ -32,7 +32,7 @@
     `data.table`s, so existing code is unaffected. `ggplot2` stays a suggested
     dependency.
 * Descriptive statistics:
-  * `estimate_acf()` — adaptive functional autocorrelation function (FACF),
+  * `estimate_facf()` — adaptive functional autocorrelation function (FACF),
     `rho_l = ||Gamma_l|| / integral Gamma_0(t, t) dt`, built on
     `estimate_autocov()` and handling both the common and independent designs.
     Returns a classed `fts_acf` object with `summary()`, `plot()` and

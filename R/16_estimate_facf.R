@@ -1,10 +1,6 @@
-## Functional autocorrelation function (FACF) built on the package's adaptive
-## (auto)covariance estimator. For each lag l,
-##   rho_l = || Gamma_{N,l} || / integral Gamma_{N,0}(t, t) dt,
-## where ||.|| is the L^2 norm of the lag-l autocovariance surface (Horvath,
-## Rice & Whipple, 2016; the FACF of the ftsa package). Both the common and the
-## independent design are handled by estimate_autocov(); only the default
-## evaluation grid is chosen design-aware here.
+## Functional autocorrelation function (FACF), built on the adaptive
+## (auto)covariance estimator. Both designs are handled by estimate_autocov();
+## only the default evaluation grid is chosen design-aware here.
 
 #' Estimate the functional autocorrelation function (FACF)
 #'
@@ -55,14 +51,14 @@
 #' @examples
 #' \dontrun{
 #' data("data_far")
-#' facf <- estimate_acf(data = data_far, lag.max = 5, n_grid = 20)
+#' facf <- estimate_facf(data = data_far, lag.max = 5, n_grid = 20)
 #' summary(facf)
 #' if (requireNamespace("ggplot2", quietly = TRUE)) ggplot2::autoplot(facf)
 #' }
-estimate_acf <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                         lag.max = 5L, t = NULL, n_grid = 25L,
-                         bw_grid = NULL, use_same_bw = FALSE,
-                         center = TRUE, kernel_name = "epanechnikov") {
+estimate_facf <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                          lag.max = 5L, t = NULL, n_grid = 25L,
+                          bw_grid = NULL, use_same_bw = FALSE,
+                          center = TRUE, kernel_name = "epanechnikov") {
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   kernel_name <- match.arg(
     arg = kernel_name,
@@ -118,10 +114,10 @@ estimate_acf <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     sqrt(.trapz(t, inner))                                # then over t
   }, numeric(1))
 
-  dt_acf <- data.table::data.table(
+  dt_facf <- data.table::data.table(
     lag = seq_len(lag.max), norm = norms, facf = norms / denom)
   .as_adaptive_est(
-    dt_acf, "fts_acf",
+    dt_facf, "fts_acf",
     meta = list(kernel = kernel_name, N = N,
                 design = if (common) "common" else "independent",
                 n_grid = length(t), denom = denom))
@@ -137,9 +133,9 @@ summary.fts_acf <- function(object, ...) {
   cat(sprintf("  Training curves    : %s\n", .est_meta(object, "N")))
   cat(sprintf("  Kernel             : %s\n", .est_meta(object, "kernel")))
   cat(sprintf("  Lags               : 1 to %d\n", max(object$lag)))
-  cat(sprintf("  rho (FACF)         : %s\n", .fmt_range(object$facf)))
-  cat(sprintf("  Largest |rho|      : lag %d (%s)\n",
-              object$lag[imax], .fmt_num(object$facf[imax])))
+  cat(sprintf("  rho                : %s\n", .fmt_range(object$facf)))
+  cat(sprintf("  Largest |rho|      : %s (lag %d)\n",
+              .fmt_num(object$facf[imax]), object$lag[imax]))
   invisible(object)
 }
 
