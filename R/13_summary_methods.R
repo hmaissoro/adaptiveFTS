@@ -1,6 +1,3 @@
-## Text summaries for the adaptive-estimator objects, in the style of
-## summary.blup_fit (cat-based, returns the object invisibly).
-
 #' Summarise an adaptive functional time series estimator
 #'
 #' Compact, design-aware text summaries for the objects returned by the adaptive
@@ -17,12 +14,14 @@
 #'   [estimate_cov_segment()], [adaptiveFTS_est].
 #'
 #' @examples
-#' \dontrun{
 #' data("data_far")
-#' summary(estimate_mean(data = data_far, t = seq(0.1, 0.9, length.out = 9)))
-#' summary(estimate_autocov(data = data_far,
-#'                          s = c(1/5, 2/5, 4/5), t = c(1/4, 1/2, 3/4), lag = 1))
-#' }
+#' dt_small <- data_far[data_far$id_curve <= 20, ]
+#' bwg <- seq(0.04, 0.15, length.out = 5)
+#'
+#' summary(estimate_mean(data = dt_small, t = seq(0.1, 0.9, length.out = 9),
+#'                       bw_grid = bwg))
+#' summary(estimate_autocov(data = dt_small, s = c(1/5, 2/5), t = c(1/4, 1/2),
+#'                          lag = 1, bw_grid = bwg))
 NULL
 
 #' @rdname adaptiveFTS-summary
@@ -94,9 +93,8 @@ summary.autocov_est <- function(object, ...) {
   invisible(object)
 }
 
-## Shared body for the risk-function summaries. Lists the risk-minimising
-## bandwidth per point for small grids; for larger grids reports the bandwidth
-## ranges and the single best point instead of flooding the console.
+# Lists the risk-minimising bandwidth per point for small grids; for larger
+# grids reports ranges and the single best point instead of flooding the console.
 #' @keywords internal
 .summary_risk <- function(object, title, risk_col, by_cols, bw_cols, max_show = 10L) {
   cat(title, "\n", sep = "")

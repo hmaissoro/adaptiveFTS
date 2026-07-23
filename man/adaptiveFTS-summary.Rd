@@ -46,12 +46,14 @@ its argument invisibly. See \link{adaptiveFTS_est} for the class structure and
 \code{\link[=autoplot.mean_est]{autoplot.mean_est()}} for the companion plots.
 }
 \examples{
-\dontrun{
 data("data_far")
-summary(estimate_mean(data = data_far, t = seq(0.1, 0.9, length.out = 9)))
-summary(estimate_autocov(data = data_far,
-                         s = c(1/5, 2/5, 4/5), t = c(1/4, 1/2, 3/4), lag = 1))
-}
+dt_small <- data_far[data_far$id_curve <= 20, ]
+bwg <- seq(0.04, 0.15, length.out = 5)
+
+summary(estimate_mean(data = dt_small, t = seq(0.1, 0.9, length.out = 9),
+                      bw_grid = bwg))
+summary(estimate_autocov(data = dt_small, s = c(1/5, 2/5), t = c(1/4, 1/2),
+                         lag = 1, bw_grid = bwg))
 }
 \seealso{
 \code{\link[=estimate_mean]{estimate_mean()}}, \code{\link[=estimate_autocov]{estimate_autocov()}}, \code{\link[=estimate_locreg]{estimate_locreg()}},

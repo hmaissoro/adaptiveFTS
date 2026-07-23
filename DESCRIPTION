@@ -5,10 +5,10 @@ Authors@R:
     person("Hassan", "Maissoro", , "maissorohassan@gmail.com", role = c("aut", "cre"))
 Description:
   Adaptive estimation procedures for weakly dependent functional time series,
-  following Maissoro, Patilea and Vimond (2024) and (2025). Provides estimators
-  for the local regularity parameters, the mean function, and the autocovariance
-  function, together with an adaptive estimator of the Best Linear Unbiased
-  Predictor (BLUP) for prediction.
+  following Maissoro, Patilea and Vimond (2025) <doi:10.1111/jtsa.70006>.
+  Provides estimators for the local regularity parameters, the mean function and
+  the autocovariance function, together with an adaptive estimator of the Best
+  Linear Unbiased Predictor (BLUP) for prediction.
 License: AGPL (>= 3)
 URL: https://github.com/hmaissoro/adaptiveFTS, https://hmaissoro.github.io/adaptiveFTS/
 BugReports: https://github.com/hmaissoro/adaptiveFTS/issues
@@ -20,20 +20,11 @@ Imports:
     MASS,
     methods,
     Rcpp,
-    Rdpack,
     stats,
     utils
-RdMacros: Rdpack
 Suggests:
-    crosstalk,
-    DT,
-    dygraphs,
     ggplot2,
-    ggpubr,
     knitr,
-    magrittr,
-    manipulateWidget,
-    plotly,
     rmarkdown,
     testthat (>= 3.0.0),
     tikzDevice
@@ -43,5 +34,5 @@ LinkingTo:
     Rcpp,
     RcppArmadillo
 Depends:
-    R (>= 3.5.0)
+    R (>= 4.1)
 LazyData: true

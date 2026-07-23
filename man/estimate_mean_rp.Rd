@@ -51,7 +51,7 @@ A \code{data.table} with one row per point of \code{t} and columns:
 }
 \description{
 Estimates the mean function with the local-linear estimator of
-\insertCite{rubin2020;textual}{adaptiveFTS}, which pools the observation points
+Rubìn and Panaretos (2020), which pools the observation points
 of all curves and smooths them with a single bandwidth. It is provided for
 comparison with the adaptive estimator of \link{estimate_mean}.
 }
@@ -66,7 +66,9 @@ dt_mean_rp
 
 }
 \references{
-\insertAllCited{}
+Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+series: estimation and prediction. \emph{Electronic Journal of Statistics},
+14(1), 1137--1210. \doi{10.1214/20-EJS1690}
 }
 \seealso{
 \code{\link[=estimate_mean_bw_rp]{estimate_mean_bw_rp()}}, \code{\link[=estimate_mean]{estimate_mean()}}.

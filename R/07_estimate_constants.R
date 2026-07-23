@@ -1,6 +1,6 @@
 #' Estimate the the standard deviation of the observation error
 #'
-#' This function estimates the the standard deviation of the observation error using the estimator proposed by \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}.
+#' This function estimates the the standard deviation of the observation error using the estimator proposed by Maissoro, Patilea and Vimond (2025).
 #'
 #' @inheritParams format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the standard deviation of the error.
@@ -9,21 +9,21 @@
 #' @export
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #'
 #' @references
-#' \insertAllCited{}
+#' Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+#' Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+#' Analysis}. \doi{10.1111/jtsa.70006}
 #'
 #'
 #' @examples
-#' \dontrun{
 #' # Load data
 #' data("data_far")
 #'
 #' # Estimate the standar-deviation of the error term
 #' estimate_sigma(data = data_far, t = c(1/4, 1/2, 3/4))
 #'
-#' }
+#'
 #'
 #'
 estimate_sigma <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X", t = c(1/4, 1/2, 3/4)) {
@@ -41,7 +41,7 @@ estimate_sigma <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X", 
 #' Estimate Empirical Autocovariance Function
 #'
 #' This function estimates the empirical autocovariance function used in the empirical study section
-#' of the papers \insertCite{maissoro2024adaptive;textual}{adaptiveFTS} and \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+#' of the papers Maissoro, Patilea and Vimond (2025) and Maissoro, Patilea and Vimond (2026).
 #'
 #' @inheritParams format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the empirical autocovariance function.
@@ -58,16 +58,19 @@ estimate_sigma <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X", 
 #' @export
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
-#' \insertAllCited{}
+#' Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+#' Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+#' Analysis}. \doi{10.1111/jtsa.70006}
+#'
+#' Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+#' Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 #'
 #' @seealso [get_nw_optimal_bw()].
 #'
 #' @examples
-#' \dontrun{
 #' # Load data
 #' data("data_far")
 #'
@@ -84,7 +87,7 @@ estimate_sigma <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X", 
 #'   t = c(1/4, 1/2, 3/4), lag = c(1, 2), presmooth_bw = NULL,
 #'   kernel_name = "epanechnikov")
 #' dt_empirical_autocov_cv
-#' }
+#'
 #'
 estimate_empirical_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                        t = c(1/4, 1/2, 3/4), lag = c(0, 1, 2), presmooth_bw = NULL,
@@ -117,7 +120,7 @@ estimate_empirical_autocov <- function(data, idcol = "id_curve", tcol = "tobs", 
 #' Estimate empirical \eqn{p}-th order moment of \eqn{X(t)}.
 #'
 #' This function estimates the \eqn{p}-th order moment of \eqn{X(t)}, used in the empirical study section
-#' of the papers \insertCite{maissoro2024adaptive;textual}{adaptiveFTS} and \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+#' of the papers Maissoro, Patilea and Vimond (2025) and Maissoro, Patilea and Vimond (2026).
 #'
 #' @inheritParams format_data
 #' @param t \code{vector (numeric)}. Observation points at which the \eqn{p}-th order moment of \eqn{X(t)} is estimated.
@@ -139,16 +142,19 @@ estimate_empirical_autocov <- function(data, idcol = "id_curve", tcol = "tobs", 
 #' @export
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
-#' \insertAllCited{}
+#' Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+#' Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+#' Analysis}. \doi{10.1111/jtsa.70006}
+#'
+#' Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+#' Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 #'
 #' @seealso [get_nw_optimal_bw()].
 #'
 #' @examples
-#' \dontrun{
 #' # Load example data
 #' data("data_far")  # Replace with actual data containing observed curves
 #'
@@ -169,7 +175,7 @@ estimate_empirical_autocov <- function(data, idcol = "id_curve", tcol = "tobs", 
 #'
 #' # View the result
 #' print(moment_estimates)
-#' }
+#'
 #'
 estimate_empirical_mom <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                    t = c(1/4, 1/2, 3/4), mom_order = 1, presmooth_bw = NULL,
@@ -203,7 +209,7 @@ estimate_empirical_mom <- function(data, idcol = "id_curve", tcol = "tobs", ycol
 #' Estimate Empirical \eqn{X_0(s)X_{\ell}(t)} Autocovariance Function for \eqn{\ell} = 0, 1, ...
 #'
 #' This function estimates the empirical \eqn{X_0(s)X_{\ell}(t)} autocovariance function for \eqn{\ell} = 0, 1, ...,
-#' used in the empirical study of the papers \insertCite{maissoro2024adaptive;textual}{adaptiveFTS} and \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+#' used in the empirical study of the papers Maissoro, Patilea and Vimond (2025) and Maissoro, Patilea and Vimond (2026).
 #'
 #' @inheritParams format_data
 #' @param s \code{vector (numeric)}. First argument in \eqn{X_0(s)X_{\ell}(t)}, corresponding to observation points \code{s} in the pair (\code{s}, \code{t}).
@@ -236,16 +242,19 @@ estimate_empirical_mom <- function(data, idcol = "id_curve", tcol = "tobs", ycol
 #' @export
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
-#' \insertAllCited{}
+#' Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+#' Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+#' Analysis}. \doi{10.1111/jtsa.70006}
+#'
+#' Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+#' Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 #'
 #' @seealso [get_nw_optimal_bw()].
 #'
 #' @examples
-#' \dontrun{
 #' # Load data
 #' data("data_far")
 #'
@@ -280,7 +289,7 @@ estimate_empirical_mom <- function(data, idcol = "id_curve", tcol = "tobs", ycol
 #'   kernel_name = "epanechnikov"
 #' )
 #'dt_empirical_cov_centered
-#' }
+#'
 #'
 estimate_empirical_XsXt_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                             s = c(1/5, 2/5, 4/5),

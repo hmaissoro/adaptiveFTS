@@ -1,6 +1,3 @@
-## S3 identity for the adaptive-estimator outputs: a class plus a metadata
-## attribute for summary()/plot()/autoplot() to dispatch on.
-
 #' Adaptive functional time series estimator objects
 #'
 #' The adaptive estimators of \pkg{adaptiveFTS} (for example [estimate_mean()],

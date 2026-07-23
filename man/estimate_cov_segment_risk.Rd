@@ -60,7 +60,7 @@ A \link[data.table]{data.table} with columns:
 }
 \description{
 Estimates the risk \eqn{R_{\Gamma_0}(t; h)} associated with the covariance segment line estimation
-proposed by \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+proposed by Maissoro, Patilea and Vimond (2026).
 }
 \details{
 The local regularity parameters are estimated within the function using \code{estimate_locreg_cpp}.
@@ -82,7 +82,8 @@ dt_risk[, list(h = h[which.min(cov_segment_risk)]), by = "t"]
 
 }
 \references{
-\insertAllCited{}
+Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 }
 \seealso{
 \link{estimate_mean}, \link{estimate_locreg}, \link{estimate_sigma},

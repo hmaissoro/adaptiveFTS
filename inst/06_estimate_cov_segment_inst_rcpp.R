@@ -16,7 +16,8 @@ res_cov_segment_risk_cpp <- estimate_cov_segment_risk_cpp(
   kernel_name = "epanechnikov")
 
 dt_cov <- as.data.table(res_cov_segment_risk_cpp)
-dygraphs::dygraph(dt_cov[V1 == t0[1], .(V2, V10)][V10 <50])
+plot(dt_cov[V1 == t0[1], .(V2, V10)][V10 < 50], type = "l",
+     xlab = "h", ylab = "risk function")
 
 # Estimate autocv segment function
 res_cov_segment_estim <- estimate_cov_segment_cpp(
@@ -27,4 +28,5 @@ res_cov_segment_estim <- estimate_cov_segment_cpp(
 dt_covseg_estim <- data.table::as.data.table(res_cov_segment_estim)
 names(dt_covseg_estim) <- c("t", "optbw", "Ht", "Lt2", "PN", "covseghat", "corr_term", "covseghat_corrected")
 
-dygraphs::dygraph(dt_covseg_estim[, .(t, covseghat, covseghat_corrected)])
+matplot(dt_covseg_estim[, t], dt_covseg_estim[, .(covseghat, covseghat_corrected)],
+        type = "l", lty = 1, xlab = "t", ylab = "covariance segment")

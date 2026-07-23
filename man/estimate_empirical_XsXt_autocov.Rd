@@ -70,10 +70,9 @@ A \code{data.table} with columns:
 }
 \description{
 This function estimates the empirical \eqn{X_0(s)X_{\ell}(t)} autocovariance function for \eqn{\ell} = 0, 1, ...,
-used in the empirical study of the papers \insertCite{maissoro2024adaptive;textual}{adaptiveFTS} and \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+used in the empirical study of the papers Maissoro, Patilea and Vimond (2025) and Maissoro, Patilea and Vimond (2026).
 }
 \examples{
-\dontrun{
 # Load data
 data("data_far")
 
@@ -108,11 +107,16 @@ dt_empirical_cov_centered <- estimate_empirical_XsXt_autocov(
   kernel_name = "epanechnikov"
 )
 dt_empirical_cov_centered
-}
+
 
 }
 \references{
-\insertAllCited{}
+Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+Analysis}. \doi{10.1111/jtsa.70006}
+
+Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 }
 \seealso{
 \code{\link[=get_nw_optimal_bw]{get_nw_optimal_bw()}}.

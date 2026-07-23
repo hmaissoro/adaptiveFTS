@@ -65,7 +65,6 @@ Functional Autoregressive process of order 1 (FAR(1)) simulation
 }
 \examples{
 
-\dontrun{
 dt_far <- simulate_far(N = 2L, lambda = 70L,
                        design = "random",
                        M_distribution = rpois,
@@ -79,6 +78,6 @@ dt_far <- simulate_far(N = 2L, lambda = 70L,
                        n_burnin = 100L,
                        remove_burnin = TRUE)
 
-}
+
 
 }

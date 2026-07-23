@@ -31,7 +31,6 @@ A \code{data.table} with the following columns:
 Estimates the Nadaraya-Watson regression function using a specified kernel function.
 }
 \examples{
-\dontrun{
 # Define the true regression function
 m <- function(t) 4 * sin(1.5 * pi * t)
 
@@ -61,7 +60,7 @@ plot(x = dt_nw[, tnew], y = dt_nw[, yhat], type = "l", col = "blue",
      main = "Estimated and true regression function")
 lines(x = dt_nw[, tnew], y = m(dt_nw[, tnew]), col = "red")
 legend(x = 0.64, y = 4.1, fill = c("blue", "red"), legend = c("Estimated m", "True m"))
-}
+
 
 }
 \seealso{

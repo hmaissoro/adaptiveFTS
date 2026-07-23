@@ -58,7 +58,7 @@ minimising it is the one to pass to \link{estimate_autocov_rp}.
 \description{
 Selects the bandwidth of \link{estimate_autocov_rp} by \eqn{K}-fold
 cross-validation over the curves, as described in
-\insertCite{rubin2020;textual}{adaptiveFTS}. Each fold is scored by the squared
+Rubìn and Panaretos (2020). Each fold is scored by the squared
 error between the empirical cross-products of the held-out curves and the
 lag-0 autocovariance estimated on the others.
 }
@@ -69,7 +69,9 @@ power of the number of points per curve. Keep \code{bw_grid} short and the
 number of curves small.
 }
 \references{
-\insertAllCited{}
+Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+series: estimation and prediction. \emph{Electronic Journal of Statistics},
+14(1), 1137--1210. \doi{10.1214/20-EJS1690}
 }
 \seealso{
 \code{\link[=estimate_autocov_rp]{estimate_autocov_rp()}}, \code{\link[=estimate_mean_bw_rp]{estimate_mean_bw_rp()}}.

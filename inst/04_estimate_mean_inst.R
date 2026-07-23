@@ -1,25 +1,16 @@
-# Load data
-data("data_far")
+# Adaptive mean function estimation, compared with the Rubin-Panaretos estimator.
 
+library(data.table)
+library(ggplot2)
+
+data("data_far")
 
 # Estimate risk function
 dt_mean_risk <- estimate_mean_risk(
   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
   t = c(1/4, 1/2, 3/4), bw_grid = NULL, kernel_name = "epanechnikov")
 
-# Plot mean risk function
-dt_dcast <- data.table::dcast(data = dt_mean_risk, formula = h ~ t, value.var = "mean_risk")
-
-manipulateWidget::combineWidgets(
-  list = list(
-    dygraphs::dygraph(dt_dcast[, .(h, "t = 0.25" = `0.25`)], main = "t = 0.25", xlab = "h", ylab = "risk function"),
-    dygraphs::dygraph(dt_dcast[, .(h, "t = 0.5" = `0.5`)], main = "t = 0.5", xlab = "h", ylab = "risk function"),
-    dygraphs::dygraph(dt_dcast[, .(h, "t = 0.75" = `0.75`)], main = "t = 0.75", xlab = "h", ylab = "risk function")
-  ),
-  nrow = 3
-)
-
-# Summary and risk plot
+# Risk against the bandwidth, one panel per observation point
 summary(dt_mean_risk)
 plot(dt_mean_risk)
 
@@ -28,10 +19,7 @@ dt_mean <- estimate_mean(
   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
   t = c(1/4, 1/2, 3/4), bw_grid = NULL, kernel_name = "epanechnikov")
 
-# Table of the estimates of the mean function
-DT::datatable(data = dt_mean[, lapply(.SD, function(X) round(X, 5))])
-
-# Summary and mean plot
+dt_mean[, lapply(.SD, function(X) round(X, 5))]
 summary(dt_mean)
 plot(dt_mean)
 
@@ -39,23 +27,21 @@ plot(dt_mean)
 ## Estimate the bandwidth by Cross-Validation
 dt_bw_mean_rp <- estimate_mean_bw_rp(
   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  Kfold = 10, bw_grid = seq(0.001, 0.15, len = 45),
-  smooth_ker = kernel_epanechnikov)
+  n_folds = 10, bw_grid = seq(0.001, 0.15, len = 45),
+  kernel_name = "epanechnikov")
 
 ## Plot the Cross-Validation error
-dygraphs::dygraph(dt_bw_mean_rp)
+ggplot(dt_bw_mean_rp, aes(x = h, y = cv_error)) +
+  geom_line(colour = "#1B4F72") +
+  labs(x = "h", y = "cross-validation error") +
+  theme_minimal()
 
 ## Select the best bandwidth
-optbw <- dt_bw_mean_rp[, h[which.min(cv_error)]]
+best_bw <- dt_bw_mean_rp[, h[which.min(cv_error)]]
 
 ## Estimate the mean function
 dt_mean_rp <- estimate_mean_rp(
-  data = dt_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  t = c(1/4, 1/2, 3/4), h = optbw, smooth_ker = kernel_epanechnikov)
+  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  t = c(1/4, 1/2, 3/4), h = best_bw, kernel_name = "epanechnikov")
 
-DT::datatable(data = dt_mean_rp[, lapply(.SD, function(X) round(X, 5))])
-
-
-
-
-
+dt_mean_rp[, lapply(.SD, function(X) round(X, 5))]

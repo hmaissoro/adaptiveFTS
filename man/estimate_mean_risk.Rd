@@ -60,7 +60,7 @@ three components of the risk.
 \description{
 Estimates the risk \eqn{R_\mu(t;h)} of the adaptive mean function estimator
 over a grid of candidate bandwidths, as described in Section 4.1 of
-\insertCite{maissoro2024adaptive;textual}{adaptiveFTS}. Minimising it over
+Maissoro, Patilea and Vimond (2025). Minimising it over
 \code{h} at each \code{t} is what \link{estimate_mean} does to select its
 bandwidth.
 }
@@ -92,7 +92,9 @@ dt_mean_risk[, list(h = h[which.min(mean_risk)]), by = "t"]
 
 }
 \references{
-\insertAllCited{}
+Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+Analysis}. \doi{10.1111/jtsa.70006}
 }
 \seealso{
 \code{\link[=estimate_mean]{estimate_mean()}}, \code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_sigma]{estimate_sigma()}}.

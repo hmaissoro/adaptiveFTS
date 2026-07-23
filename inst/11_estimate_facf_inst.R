@@ -15,4 +15,4 @@ summary(dt_facf)
 plot(dt_facf)
 
 # Tabular view
-DT::datatable(dt_facf[, lapply(.SD, function(x) round(x, 4))])
+dt_facf[, lapply(.SD, function(x) round(x, 4))]

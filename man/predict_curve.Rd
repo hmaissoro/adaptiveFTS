@@ -70,10 +70,11 @@ prediction of the curve following a conditioning curve), use \code{\link[=blup_f
 with \code{\link[=predict.blup_fit]{predict.blup_fit()}}, or the one-call wrapper \code{\link[=blup]{blup()}}. Note that these
 compute a different quantity, so results are not interchangeable.
 
-This function predict a curve using the adaptive Best Linear Unbiased Predictor proposed by \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+This function predict a curve using the adaptive Best Linear Unbiased Predictor proposed by Maissoro, Patilea and Vimond (2026).
 }
 \references{
-\insertAllCited{}
+Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+Functional Time Series. \emph{arXiv preprint} arXiv:2609.xxxxx.
 }
 \seealso{
 \code{\link[=blup_fit]{blup_fit()}}, \code{\link[=predict.blup_fit]{predict.blup_fit()}}, \code{\link[=blup]{blup()}}, \code{\link[=estimate_mean]{estimate_mean()}}, \code{\link[=estimate_autocov]{estimate_autocov()}}.

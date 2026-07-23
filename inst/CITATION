@@ -1,0 +1,22 @@
+citHeader("To cite adaptiveFTS in publications, please cite the methodology papers:")
+
+bibentry(
+  bibtype = "Article",
+  title   = "Adaptive Estimation for Weakly Dependent Functional Time Series",
+  author  = c(person("Hassan", "Maissoro"),
+              person("Valentin", "Patilea"),
+              person("Myriam", "Vimond")),
+  journal = "Journal of Time Series Analysis",
+  year    = "2025",
+  doi     = "10.1111/jtsa.70006"
+)
+
+bibentry(
+  bibtype = "Article",
+  title   = "Adaptive Prediction for Functional Time Series",
+  author  = c(person("Hassan", "Maissoro"),
+              person("Valentin", "Patilea"),
+              person("Myriam", "Vimond")),
+  journal = "arXiv preprint arXiv:2609.xxxxx",
+  year    = "2026"
+)

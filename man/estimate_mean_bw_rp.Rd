@@ -49,7 +49,7 @@ minimising it is the one to pass to \link{estimate_mean_rp}.
 \description{
 Selects the bandwidth of \link{estimate_mean_rp} by \eqn{K}-fold
 cross-validation over the curves, as described in
-\insertCite{rubin2020;textual}{adaptiveFTS}. Curves are split into folds; each
+Rubìn and Panaretos (2020). Curves are split into folds; each
 fold is predicted from the mean function estimated on the others, and the
 squared prediction errors are averaged.
 }
@@ -72,7 +72,9 @@ dt_mean_rp
 
 }
 \references{
-\insertAllCited{}
+Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+series: estimation and prediction. \emph{Electronic Journal of Statistics},
+14(1), 1137--1210. \doi{10.1214/20-EJS1690}
 }
 \seealso{
 \code{\link[=estimate_mean_rp]{estimate_mean_rp()}}.

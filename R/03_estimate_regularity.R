@@ -2,7 +2,7 @@
 #'
 #' Estimates the local regularity parameters \eqn{H_t} and \eqn{L_t^2} of the
 #' underlying process at each point of \code{t}, following Section 3 of
-#' \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}. \eqn{H_t} is the local
+#' Maissoro, Patilea and Vimond (2025). \eqn{H_t} is the local
 #' Hölder exponent and \eqn{L_t^2} the squared Hölder constant; both drive the
 #' bandwidths of every adaptive estimator of the package.
 #'
@@ -55,13 +55,14 @@
 #' @export
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @seealso [get_nw_optimal_bw()], [estimate_mean()], [estimate_autocov()].
 #'
 #' @references
-#'  \insertAllCited{}
+#' Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+#' Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+#' Analysis}. \doi{10.1111/jtsa.70006}
 #'
 #' @examples
 #' data("data_far")

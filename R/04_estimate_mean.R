@@ -2,7 +2,7 @@
 #'
 #' Estimates the risk \eqn{R_\mu(t;h)} of the adaptive mean function estimator
 #' over a grid of candidate bandwidths, as described in Section 4.1 of
-#' \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}. Minimising it over
+#' Maissoro, Patilea and Vimond (2025). Minimising it over
 #' \code{h} at each \code{t} is what \link{estimate_mean} does to select its
 #' bandwidth.
 #'
@@ -49,11 +49,12 @@
 #' @seealso [estimate_mean()], [estimate_locreg()], [estimate_sigma()].
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #' @importFrom methods is
 #'
 #' @references
-#' \insertAllCited{}
+#' Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+#' Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+#' Analysis}. \doi{10.1111/jtsa.70006}
 #'
 #' @examples
 #' data("data_far")
@@ -107,7 +108,7 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #' Estimate the Mean Function
 #'
 #' Estimates the mean function of the underlying process with the adaptive
-#' estimator of \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}, using at
+#' estimator of Maissoro, Patilea and Vimond (2025), using at
 #' each point the bandwidth that minimises the estimated risk.
 #'
 #' @details
@@ -139,10 +140,11 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #' @seealso [estimate_mean_risk()], [estimate_locreg()], [estimate_autocov()].
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #'
 #' @references
-#' \insertAllCited{}
+#' Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+#' Weakly Dependent Functional Time Series. \emph{Journal of Time Series
+#' Analysis}. \doi{10.1111/jtsa.70006}
 #'
 #' @examples
 #' data("data_far")
@@ -186,7 +188,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' Estimate the Mean Function by the Rubìn-Panaretos Method
 #'
 #' Estimates the mean function with the local-linear estimator of
-#' \insertCite{rubin2020;textual}{adaptiveFTS}, which pools the observation points
+#' Rubìn and Panaretos (2020), which pools the observation points
 #' of all curves and smooths them with a single bandwidth. It is provided for
 #' comparison with the adaptive estimator of \link{estimate_mean}.
 #'
@@ -211,10 +213,11 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @seealso [estimate_mean_bw_rp()], [estimate_mean()].
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #'
 #' @references
-#' \insertAllCited{}
+#' Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+#' series: estimation and prediction. \emph{Electronic Journal of Statistics},
+#' 14(1), 1137--1210. \doi{10.1214/20-EJS1690}
 #'
 #' @examples
 #' data("data_far")
@@ -329,7 +332,7 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #'
 #' Selects the bandwidth of \link{estimate_mean_rp} by \eqn{K}-fold
 #' cross-validation over the curves, as described in
-#' \insertCite{rubin2020;textual}{adaptiveFTS}. Curves are split into folds; each
+#' Rubìn and Panaretos (2020). Curves are split into folds; each
 #' fold is predicted from the mean function estimated on the others, and the
 #' squared prediction errors are averaged.
 #'
@@ -350,10 +353,11 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' @seealso [estimate_mean_rp()].
 #'
 #' @import data.table
-#' @importFrom Rdpack reprompt
 #'
 #' @references
-#' \insertAllCited{}
+#' Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+#' series: estimation and prediction. \emph{Electronic Journal of Statistics},
+#' 14(1), 1137--1210. \doi{10.1214/20-EJS1690}
 #'
 #' @examples
 #' \donttest{
