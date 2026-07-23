@@ -2,7 +2,7 @@
 % Please edit documentation in R/05_estimate_autocovariance.R
 \name{estimate_autocov_risk}
 \alias{estimate_autocov_risk}
-\title{Estimate the Risk of the Covariance or Autocovariance Function}
+\title{Estimate the Risk of the Autocovariance Function Estimator}
 \usage{
 estimate_autocov_risk(
   data,
@@ -13,8 +13,8 @@ estimate_autocov_risk(
   t = c(1/4, 1/2, 3/4),
   lag = 1,
   bw_grid = NULL,
-  use_same_bw = FALSE,
-  center = TRUE,
+  common_bw = FALSE,
+  center_curves = TRUE,
   kernel_name = "epanechnikov"
 )
 }
@@ -34,92 +34,94 @@ observation points of the curves.}
 \item{ycol}{\code{character(1)}. Name of the column (or vector) holding the
 values observed at those points.}
 
-\item{s}{\code{vector (numeric)}. The first argument of the autocovariance function, corresponding to observation points \code{s} in the pair (\code{s}, \code{t}). Must be of the same length as \code{t}.}
+\item{s}{\code{vector (numeric)}. First argument of the autocovariance
+function: the points \code{s} of the pairs (\code{s}, \code{t}). Must have the
+same length as \code{t}.}
 
-\item{t}{\code{vector (numeric)}. The second argument of the autocovariance function, corresponding to observation points \code{t} in the pair (\code{s}, \code{t}). Must be of the same length as \code{s}.}
+\item{t}{\code{vector (numeric)}. Second argument of the autocovariance
+function: the points \code{t} of the pairs (\code{s}, \code{t}). Must have the
+same length as \code{s}.}
 
-\item{lag}{\code{integer (positive integer)}. The lag of the autocovariance.}
+\item{lag}{\code{integer (non-negative)}. Lag \eqn{\ell} of the autocovariance;
+\code{lag = 0} gives the covariance function.}
 
-\item{bw_grid}{\code{vector (numeric)}. Bandwidth grid for selecting the optimal smoothing parameter for each pair (\code{s}, \code{t}). Defaults to \code{NULL}, which generates an exponential grid of \eqn{N \lambda}.}
+\item{bw_grid}{\code{vector (numeric)}. Candidate bandwidths, from which
+\link{estimate_autocov} picks the risk-minimising one for each pair. Default
+\code{NULL} builds the grid from the data; see Details.}
 
-\item{use_same_bw}{\code{logical}. Indicates whether the same bandwidth should be used for both \code{s} and \code{t}. Defaults to \code{FALSE}.}
+\item{common_bw}{\code{logical}. If \code{TRUE}, a single bandwidth is selected
+for both arguments of the autocovariance; if \code{FALSE} (default), one
+bandwidth per argument. See Details.}
 
-\item{center}{\code{logical}. If \code{TRUE}, centers the data before estimation. Default is \code{TRUE}.}
+\item{center_curves}{\code{logical}. If \code{TRUE} (default), the curves are
+centred before smoothing.}
 
-\item{kernel_name}{\code{string}. Specifies the kernel function for estimation; default is "epanechnikov". Supported kernels include: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".}
+\item{kernel_name}{\code{string}. Kernel of the smoothing estimator, one of
+"epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
+"uniform".}
 }
 \value{
-A \code{data.table} containing the following columns:
+A \code{data.table} with one row per (pair, bandwidth) combination and
+columns:
 \itemize{
-\item{\code{s} :}{ The first argument of the autocovariance function.}
-\item{\code{t} :}{ The second argument of the autocovariance function.}
-\item{\code{hs} :}{ Candidate bandwidth for \code{s}. If \code{use_same_bw = TRUE}, \code{hs} and \code{ht} will contain the same values.}
-\item{\code{ht} :}{ Candidate bandwidth for \code{t}.}
-\item{\code{PNl} :}{ Number of curves used in the autocovariance estimation at (\code{s}, \code{t}). Corresponds to \eqn{P_{N,\ell}(s,t;h_s, h_t)}.}
-\item{\code{locreg_bw} :}{ Bandwidth used for estimating local regularity parameters.}
-\item{\code{Hs} :}{ Local exponent estimates for \code{s}, denoted as \eqn{H_s}.}
-\item{\code{Ls2} :}{ Estimates of the Hölder constant for \code{s}, corresponding to \eqn{L_s^2}.}
-\item{\code{Ht} :}{ Local exponent estimates for \code{t}, denoted as \eqn{H_t}.}
-\item{\code{Lt2} :}{ Estimates of the Hölder constant for \code{t}, corresponding to \eqn{L_t^2}.}
-\item{\code{bias_term} :}{ Bias term of the risk function.}
-\item{\code{variance_term} :}{ Variance term of the risk function.}
-\item{\code{dependence_term} :}{ Dependence term of the risk function.}
-\item{\code{autocov_risk} :}{ Estimated risk of the covariance/autocovariance function.}
+\item \code{s}, \code{t}: the arguments of the autocovariance function.
+\item \code{hs}, \code{ht}: the candidate bandwidths for \code{s} and for
+\code{t}. Identical when \code{common_bw = TRUE}.
+\item \code{PNl}: the number of curves contributing to the estimate at
+(\code{s}, \code{t}), \eqn{P_{N,\ell}(s,t;h_s,h_t)}.
+\item \code{locreg_bw}: the bandwidth used to estimate the local regularity.
+\item \code{Hs}, \code{Ls2}: the estimated local exponent \eqn{H_s} and
+squared Hölder constant \eqn{L_s^2} at \code{s}.
+\item \code{Ht}, \code{Lt2}: the same quantities at \code{t}.
+\item \code{bias_term}, \code{variance_term}, \code{dependence_term}: the
+three components of the risk.
+\item \code{autocov_risk}: the estimated risk.
 }
 }
 \description{
-This function estimates the risk function of the adaptive lag-\eqn{\ell} autocovariance function estimator, where \eqn{\ell} = 0, 1, ...,
-using one bandwidth parameter as proposed in \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}
-or two bandwidth parameters as proposed in \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+Estimates the risk of the adaptive lag-\eqn{\ell} autocovariance function
+estimator over a grid of candidate bandwidths, for \eqn{\ell = 0, 1, \ldots}
+(\eqn{\ell = 0} being the covariance function). Minimising it over the grid at
+each pair (\code{s}, \code{t}) is what \link{estimate_autocov} does to select
+its bandwidths.
+}
+\details{
+Two estimators are covered. With \code{common_bw = TRUE} a single bandwidth is
+selected for both arguments, the one-bandwidth estimator of
+\insertCite{maissoro2024adaptive;textual}{adaptiveFTS}; the returned \code{hs}
+and \code{ht} then hold the same value. With \code{common_bw = FALSE}
+(default) the risk is minimised over pairs \eqn{(h_s, h_t)}, the two-bandwidth
+estimator of \insertCite{maissoro2024pred;textual}{adaptiveFTS}, which adapts
+to the regularity of the process at \code{s} and at \code{t} separately. The
+second is the more flexible but explores the square of the grid, so it costs
+noticeably more.
+
+As for the mean, the risk splits into a bias, a variance and a dependence
+term, each returned separately. The local regularity parameters are estimated
+internally at \code{s} and at \code{t}.
+
+Left to \code{NULL}, \code{bw_grid} is a 20-point geometric grid running from
+\eqn{4(N\widehat\lambda)^{-0.9}} to \eqn{4(N\widehat\lambda)^{-1/3}}, where
+\eqn{N} is the number of curves and \eqn{\widehat\lambda} the average number of
+observation points per curve.
 }
 \examples{
-\dontrun{
-# Load data
 data("data_far")
 
-# Estimate risk function with same bandwidth for s and t
 dt_autocov_risk <- estimate_autocov_risk(
-  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  s = c(1/5, 2/5, 4/5), t = c(1/4, 1/2, 3/4), lag = 1,
-  bw_grid = NULL, use_same_bw = TRUE, center = TRUE,
-  kernel_name = "epanechnikov"
-)
+  data = data_far[data_far$id_curve <= 20, ],
+  idcol = "id_curve", tcol = "tobs", ycol = "X",
+  s = c(1/5, 2/5), t = c(1/4, 1/2), lag = 1,
+  bw_grid = seq(0.04, 0.15, length.out = 5), common_bw = TRUE,
+  center_curves = TRUE, kernel_name = "epanechnikov")
 
-# Visualize mean risk function for different (s, t) pairs
-dt_dcast <- data.table::dcast(data = dt_autocov_risk,
-                              formula = hs ~ s + t,
-                              value.var = "autocov_risk")
-manipulateWidget::combineWidgets(
-  list = list(
-    dygraphs::dygraph(data = dt_dcast[, .(hs, "(s, t) = (0.2, 0.25)" = `0.2_0.25`)],
-                      main = "lag = 1 - (s, t) = (0.2, 0.25)",
-                      xlab = "h", ylab = "Risk Function"),
-    dygraphs::dygraph(data = dt_dcast[, .(hs, "(s, t) = (0.4, 0.5)" = `0.4_0.5`)],
-                      main = "lag = 1 - (s, t) = (0.4, 0.5)",
-                      xlab = "h", ylab = "Risk Function"),
-    dygraphs::dygraph(data = dt_dcast[, .(hs, "(s, t) = (0.8, 0.75)" = `0.8_0.75`)],
-                      main = "lag = 1 - (s, t) = (0.8, 0.75)",
-                      xlab = "h", ylab = "Risk Function")
-  ),
-  nrow = 3
-)
-
-# Estimate risk function with separate bandwidths for s and t
-dt_autocov_risk_2bw <- estimate_autocov_risk(
-  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  s = c(1/5, 2/5, 4/5), t = c(1/4, 1/2, 3/4), lag = 1,
-  bw_grid = NULL, use_same_bw = FALSE, center = TRUE,
-  kernel_name = "epanechnikov"
-)
-
-# Display selected columns of the results
-dt_autocov_risk_2bw[, .(s, t, lag, hs, ht, autocov_risk)]
-}
+# The risk-minimising bandwidth for each pair.
+dt_autocov_risk[, list(hs = hs[which.min(autocov_risk)]), by = c("s", "t")]
 
 }
 \references{
 \insertAllCited{}
 }
 \seealso{
-\code{\link[=estimate_mean]{estimate_mean()}}, \code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_sigma]{estimate_sigma()}}, \code{\link[=estimate_nw]{estimate_nw()}}, \code{\link[=estimate_empirical_XsXt_autocov]{estimate_empirical_XsXt_autocov()}}.
+\code{\link[=estimate_autocov]{estimate_autocov()}}, \code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_sigma]{estimate_sigma()}}.
 }

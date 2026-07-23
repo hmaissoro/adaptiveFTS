@@ -46,12 +46,12 @@ test_that("Hurst functions return values in (0,1) on the unit interval", {
 test_that("simulators are reproducible and well-formed", {
   sim <- function() {
     set.seed(123)
-    simulate_far(N = 6L, lambda = 30L, tdesign = "random",
-                 Mdistribution = stats::rpois, tdistribution = stats::runif,
-                 tcommon = NULL, hurst_fun = hurst_logistic, L = 4,
+    simulate_far(N = 6L, lambda = 30L, design = "random",
+                 M_distribution = stats::rpois, t_distribution = stats::runif,
+                 t_common = NULL, hurst_fun = hurst_logistic, L = 4,
                  far_kernel = function(s, t) 9/4 * exp(-(t + 2 * s)^2),
                  far_mean = function(t) 4 * sin(1.5 * pi * t),
-                 int_grid = 100L, burnin = 50L, remove_burnin = TRUE)
+                 n_int_grid = 100L, n_burnin = 50L, remove_burnin = TRUE)
   }
   a <- sim(); b <- sim()
   expect_true(data.table::is.data.table(a))
@@ -61,12 +61,12 @@ test_that("simulators are reproducible and well-formed", {
   expect_true(all(is.finite(a$X)))
 
   set.seed(7)
-  fma <- simulate_fma(N = 5L, lambda = 25L, tdesign = "random",
-                      Mdistribution = stats::rpois, tdistribution = stats::runif,
-                      tcommon = NULL, hurst_fun = hurst_logistic, L = 4,
+  fma <- simulate_fma(N = 5L, lambda = 25L, design = "random",
+                      M_distribution = stats::rpois, t_distribution = stats::runif,
+                      t_common = NULL, hurst_fun = hurst_logistic, L = 4,
                       fma_kernel = function(s, t) exp(-(t + 2 * s)^2),
                       fma_mean = function(t) sin(2 * pi * t),
-                      int_grid = 100L, burnin = 50L, remove_burnin = TRUE)
+                      n_int_grid = 100L, n_burnin = 50L, remove_burnin = TRUE)
   expect_true(all(c("id_curve", "tobs", "X") %in% names(fma)))
   expect_equal(length(unique(fma$id_curve)), 5L)
 })
@@ -104,6 +104,6 @@ test_that("real-data helpers return finite numeric output", {
   m <- get_real_data_mean(t = seq(0.1, 0.9, length.out = 10))
   expect_length(as.numeric(m), 10L)
   expect_true(all(is.finite(as.numeric(m))))
-  k <- get_real_data_far_kenel(s = 0.2, t = 0.3, operator_norm = 0.5)
+  k <- get_real_data_far_kernel(s = 0.2, t = 0.3, operator_norm = 0.5)
   expect_true(all(is.finite(as.numeric(unlist(k)))))
 })

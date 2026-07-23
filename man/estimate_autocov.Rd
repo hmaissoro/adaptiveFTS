@@ -12,11 +12,11 @@ estimate_autocov(
   s = c(1/5, 2/5, 4/5),
   t = c(1/4, 1/2, 3/4),
   lag = 1,
-  optbw_s = NULL,
-  optbw_t = NULL,
+  bw_s = NULL,
+  bw_t = NULL,
   bw_grid = NULL,
-  use_same_bw = FALSE,
-  center = TRUE,
+  common_bw = FALSE,
+  center_curves = TRUE,
   correct_diagonal = TRUE,
   kernel_name = "epanechnikov"
 )
@@ -37,81 +37,112 @@ observation points of the curves.}
 \item{ycol}{\code{character(1)}. Name of the column (or vector) holding the
 values observed at those points.}
 
-\item{s}{\code{vector (numeric)}. The first argument of the autocovariance function, corresponding to observation points \code{s} in the pair (\code{s}, \code{t}). Must be of the same length as \code{t}.}
+\item{s}{\code{vector (numeric)}. First argument of the autocovariance
+function: the points \code{s} of the pairs (\code{s}, \code{t}). Must have the
+same length as \code{t}.}
 
-\item{t}{\code{vector (numeric)}. The second argument of the autocovariance function, corresponding to observation points \code{t} in the pair (\code{s}, \code{t}). Must be of the same length as \code{s}.}
+\item{t}{\code{vector (numeric)}. Second argument of the autocovariance
+function: the points \code{t} of the pairs (\code{s}, \code{t}). Must have the
+same length as \code{s}.}
 
-\item{lag}{\code{integer (positive integer)}. The lag of the autocovariance.}
+\item{lag}{\code{integer (non-negative)}. Lag \eqn{\ell} of the autocovariance;
+\code{lag = 0} gives the covariance function.}
 
-\item{optbw_s}{\code{vector (numeric)}. The optimal bandwidths for \code{s}. Default is \code{NULL}.}
+\item{bw_s}{\code{vector (numeric)}. Bandwidth to use for \code{s} at each
+pair. Default \code{NULL} selects it by minimising the estimated risk.}
 
-\item{optbw_t}{\code{vector (numeric)}. The optimal bandwidths for \code{t}. Default is \code{NULL}.}
+\item{bw_t}{\code{vector (numeric)}. Bandwidth to use for \code{t} at each
+pair. Default \code{NULL} selects it by minimising the estimated risk.}
 
-\item{bw_grid}{\code{vector (numeric)}. Bandwidth grid for selecting the optimal smoothing parameter for each pair (\code{s}, \code{t}). Defaults to \code{NULL}, which generates an exponential grid of \eqn{N \lambda}.}
+\item{bw_grid}{\code{vector (numeric)}. Candidate bandwidths, from which
+\link{estimate_autocov} picks the risk-minimising one for each pair. Default
+\code{NULL} builds the grid from the data; see Details.}
 
-\item{use_same_bw}{\code{logical}. Indicates whether the same bandwidth should be used for both \code{s} and \code{t}. Defaults to \code{FALSE}.}
+\item{common_bw}{\code{logical}. If \code{TRUE}, a single bandwidth is selected
+for both arguments of the autocovariance; if \code{FALSE} (default), one
+bandwidth per argument. See Details.}
 
-\item{center}{\code{logical (TRUE or FALSE)}. Default \code{center = TRUE} and so the curves are centred when the autocovariance is estimated: \eqn{\mathbb{E}(X_0(s) - \mu(s))(X_{\ell}(t) - \mu(t))}.
-Otherwise, the two parts \eqn{\mathbb{E}X_0(s)X_{\ell}(t)} and \eqn{\mu(s)\mu(t)} will be estimated separately.
-The first part with a bandwidth obtained with \link{estimate_autocov_risk} and the second part with a bandwidth obtained with \link{estimate_mean_risk}.}
+\item{center_curves}{\code{logical}. If \code{TRUE} (default), the curves are
+centred before smoothing.}
 
-\item{correct_diagonal}{\code{logical (TRUE or FALSE)}. Indicates whether the diagonal of the covariance should be corrected when \code{lag=0}.}
+\item{correct_diagonal}{\code{logical}. If \code{TRUE} (default), the
+observation-noise variance is subtracted from the diagonal when
+\code{lag = 0}. See Details.}
 
-\item{kernel_name}{\code{string}. Specifies the kernel function for estimation; default is "epanechnikov". Supported kernels include: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".}
+\item{kernel_name}{\code{string}. Kernel of the smoothing estimator, one of
+"epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
+"uniform".}
 }
 \value{
-A \code{data.table} containing the following columns.
+A \code{data.table} with one row per pair (\code{s}, \code{t}) and
+columns:
 \itemize{
-\item{s : The first argument of the autocovariance function.}
-\item{t : The second argument of the autocovariance function.}
-\item{optbw_s : The optimal bandwidth for the first argument of the autocovariance function. If \code{use_same_bw = TRUE}, the same bandwidth candidate is used for \code{s} and for \code{t}, so the 3rd and 4th columns contain the same values.}
-\item{optbw_t : The optimal bandwidth for the second argument of the autocovariance function.}
-\item{Hs : The estimates of the local exponent for each \code{s}. It corresponds to \eqn{H_s}.}
-\item{Ls2 : The estimates of the Hölder constant for each \code{s}. It corresponds to \eqn{L_s^2}.}
-\item{Ht : The estimates of the local exponent for each \code{t}. It corresponds to \eqn{H_t}.}
-\item{Lt2 : The estimates of the Hölder constant for each \code{t}. It corresponds to \eqn{L_t^2}.}
-\item{PNs : The number of curves used to estimate the mean at \code{s}. It corresponds to \eqn{P_N(s;h)}.}
-\item{muhat_s : The estimates of the mean at \code{s}. It corresponds to \eqn{\widehat{\mu}_N(s;h)}.}
-\item{PNt : The number of curves used to estimate the mean at \code{t}. It corresponds to \eqn{P_N(t;h)}.}
-\item{muhat_t : The estimates of the mean at \code{t}. It corresponds to \eqn{\widehat{\mu}_N(t;h)}.}
-\item{PNl : The number of curves used to estimate the autocovariance at \code{(s,t)}. It corresponds to \eqn{P_{N,\ell}(s,t;h_s, h_t)}.}
-\item{autocov : The estimates of the covariance/autocovariance.}
+\item \code{s}, \code{t}: the arguments of the autocovariance function.
+\item \code{optbw_s}, \code{optbw_t}: the bandwidths used for \code{s} and
+for \code{t}. Identical when \code{common_bw = TRUE}.
+\item \code{Hs}, \code{Ls2}: the estimated local exponent \eqn{H_s} and
+squared Hölder constant \eqn{L_s^2} at \code{s}.
+\item \code{Ht}, \code{Lt2}: the same quantities at \code{t}.
+\item \code{PNs}, \code{muhat_s}: the number of curves used for the mean at
+\code{s} and the estimated mean there.
+\item \code{PNt}, \code{muhat_t}: the same quantities at \code{t}.
+\item \code{PNl}: the number of curves contributing to the estimate at
+(\code{s}, \code{t}), \eqn{P_{N,\ell}(s,t;h_s,h_t)}.
+\item \code{autocov}: the estimated (auto)covariance.
 }
 }
 \description{
-This function estimates the adaptive lag-\eqn{\ell} autocovariance function, where \eqn{\ell} = 0, 1, ...,
-using one bandwidth parameter as proposed in \insertCite{maissoro2024adaptive;textual}{adaptiveFTS}
-or two bandwidth parameters as proposed in \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+Estimates the adaptive lag-\eqn{\ell} autocovariance function for
+\eqn{\ell = 0, 1, \ldots} (\eqn{\ell = 0} being the covariance function), using
+at each pair of points the bandwidths that minimise the estimated risk.
+}
+\details{
+Unless \code{bw_s} and \code{bw_t} are supplied, the bandwidths are selected
+pair by pair by minimising the risk of \link{estimate_autocov_risk} over
+\code{bw_grid}. Set \code{common_bw = TRUE} for the one-bandwidth estimator of
+\insertCite{maissoro2024adaptive;textual}{adaptiveFTS} and \code{FALSE}
+(default) for the two-bandwidth estimator of
+\insertCite{maissoro2024pred;textual}{adaptiveFTS}.
+
+\code{center_curves} chooses how the mean is removed. With \code{TRUE}
+(default) the curves are centred before smoothing, which estimates
+\eqn{\mathbb{E}(X_0(s) - \mu(s))(X_{\ell}(t) - \mu(t))} in one pass. With
+\code{FALSE} the two pieces \eqn{\mathbb{E}X_0(s)X_{\ell}(t)} and
+\eqn{\mu(s)\mu(t)} are estimated separately, the first with a bandwidth from
+\link{estimate_autocov_risk} and the second with a bandwidth from
+\link{estimate_mean_risk}. Both are centred estimates; they differ in which
+bandwidth is applied to which piece.
+
+At \code{lag = 0} the diagonal \eqn{s = t} carries the variance of the
+observation noise on top of the covariance. \code{correct_diagonal = TRUE}
+subtracts the estimated noise variance there; it has no effect for
+\code{lag > 0}, where the noise of two distinct curves is uncorrelated.
 }
 \examples{
-\dontrun{
-#' # Load data
 data("data_far")
+dt_small <- data_far[data_far$id_curve <= 20, ]
+bwg <- seq(0.04, 0.15, length.out = 5)
 
-# Estimate adaptive lag-1 autocovariance
+# Lag-1 autocovariance.
 dt_autocov <- estimate_autocov(
-  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  s = c(1/5, 2/5, 4/5), t = c(1/4, 1/2, 3/4), lag = 1,
-  optbw_s = NULL, optbw_t = NULL, bw_grid = NULL,
-  use_same_bw = FALSE, center = TRUE, correct_diagonal = FALSE,
+  data = dt_small, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  s = c(1/5, 2/5), t = c(1/4, 1/2), lag = 1, bw_grid = bwg,
+  common_bw = FALSE, center_curves = TRUE, correct_diagonal = FALSE,
   kernel_name = "epanechnikov")
-dt_autocov[, .(s, t, lag, PNl, autocov)]
+dt_autocov[, list(s, t, optbw_s, optbw_t, PNl, autocov)]
 
-# Estimate adaptive covariance
-
+# Covariance, with the noise variance removed from the diagonal.
 dt_cov <- estimate_autocov(
-  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  s = c(1/5, 2/5, 4/5), t = c(1/4, 1/2, 3/4), lag = 0,
-  optbw_s = NULL, optbw_t = NULL, bw_grid = NULL,
-  use_same_bw = FALSE, center = TRUE, correct_diagonal = TRUE,
+  data = dt_small, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  s = c(1/4, 1/2), t = c(1/4, 1/2), lag = 0, bw_grid = bwg,
+  common_bw = FALSE, center_curves = TRUE, correct_diagonal = TRUE,
   kernel_name = "epanechnikov")
-dt_cov[, .(s, t, lag, PNl, autocov)]
-}
+dt_cov[, list(s, t, PNl, autocov)]
 
 }
 \references{
 \insertAllCited{}
 }
 \seealso{
-\code{\link[=estimate_mean]{estimate_mean()}}, \code{\link[=estimate_locreg]{estimate_locreg()}}, \code{\link[=estimate_sigma]{estimate_sigma()}}, \code{\link[=estimate_nw]{estimate_nw()}}, \code{\link[=estimate_autocov_risk]{estimate_autocov_risk()}}.
+\code{\link[=estimate_autocov_risk]{estimate_autocov_risk()}}, \code{\link[=estimate_facf]{estimate_facf()}}, \code{\link[=estimate_mean]{estimate_mean()}}.
 }

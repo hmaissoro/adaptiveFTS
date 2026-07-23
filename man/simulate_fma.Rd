@@ -7,16 +7,16 @@
 simulate_fma(
   N = 2L,
   lambda = 70L,
-  tdesign = "random",
-  Mdistribution = rpois,
-  tdistribution = runif,
-  tcommon = seq(0.2, 0.8, len = 50),
+  design = "random",
+  M_distribution = rpois,
+  t_distribution = runif,
+  t_common = seq(0.2, 0.8, len = 50),
   hurst_fun = hurst_logistic,
   L = 4,
   fma_kernel = function(s, t) 9/4 * exp(-(t + 2 * s)^2),
   fma_mean = function(t) 4 * sin(1.5 * pi * t),
-  int_grid = 100L,
-  burnin = 100L,
+  n_int_grid = 100L,
+  n_burnin = 100L,
   remove_burnin = TRUE
 )
 }
@@ -25,16 +25,16 @@ simulate_fma(
 
 \item{lambda}{\code{integer}. Mean of the number of observations per curve.}
 
-\item{tdesign}{\code{character}. Type of the design. It is either 'random' or 'common'.}
+\item{design}{\code{character}. Type of the design. It is either 'random' or 'common'.}
 
-\item{Mdistribution}{\code{function}. Distribution of the number of observation points per curve.
+\item{M_distribution}{\code{function}. Distribution of the number of observation points per curve.
 The first argument of the function must correspond to \code{N} and the second to \code{lambda}.
-Default \code{Mdistribution = rpois}.}
+Default \code{M_distribution = rpois}.}
 
-\item{tdistribution}{\code{function (or NULL)}. Observation point distribution if \code{tdesign = 'random'} and \code{NULL} otherwise.}
+\item{t_distribution}{\code{function (or NULL)}. Observation point distribution if \code{design = 'random'} and \code{NULL} otherwise.}
 
-\item{tcommon}{\code{vector (float)}. Observation point vector if \code{tdesign = 'common'}.
-If \code{tdesign = 'random'} and if we want to run some tests at a particular observation position, this can also be specified.}
+\item{t_common}{\code{vector (float)}. Observation point vector if \code{design = 'common'}.
+If \code{design = 'random'} and if we want to run some tests at a particular observation position, this can also be specified.}
 
 \item{hurst_fun}{\code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}.}
 
@@ -44,18 +44,18 @@ If \code{tdesign = 'random'} and if we want to run some tests at a particular ob
 
 \item{fma_mean}{\code{function}. Mean function of the FMA(1).}
 
-\item{int_grid}{\code{integer}. Length of the grid used to approximate the integral.}
+\item{n_int_grid}{\code{integer}. Length of the grid used to approximate the integral.}
 
-\item{burnin}{\code{integer}. Burnin period of the FMA(1).}
+\item{n_burnin}{\code{integer}. Burnin period of the FMA(1).}
 
-\item{remove_burnin}{\code{boolean}. If \code{TRUE}, burnin period is removed.}
+\item{remove_burnin}{\code{boolean}. If \code{TRUE}, n_burnin period is removed.}
 }
 \value{
 A \code{data.table} containing 3 column :
 \itemize{
 \item{id_curve :}{ Index of the curve. It goes from 1 to N.}
 \item{tobs :}{ Sampled observation points, for each \code{id_curve}.}
-\item{ttag :}{ Tag on the observations points, for each \code{id_curve}. It is either \code{tcommon} for common design grid or \code{tcommon} pour random design.}
+\item{ttag :}{ Tag on the observations points, for each \code{id_curve}. It is either \code{t_common} for common design grid or \code{t_common} pour random design.}
 \item{fma_mean :}{ The mean of the process evaluate at \code{tobs}, for each \code{id_curve}.}
 \item{X :}{ The process observed at tobs, for each \code{id_curve}.}
 }
@@ -67,16 +67,16 @@ Functional Moving Average process of order 1 (FMA(1)) simulation
 
 \dontrun{
 dt_fma <- simulate_fma(N = 2L, lambda = 70L,
-                       tdesign = "random",
-                       Mdistribution = rpois,
-                       tdistribution = runif,
-                       tcommon = seq(0.2, 0.8, len = 50),
+                       design = "random",
+                       M_distribution = rpois,
+                       t_distribution = runif,
+                       t_common = seq(0.2, 0.8, len = 50),
                        hurst_fun = hurst_logistic,
                        L = 4,
                        fma_kernel = function(s,t) 9/4 * exp(- (t + 2 * s) ** 2),
                        fma_mean = function(t) 4 * sin(1.5 * pi * t),
-                       int_grid = 100L,
-                       burnin = 100L,
+                       n_int_grid = 100L,
+                       n_burnin = 100L,
                        remove_burnin = TRUE)
 # plot simulated curve
 library(ggplot2)

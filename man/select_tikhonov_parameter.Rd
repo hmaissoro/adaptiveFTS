@@ -12,8 +12,8 @@ select_tikhonov_parameter(
   method = c("cv"),
   kernel_name = "epanechnikov",
   homoscedastic = TRUE,
-  n_subgrid_bw = 10L,
-  n_cv_tikhonov = 30L,
+  bw_subgrid_size = 10L,
+  n_cv_curves = 30L,
   tikhonov_grid = NULL,
   bw_grid = NULL,
   density_bw = NULL
@@ -43,10 +43,10 @@ cross-validation) is available.}
 \item{homoscedastic}{If \code{TRUE} (default) a constant noise variance (median of
 the pointwise estimates) is used; otherwise the t-varying estimates.}
 
-\item{n_subgrid_bw}{Number of points per axis of the coarse sub-grid on which
-the adaptive bandwidths are selected. Default \code{10}.}
+\item{bw_subgrid_size}{Number of points per axis of the coarse sub-grid on
+which the adaptive bandwidths are selected. Default \code{10}.}
 
-\item{n_cv_tikhonov}{Number of trailing curves used for the Tikhonov
+\item{n_cv_curves}{Number of trailing curves held out for the Tikhonov
 cross-validation when \code{tikhonov} is \code{NULL}. Default \code{30}.}
 
 \item{tikhonov_grid}{Candidate values. If \code{NULL}, a 25-point grid
@@ -75,7 +75,7 @@ BLUP. Currently only \code{method = "cv"} is implemented, a one-step-ahead
 cross-validation.
 }
 \details{
-Each of the last \code{n_cv_tikhonov} curves is predicted from its immediate predecessor
+Each of the last \code{n_cv_curves} curves is predicted from its immediate predecessor
 and scored by the design-weighted squared prediction error at its observation
 points, \eqn{\sum_i \varrho_{n,i}\,(Y_{n,i} - \widehat X_n(T_{n,i};\alpha))^2},
 where \eqn{\varrho_{n,i}} is the design weight of the held-out (target) curve.

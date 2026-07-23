@@ -2,16 +2,16 @@
 % Please edit documentation in R/04_estimate_mean.R
 \name{estimate_mean_bw_rp}
 \alias{estimate_mean_bw_rp}
-\title{Bandwidth estimation using cross-validation for the \insertCite{rubin2020;textual}{adaptiveFTS} mean function estimator.}
+\title{Select the Bandwidth of the Rubìn-Panaretos Mean Estimator}
 \usage{
 estimate_mean_bw_rp(
   data,
   idcol = "id_curve",
   tcol = "tobs",
   ycol = "X",
-  Kfold = 10,
+  n_folds = 10,
   bw_grid = seq(0.001, 0.15, len = 45),
-  smooth_ker = epanechnikov
+  kernel_name = "epanechnikov"
 )
 }
 \arguments{
@@ -30,67 +30,50 @@ observation points of the curves.}
 \item{ycol}{\code{character(1)}. Name of the column (or vector) holding the
 values observed at those points.}
 
-\item{Kfold}{\code{integer (positive)}. Number of fold for the cross-validation.}
+\item{n_folds}{\code{integer (positive)}. Number of cross-validation folds.}
 
-\item{bw_grid}{\code{vector (numeric)}. The bandwidth grid.}
+\item{bw_grid}{\code{vector (numeric)}. Candidate bandwidths.}
 
-\item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.}
+\item{kernel_name}{\code{string}. Kernel of the smoothing estimator, one of
+"epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
+"uniform".}
 }
 \value{
-A \code{data.table} containing the following columns.
+A \code{data.table} with one row per candidate bandwidth and columns:
 \itemize{
-\item{h :}{ The candidate bandwidth.}
-\item{cv_error :}{ The estimates of the Cross-Validation error for each \code{h}.}
+\item \code{h}: the candidate bandwidth.
+\item \code{cv_error}: the cross-validation error at \code{h}. The bandwidth
+minimising it is the one to pass to \link{estimate_mean_rp}.
 }
 }
 \description{
-This function estimates the optimal bandwidth for the mean function estimator
-using cross-validation, as described in \insertCite{rubin2020;textual}{adaptiveFTS}.
+Selects the bandwidth of \link{estimate_mean_rp} by \eqn{K}-fold
+cross-validation over the curves, as described in
+\insertCite{rubin2020;textual}{adaptiveFTS}. Curves are split into folds; each
+fold is predicted from the mean function estimated on the others, and the
+squared prediction errors are averaged.
 }
 \examples{
-\dontrun{
-# Generate a FAR A process
-dt_far <- simulate_far(N = 50, lambda = 70,
-                       tdesign = "random",
-                       Mdistribution = rpois,
-                       tdistribution = runif,
-                       tcommon = NULL,
-                       hurst_fun = hurst_logistic,
-                       L = 4,
-                       far_kernel = get_real_data_far_kenel,
-                       far_mean = get_real_data_mean,
-                       int_grid = 100L,
-                       burnin = 100L,
-                       remove_burnin = TRUE)
+\donttest{
+data("data_far")
+dt_small <- data_far[data_far$id_curve <= 10, ]
 
-# Add noise
-dt_far[, X := X + rnorm(n = .N, mean = 0, sd = 0.9 ** (0.1)), by = id_curve]
+dt_bw <- estimate_mean_bw_rp(
+  data = dt_small, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  n_folds = 5, bw_grid = seq(0.02, 0.15, length.out = 5),
+  kernel_name = "epanechnikov")
 
-## Estimate the bandwidth by Cross-Validation
-dt_bw_mean_rp <- estimate_mean_bw_rp(
-  data = dt_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  Kfold = 10, bw_grid = seq(0.001, 0.15, len = 45),
-  smooth_ker = epanechnikov)
-
-## Plot the Cross-Validation error
-dygraphs::dygraph(dt_bw_mean_rp)
-
-## Select the best bandwidth
-optbw <- dt_bw_mean_rp[, h[which.min(cv_error)]]
-
-## Estimate the mean function
 dt_mean_rp <- estimate_mean_rp(
-  data = dt_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  t = c(1/4, 1/2, 3/4), h = optbw, smooth_ker = epanechnikov)
-
-DT::datatable(data = dt_mean_rp[, lapply(.SD, function(X) round(X, 5))])
-
+  data = dt_small, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  t = c(1/4, 1/2, 3/4), h = dt_bw[, h[which.min(cv_error)]],
+  kernel_name = "epanechnikov")
+dt_mean_rp
 }
 
 }
 \references{
-\insertRef{rubin2020}{adaptiveFTS}
+\insertAllCited{}
 }
 \seealso{
-\code{\link[=estimate_mean_rp]{estimate_mean_rp()}}
+\code{\link[=estimate_mean_rp]{estimate_mean_rp()}}.
 }

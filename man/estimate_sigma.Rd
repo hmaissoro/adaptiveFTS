@@ -6,7 +6,7 @@
 \usage{
 estimate_sigma(
   data,
-  idcol = NULL,
+  idcol = "id_curve",
   tcol = "tobs",
   ycol = "X",
   t = c(1/4, 1/2, 3/4)

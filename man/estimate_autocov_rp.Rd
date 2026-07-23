@@ -2,7 +2,7 @@
 % Please edit documentation in R/05_estimate_autocovariance.R
 \name{estimate_autocov_rp}
 \alias{estimate_autocov_rp}
-\title{Estimate lag-\eqn{\ell} (\eqn{\ell \leq 0}) autocovariance function using \insertCite{rubin2020;textual}{adaptiveFTS} method}
+\title{Estimate the Autocovariance Function by the Rubìn-Panaretos Method}
 \usage{
 estimate_autocov_rp(
   data,
@@ -13,9 +13,9 @@ estimate_autocov_rp(
   t = c(1/4, 1/2, 3/4),
   lag = 1,
   h,
-  optbw_mean = NULL,
-  dt_mean_rp = NULL,
-  smooth_ker = epanechnikov
+  bw_mean = NULL,
+  mean_rp = NULL,
+  kernel_name = "epanechnikov"
 )
 }
 \arguments{
@@ -34,42 +34,65 @@ observation points of the curves.}
 \item{ycol}{\code{character(1)}. Name of the column (or vector) holding the
 values observed at those points.}
 
-\item{s}{\code{vector (numeric)}. First argument of the autocovariance function.
-It corresponds to the observation points \code{s} in the pair (\code{s}, \code{t}).
-It has to be of the same length as the \code{t}}
+\item{s}{\code{vector (numeric)}. First argument of the autocovariance
+function: the points \code{s} of the pairs (\code{s}, \code{t}). Must have the
+same length as \code{t}.}
 
-\item{t}{\code{vector (numeric)}. Second argument of the autocovariance function.
-It corresponds to the observation points \code{t} in the pair (\code{s}, \code{t}).
-It has to be of the same length as the \code{s}.}
+\item{t}{\code{vector (numeric)}. Second argument of the autocovariance
+function: the points \code{t} of the pairs (\code{s}, \code{t}). Must have the
+same length as \code{s}.}
 
-\item{lag}{\code{integer (positive integer)}. Lag of the autocovariance.}
+\item{lag}{\code{integer (non-negative)}. Lag \eqn{\ell} of the autocovariance.}
 
-\item{h}{\code{numeric (positive scalar)}. The bandwidth of the estimator.}
+\item{h}{\code{numeric (positive scalar)}. Bandwidth of the estimator, common
+to every pair. See \link{estimate_autocov_bw_rp} to select it by
+cross-validation.}
 
-\item{optbw_mean}{\code{numeric (positive scalar)}. Optimal bandwidth for the mean function estimator.
-It is \code{NULL} if \code{dt_mean_rp} is not \code{NULL}.}
+\item{bw_mean}{\code{numeric (positive scalar)}. Bandwidth of the mean function
+estimator, used only when \code{mean_rp} is \code{NULL}.}
 
-\item{dt_mean_rp}{\code{data.table}. It contains the estimates of the mean function at each observation point for each curve.
-The name of the curve identification column must be \code{id_curve}, the observation points column \code{tobs} and the mean estimates column \code{muhat_RP}.
-Default \code{dt_mean_rp = NULL} and so it will be estimated.}
+\item{mean_rp}{\code{data.table}. Mean function estimated at every observation
+point of every curve, with columns \code{id_curve}, \code{tobs} and
+\code{muhat_RP}. Default \code{NULL} estimates it from \code{bw_mean}.}
 
-\item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator.
-Default \code{smooth_ker = epanechnikov}.}
+\item{kernel_name}{\code{string}. Kernel of the smoothing estimator, one of
+"epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
+"uniform".}
 }
 \value{
-A \code{data.table} containing the following columns.
+A \code{data.table} with one row per pair (\code{s}, \code{t}) and
+columns:
 \itemize{
-\item{s :}{ The first argument of the autocovariance function.}
-\item{t :}{ The second argument of the autocovariance function.}
-\item{lag :}{ The lag of the autocovariance. It corresponds to \eqn{\ell \leq 0}.}
-\item{optbw_mean :}{ The optimal bandwidth for the mean function estimator.}
-\item{h :}{ The bandwidth used to estimate the lag-\eqn{\ell}, \eqn{\ell \leq 0} autocovariance function}
-\item{autocovhat_rp :}{ The estimates of the lag-\eqn{\ell} autocovariance function for each (\code{s}, \code{t}) using Rubìn and Panaretos (2020) method.}
+\item \code{s}, \code{t}: the arguments of the autocovariance function.
+\item \code{lag}: the lag \eqn{\ell}.
+\item \code{optbw_mean}: the bandwidth used for the mean function.
+\item \code{h}: the bandwidth used for the autocovariance.
+\item \code{autocovhat_rp}: the estimated autocovariance.
 }
 }
 \description{
-Estimate lag-\eqn{\ell} (\eqn{\ell \leq 0}) autocovariance function using \insertCite{rubin2020;textual}{adaptiveFTS} method
+Estimates the lag-\eqn{\ell} autocovariance function with the local-linear
+estimator of \insertCite{rubin2020;textual}{adaptiveFTS}, which smooths every
+pair of observation points of curves \eqn{\ell} apart with a single bandwidth.
+It is provided for comparison with the adaptive estimator of
+\link{estimate_autocov}.
+}
+\examples{
+\donttest{
+data("data_far")
+
+dt_autocov_rp <- estimate_autocov_rp(
+  data = data_far[data_far$id_curve <= 10, ],
+  idcol = "id_curve", tcol = "tobs", ycol = "X",
+  s = c(1/5, 2/5), t = c(1/4, 1/2), lag = 1,
+  h = 0.1, bw_mean = 0.1, mean_rp = NULL, kernel_name = "epanechnikov")
+dt_autocov_rp
+}
+
 }
 \references{
 \insertAllCited{}
+}
+\seealso{
+\code{\link[=estimate_autocov_bw_rp]{estimate_autocov_bw_rp()}}, \code{\link[=estimate_autocov]{estimate_autocov()}}.
 }

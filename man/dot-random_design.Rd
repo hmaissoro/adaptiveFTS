@@ -4,21 +4,21 @@
 \alias{.random_design}
 \title{Generate a random design of the place where the observation is made.}
 \usage{
-.random_design(N, lambda, Mdistribution = rpois, tdistribution = runif, ...)
+.random_design(N, lambda, M_distribution = rpois, t_distribution = runif, ...)
 }
 \arguments{
 \item{N}{\code{integer}. Number of curves.}
 
 \item{lambda}{\code{integer}. Mean of the number of observations per curve.}
 
-\item{Mdistribution}{\code{function}. Distribution of the number of observation points per curve.
+\item{M_distribution}{\code{function}. Distribution of the number of observation points per curve.
 The first argument of the function must correspond to \code{N} and the second to \code{lambda}.
-Default \code{Mdistribution = rpois}.}
+Default \code{M_distribution = rpois}.}
 
-\item{tdistribution}{\code{function}. Distribution of the observation point in the domain.
+\item{t_distribution}{\code{function}. Distribution of the observation point in the domain.
 Currently only \code{runif} is accepted.}
 
-\item{...}{Additional argument of \code{tdistribution}.}
+\item{...}{Additional argument of \code{t_distribution}.}
 }
 \value{
 A \code{data.table} containing 3 column :

@@ -2,7 +2,7 @@
 % Please edit documentation in R/04_estimate_mean.R
 \name{estimate_mean_rp}
 \alias{estimate_mean_rp}
-\title{Estimate mean function using \insertCite{rubin2020;textual}{adaptiveFTS} method.}
+\title{Estimate the Mean Function by the Rubìn-Panaretos Method}
 \usage{
 estimate_mean_rp(
   data,
@@ -11,7 +11,7 @@ estimate_mean_rp(
   ycol = "X",
   t = c(1/4, 1/2, 3/4),
   h,
-  smooth_ker = epanechnikov
+  kernel_name = "epanechnikov"
 )
 }
 \arguments{
@@ -30,56 +30,44 @@ observation points of the curves.}
 \item{ycol}{\code{character(1)}. Name of the column (or vector) holding the
 values observed at those points.}
 
-\item{t}{\code{vector (numeric)}. Observation points at which we want to estimate the mean function of the underlying process.}
+\item{t}{\code{vector (numeric)}. Points of \eqn{[0, 1]} at which the mean
+function is estimated.}
 
-\item{h}{\code{numeric (positive scalar)}. The bandwidth of the estimator.}
+\item{h}{\code{numeric (positive scalar)}. Bandwidth of the estimator, common
+to every point of \code{t}. See \link{estimate_mean_bw_rp} to select it by
+cross-validation.}
 
-\item{smooth_ker}{\code{function}. The kernel function of the Nadaraya-Watson estimator. Default \code{smooth_ker = epanechnikov}.}
+\item{kernel_name}{\code{string}. Kernel of the smoothing estimator, one of
+"epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
+"uniform".}
 }
 \value{
-A \code{data.table} containing the following columns.
+A \code{data.table} with one row per point of \code{t} and columns:
 \itemize{
-\item{t :}{ The Observation points at which the mean function is estimated.}
-\item{h :}{ The bandwidth parameter.}
-\item{muhat_RP :}{ The estimates of the mean function using Rubìn and Panaretos (2020) method.}
+\item \code{t}: the point at which the mean function is estimated.
+\item \code{h}: the bandwidth used.
+\item \code{muhat_RP}: the estimated mean function.
 }
 }
 \description{
-This function estimates the mean function of a set of curves using the method proposed
-by \insertCite{rubin2020;textual}{adaptiveFTS}.
+Estimates the mean function with the local-linear estimator of
+\insertCite{rubin2020;textual}{adaptiveFTS}, which pools the observation points
+of all curves and smooths them with a single bandwidth. It is provided for
+comparison with the adaptive estimator of \link{estimate_mean}.
 }
 \examples{
-\dontrun{
-# Generate a FAR A process
-dt_far <- simulate_far(N = 50, lambda = 70,
-                       tdesign = "random",
-                       Mdistribution = rpois,
-                       tdistribution = runif,
-                       tcommon = NULL,
-                       hurst_fun = hurst_logistic,
-                       L = 4,
-                       far_kernel = get_real_data_far_kenel,
-                       far_mean = get_real_data_mean,
-                       int_grid = 100L,
-                       burnin = 100L,
-                       remove_burnin = TRUE)
+data("data_far")
 
-# Add noise
-dt_far[, X := X + rnorm(n = .N, mean = 0, sd = 0.9 ** (0.1)), by = id_curve]
-
-# Estimate mean function using Rubìn and Panaretos (2020) method
 dt_mean_rp <- estimate_mean_rp(
-  data = dt_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  t = c(1/4, 1/2, 3/4), h = 5/70, smooth_ker = epanechnikov)
-
-DT::datatable(data = dt_mean_rp[, lapply(.SD, function(X) round(X, 5))])
-
-}
+  data = data_far[data_far$id_curve <= 20, ],
+  idcol = "id_curve", tcol = "tobs", ycol = "X",
+  t = c(1/4, 1/2, 3/4), h = 5/70, kernel_name = "epanechnikov")
+dt_mean_rp
 
 }
 \references{
-\insertRef{rubin2020}{adaptiveFTS}
+\insertAllCited{}
 }
 \seealso{
-\code{\link[=estimate_mean_bw_rp]{estimate_mean_bw_rp()}}
+\code{\link[=estimate_mean_bw_rp]{estimate_mean_bw_rp()}}, \code{\link[=estimate_mean]{estimate_mean()}}.
 }

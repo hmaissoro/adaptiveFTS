@@ -26,7 +26,7 @@
 #' }
 #'
 #'
-estimate_sigma <- function(data, idcol = NULL, tcol = "tobs", ycol = "X", t = c(1/4, 1/2, 3/4)) {
+estimate_sigma <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X", t = c(1/4, 1/2, 3/4)) {
   # Format data
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
 
@@ -46,11 +46,11 @@ estimate_sigma <- function(data, idcol = NULL, tcol = "tobs", ycol = "X", t = c(
 #' @inheritParams format_data
 #' @param t \code{vector (numeric)}. Observation points at which we want to estimate the empirical autocovariance function.
 #' @param lag \code{vector (integer)}. Lag of the autocovariance.
-#' @param h \code{numeric (positive vector or scalar)}. The smoothing bandwidth parameter.
-#' Default \code{h = NULL} and thus it will be estimated by Cross-Validation on a subset of curves.
-#' If \code{h} is a \code{scalar}, then all curves will be smoothed with the same bandwidth.
-#' Otherwise, if \code{h} is a \code{vector}, its length must be equal to the number of curves in \code{data}
-#' and each element of the vector must correspond to a curve given in the same order as in \code{data}.
+#' @param presmooth_bw \code{numeric (positive vector or scalar)}. Bandwidth used
+#' to presmooth each curve before the estimation. A scalar applies the same
+#' bandwidth to every curve; a vector must hold one bandwidth per curve, in the
+#' order the curves appear in \code{data}. Default \code{NULL} selects it by
+#' cross-validation, see \link{get_nw_optimal_bw}.
 #' @param kernel_name \code{string}. Specifies the kernel function for estimation; default is "epanechnikov".
 #' Supported kernels include: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".
 #'
@@ -74,20 +74,20 @@ estimate_sigma <- function(data, idcol = NULL, tcol = "tobs", ycol = "X", t = c(
 #' # Estimate empirical autocovariance with a specified bandwidth
 #' dt_empirical_autocov <- estimate_empirical_autocov(
 #'   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-#'   t = c(1/4, 1/2, 3/4), lag = c(1, 2), h = 0.1,
+#'   t = c(1/4, 1/2, 3/4), lag = c(1, 2), presmooth_bw = 0.1,
 #'   kernel_name = "epanechnikov")
 #' dt_empirical_autocov
 #'
 #' # Estimate empirical autocovariance with Cross-Validation bandwidth selection
 #' dt_empirical_autocov_cv <- estimate_empirical_autocov(
 #'   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-#'   t = c(1/4, 1/2, 3/4), lag = c(1, 2), h = NULL,
+#'   t = c(1/4, 1/2, 3/4), lag = c(1, 2), presmooth_bw = NULL,
 #'   kernel_name = "epanechnikov")
 #' dt_empirical_autocov_cv
 #' }
 #'
-estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol = "X",
-                                       t = c(1/4, 1/2, 3/4), lag = c(0, 1, 2), h = NULL,
+estimate_empirical_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                                       t = c(1/4, 1/2, 3/4), lag = c(0, 1, 2), presmooth_bw = NULL,
                                        kernel_name = "epanechnikov"){
   # Format data
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
@@ -104,32 +104,10 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
     choices = c("epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform")
   )
 
-  # Control on the pre-smoothing bandwidth
-  if (! is.null(h)) {
-    # h is a vector or a scalar
-    if (! all(methods::is(h, "numeric") & data.table::between(h, 0, 1))){
-      stop("'h' must be a numeric vector or scalar value(s) between 0 and 1.")
-    } else if (length(h) > 1 & length(h) != N) {
-      stop("If 'h' is given as a vector, its length must be equal to the number of curves in 'data'.")
-    }
-  } else {
-    # If h = NULL, choose the bandwidth by CV
-    if (N > 50) {
-      h <- get_nw_optimal_bw(
-        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-        bw_grid = NULL, nsubset = 30, kernel_name = kernel_name)
-    } else {
-      h <- get_nw_optimal_bw(
-        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-        bw_grid = NULL, nsubset = NULL, kernel_name = kernel_name)
-    }
-  }
-
-  # If the bandwidth is given as scalar or computed
-  if (length(h) == 1) h <- rep(h, N)
+  presmooth_bw <- .resolve_presmooth_bw(presmooth_bw, data, N, kernel_name)
 
   # Estimation using C++ function
-  mat_emp_autocov <- estimate_empirical_autocov_cpp(data = data, t = t, h = h, lag = lag, kernel_name = kernel_name)
+  mat_emp_autocov <- estimate_empirical_autocov_cpp(data = data, t = t, h = presmooth_bw, lag = lag, kernel_name = kernel_name)
   dt_emp_autocov <- data.table::as.data.table(mat_emp_autocov)
   data.table::setnames(x = dt_emp_autocov, new = c("t", "lag", "autocov"))
 
@@ -145,11 +123,11 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
 #' @param t \code{vector (numeric)}. Observation points at which the \eqn{p}-th order moment of \eqn{X(t)} is estimated.
 #' Each element should be a value between 0 and 1.
 #' @param mom_order \code{numeric (positive scalar)}. The order of the moment to be computed (e.g., 1 for mean, 2 for variance).
-#' @param h \code{numeric (positive vector or scalar)}. The smoothing bandwidth parameter.
-#' Default \code{h = NULL}, in which case the bandwidth will be estimated by Cross-Validation on a subset of curves.
-#' If \code{h} is a scalar, then all curves will be smoothed with the same bandwidth.
-#' If \code{h} is a vector, its length must equal the number of curves in \code{data}, with each element corresponding
-#' to a curve in the same order as in \code{data}.
+#' @param presmooth_bw \code{numeric (positive vector or scalar)}. Bandwidth used
+#' to presmooth each curve before the estimation. A scalar applies the same
+#' bandwidth to every curve; a vector must hold one bandwidth per curve, in the
+#' order the curves appear in \code{data}. Default \code{NULL} selects it by
+#' cross-validation, see \link{get_nw_optimal_bw}.
 #' @param center \code{logical}. If \code{TRUE}, then the \eqn{p}-th order moment of the centered \eqn{X(t)} is estimated.
 #' Default is \code{TRUE}.
 #' @param kernel_name \code{string}. Specifies the kernel function for estimation; default is "epanechnikov".
@@ -184,7 +162,7 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
 #'   data = data_far,
 #'   t = observation_points,
 #'   mom_order = moment_order,
-#'   h = NULL,
+#'   presmooth_bw = NULL,
 #'   center = TRUE,
 #'   kernel_name = "epanechnikov"
 #' )
@@ -193,8 +171,8 @@ estimate_empirical_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol =
 #' print(moment_estimates)
 #' }
 #'
-estimate_empirical_mom <- function(data, idcol = NULL, tcol = "tobs", ycol = "X",
-                                   t = c(1/4, 1/2, 3/4), mom_order = 1, h = NULL,
+estimate_empirical_mom <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+                                   t = c(1/4, 1/2, 3/4), mom_order = 1, presmooth_bw = NULL,
                                    center = TRUE, kernel_name = "epanechnikov") {
   # Format data
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
@@ -209,33 +187,11 @@ estimate_empirical_mom <- function(data, idcol = NULL, tcol = "tobs", ycol = "X"
     choices = c("epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform")
   )
 
-  # Control on the pre-smoothing bandwidth
-  if (! is.null(h)) {
-    # h is a vector or a scalar
-    if (! all(methods::is(h, "numeric") & data.table::between(h, 0, 1))){
-      stop("'h' must be a numeric vector or scalar value(s) between 0 and 1.")
-    } else if (length(h) > 1 & length(h) != N) {
-      stop("If 'h' is given as a vector, its length must be equal to the number of curves in 'data'.")
-    }
-  } else {
-    # If h = NULL, choose the bandwidth by CV
-    if (N > 50) {
-      h <- get_nw_optimal_bw(
-        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-        bw_grid = NULL, nsubset = 30, kernel_name = kernel_name)
-    } else {
-      h <- get_nw_optimal_bw(
-        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-        bw_grid = NULL, nsubset = NULL, kernel_name = kernel_name)
-    }
-  }
-
-  # If the bandwidth is given as scalar or computed
-  if (length(h) == 1) h <- rep(h, N)
+  presmooth_bw <- .resolve_presmooth_bw(presmooth_bw, data, N, kernel_name)
 
   # Estimation using C++ function
   mat_mom <- estimate_empirical_mom_cpp(
-    data = data, t = t, h = h, mom_order = mom_order,
+    data = data, t = t, h = presmooth_bw, mom_order = mom_order,
     center = center, kernel_name = kernel_name)
   dt_mom <- data.table::as.data.table(mat_mom)
   data.table::setnames(x = dt_mom, new = c("t", "mom_order", "mom_estimate"))
@@ -255,11 +211,15 @@ estimate_empirical_mom <- function(data, idcol = NULL, tcol = "tobs", ycol = "X"
 #' @param t \code{vector (numeric)}. Second argument in \eqn{X_0(s)X_{\ell}(t)}, corresponding to observation points \code{t} in the pair (\code{s}, \code{t}).
 #' Must be of the same length as \code{s}.
 #' @param cross_lag \code{integer (positive integer)}. The lag \eqn{\ell} in \eqn{X_0(s)X_{\ell}(t)}.
-#' @param lag \code{vector (integer)}. Lag for the autocovariance of \eqn{X_0(s)X_{\ell}(t)}.
-#' If \code{lag = NULL}, only \eqn{\mathbb{E}X_0(s)X_{\ell}(t)} is returned.
-#' @param h \code{numeric (positive vector or scalar)}. Smoothing bandwidth parameter.
-#' Defaults to \code{NULL}, in which case \code{h} is estimated via Cross-Validation on a subset of curves.
-#' If \code{h} is a scalar, all curves are smoothed with the same bandwidth; if a vector, it should match the number of curves in \code{data}.
+#' @param autocov_lag \code{vector (integer)}. Lags at which the autocovariance of
+#' the scalar series \eqn{n \mapsto X_n(s)X_{n+\ell}(t)} is estimated, \eqn{\ell}
+#' being \code{cross_lag}. If \code{NULL}, only \eqn{\mathbb{E}X_0(s)X_{\ell}(t)}
+#' is returned.
+#' @param presmooth_bw \code{numeric (positive vector or scalar)}. Bandwidth used
+#' to presmooth each curve before the estimation. A scalar applies the same
+#' bandwidth to every curve; a vector must hold one bandwidth per curve, in the
+#' order the curves appear in \code{data}. Default \code{NULL} selects it by
+#' cross-validation, see \link{get_nw_optimal_bw}.
 #' @param center \code{logical}. If \code{TRUE}, the estimated autocovariance is centered: \eqn{\mathbb{E}(X_0(s) - \mu(s))(X_{\ell}(t) - \mu(t))}. Defaults to \code{FALSE}, providing \eqn{\mathbb{E}X_0(s)X_{\ell}(t)}.
 #' @param kernel_name \code{string}. Kernel function for estimation; defaults to "epanechnikov". Supported kernels are: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".
 #'
@@ -268,9 +228,9 @@ estimate_empirical_mom <- function(data, idcol = NULL, tcol = "tobs", ycol = "X"
 #'   \item{s :}{ First argument in \eqn{X_0(s)X_{\ell}(t)}.}
 #'   \item{t :}{ Second argument in \eqn{X_0(s)X_{\ell}(t)}.}
 #'   \item{cross_lag :}{ Lag \eqn{\ell} in \eqn{X_0(s)X_{\ell}(t)}.}
-#'   \item{lag :}{ Lags for autocovariance estimation of \eqn{X_0(s)X_{\ell}(t)}; contains \code{NA} if \code{lag = NULL}.}
+#'   \item{lag :}{ The lags at which the autocovariance of \eqn{X_0(s)X_{\ell}(t)} is estimated; \code{NA} if \code{autocov_lag = NULL}.}
 #'   \item{EXsXt_cross_lag :}{ Mean of \eqn{X_0(s)X_{\ell}(t)}.}
-#'   \item{XsXt_autocov :}{ Autocovariance estimates of \eqn{X_0(s)X_{\ell}(t)} for each \code{lag}; contains \code{NA} if \code{lag = NULL}.}
+#'   \item{XsXt_autocov :}{ Autocovariance estimates of \eqn{X_0(s)X_{\ell}(t)} for each \code{autocov_lag}; \code{NA} if \code{autocov_lag = NULL}.}
 #' }
 #'
 #' @export
@@ -298,8 +258,8 @@ estimate_empirical_mom <- function(data, idcol = NULL, tcol = "tobs", ycol = "X"
 #'   s = c(1/5, 2/5, 4/5),
 #'   t = c(1/4, 1/2, 3/4),
 #'   cross_lag = 1,
-#'   lag = c(0, 1, 2),
-#'   h = 0.1,
+#'   autocov_lag = c(0, 1, 2),
+#'   presmooth_bw = 0.1,
 #'   center = FALSE,
 #'   kernel_name = "epanechnikov"
 #' )
@@ -314,19 +274,19 @@ estimate_empirical_mom <- function(data, idcol = NULL, tcol = "tobs", ycol = "X"
 #'   s = c(1/5, 2/5, 4/5),
 #'   t = c(1/4, 1/2, 3/4),
 #'   cross_lag = 1,
-#'   lag = c(0, 1, 2),
-#'   h = 0.1,
+#'   autocov_lag = c(0, 1, 2),
+#'   presmooth_bw = 0.1,
 #'   center = TRUE,
 #'   kernel_name = "epanechnikov"
 #' )
 #'dt_empirical_cov_centered
 #' }
 #'
-estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", ycol = "X",
+estimate_empirical_XsXt_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                             s = c(1/5, 2/5, 4/5),
                                             t = c(1/4, 1/2, 3/4),
                                             cross_lag = 1,
-                                            lag = c(0, 1, 2), h = NULL,
+                                            autocov_lag = c(0, 1, 2), presmooth_bw = NULL,
                                             center = FALSE,
                                             kernel_name = "epanechnikov"){
   # Format data
@@ -338,8 +298,8 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", y
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! length(s) == length(t))
     stop("Arguments 's' and 't' must be of equal length.")
-  if (any(N <= lag))
-    stop("'lag' must be lower than the number of curves.")
+  if (any(N <= autocov_lag))
+    stop("'autocov_lag' must be lower than the number of curves.")
   if (! all(methods::is(t, "numeric") & data.table::between(t, 0, 1)))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (any(cross_lag < 0)| (length(cross_lag) > 1) | any(cross_lag - floor(cross_lag) > 0) | any(N <= cross_lag))
@@ -358,39 +318,12 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = NULL, tcol = "tobs", y
   t <- dt_st[, t]
   rm(dt_st) ; gc()
 
-  # Control on the pre-smoothing bandwidth
-  if (! is.null(h)) {
-    # h is a vector or a scalar
-    if (! all(methods::is(h, "numeric") & data.table::between(h, 0, 1))){
-      stop("'h' must be a numeric vector or scalar value(s) between 0 and 1.")
-    } else if (length(h) > 1 & length(h) != N) {
-      stop("If 'h' is given as a vector, its length must be equal to the number of curves in 'data'.")
-    }
-  } else {
-    # If h = NULL, choose the bandwidth by CV
-    if (N > 50) {
-      sample_curves <- sample(x = 1:N, size = 30)
-    } else {
-      sample_curves <- 1:N
-    }
-    if (N > 50) {
-      h <- get_nw_optimal_bw(
-        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-        bw_grid = NULL, nsubset = 30, kernel_name = kernel_name)
-    } else {
-      h <- get_nw_optimal_bw(
-        data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-        bw_grid = NULL, nsubset = NULL, kernel_name = kernel_name)
-    }
-  }
-
-  # If the bandwidth is given as scalar or computed
-  if (length(h) == 1) h <- rep(h, N)
+  presmooth_bw <- .resolve_presmooth_bw(presmooth_bw, data, N, kernel_name)
 
   # Estimation using C++ function
   mat_XsXt_autocov <- estimate_empirical_XsXt_autocov_cpp(
-    data = data, t = t, s = s, lag = lag, cross_lag = cross_lag,
-    h = h, center = center, kernel_name = kernel_name)
+    data = data, t = t, s = s, lag = autocov_lag, cross_lag = cross_lag,
+    h = presmooth_bw, center = center, kernel_name = kernel_name)
   dt_XsXt_autocov <- data.table::as.data.table(mat_XsXt_autocov)
   data.table::setnames(x = dt_XsXt_autocov, new = c("s", "t", "cross_lag", "lag", "EXsXt_cross_lag", "XsXt_autocov"))
 

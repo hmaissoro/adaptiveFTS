@@ -245,6 +245,72 @@ get_nw_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X
   return(hbest)
 }
 
+#' Validate or select the presmoothing bandwidth of the empirical estimators
+#'
+#' @param presmooth_bw The user-supplied bandwidth: a scalar, a vector of length
+#'   \code{N}, or \code{NULL} to select it by cross-validation.
+#' @param data A formatted \code{data.table}, as returned by [format_data()].
+#' @param N \code{integer(1)}. The number of curves in \code{data}.
+#' @param kernel_name \code{character(1)}. The kernel used for the presmoothing.
+#' @return A \code{numeric} vector of length \code{N}, one bandwidth per curve.
+#' @keywords internal
+.resolve_presmooth_bw <- function(presmooth_bw, data, N, kernel_name){
+  if (! is.null(presmooth_bw)) {
+    if (! all(methods::is(presmooth_bw, "numeric") & data.table::between(presmooth_bw, 0, 1))) {
+      stop("'presmooth_bw' must be a numeric vector or scalar value(s) between 0 and 1.")
+    } else if (length(presmooth_bw) > 1 & length(presmooth_bw) != N) {
+      stop("If 'presmooth_bw' is given as a vector, its length must be equal to the number of curves in 'data'.")
+    }
+  } else {
+    presmooth_bw <- get_nw_optimal_bw(
+      data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
+      bw_grid = NULL, nsubset = if (N > 50) 30 else NULL, kernel_name = kernel_name)
+  }
+  if (length(presmooth_bw) == 1) presmooth_bw <- rep(presmooth_bw, N)
+  return(presmooth_bw)
+}
+
+#' Default candidate bandwidth grid of the adaptive risk functions
+#'
+#' A 20-point geometric grid running from \eqn{4(N\lambda)^{-0.9}} to
+#' \eqn{4(N\lambda)^{-1/3}}, where \eqn{N} is the number of curves and
+#' \eqn{\lambda} the average number of observation points per curve.
+#'
+#' @param data A formatted \code{data.table}, as returned by [format_data()].
+#' @return A \code{numeric} vector of candidate bandwidths.
+#' @keywords internal
+.default_bw_grid <- function(data){
+  N <- data[, length(unique(id_curve))]
+  lambdahat <- mean(data[, .N, by = "id_curve"][, N])
+  K <- 20
+  b0 <- 4 * (N * lambdahat) ** (- 0.9)
+  bK <- 4 * (N * lambdahat) ** (- 1 / 3)
+  a <- exp((log(bK) - log(b0)) / K)
+  return(b0 * a ** (seq_len(K)))
+}
+
+#' Resolve a kernel name to the corresponding kernel function
+#'
+#' @param kernel_name \code{character(1)}. One of the kernel names accepted
+#'   throughout the package.
+#' @return The matching kernel function.
+#' @keywords internal
+.select_kernel <- function(kernel_name){
+  kernel_name <- match.arg(
+    arg = kernel_name,
+    choices = c("epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform")
+  )
+  return(switch(
+    kernel_name,
+    epanechnikov = epanechnikov,
+    biweight     = biweight,
+    triweight    = triweight,
+    tricube      = tricube,
+    triangular   = triangular,
+    uniform      = uniform
+  ))
+}
+
 #' Biweight kernel function
 #'
 #' @param u \code{numeric}. Scalar or vector of numeric values at which to evaluate the function.

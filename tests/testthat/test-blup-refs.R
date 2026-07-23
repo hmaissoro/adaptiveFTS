@@ -55,7 +55,7 @@ test_that("select_tikhonov_parameter matches references", {
   p <- ref_inputs()
   tikhonov_grid_ref <- exp(seq(-2, 0, length.out = 8))
   cv <- suppressWarnings(select_tikhonov_parameter(
-    p$dt, tikhonov_grid = tikhonov_grid_ref, n_cv_tikhonov = 3L,
+    p$dt, tikhonov_grid = tikhonov_grid_ref, n_cv_curves = 3L,
     bw_grid = p$bwg, kernel_name = "epanechnikov"))
   expect_equal(cv, read_ref("select_tikhonov_parameter"), tolerance = TOL_BLAS)
 })

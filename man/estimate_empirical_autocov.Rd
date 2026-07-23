@@ -6,12 +6,12 @@
 \usage{
 estimate_empirical_autocov(
   data,
-  idcol = NULL,
+  idcol = "id_curve",
   tcol = "tobs",
   ycol = "X",
   t = c(1/4, 1/2, 3/4),
   lag = c(0, 1, 2),
-  h = NULL,
+  presmooth_bw = NULL,
   kernel_name = "epanechnikov"
 )
 }
@@ -35,11 +35,11 @@ values observed at those points.}
 
 \item{lag}{\code{vector (integer)}. Lag of the autocovariance.}
 
-\item{h}{\code{numeric (positive vector or scalar)}. The smoothing bandwidth parameter.
-Default \code{h = NULL} and thus it will be estimated by Cross-Validation on a subset of curves.
-If \code{h} is a \code{scalar}, then all curves will be smoothed with the same bandwidth.
-Otherwise, if \code{h} is a \code{vector}, its length must be equal to the number of curves in \code{data}
-and each element of the vector must correspond to a curve given in the same order as in \code{data}.}
+\item{presmooth_bw}{\code{numeric (positive vector or scalar)}. Bandwidth used
+to presmooth each curve before the estimation. A scalar applies the same
+bandwidth to every curve; a vector must hold one bandwidth per curve, in the
+order the curves appear in \code{data}. Default \code{NULL} selects it by
+cross-validation, see \link{get_nw_optimal_bw}.}
 
 \item{kernel_name}{\code{string}. Specifies the kernel function for estimation; default is "epanechnikov".
 Supported kernels include: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".}
@@ -59,14 +59,14 @@ data("data_far")
 # Estimate empirical autocovariance with a specified bandwidth
 dt_empirical_autocov <- estimate_empirical_autocov(
   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  t = c(1/4, 1/2, 3/4), lag = c(1, 2), h = 0.1,
+  t = c(1/4, 1/2, 3/4), lag = c(1, 2), presmooth_bw = 0.1,
   kernel_name = "epanechnikov")
 dt_empirical_autocov
 
 # Estimate empirical autocovariance with Cross-Validation bandwidth selection
 dt_empirical_autocov_cv <- estimate_empirical_autocov(
   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  t = c(1/4, 1/2, 3/4), lag = c(1, 2), h = NULL,
+  t = c(1/4, 1/2, 3/4), lag = c(1, 2), presmooth_bw = NULL,
   kernel_name = "epanechnikov")
 dt_empirical_autocov_cv
 }

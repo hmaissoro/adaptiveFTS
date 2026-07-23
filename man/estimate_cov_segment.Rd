@@ -10,9 +10,9 @@ estimate_cov_segment(
   tcol = "tobs",
   ycol = "X",
   t = c(1/4, 1/2, 3/4),
-  optbw = NULL,
+  bw = NULL,
   bw_grid = NULL,
-  center = TRUE,
+  center_curves = TRUE,
   kernel_name = "epanechnikov"
 )
 }
@@ -34,13 +34,15 @@ values observed at those points.}
 
 \item{t}{A numeric vector. Observation points where the mean function of the underlying process is estimated.}
 
-\item{optbw}{A numeric vector. Optimal bandwidth parameters for covariance segment function estimation at each \code{t}.
-Default is \code{NULL}, in which case it will be estimated using the \link{estimate_cov_segment_risk} function.}
+\item{bw}{A numeric vector. Bandwidth to use at each point of \code{t},
+recycled if a scalar. Default \code{NULL} selects it by minimising the risk
+estimated by \link{estimate_cov_segment_risk}.}
 
 \item{bw_grid}{A numeric vector. A bandwidth grid from which the best smoothing parameter is selected for each \code{t}.
 Default is \code{NULL}, in which case it is defined as an exponential grid of \eqn{N \times \lambda}.}
 
-\item{center}{Logical. If \code{TRUE}, centers the data before estimation. Default is \code{TRUE}.}
+\item{center_curves}{Logical. If \code{TRUE} (default), the curves are centred
+before smoothing.}
 
 \item{kernel_name}{Character string. Specifies the kernel function for estimation; default is \code{"epanechnikov"}.
 Supported kernels include: \code{"epanechnikov"}, \code{"biweight"}, \code{"triweight"}, \code{"tricube"},
@@ -65,8 +67,14 @@ using the Nadaraya–Watson estimator with a specified kernel. This is part of t
 described in \insertCite{maissoro2024pred;textual}{adaptiveFTS}.
 }
 \examples{
-# Example coming soon
+data("data_far")
 
+dt_cov_segment <- estimate_cov_segment(
+  data = data_far[data_far$id_curve <= 20, ],
+  idcol = "id_curve", tcol = "tobs", ycol = "X",
+  t = c(1/4, 1/2, 3/4), bw_grid = seq(0.04, 0.15, length.out = 5),
+  center_curves = TRUE, kernel_name = "epanechnikov")
+dt_cov_segment
 
 }
 \references{

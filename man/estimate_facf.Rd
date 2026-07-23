@@ -13,8 +13,8 @@ estimate_facf(
   t = NULL,
   n_grid = 25L,
   bw_grid = NULL,
-  use_same_bw = FALSE,
-  center = TRUE,
+  common_bw = FALSE,
+  center_curves = TRUE,
   kernel_name = "epanechnikov"
 )
 }
@@ -45,15 +45,20 @@ common design (subsampled to at most \code{n_grid} points), or a regular grid of
 \item{n_grid}{\code{integer(1)}. Size of the default evaluation grid when \code{t}
 is \code{NULL}. Default \code{25}.}
 
-\item{bw_grid}{\code{vector (numeric)}. Bandwidth grid for selecting the optimal smoothing parameter for each pair (\code{s}, \code{t}). Defaults to \code{NULL}, which generates an exponential grid of \eqn{N \lambda}.}
+\item{bw_grid}{\code{vector (numeric)}. Candidate bandwidths, from which
+\link{estimate_autocov} picks the risk-minimising one for each pair. Default
+\code{NULL} builds the grid from the data; see Details.}
 
-\item{use_same_bw}{\code{logical}. Indicates whether the same bandwidth should be used for both \code{s} and \code{t}. Defaults to \code{FALSE}.}
+\item{common_bw}{\code{logical}. If \code{TRUE}, a single bandwidth is selected
+for both arguments of the autocovariance; if \code{FALSE} (default), one
+bandwidth per argument. See Details.}
 
-\item{center}{\code{logical (TRUE or FALSE)}. Default \code{center = TRUE} and so the curves are centred when the autocovariance is estimated: \eqn{\mathbb{E}(X_0(s) - \mu(s))(X_{\ell}(t) - \mu(t))}.
-Otherwise, the two parts \eqn{\mathbb{E}X_0(s)X_{\ell}(t)} and \eqn{\mu(s)\mu(t)} will be estimated separately.
-The first part with a bandwidth obtained with \link{estimate_autocov_risk} and the second part with a bandwidth obtained with \link{estimate_mean_risk}.}
+\item{center_curves}{\code{logical}. If \code{TRUE} (default), the curves are
+centred before smoothing.}
 
-\item{kernel_name}{\code{string}. Specifies the kernel function for estimation; default is "epanechnikov". Supported kernels include: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".}
+\item{kernel_name}{\code{string}. Kernel of the smoothing estimator, one of
+"epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
+"uniform".}
 }
 \value{
 An object of class \code{fts_acf} (a classed \link[data.table:data.table]{data.table::data.table}; see

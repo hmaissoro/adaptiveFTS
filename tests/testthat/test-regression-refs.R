@@ -92,15 +92,15 @@ test_that("constants (sigma, moments, empirical autocov) match references", {
                read_ref("estimate_sigma_wrapper"), tolerance = TOL)
   expect_equal(g("estimate_empirical_mom_cpp")(p$dtf, p$tt, hN, 2, 0, "epanechnikov"),
                read_ref("estimate_empirical_mom_cpp"), tolerance = TOL)
-  expect_equal(estimate_empirical_mom(p$dt, idcol = "id_curve", t = p$tt, h = 0.1, mom_order = 2, center = FALSE),
+  expect_equal(estimate_empirical_mom(p$dt, idcol = "id_curve", t = p$tt, presmooth_bw = 0.1, mom_order = 2, center = FALSE),
                read_ref("estimate_empirical_mom_wrapper"), tolerance = TOL)
   expect_equal(g("estimate_empirical_autocov_cpp")(p$dtf, p$tt, hN, c(0,1,2), "epanechnikov"),
                read_ref("estimate_empirical_autocov_cpp"), tolerance = TOL)
-  expect_equal(estimate_empirical_autocov(p$dt, idcol = "id_curve", t = p$tt, lag = c(0,1,2), h = 0.1),
+  expect_equal(estimate_empirical_autocov(p$dt, idcol = "id_curve", t = p$tt, lag = c(0,1,2), presmooth_bw = 0.1),
                read_ref("estimate_empirical_autocov_wrapper"), tolerance = TOL)
   expect_equal(g("estimate_empirical_XsXt_autocov_cpp")(p$dtf, p$ss, p$ttac, 0L, c(0,1), hN, "epanechnikov", TRUE),
                read_ref("estimate_empirical_XsXt_autocov_cpp"), tolerance = TOL)
-  expect_equal(estimate_empirical_XsXt_autocov(p$dt, idcol = "id_curve", s = p$ss, t = p$ttac, cross_lag = 0L, lag = c(0,1), h = 0.1),
+  expect_equal(estimate_empirical_XsXt_autocov(p$dt, idcol = "id_curve", s = p$ss, t = p$ttac, cross_lag = 0L, autocov_lag = c(0,1), presmooth_bw = 0.1),
                read_ref("estimate_empirical_XsXt_autocov_wrapper"), tolerance = TOL)
   expect_equal(g("estimate_numerator_dependence_term_DD_cpp")(p$dtf, p$tt, p$bwg, hN, 3L, "epanechnikov", TRUE),
                read_ref("estimate_numerator_dependence_term_DD_cpp"), tolerance = TOL)

@@ -12,8 +12,8 @@ predict_curve(
   t = seq(0.01, 0.99, len = 99),
   id_curve_to_predict = NULL,
   bw_grid = NULL,
-  use_same_bw = FALSE,
-  center = TRUE,
+  common_bw = FALSE,
+  center_curves = TRUE,
   correct_diagonal = TRUE,
   kernel_name = "epanechnikov"
 )
@@ -41,9 +41,11 @@ values observed at those points.}
 \item{bw_grid}{A numeric vector of bandwidth grid values for selecting optimal bandwidth parameters for (auto)covariance estimation.
 Default is \code{NULL}, which sets it in the function.}
 
-\item{use_same_bw}{A logical value indicating whether the same bandwidth should be used for the arguments \code{s} and \code{t} in the (auto)covariance estimation. Default is \code{FALSE}.}
+\item{common_bw}{A logical value indicating whether a single bandwidth is used
+for both arguments of the (auto)covariance. Default is \code{FALSE}.}
 
-\item{center}{A logical value indicating whether the data should be centered before estimating the (auto)covariance. Default is \code{TRUE}.}
+\item{center_curves}{A logical value indicating whether the curves are centred
+before smoothing. Default is \code{TRUE}.}
 
 \item{correct_diagonal}{A logical value indicating whether the diagonal of the covariances should be corrected. Default is \code{TRUE}.}
 

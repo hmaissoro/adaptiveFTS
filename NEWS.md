@@ -2,6 +2,39 @@
 
 ## Breaking changes
 
+* Arguments were renamed for clarity. There are no deprecation shims: update
+  calls that name these arguments.
+
+  | Function | Old | New |
+  | --- | --- | --- |
+  | `estimate_autocov()`, `estimate_autocov_risk()`, `estimate_facf()`, `predict_curve()` | `use_same_bw` | `common_bw` |
+  | `estimate_autocov()`, `estimate_autocov_risk()`, `estimate_cov_segment()`, `estimate_cov_segment_risk()`, `estimate_facf()`, `predict_curve()` | `center` | `center_curves` |
+  | `estimate_mean()`, `estimate_cov_segment()` | `optbw` | `bw` |
+  | `estimate_autocov()` | `optbw_s`, `optbw_t` | `bw_s`, `bw_t` |
+  | `estimate_locreg()`, `estimate_empirical_autocov()`, `estimate_empirical_mom()`, `estimate_empirical_XsXt_autocov()` | `h` | `presmooth_bw` |
+  | `estimate_empirical_XsXt_autocov()` | `lag` | `autocov_lag` |
+  | `estimate_mean_rp()`, `estimate_mean_bw_rp()`, `estimate_autocov_rp()`, `estimate_autocov_bw_rp()` | `smooth_ker` (a function) | `kernel_name` (a string) |
+  | `estimate_mean_bw_rp()`, `estimate_autocov_bw_rp()` | `Kfold` | `n_folds` |
+  | `estimate_autocov_rp()`, `estimate_autocov_bw_rp()` | `optbw_mean`, `dt_mean_rp` | `bw_mean`, `mean_rp` |
+  | `blup_fit()`, `blup()` | `id_lag` | `id_conditioning_curve` |
+  | `blup_fit()`, `blup()`, `select_tikhonov_parameter()` | `n_cv_tikhonov`, `n_subgrid_bw` | `n_cv_curves`, `bw_subgrid_size` |
+  | `simulate_far()`, `simulate_fma()` | `Mdistribution`, `tdistribution`, `tdesign`, `tcommon`, `int_grid`, `burnin` | `M_distribution`, `t_distribution`, `design`, `t_common`, `n_int_grid`, `n_burnin` |
+
+  Output column names are unchanged.
+
+* The Rubìn-Panaretos estimators take the kernel by name (`kernel_name = "epanechnikov"`)
+  rather than as a function object, matching the adaptive estimators. The kernel
+  functions themselves remain exported.
+* `idcol` now defaults to `"id_curve"` in `estimate_sigma()`,
+  `estimate_empirical_autocov()`, `estimate_empirical_mom()` and
+  `estimate_empirical_XsXt_autocov()`, as it already did elsewhere. These four
+  previously defaulted to `NULL`, which made `format_data()` reject a
+  `data.frame` input.
+* `get_real_data_far_kenel()` is renamed `get_real_data_far_kernel()`.
+* `.Spq_fun()` and `.Qpq_fun()` are no longer exported. They are internals of
+  `estimate_autocov_rp()`, which is the entry point to use.
+* The `adaptive_meta` attribute of `autocov_est` and `autocov_risk` objects
+  carries `common_bw` instead of `use_same_bw`.
 * `format_data()` now validates its result instead of passing questionable data
   on to the estimators. It fails when the observation points fall outside
   `[0, 1]` (the domain the estimators assume), when the observation points or
@@ -11,6 +44,10 @@
 
 ## Bug fixes
 
+* `estimate_autocov_bw_rp()` always returned a cross-validation error of zero,
+  so the selected bandwidth was simply the first of the grid. The held-out mean
+  estimates were read from the wrong grid object and silently resolved to
+  `NULL`, which collapsed the error sum to zero for every candidate.
 * `format_data()` mis-assigned observations when the rows of a curve were not
   contiguous in the input: the curve index was rebuilt from run lengths counted
   by value but written back in row order, scattering a curve's observation

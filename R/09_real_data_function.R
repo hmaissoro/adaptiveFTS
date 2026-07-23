@@ -60,10 +60,10 @@ get_real_data_mean <- function(t = seq(0.1, 0.9, len = 10)){
 #' @examples
 #'
 #' # get the value of the kernel at (s,t) = (0.2, 0.3)
-#' kerval <- get_real_data_far_kenel(s = 0.2, t = 0.3, operator_norm = 0.5)
+#' kerval <- get_real_data_far_kernel(s = 0.2, t = 0.3, operator_norm = 0.5)
 #' kerval
 #'
-get_real_data_far_kenel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
+get_real_data_far_kernel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
   # Basis coefficient
   # For each fixed {\eta_k(s), k = 1,...,K} and {\theta_l(t), l = 1,...,L}, we have
   # c(b_{11}, b_{12}, ..., b_{1L},
