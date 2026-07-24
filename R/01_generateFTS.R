@@ -298,7 +298,24 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
   }, M = M, ... = ...))
 }
 
-#' Functional Autoregressive process of order 1 (FAR(1)) simulation
+#' Simulate a Functional Autoregressive Process of Order One
+#'
+#' Simulates \code{N} curves of a FAR(1) process, \eqn{X_n = \Psi(X_{n-1}) +
+#' \varepsilon_n}, where \eqn{\Psi} is the integral operator with kernel
+#' \code{far_kernel} and the innovations are multifractional Brownian motions
+#' whose roughness follows \code{hurst_fun}. Each curve is observed at random or
+#' common design points, and the returned sample is the one this package's
+#' estimators consume.
+#'
+#' @details
+#' The process is built on a regular integration grid of \code{n_int_grid} points
+#' and iterated for \code{n_burnin} steps before the \code{N} curves are kept, so
+#' that the returned sample is (close to) stationary; set
+#' \code{remove_burnin = FALSE} to keep the burn-in curves as well. Each curve is
+#' then observed at \code{M} points, with \code{M} drawn from
+#' \code{M_distribution}: at random locations drawn from \code{t_distribution}
+#' when \code{design = "random"}, or at the shared grid \code{t_common} when
+#' \code{design = "common"}.
 #'
 #' @param N \code{integer}. Number of curves.
 #' @param lambda \code{integer}. Mean of the number of observations per curve.
@@ -360,7 +377,6 @@ simulate_far <- function(N = 2L, lambda = 70L,
                          n_int_grid = 100L,
                          n_burnin = 100L,
                          remove_burnin = TRUE) {
-  #TODO : Ajouter une description car grosse fonction
   if (! (N - floor(N) == 0) & N > 1)
     stop("'N' must be an integer greater than 1.")
   if (! methods::is(design, "character")){
@@ -464,9 +480,15 @@ simulate_far <- function(N = 2L, lambda = 70L,
   return(dt_far)
 }
 
-#' Functional Moving Average process of order 1 (FMA(1)) simulation
+#' Simulate a Functional Moving Average Process of Order One
 #'
-#'@param N \code{integer}. Number of curves.
+#' Simulates \code{N} curves of a FMA(1) process, \eqn{X_n = \varepsilon_n +
+#' \Psi(\varepsilon_{n-1})}, where \eqn{\Psi} is the integral operator with
+#' kernel \code{fma_kernel} and the innovations are multifractional Brownian
+#' motions whose roughness follows \code{hurst_fun}. It is the moving-average
+#' counterpart of \code{\link{simulate_far}} and shares its arguments and output.
+#'
+#' @param N \code{integer}. Number of curves.
 #' @param lambda \code{integer}. Mean of the number of observations per curve.
 #' @param design \code{character}. Type of the design. It is either 'random' or 'common'.
 #' @param M_distribution \code{function}. Distribution of the number of observation points per curve.

@@ -2,7 +2,7 @@
 % Please edit documentation in R/01_generateFTS.R
 \name{simulate_far}
 \alias{simulate_far}
-\title{Functional Autoregressive process of order 1 (FAR(1)) simulation}
+\title{Simulate a Functional Autoregressive Process of Order One}
 \usage{
 simulate_far(
   N = 2L,
@@ -61,7 +61,22 @@ A \code{data.table} containing 3 column :
 }
 }
 \description{
-Functional Autoregressive process of order 1 (FAR(1)) simulation
+Simulates \code{N} curves of a FAR(1) process, \eqn{X_n = \Psi(X_{n-1}) +
+\varepsilon_n}, where \eqn{\Psi} is the integral operator with kernel
+\code{far_kernel} and the innovations are multifractional Brownian motions
+whose roughness follows \code{hurst_fun}. Each curve is observed at random or
+common design points, and the returned sample is the one this package's
+estimators consume.
+}
+\details{
+The process is built on a regular integration grid of \code{n_int_grid} points
+and iterated for \code{n_burnin} steps before the \code{N} curves are kept, so
+that the returned sample is (close to) stationary; set
+\code{remove_burnin = FALSE} to keep the burn-in curves as well. Each curve is
+then observed at \code{M} points, with \code{M} drawn from
+\code{M_distribution}: at random locations drawn from \code{t_distribution}
+when \code{design = "random"}, or at the shared grid \code{t_common} when
+\code{design = "common"}.
 }
 \examples{
 
