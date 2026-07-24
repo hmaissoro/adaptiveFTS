@@ -76,7 +76,7 @@ reference:
 - title: Real-data helpers
   contents:
   - get_real_data_mean
-  - get_real_data_far_kenel
+  - get_real_data_far_kernel
 - title: Data
   contents:
   - data_far
