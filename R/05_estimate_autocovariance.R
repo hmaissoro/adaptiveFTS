@@ -171,10 +171,13 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
 #' \link{estimate_mean_risk}. Both are centred estimates; they differ in which
 #' bandwidth is applied to which piece.
 #'
-#' At \code{lag = 0} the diagonal \eqn{s = t} carries the variance of the
-#' observation noise on top of the covariance. \code{correct_diagonal = TRUE}
-#' subtracts the estimated noise variance there; it has no effect for
-#' \code{lag > 0}, where the noise of two distinct curves is uncorrelated.
+#' At \code{lag = 0} the observation noise contributes to the estimate wherever
+#' the two smoothing windows overlap, that is on and near the diagonal
+#' \eqn{s = t}. \code{correct_diagonal = TRUE} (default) subtracts that
+#' contribution: an estimate of \eqn{\sigma(s)\sigma(t)} weighted by the overlap
+#' of the two kernel weight vectors, which is largest at \eqn{s = t} and decays
+#' as the points move apart. It has no effect for \code{lag > 0}, where the noise
+#' of two distinct curves is uncorrelated.
 #'
 #' @inheritParams estimate_autocov_risk
 #' @param bw_s \code{vector (numeric)}. Bandwidth to use for \code{s} at each
