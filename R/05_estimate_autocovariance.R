@@ -136,7 +136,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   # Estimate risk funciton using C++ function
   mat_autocov_risk <- estimate_autocov_risk_cpp(
     data = data, s = s, t = t, lag = lag, bw_grid = bw_grid,
-    use_same_bw = common_bw, center = center_curves, kernel_name = kernel_name)
+    common_bw = common_bw, center = center_curves, kernel_name = kernel_name)
   dt_autocov_risk <- data.table::as.data.table(mat_autocov_risk)
   data.table::setnames(
     x = dt_autocov_risk,
@@ -273,8 +273,8 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   # Estimate autocovariance using C++ function
   mat_autocov <- estimate_autocov_cpp(
     data = data, s = s, t = t, lag = lag,
-    optbw_s = bw_s, optbw_t = bw_t, bw_grid = bw_grid,
-    use_same_bw = common_bw, center = center_curves,
+    bw_s = bw_s, bw_t = bw_t, bw_grid = bw_grid,
+    common_bw = common_bw, center = center_curves,
     correct_diagonal = correct_diagonal, kernel_name = kernel_name)
   dt_autocov <- data.table::as.data.table(mat_autocov)
 
@@ -305,7 +305,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' @param lag \code{integer (non-negative)}. Lag of the autocovariance.
 #' @param p,q \code{numeric (integer)}. Exponents of the centred and scaled
 #' observation points in the sum.
-#' @param h \code{numeric (positive scalar)}. Bandwidth of the estimator.
+#' @param bw \code{numeric (positive scalar)}. Bandwidth of the estimator.
 #' @param kernel_name \code{string}. Kernel of the smoothing estimator, one of
 #' "epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
 #' "uniform".
@@ -323,7 +323,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #'
 .Spq_fun <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                      s = 1/4, t = 1/2, lag = 1, p = 1, q = 1,
-                     h, kernel_name = "epanechnikov"){
+                     bw, kernel_name = "epanechnikov"){
   # Control easy checkable arguments
   if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1)) & length(s) == 1))
     stop("'s' must be a numeric scalar value between 0 and 1.")
@@ -340,8 +340,8 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   if ((any(p < 0)| (length(p) > 1) | any(p - floor(p) > 0)) |
       any(q < 0)| (length(q) > 1) | any(q - floor(q) > 0))
     stop("'p' and 'q' must be positive integers.")
-  if (! (methods::is(h, "numeric") & all(data.table::between(h, 0, 1))  & length(h) == 1))
-    stop("'h' must be a numeric scalar value between 0 and 1.")
+  if (! (methods::is(bw, "numeric") & all(data.table::between(bw, 0, 1))  & length(bw) == 1))
+    stop("'bw' must be a numeric scalar value between 0 and 1.")
 
   # Extract observation points
   Tn <- data[id_curve %in% 1:(N - lag), tobs]
@@ -359,8 +359,8 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   rm(dt_tobs, Tn, Tn_plus_lag) ; gc()
 
   # Calculation of the elements to be summed up
-  res <- (((xthj_vec - t) / h ) ** p) * (((xtk_vec - s) / h ) ** q) *
-    (1 / (h ** 2)) * smooth_ker((xthj_vec - t) / h) * smooth_ker((xtk_vec - s) / h )
+  res <- (((xthj_vec - t) / bw ) ** p) * (((xtk_vec - s) / bw ) ** q) *
+    (1 / (bw ** 2)) * smooth_ker((xthj_vec - t) / bw) * smooth_ker((xtk_vec - s) / bw )
   Spq_sum <- sum(res)
   rm(res) ; gc()
   Spq <- Spq_sum / (N - lag)
@@ -393,7 +393,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #'
 .Qpq_fun <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                      s = 1/4, t = 1/2, lag = 1, p = 1, q = 1,
-                     h, mean_rp = NULL, bw_mean = NULL,
+                     bw, mean_rp = NULL, bw_mean = NULL,
                      kernel_name = "epanechnikov"){
   # Control easy checkable arguments
   if (! (methods::is(s, "numeric") && all(s > 0 & s <= 1) && length(s) == 1))
@@ -410,8 +410,8 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   if ((any(p < 0)| (length(p) > 1) | any(p - floor(p) > 0)) |
       any(q < 0)| (length(q) > 1) | any(q - floor(q) > 0))
     stop("'p' and 'q' must be positive integers.")
-  if (! (methods::is(h, "numeric") && all(h > 0 & h < 1)  && length(h) == 1))
-    stop("'h' must be a numeric scalar value between 0 and 1.")
+  if (! (methods::is(bw, "numeric") && all(bw > 0 & bw < 1)  && length(bw) == 1))
+    stop("'bw' must be a numeric scalar value between 0 and 1.")
   if (is.null(mean_rp)) {
     if (is.null(bw_mean)) {
       stop("If 'mean_rp' is NULL, then 'bw_mean' can not be NULL.")
@@ -428,7 +428,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     mean_rp <- data[order(tobs), list(id_curve, tobs)]
     dt_mean <- estimate_mean_rp(
       data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-      t = mean_rp[, tobs], h = bw_mean, kernel_name = kernel_name)
+      t = mean_rp[, tobs], bw = bw_mean, kernel_name = kernel_name)
     mean_rp[, muhat_RP := dt_mean[, muhat_RP]]
     rm(dt_mean) ; gc()
   } else {
@@ -470,8 +470,8 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 
   # Calculate Q function
   Gth <- (Ythj_vec - muhat_xthj_vec) * (Ytk_vec - muhat_tk_vec)
-  res <- Gth * (((xthj_vec - t) / h ) ** p) * (((xtk_vec - s) / h ) ** q) *
-    (1 / (h ** 2)) * smooth_ker((xthj_vec - t) / h) * smooth_ker((xtk_vec - s) / h )
+  res <- Gth * (((xthj_vec - t) / bw ) ** p) * (((xtk_vec - s) / bw ) ** q) *
+    (1 / (bw ** 2)) * smooth_ker((xthj_vec - t) / bw) * smooth_ker((xtk_vec - s) / bw )
 
   Qpq_sum <- sum(res)
   rm(res) ; gc()
@@ -495,7 +495,7 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' function: the points \code{t} of the pairs (\code{s}, \code{t}). Must have the
 #' same length as \code{s}.
 #' @param lag \code{integer (non-negative)}. Lag \eqn{\ell} of the autocovariance.
-#' @param h \code{numeric (positive scalar)}. Bandwidth of the estimator, common
+#' @param bw \code{numeric (positive scalar)}. Bandwidth of the estimator, common
 #' to every pair. See \link{estimate_autocov_bw_rp} to select it by
 #' cross-validation.
 #' @param mean_rp \code{data.table}. Mean function estimated at every observation
@@ -520,8 +520,8 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #' \itemize{
 #'   \item \code{s}, \code{t}: the arguments of the autocovariance function.
 #'   \item \code{lag}: the lag \eqn{\ell}.
-#'   \item \code{optbw_mean}: the bandwidth used for the mean function.
-#'   \item \code{h}: the bandwidth used for the autocovariance.
+#'   \item \code{bw_mean}: the bandwidth used for the mean function.
+#'   \item \code{bw}: the bandwidth used for the autocovariance.
 #'   \item \code{autocovhat_rp}: the estimated autocovariance.
 #' }
 #' @export
@@ -535,13 +535,13 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #'   data = data_far[data_far$id_curve <= 10, ],
 #'   idcol = "id_curve", tcol = "tobs", ycol = "X",
 #'   s = c(1/5, 2/5), t = c(1/4, 1/2), lag = 1,
-#'   h = 0.1, bw_mean = 0.1, mean_rp = NULL, kernel_name = "epanechnikov")
+#'   bw = 0.1, bw_mean = 0.1, mean_rp = NULL, kernel_name = "epanechnikov")
 #' dt_autocov_rp
 #' }
 #'
 estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                 s = c(1/5, 2/5, 4/5), t = c(1/4, 1/2, 3/4),
-                                lag = 1, h, bw_mean = NULL, mean_rp = NULL,
+                                lag = 1, bw, bw_mean = NULL, mean_rp = NULL,
                                 kernel_name = "epanechnikov"){
   # Control easy checkable arguments
   if (! (methods::is(s, "numeric") && all(s > 0 & s <= 1)))
@@ -554,8 +554,8 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
     arg = kernel_name,
     choices = c("epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform")
   )
-  if (! (methods::is(h, "numeric") && all(h > 0 & h < 1) && length(h) == 1))
-    stop("'h' must be a numeric scalar value between 0 and 1.")
+  if (! (methods::is(bw, "numeric") && all(bw > 0 & bw < 1) && length(bw) == 1))
+    stop("'bw' must be a numeric scalar value between 0 and 1.")
   if (is.null(mean_rp)) {
     if (is.null(bw_mean)) {
       stop("If 'mean_rp' is NULL, then 'bw_mean' can not be NULL.")
@@ -585,27 +585,27 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
     mean_rp <- data[order(tobs), list(id_curve, tobs)]
     dt_mean <- estimate_mean_rp(
       data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-      t = mean_rp[, tobs], h = bw_mean, kernel_name = kernel_name)
+      t = mean_rp[, tobs], bw = bw_mean, kernel_name = kernel_name)
     mean_rp[, muhat_RP := dt_mean[, muhat_RP]]
   } else {
     mean_rp <- mean_rp[order(id_curve)]
   }
 
   # Calculate S_{pq} and Q_{pq}
-  autocov_vec <- mapply(function(si, ti, h, lag, bw_mean, mean_rp, data, ker){
+  autocov_vec <- mapply(function(si, ti, bw, lag, bw_mean, mean_rp, data, ker){
     # Calculate S_{pq} and A_1^{(\ell)},A_2^{(\ell)}, A_3^{(\ell)}
     S00 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                    s = si, t = ti, lag = lag, p = 0, q = 0, h = h, kernel_name = ker)
+                    s = si, t = ti, lag = lag, p = 0, q = 0, bw = bw, kernel_name = ker)
     S01 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                    s = si, t = ti, lag = lag, p = 0, q = 1, h = h, kernel_name = ker)
+                    s = si, t = ti, lag = lag, p = 0, q = 1, bw = bw, kernel_name = ker)
     S02 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                    s = si, t = ti, lag = lag, p = 0, q = 2, h = h, kernel_name = ker)
+                    s = si, t = ti, lag = lag, p = 0, q = 2, bw = bw, kernel_name = ker)
     S10 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                    s = si, t = ti, lag = lag, p = 1, q = 0, h = h, kernel_name = ker)
+                    s = si, t = ti, lag = lag, p = 1, q = 0, bw = bw, kernel_name = ker)
     S11 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                    s = si, t = ti, lag = lag, p = 1, q = 1, h = h, kernel_name = ker)
+                    s = si, t = ti, lag = lag, p = 1, q = 1, bw = bw, kernel_name = ker)
     S20 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                    s = si, t = ti, lag = lag, p = 2, q = 0, h = h, kernel_name = ker)
+                    s = si, t = ti, lag = lag, p = 2, q = 0, bw = bw, kernel_name = ker)
 
     # calculate A_1^{(\ell)},A_2^{(\ell)}, A_3^{(\ell)} and B^{(\ell)}
     A1 <- S20 * S02 - (S11 ** 2)
@@ -615,19 +615,19 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
 
     # Calculate Q_{pq}
     Q00 <- .Qpq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", s = si, t = ti,
-                    lag = lag, p = 0, q = 0, h = h, mean_rp = mean_rp, bw_mean = bw_mean, kernel_name = ker)
+                    lag = lag, p = 0, q = 0, bw = bw, mean_rp = mean_rp, bw_mean = bw_mean, kernel_name = ker)
     Q10 <- .Qpq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", s = si, t = ti,
-                    lag = lag, p = 1, q = 0, h = h, mean_rp = mean_rp, bw_mean = bw_mean, kernel_name = ker)
+                    lag = lag, p = 1, q = 0, bw = bw, mean_rp = mean_rp, bw_mean = bw_mean, kernel_name = ker)
     Q01 <- .Qpq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", s = si, t = ti,
-                    lag = lag, p = 0, q = 1, h = h, mean_rp = mean_rp, bw_mean = bw_mean, kernel_name = ker)
+                    lag = lag, p = 0, q = 1, bw = bw, mean_rp = mean_rp, bw_mean = bw_mean, kernel_name = ker)
 
     # estimate autocovariance
     R <- (A1 * Q00 - A2 * Q10 - A3 * Q01) / B
 
     return(R)
-  }, si = s, ti = t, MoreArgs = list(h = h, lag = lag, data = data, bw_mean = bw_mean,
+  }, si = s, ti = t, MoreArgs = list(bw = bw, lag = lag, data = data, bw_mean = bw_mean,
                                      mean_rp = mean_rp, ker = kernel_name))
-  dt_res <- data.table::data.table("s" = s, "t" = t, "lag" = lag, "optbw_mean" = bw_mean, "autocovhat_rp" = autocov_vec)
+  dt_res <- data.table::data.table("s" = s, "t" = t, "lag" = lag, "bw_mean" = bw_mean, "autocovhat_rp" = autocov_vec)
   return(dt_res)
 }
 
@@ -659,9 +659,9 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
 #'
 #' @return A \code{data.table} with one row per candidate bandwidth and columns:
 #' \itemize{
-#'   \item \code{h}: the candidate bandwidth.
-#'   \item \code{cv_error}: the cross-validation error at \code{h}. The bandwidth
-#'     minimising it is the one to pass to \link{estimate_autocov_rp}.
+#'   \item \code{bw}: the candidate bandwidth.
+#'   \item \code{cv_error}: the cross-validation error at \code{bw}. The
+#'     bandwidth minimising it is the one to pass to \link{estimate_autocov_rp}.
 #' }
 #' @export
 #'
@@ -707,7 +707,7 @@ estimate_autocov_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol
     mean_rp <- data[order(tobs), list(id_curve, tobs)]
     dt_mean <- estimate_mean_rp(
       data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-      t = mean_rp[, tobs], h = bw_mean, kernel_name = kernel_name)
+      t = mean_rp[, tobs], bw = bw_mean, kernel_name = kernel_name)
     mean_rp[, muhat_RP := dt_mean[, muhat_RP]]
     rm(dt_mean) ; gc()
   } else {
@@ -753,7 +753,7 @@ estimate_autocov_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol
         # Estimation of mean on fold\f and test on f
         dt_autocov <- estimate_autocov_rp(
           data = dt_train, idcol = "id_curve", tcol = "tobs", ycol = "X",
-          s = xti, t = xtj, lag = 0, h = BR0, bw_mean = bw_mean,
+          s = xti, t = xtj, lag = 0, bw = BR0, bw_mean = bw_mean,
           mean_rp = mean_rp, kernel_name = kernel_name)
 
         # Calculate the error
@@ -772,7 +772,7 @@ estimate_autocov_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol
     cv_err <- mean(err_fold, na.rm = TRUE)
 
     # Return the result
-    dt_res <- data.table::data.table("h" = BR0, "cv_error" = cv_err)
+    dt_res <- data.table::data.table("bw" = BR0, "cv_error" = cv_err)
     return(dt_res)
 
   }, data = data, mean_rp = mean_rp, fold = fold, kernel_name = kernel_name))

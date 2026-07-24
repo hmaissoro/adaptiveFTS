@@ -16,21 +16,25 @@ simulate_mfBm(
 \arguments{
 \item{t}{\code{vector (float)}. Grid of points between 0 and 1 where the sample path will be generated.}
 
-\item{hurst_fun}{\code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}, or any custom Hurst function.}
+\item{hurst_fun}{\code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
+\code{\link{hurst_logistic}}, or any custom Hurst function.}
 
 \item{L}{\code{float (positive)}. Hölder constant.}
 
-\item{shift_var}{\code{float (positive)}. The variance of the shift Gaussian random variable. Default is \code{shift_var = 1}, meaning a normal random variable with mean 0 and variance 1 is added.}
+\item{shift_var}{\code{float (positive)}. The variance of the shift Gaussian random variable. Default is
+\code{shift_var = 1}, meaning a normal random variable with mean 0 and variance 1 is added.}
 
 \item{tied}{\code{boolean}. If \code{TRUE}, the sample path is tied down.}
 
 \item{...}{Additional arguments for the Hurst function.}
 }
 \value{
-A \code{data.table} containing 2 columns: \code{t} and \code{mfBm}, representing the grid points and the corresponding values of the mfBm sample path.
+A \code{data.table} containing 2 columns: \code{t} and \code{mfBm}, representing the grid points and the
+corresponding values of the mfBm sample path.
 }
 \description{
-This function generates a sample path of a multifractional Brownian motion (mfBm) based on the provided Hurst function and other parameters.
+This function generates a sample path of a multifractional Brownian motion (mfBm) based on the provided Hurst
+function and other parameters.
 }
 \examples{
 t0 <- seq(0.2, 0.8, len = 20)

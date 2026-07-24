@@ -21,7 +21,8 @@ hurst_logistic(
 
 \item{slope}{\code{Float (positive)}. A scalar positive value corresponding to the slope of the logistic function.}
 
-\item{change_point_position}{\code{Float}. A scalar value in the interval between 0 and 1 corresponding ti the change point position.}
+\item{change_point_position}{\code{Float}. A scalar value in the interval between 0 and 1 corresponding ti the change
+point position.}
 }
 \value{
 A \code{vector (float)} corresponding to the value of the function evaluated at \code{t}.

@@ -64,7 +64,7 @@ arma::mat reshape_long(const arma::mat& A, arma::uword cs, arma::uword ct, arma:
 }
 
 // Per-t optimal mean bandwidth: argmin of the risk (col 9) over the candidate
-// bandwidths (col 1), for each sub-grid point. Returns [t, optbw].
+// bandwidths (col 1), for each sub-grid point. Returns [t, bw].
 arma::mat select_mean_optbw(const arma::mat& risk, const arma::vec& tgrid) {
   arma::mat out(tgrid.n_elem, 2);
   out.col(0) = tgrid;
@@ -77,8 +77,8 @@ arma::mat select_mean_optbw(const arma::mat& risk, const arma::vec& tgrid) {
 }
 
 // Per-(s,t) optimal (auto)covariance bandwidths: argmin of the risk (col 13)
-// over the candidate bandwidths (optbw_s col 2, optbw_t col 3). Returns
-// [s, t, optbw_s, optbw_t].
+// over the candidate bandwidths (bw_s col 2, bw_t col 3). Returns
+// [s, t, bw_s, bw_t].
 arma::mat select_autocov_optbw(const arma::mat& risk, const arma::vec& sgrid, const arma::vec& tgrid) {
   arma::mat out(sgrid.n_elem, 4);
   out.col(0) = sgrid;
@@ -97,8 +97,8 @@ arma::vec mean_at(const DataFrame& data, const arma::mat& opt_mean,
                   const arma::vec& tq, const std::string& kernel) {
   arma::uvec idx = nn1_1d(opt_mean.col(0), tq);
   arma::vec optbw_all = opt_mean.col(1);
-  arma::vec optbw = optbw_all.elem(idx);
-  arma::mat m = estimate_mean_cpp(data, tq, Rcpp::wrap(optbw), R_NilValue, kernel);
+  arma::vec bw = optbw_all.elem(idx);
+  arma::mat m = estimate_mean_cpp(data, tq, Rcpp::wrap(bw), R_NilValue, kernel);
   arma::vec muhat = m.col(5);
   return muhat;
 }
@@ -238,7 +238,7 @@ arma::mat psd_project_cpp(const arma::mat M) {
 //' `select_tikhonov_parameter()`; not intended to be used directly.
 //'
 //' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
-//' @param opt_mean Cached mean adaptive-bandwidth matrix (`t`, `optbw`).
+//' @param opt_mean Cached mean adaptive-bandwidth matrix (`t`, `bw`).
 //' @param t Evaluation locations (assumed sorted).
 //' @param kernel_name Kernel name.
 //' @return The mean estimates at `t`.
@@ -256,8 +256,8 @@ arma::vec blup_mean_at_cpp(const Rcpp::DataFrame data, const arma::mat opt_mean,
 //' object. Called by `select_tikhonov_parameter()`; not intended to be used directly.
 //'
 //' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
-//' @param opt_bw Cached (auto)covariance bandwidth matrix (`s`, `t`, `optbw_s`,
-//'   `optbw_t`).
+//' @param opt_bw Cached (auto)covariance bandwidth matrix (`s`, `t`, `bw_s`,
+//'   `bw_t`).
 //' @param s,t Evaluation locations (rows indexed by `s`, columns by `t`).
 //' @param lag 0 for the covariance, 1 for the lag-1 autocovariance.
 //' @param correct_diagonal Whether to correct the covariance diagonal.
@@ -279,12 +279,12 @@ arma::mat blup_autocov_at_cpp(const Rcpp::DataFrame data, const arma::mat opt_bw
 //' the R function \code{blup_fit()}; not intended to be used directly.
 //'
 //' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
-//' @param id_lag Integer id of the conditioning curve.
+//' @param id_conditioning_curve Integer id of the conditioning curve.
 //' @param bw_grid Bandwidth grid for the adaptive risk.
 //' @param rho Design weights of the conditioning curve.
 //' @param homoscedastic Whether to use a constant noise variance.
 //' @param tikhonov Tikhonov regularisation parameter.
-//' @param n_subgrid_bw Number of points per axis of the bandwidth sub-grid.
+//' @param bw_subgrid_size Number of points per axis of the bandwidth sub-grid.
 //' @param kernel_name Kernel name.
 //'
 //' @return A list with the cached bandwidths, the covariance operator, the
@@ -292,19 +292,19 @@ arma::mat blup_autocov_at_cpp(const Rcpp::DataFrame data, const arma::mat opt_bw
 //' @keywords internal
 // [[Rcpp::export]]
 Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data,
-                        const int id_lag,
+                        const int id_conditioning_curve,
                         const arma::vec bw_grid,
                         const arma::vec rho,
                         const bool homoscedastic,
                         const double tikhonov,
-                        const int n_subgrid_bw,
+                        const int bw_subgrid_size,
                         const std::string kernel_name) {
   arma::mat data_mat(data.nrows(), 3);
   data_mat.col(0) = as<arma::vec>(data["id_curve"]);
   data_mat.col(1) = as<arma::vec>(data["tobs"]);
   data_mat.col(2) = as<arma::vec>(data["X"]);
 
-  arma::uvec idx = arma::find(data_mat.col(0) == id_lag);
+  arma::uvec idx = arma::find(data_mat.col(0) == id_conditioning_curve);
   arma::vec Tn0 = arma::sort(data_mat(idx, arma::uvec({1})));
   // Values ordered by observation time.
   arma::vec Traw = data_mat(idx, arma::uvec({1}));
@@ -312,7 +312,7 @@ Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data,
   arma::uvec ord = arma::sort_index(Traw);
   arma::vec Yn0 = Yraw.elem(ord);
 
-  arma::vec sub_vec = arma::linspace(0.05, 0.95, n_subgrid_bw);
+  arma::vec sub_vec = arma::linspace(0.05, 0.95, bw_subgrid_size);
   arma::uword ng = sub_vec.n_elem;
   arma::vec gs(ng * ng), gt(ng * ng);
   for (arma::uword j = 0; j < ng; ++j)

@@ -5,7 +5,8 @@
 #'
 #' @inheritParams format_data
 #' @param t A numeric vector. Observation points where the mean function of the underlying process is estimated.
-#' @param bw_grid A numeric vector. A bandwidth grid from which the best smoothing parameter is selected for each \code{t}.
+#' @param bw_grid A numeric vector. A bandwidth grid from which the best smoothing parameter is selected for each
+#' \code{t}.
 #' Default is \code{NULL}, in which case it is defined as an exponential grid of \eqn{N \times \lambda}.
 #' @param center_curves Logical. If \code{TRUE} (default), the curves are centred
 #' before smoothing.
@@ -30,7 +31,8 @@
 #' @details
 #' The local regularity parameters are estimated within the function using \code{estimate_locreg_cpp}.
 #'
-#' The dependence term includes contributions from both a term based on \eqn{\mathbb{D}(t; h_t)} derived from fourth-moment tensors,
+#' The dependence term includes contributions from both a term based on \eqn{\mathbb{D}(t; h_t)} derived from
+#' fourth-moment tensors,
 #' and an empirical autocovariance term computed using \code{estimate_empirical_XsXt_autocov_cpp}.
 #'
 #'
@@ -171,7 +173,9 @@ estimate_cov_segment <- function(data, idcol = "id_curve", tcol = "tobs", ycol =
   }
 
   # Estimate covariance segment function using C++  function
-  dt_res <- estimate_cov_segment_cpp(data = data, t = t, optbw = bw, bw_grid = bw_grid, center = center_curves, kernel_name = kernel_name)
+  dt_res <- estimate_cov_segment_cpp(
+    data = data, t = t, bw = bw, bw_grid = bw_grid,
+    center = center_curves, kernel_name = kernel_name)
   dt_res <- data.table::as.data.table(dt_res)
   data.table::setnames(x = dt_res, new = c("t", "optbw", "Ht", "Lt2", "PN", "cov_segment_hat",
                                            "covseg_correction", "cov_segment_hat_corrected"))

@@ -28,13 +28,15 @@ observation points of the curves.}
 \item{ycol}{\code{character(1)}. Name of the column (or vector) holding the
 values observed at those points.}
 
-\item{t}{\code{vector (numeric)}. Observation points at which we want to estimate the standard deviation of the error.}
+\item{t}{\code{vector (numeric)}. Observation points at which we want to estimate the standard deviation of the
+error.}
 }
 \value{
 A data.table with two columns: \code{t} and \code{sig} corresponding to the estimated standard deviation.
 }
 \description{
-This function estimates the the standard deviation of the observation error using the estimator proposed by Maissoro, Patilea and Vimond (2025).
+This function estimates the the standard deviation of the observation error using the estimator proposed by Maissoro,
+Patilea and Vimond (2025).
 }
 \examples{
 # Load data

@@ -12,7 +12,7 @@ estimate_autocov_rp(
   s = c(1/5, 2/5, 4/5),
   t = c(1/4, 1/2, 3/4),
   lag = 1,
-  h,
+  bw,
   bw_mean = NULL,
   mean_rp = NULL,
   kernel_name = "epanechnikov"
@@ -44,7 +44,7 @@ same length as \code{s}.}
 
 \item{lag}{\code{integer (non-negative)}. Lag \eqn{\ell} of the autocovariance.}
 
-\item{h}{\code{numeric (positive scalar)}. Bandwidth of the estimator, common
+\item{bw}{\code{numeric (positive scalar)}. Bandwidth of the estimator, common
 to every pair. See \link{estimate_autocov_bw_rp} to select it by
 cross-validation.}
 
@@ -65,8 +65,8 @@ columns:
 \itemize{
 \item \code{s}, \code{t}: the arguments of the autocovariance function.
 \item \code{lag}: the lag \eqn{\ell}.
-\item \code{optbw_mean}: the bandwidth used for the mean function.
-\item \code{h}: the bandwidth used for the autocovariance.
+\item \code{bw_mean}: the bandwidth used for the mean function.
+\item \code{bw}: the bandwidth used for the autocovariance.
 \item \code{autocovhat_rp}: the estimated autocovariance.
 }
 }
@@ -85,7 +85,7 @@ dt_autocov_rp <- estimate_autocov_rp(
   data = data_far[data_far$id_curve <= 10, ],
   idcol = "id_curve", tcol = "tobs", ycol = "X",
   s = c(1/5, 2/5), t = c(1/4, 1/2), lag = 1,
-  h = 0.1, bw_mean = 0.1, mean_rp = NULL, kernel_name = "epanechnikov")
+  bw = 0.1, bw_mean = 0.1, mean_rp = NULL, kernel_name = "epanechnikov")
 dt_autocov_rp
 }
 

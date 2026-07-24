@@ -80,7 +80,8 @@ hurst_linear <- function(t = seq(0.2, 0.8, len = 10), h_left = 0.2, h_right = 0.
 #' @param h_left \code{Float}. A scalar value in the interval between 0 and 1 indicating the minimum of the function.
 #' @param h_right \code{Float}. A scalar value in the interval between 0 and 1 indicating the maximum of the function.
 #' @param slope \code{Float (positive)}. A scalar positive value corresponding to the slope of the logistic function.
-#' @param change_point_position \code{Float}. A scalar value in the interval between 0 and 1 corresponding ti the change point position.
+#' @param change_point_position \code{Float}. A scalar value in the interval between 0 and 1 corresponding ti the change
+#' point position.
 #'
 #' @return A \code{vector (float)} corresponding to the value of the function evaluated at \code{t}.
 #'
@@ -143,7 +144,8 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' Covariance matrix of the multi-fractional Brownian Motion
 #'
 #' @param t \code{vector (float)}. Points between 0 and 1 at which to compute the covariance function.
-#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}.
+#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
+#' \code{\link{hurst_logistic}}.
 #' @param ... Hurst function additional arguments.
 #'
 #' @return a \code{matrix} of \code{t} x \code{t} covariance.
@@ -164,16 +166,20 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 
 #' Draw a multifractional Brownian motion sample path.
 #'
-#' This function generates a sample path of a multifractional Brownian motion (mfBm) based on the provided Hurst function and other parameters.
+#' This function generates a sample path of a multifractional Brownian motion (mfBm) based on the provided Hurst
+#' function and other parameters.
 #'
 #' @param t \code{vector (float)}. Grid of points between 0 and 1 where the sample path will be generated.
-#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}, or any custom Hurst function.
+#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
+#' \code{\link{hurst_logistic}}, or any custom Hurst function.
 #' @param L \code{float (positive)}. Hölder constant.
-#' @param shift_var \code{float (positive)}. The variance of the shift Gaussian random variable. Default is \code{shift_var = 1}, meaning a normal random variable with mean 0 and variance 1 is added.
+#' @param shift_var \code{float (positive)}. The variance of the shift Gaussian random variable. Default is
+#' \code{shift_var = 1}, meaning a normal random variable with mean 0 and variance 1 is added.
 #' @param tied \code{boolean}. If \code{TRUE}, the sample path is tied down.
 #' @param ... Additional arguments for the Hurst function.
 #'
-#' @return A \code{data.table} containing 2 columns: \code{t} and \code{mfBm}, representing the grid points and the corresponding values of the mfBm sample path.
+#' @return A \code{data.table} containing 2 columns: \code{t} and \code{mfBm}, representing the grid points and the
+#' corresponding values of the mfBm sample path.
 #'
 #' @importFrom MASS mvrnorm
 #' @importFrom data.table data.table
@@ -186,7 +192,8 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' dt_mfBm <- simulate_mfBm(t = t0, hurst_fun = hurst_logistic, L = 1, tied = TRUE)
 #' plot(x = dt_mfBm$t, y = dt_mfBm$mfBm, type = "l", col = "red")
 #'
-simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logistic, L = 1, shift_var = 0, tied = TRUE, ...) {
+simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logistic,
+                          L = 1, shift_var = 0, tied = TRUE, ...) {
   if (! (methods::is(t, "numeric") && all(t >= 0 & t <= 1))) {
     stop("'t' must be a numeric vector with values between 0 and 1.")
   }
@@ -323,10 +330,13 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #' @param M_distribution \code{function}. Distribution of the number of observation points per curve.
 #' The first argument of the function must correspond to \code{N} and the second to \code{lambda}.
 #' Default \code{M_distribution = rpois}.
-#' @param t_distribution \code{function (or NULL)}. Observation point distribution if \code{design = 'random'} and \code{NULL} otherwise.
+#' @param t_distribution \code{function (or NULL)}. Observation point distribution if \code{design = 'random'} and
+#' \code{NULL} otherwise.
 #' @param t_common \code{vector (float)}. Observation point vector if \code{design = 'common'}.
-#' If \code{design = 'random'} and if we want to run some tests at a particular observation position, this can also be specified.
-#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}.
+#' If \code{design = 'random'} and if we want to run some tests at a particular observation position, this can also be
+#' specified.
+#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
+#' \code{\link{hurst_logistic}}.
 #' @param L \code{float (positive)}. Hölder constant.
 #' @param far_kernel \code{function}. Kernel function of the operator of the FAR(1).
 #' @param far_mean \code{function}. Mean function of the FAR(1).
@@ -338,7 +348,9 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #' \itemize{
 #'    \item{id_curve :}{ Index of the curve. It goes from 1 to N.}
 #'    \item{tobs :}{ Sampled observation points, for each \code{id_curve}.}
-#'    \item{ttag :}{ Tag on the observations points, for each \code{id_curve}. It is either \code{t_common} for common design grid or \code{t_common} pour random design.}
+#'    \item{ttag :}{ Tag on the observation points, for each \code{id_curve}. It
+#'    is either \code{tcommon} for the common design grid or \code{trandom} for
+#'    the random design.}
 #'    \item{far_mean :}{ The mean of the process evaluate at \code{tobs}, for each \code{id_curve}.}
 #'    \item{X :}{ The process observed at tobs, for each \code{id_curve}.}
 #' }
@@ -417,13 +429,15 @@ simulate_far <- function(N = 2L, lambda = 70L,
   # If random design
   if (design == "random"){
 
-    dt_rdesign <- .random_design(N = n, lambda = lambda, M_distribution = M_distribution, t_distribution = t_distribution)
+    dt_rdesign <- .random_design(N = n, lambda = lambda,
+                                 M_distribution = M_distribution,
+                                 t_distribution = t_distribution)
     M <- dt_rdesign[, unique(Mn), by = "id_curve"][, V1]
 
     dt_far <- data.table::rbindlist(lapply(1:n, function(i, dt_rdesign, grid, t_common, M, hurst_fun, L){
       # Combine design + integration grid + t_common
       tall <- c(dt_rdesign[id_curve == i, Tn], grid, t_common)
-      ttag <- c(rep("trandom", M[i]), rep("n_int_grid", length(grid)), rep("t_common", length(t_common)))
+      ttag <- c(rep("trandom", M[i]), rep("int_grid", length(grid)), rep("tcommon", length(t_common)))
       dt <- data.table::data.table("id_curve" = i, "tall" = tall, "ttag" = ttag)
       dt <- dt[order(tall)]
 
@@ -439,7 +453,7 @@ simulate_far <- function(N = 2L, lambda = 70L,
     dt_far <- data.table::rbindlist(lapply(1:n, function(i, t_common, grid, hurst_fun, L){
       # Combine design + integration grid
       tall <- c(t_common, grid)
-      ttag <- c(rep("t_common", length(t_common)), rep("n_int_grid", length(grid)))
+      ttag <- c(rep("tcommon", length(t_common)), rep("int_grid", length(grid)))
       dt <- data.table::data.table("id_curve" = i, "tall" = tall, "ttag" = ttag)
       dt <- dt[order(tall)]
 
@@ -456,7 +470,7 @@ simulate_far <- function(N = 2L, lambda = 70L,
   dt_far[id_curve == 1, X := far_mean + eps]
   for(i in 2:n){
     tall <- dt_far[id_curve == i, tall]
-    Xold_centred <- dt_far[id_curve == i - 1 & ttag == "n_int_grid", X - far_mean]
+    Xold_centred <- dt_far[id_curve == i - 1 & ttag == "int_grid", X - far_mean]
     Xold_centred <- matrix(Xold_centred, ncol = 1)
     Enew <- dt_far[id_curve == i, eps]
     far_mean_new <- dt_far[id_curve == i, far_mean]
@@ -470,7 +484,7 @@ simulate_far <- function(N = 2L, lambda = 70L,
   }
 
   # Remove the data for integral approximation
-  dt_far <- dt_far[ttag != "n_int_grid"]
+  dt_far <- dt_far[ttag != "int_grid"]
   dt_far[, eps := NULL]
   if(remove_burnin){
     dt_far <- dt_far[! id_curve %in% 1:n_burnin]
@@ -494,10 +508,13 @@ simulate_far <- function(N = 2L, lambda = 70L,
 #' @param M_distribution \code{function}. Distribution of the number of observation points per curve.
 #' The first argument of the function must correspond to \code{N} and the second to \code{lambda}.
 #' Default \code{M_distribution = rpois}.
-#' @param t_distribution \code{function (or NULL)}. Observation point distribution if \code{design = 'random'} and \code{NULL} otherwise.
+#' @param t_distribution \code{function (or NULL)}. Observation point distribution if \code{design = 'random'} and
+#' \code{NULL} otherwise.
 #' @param t_common \code{vector (float)}. Observation point vector if \code{design = 'common'}.
-#' If \code{design = 'random'} and if we want to run some tests at a particular observation position, this can also be specified.
-#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}.
+#' If \code{design = 'random'} and if we want to run some tests at a particular observation position, this can also be
+#' specified.
+#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
+#' \code{\link{hurst_logistic}}.
 #' @param L \code{float (positive)}. Hölder constant.
 #' @param fma_kernel \code{function}. Kernel function of the operator of the FMA(1).
 #' @param fma_mean \code{function}. Mean function of the FMA(1).
@@ -509,7 +526,9 @@ simulate_far <- function(N = 2L, lambda = 70L,
 #' \itemize{
 #'    \item{id_curve :}{ Index of the curve. It goes from 1 to N.}
 #'    \item{tobs :}{ Sampled observation points, for each \code{id_curve}.}
-#'    \item{ttag :}{ Tag on the observations points, for each \code{id_curve}. It is either \code{t_common} for common design grid or \code{t_common} pour random design.}
+#'    \item{ttag :}{ Tag on the observation points, for each \code{id_curve}. It
+#'    is either \code{tcommon} for the common design grid or \code{trandom} for
+#'    the random design.}
 #'    \item{fma_mean :}{ The mean of the process evaluate at \code{tobs}, for each \code{id_curve}.}
 #'    \item{X :}{ The process observed at tobs, for each \code{id_curve}.}
 #' }
@@ -595,13 +614,15 @@ simulate_fma <- function(N = 2L, lambda = 70L,
 
   # If random design
   if (design == "random"){
-    dt_rdesign <- .random_design(N = n, lambda = lambda, M_distribution = M_distribution, t_distribution = t_distribution)
+    dt_rdesign <- .random_design(N = n, lambda = lambda,
+                                 M_distribution = M_distribution,
+                                 t_distribution = t_distribution)
     M <- dt_rdesign[, unique(Mn), by = "id_curve"][, V1]
 
     dt_fma <- data.table::rbindlist(lapply(1:n, function(i, dt_rdesign, grid, t_common, M, hurst_fun, L){
       # Combine design + integration grid + t_common
       tall <- c(dt_rdesign[id_curve == i, Tn], grid, t_common)
-      ttag <- c(rep("trandom", M[i]), rep("n_int_grid", length(grid)), rep("t_common", length(t_common)))
+      ttag <- c(rep("trandom", M[i]), rep("int_grid", length(grid)), rep("tcommon", length(t_common)))
       dt <- data.table::data.table("id_curve" = i, "tall" = tall, "ttag" = ttag)
       dt <- dt[order(tall)]
 
@@ -617,7 +638,7 @@ simulate_fma <- function(N = 2L, lambda = 70L,
     dt_fma <- data.table::rbindlist(lapply(1:n, function(i, t_common, grid, hurst_fun, L){
       # Combine design + integration grid
       tall <- c(t_common, grid)
-      ttag <- c(rep("t_common", length(t_common)), rep("n_int_grid", length(grid)))
+      ttag <- c(rep("tcommon", length(t_common)), rep("int_grid", length(grid)))
       dt <- data.table::data.table("id_curve" = i, "tall" = tall, "ttag" = ttag)
       dt <- dt[order(tall)]
 
@@ -634,7 +655,7 @@ simulate_fma <- function(N = 2L, lambda = 70L,
   dt_fma[id_curve == 1, X := fma_mean + eps]
   for(i in 2:n){
     tall <- dt_fma[id_curve == i, tall]
-    Eold <- dt_fma[id_curve == i - 1 & ttag == "n_int_grid", eps]
+    Eold <- dt_fma[id_curve == i - 1 & ttag == "int_grid", eps]
     Enew <- dt_fma[id_curve == i, eps]
     fma_mean_new <- dt_fma[id_curve == i, fma_mean]
 
@@ -647,7 +668,7 @@ simulate_fma <- function(N = 2L, lambda = 70L,
   }
 
   # Remove the data for integral approximation
-  dt_fma <- dt_fma[ttag != "n_int_grid"]
+  dt_fma <- dt_fma[ttag != "int_grid"]
   dt_fma[, eps := NULL]
   if(remove_burnin){
     dt_fma <- dt_fma[! id_curve %in% 1:n_burnin]

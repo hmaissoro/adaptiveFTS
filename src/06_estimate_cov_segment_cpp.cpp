@@ -243,9 +243,9 @@ using namespace arma;
  //' @param data A data frame containing the functional data. It must have three columns:
  //' \code{id_curve} (curve identifiers), \code{tobs} (observation times), and \code{X} (observed values).
  //' @param t A numeric vector of evaluation points in the interval [0, 1].
- //' @param optbw An optional numeric vector of bandwidths to be used at each evaluation point in \code{t}.
+ //' @param bw An optional numeric vector of bandwidths to be used at each evaluation point in \code{t}.
  //' If \code{NULL}, bandwidths are selected based on risk minimization.
- //' @param bw_grid An optional numeric vector of candidate bandwidths used for optimization when \code{optbw} is \code{NULL}.
+ //' @param bw_grid An optional numeric vector of candidate bandwidths used for optimization when \code{bw} is \code{NULL}.
  //' @param center A logical value indicating if the data should be centered before estimation. Default is \code{true}.
  //' @param kernel_name A string indicating the kernel to use. Supported kernels are:
  //' \code{"epanechnikov"}, \code{"biweight"}, \code{"triweight"}, \code{"tricube"},
@@ -254,7 +254,7 @@ using namespace arma;
  //' @return A matrix with 8 columns and \code{length(t)} rows:
  //' \describe{
  //'   \item{\code{t}}{Evaluation point}
- //'   \item{\code{optbw}}{Bandwidth used at \code{t}}
+ //'   \item{\code{bw}}{Bandwidth used at \code{t}}
  //'   \item{\code{Ht_used}}{Intermediate quantity \eqn{H(t)} used in estimation}
  //'   \item{\code{Lt_used}}{Intermediate quantity \eqn{L(t)} used in estimation}
  //'   \item{\code{PN}}{Number of curves contributing to the estimation at \code{t}}
@@ -281,7 +281,7 @@ using namespace arma;
  //'
  // [[Rcpp::export]]
  arma::mat estimate_cov_segment_cpp(const Rcpp::DataFrame data, const arma::vec t,
-                                    const Rcpp::Nullable<arma::vec> optbw = R_NilValue,
+                                    const Rcpp::Nullable<arma::vec> bw = R_NilValue,
                                     const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
                                     const bool center = true,
                                     const std::string kernel_name = "epanechnikov"){
@@ -317,7 +317,7 @@ using namespace arma;
    arma::vec optbw_to_use(n);
    arma::vec Ht_used(n);
    arma::vec Lt_used(n);
-   if (optbw.isNull()) {
+   if (bw.isNull()) {
      arma::mat mat_risk = estimate_cov_segment_risk_cpp(data, t, bw_grid, center, kernel_name);
      for (int k = 0; k < n; ++k) {
        // Find rows in mat_risk where the first column equals t(k)
@@ -335,10 +335,10 @@ using namespace arma;
        Lt_used(k) = mat_risk(idx_risk_cur(idx_min), 5);
      }
    } else {
-     arma::vec optbw_cur = as<arma::vec>(optbw);
+     arma::vec optbw_cur = as<arma::vec>(bw);
      int optbw_cur_size = optbw_cur.size();
      if (optbw_cur_size != n) {
-       stop("If 'optbw' is not NULL, it must be the same length as 't'.");
+       stop("If 'bw' is not NULL, it must be the same length as 't'.");
      } else {
        optbw_to_use = optbw_cur;
      }
@@ -377,7 +377,7 @@ using namespace arma;
      // The correction term
      arma::vec sum_weight_square(n);
      for(int k = 0 ; k < n; ++k) {
-       // Compute the weight vectors for each t and for each optbw
+       // Compute the weight vectors for each t and for each bw
        // and replace replace non-finite values with 0
        arma::vec Tn_t_diff_over_bw = (Tnvec - t(k)) / optbw_to_use(k);
        arma::vec num_wvec = kernel_func(Tn_t_diff_over_bw);

@@ -177,7 +177,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   N <- data[, length(unique(id_curve))]
 
   # Estimate mean function using C++  function
-  dt_muhat <- estimate_mean_cpp(data = data, t = t, optbw = bw, bw_grid = bw_grid, kernel_name = kernel_name)
+  dt_muhat <- estimate_mean_cpp(data = data, t = t, bw = bw, bw_grid = bw_grid, kernel_name = kernel_name)
   dt_muhat <- data.table::as.data.table(dt_muhat)
   data.table::setnames(x = dt_muhat, new = c("t", "optbw", "Ht", "Lt2", "PN", "muhat"))
   return(.as_adaptive_est(dt_muhat, "mean_est",
@@ -195,7 +195,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @inheritParams format_data
 #' @param t \code{vector (numeric)}. Points of \eqn{[0, 1]} at which the mean
 #' function is estimated.
-#' @param h \code{numeric (positive scalar)}. Bandwidth of the estimator, common
+#' @param bw \code{numeric (positive scalar)}. Bandwidth of the estimator, common
 #' to every point of \code{t}. See \link{estimate_mean_bw_rp} to select it by
 #' cross-validation.
 #' @param kernel_name \code{string}. Kernel of the smoothing estimator, one of
@@ -205,7 +205,7 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @return A \code{data.table} with one row per point of \code{t} and columns:
 #' \itemize{
 #'   \item \code{t}: the point at which the mean function is estimated.
-#'   \item \code{h}: the bandwidth used.
+#'   \item \code{bw}: the bandwidth used.
 #'   \item \code{muhat_RP}: the estimated mean function.
 #' }
 #' @export
@@ -225,11 +225,11 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' dt_mean_rp <- estimate_mean_rp(
 #'   data = data_far[data_far$id_curve <= 20, ],
 #'   idcol = "id_curve", tcol = "tobs", ycol = "X",
-#'   t = c(1/4, 1/2, 3/4), h = 5/70, kernel_name = "epanechnikov")
+#'   t = c(1/4, 1/2, 3/4), bw = 5/70, kernel_name = "epanechnikov")
 #' dt_mean_rp
 #'
 estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                             t = c(1/4, 1/2, 3/4), h, kernel_name = "epanechnikov"){
+                             t = c(1/4, 1/2, 3/4), bw, kernel_name = "epanechnikov"){
   smooth_ker <- .select_kernel(kernel_name)
 
   # Format data
@@ -252,24 +252,24 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     rm(Yn, Tn, tvec, data) ; gc() ; gc()
 
     data_curve[, Tn_minus_t := (Tn - t)]
-    data_curve[, Tn_minus_t_over_h := Tn_minus_t / h]
+    data_curve[, Tn_minus_t_over_bw := Tn_minus_t / bw]
 
     # Compute mean Q and S function
     dt_res_by_curve <- data_curve[
       ,
-      .("Q0" = sum((Tn_minus_t ** 0) * Yn * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
-        "Q1" = sum((Tn_minus_t ** 1) * Yn * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
-        "S0" = sum((Tn_minus_t ** 0) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
-        "S1" = sum((Tn_minus_t ** 1) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
-        "S2" = sum((Tn_minus_t ** 2) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N),
+      .("Q0" = sum((Tn_minus_t ** 0) * Yn * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
+        "Q1" = sum((Tn_minus_t ** 1) * Yn * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
+        "S0" = sum((Tn_minus_t ** 0) * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
+        "S1" = sum((Tn_minus_t ** 1) * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
+        "S2" = sum((Tn_minus_t ** 2) * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N),
       by = "t"
     ]
     rm(data_curve) ; gc() ; gc()
 
     # Estimate mean
     dt_res <- dt_res_by_curve[, .("muhat_RP" = (Q0 * S2 - Q1 * S1) / (S0 * S2 - S1 ** 2)), by = "t"]
-    dt_res[, "h" := h]
-    data.table::setcolorder(x = dt_res, neworder = c("t", "h", "muhat_RP"))
+    dt_res[, "bw" := bw]
+    data.table::setcolorder(x = dt_res, neworder = c("t", "bw", "muhat_RP"))
     rm(dt_res_by_curve) ; gc() ; gc()
 
   } else {
@@ -285,7 +285,7 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
     }
 
     # Estimate mean function
-    dt_res <- data.table::rbindlist(lapply(t_list, function(t_list_i, data, N, h){
+    dt_res <- data.table::rbindlist(lapply(t_list, function(t_list_i, data, N, bw){
       Tn <- data[order(tobs), tobs]
       Yn <- data[order(tobs), X]
       if (length(t_list_i) > 1) {
@@ -303,27 +303,27 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
       }
 
       data_curve[, Tn_minus_t := (Tn - t)]
-      data_curve[, Tn_minus_t_over_h := Tn_minus_t / h]
+      data_curve[, Tn_minus_t_over_bw := Tn_minus_t / bw]
 
       # Compute mean Q and S function
       dt_res_by_t_list_i <- data_curve[
         ,
-        .("Q0" = sum((Tn_minus_t ** 0) * Yn * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
-          "Q1" = sum((Tn_minus_t ** 1) * Yn * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
-          "S0" = sum((Tn_minus_t ** 0) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
-          "S1" = sum((Tn_minus_t ** 1) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N,
-          "S2" = sum((Tn_minus_t ** 2) * (1 / h) * smooth_ker(Tn_minus_t_over_h)) / N),
+        .("Q0" = sum((Tn_minus_t ** 0) * Yn * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
+          "Q1" = sum((Tn_minus_t ** 1) * Yn * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
+          "S0" = sum((Tn_minus_t ** 0) * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
+          "S1" = sum((Tn_minus_t ** 1) * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
+          "S2" = sum((Tn_minus_t ** 2) * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N),
         by = "t"
       ]
       rm(data_curve) ; gc() ; gc()
       # Estimate mean
       dt_res_by_t_list_i <- dt_res_by_t_list_i[, .("muhat_RP" = (Q0 * S2 - Q1 * S1) / (S0 * S2 - S1 ** 2)), by = "t"]
-      dt_res_by_t_list_i[, "h" := h]
-      data.table::setcolorder(x = dt_res_by_t_list_i, neworder = c("t", "h", "muhat_RP"))
+      dt_res_by_t_list_i[, "bw" := bw]
+      data.table::setcolorder(x = dt_res_by_t_list_i, neworder = c("t", "bw", "muhat_RP"))
 
       # Return
       return(dt_res_by_t_list_i)
-    }, data = data, N = N, h = h))
+    }, data = data, N = N, bw = bw))
   }
   return(dt_res)
 }
@@ -345,9 +345,9 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #'
 #' @return A \code{data.table} with one row per candidate bandwidth and columns:
 #' \itemize{
-#'   \item \code{h}: the candidate bandwidth.
-#'   \item \code{cv_error}: the cross-validation error at \code{h}. The bandwidth
-#'     minimising it is the one to pass to \link{estimate_mean_rp}.
+#'   \item \code{bw}: the candidate bandwidth.
+#'   \item \code{cv_error}: the cross-validation error at \code{bw}. The
+#'     bandwidth minimising it is the one to pass to \link{estimate_mean_rp}.
 #' }
 #' @export
 #' @seealso [estimate_mean_rp()].
@@ -371,7 +371,7 @@ estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 #'
 #' dt_mean_rp <- estimate_mean_rp(
 #'   data = dt_small, idcol = "id_curve", tcol = "tobs", ycol = "X",
-#'   t = c(1/4, 1/2, 3/4), h = dt_bw[, h[which.min(cv_error)]],
+#'   t = c(1/4, 1/2, 3/4), bw = dt_bw[, bw[which.min(cv_error)]],
 #'   kernel_name = "epanechnikov")
 #' dt_mean_rp
 #' }
@@ -404,7 +404,7 @@ estimate_mean_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
         # Estimation of mean on fold\f and test on f
         dt_mu <- estimate_mean_rp(
           data = dt_train, idcol = "id_curve", tcol = "tobs", ycol = "X",
-          t = dt_test[, tobs], h = Bmu0, kernel_name = kernel_name)
+          t = dt_test[, tobs], bw = Bmu0, kernel_name = kernel_name)
 
         Sqerror <- (dt_test[, X] - dt_mu[, muhat_RP]) ** 2
         err <- sum(Sqerror)
@@ -421,7 +421,7 @@ estimate_mean_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
     cv_err <- mean(err_fold[!is.nan(err_fold)], na.rm = TRUE)
 
     # Return the result
-    dt_res <- data.table::data.table("h" = Bmu0, "cv_error" = cv_err)
+    dt_res <- data.table::data.table("bw" = Bmu0, "cv_error" = cv_err)
     return(dt_res)
 
   }, data = data, fold = fold, kernel_name = kernel_name))

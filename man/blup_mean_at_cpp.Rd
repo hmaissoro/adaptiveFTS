@@ -9,7 +9,7 @@ blup_mean_at_cpp(data, opt_mean, t, kernel_name)
 \arguments{
 \item{data}{A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.}
 
-\item{opt_mean}{Cached mean adaptive-bandwidth matrix (\code{t}, \code{optbw}).}
+\item{opt_mean}{Cached mean adaptive-bandwidth matrix (\code{t}, \code{bw}).}
 
 \item{t}{Evaluation locations (assumed sorted).}
 

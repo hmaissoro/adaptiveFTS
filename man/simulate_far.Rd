@@ -31,12 +31,15 @@ simulate_far(
 The first argument of the function must correspond to \code{N} and the second to \code{lambda}.
 Default \code{M_distribution = rpois}.}
 
-\item{t_distribution}{\code{function (or NULL)}. Observation point distribution if \code{design = 'random'} and \code{NULL} otherwise.}
+\item{t_distribution}{\code{function (or NULL)}. Observation point distribution if \code{design = 'random'} and
+\code{NULL} otherwise.}
 
 \item{t_common}{\code{vector (float)}. Observation point vector if \code{design = 'common'}.
-If \code{design = 'random'} and if we want to run some tests at a particular observation position, this can also be specified.}
+If \code{design = 'random'} and if we want to run some tests at a particular observation position, this can also be
+specified.}
 
-\item{hurst_fun}{\code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}.}
+\item{hurst_fun}{\code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
+\code{\link{hurst_logistic}}.}
 
 \item{L}{\code{float (positive)}. Hölder constant.}
 
@@ -55,7 +58,9 @@ A \code{data.table} containing 3 column :
 \itemize{
 \item{id_curve :}{ Index of the curve. It goes from 1 to N.}
 \item{tobs :}{ Sampled observation points, for each \code{id_curve}.}
-\item{ttag :}{ Tag on the observations points, for each \code{id_curve}. It is either \code{t_common} for common design grid or \code{t_common} pour random design.}
+\item{ttag :}{ Tag on the observation points, for each \code{id_curve}. It
+is either \code{tcommon} for the common design grid or \code{trandom} for
+the random design.}
 \item{far_mean :}{ The mean of the process evaluate at \code{tobs}, for each \code{id_curve}.}
 \item{X :}{ The process observed at tobs, for each \code{id_curve}.}
 }

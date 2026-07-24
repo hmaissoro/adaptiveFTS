@@ -187,7 +187,7 @@ dim(res_blup_one$covY_Xn0)
 # N = 400 lambda = 300 ----
 dt_res_blup_N400lambda300 <- data.table::rbindlist(parallel::mclapply(1:20, function(id){
   dt <- readRDS(paste0("../../curve_reconstruction/adaptive_blup_emp_study/data/fts_model_2/N400lambda300/dt_mc_FAR_mfBm_N=400_lambda=300_id_mc=", id, "_fts_model_2.RDS"))
-  dt_common <- dt[ttag == "t_common"]
+  dt_common <- dt[ttag == "tcommon"]
   dt <- dt[ttag == "trandom"]
   # dt[! id_curve == 400 & tobs > 0.5]
   data_prepared <- format_data(data = dt, idcol = "id_curve", tcol = "tobs", ycol = "X")

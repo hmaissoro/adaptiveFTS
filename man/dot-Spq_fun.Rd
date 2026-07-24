@@ -14,7 +14,7 @@
   lag = 1,
   p = 1,
   q = 1,
-  h,
+  bw,
   kernel_name = "epanechnikov"
 )
 }
@@ -45,7 +45,7 @@ function.}
 \item{p, q}{\code{numeric (integer)}. Exponents of the centred and scaled
 observation points in the sum.}
 
-\item{h}{\code{numeric (positive scalar)}. Bandwidth of the estimator.}
+\item{bw}{\code{numeric (positive scalar)}. Bandwidth of the estimator.}
 
 \item{kernel_name}{\code{string}. Kernel of the smoothing estimator, one of
 "epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and

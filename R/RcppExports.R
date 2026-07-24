@@ -54,15 +54,15 @@ estimate_mean_risk_cpp <- function(data, t, bw_grid = NULL, kernel_name = "epane
     .Call(`_adaptiveFTS_estimate_mean_risk_cpp`, data, t, bw_grid, kernel_name)
 }
 
-estimate_mean_cpp <- function(data, t, optbw = NULL, bw_grid = NULL, kernel_name = "epanechnikov") {
-    .Call(`_adaptiveFTS_estimate_mean_cpp`, data, t, optbw, bw_grid, kernel_name)
+estimate_mean_cpp <- function(data, t, bw = NULL, bw_grid = NULL, kernel_name = "epanechnikov") {
+    .Call(`_adaptiveFTS_estimate_mean_cpp`, data, t, bw, bw_grid, kernel_name)
 }
 
 #' Estimate the risk of the covariance or autocovariance function
 NULL
 
-estimate_autocov_risk_cpp <- function(data, s, t, lag, bw_grid = NULL, use_same_bw = FALSE, center = TRUE, kernel_name = "epanechnikov") {
-    .Call(`_adaptiveFTS_estimate_autocov_risk_cpp`, data, s, t, lag, bw_grid, use_same_bw, center, kernel_name)
+estimate_autocov_risk_cpp <- function(data, s, t, lag, bw_grid = NULL, common_bw = FALSE, center = TRUE, kernel_name = "epanechnikov") {
+    .Call(`_adaptiveFTS_estimate_autocov_risk_cpp`, data, s, t, lag, bw_grid, common_bw, center, kernel_name)
 }
 
 get_upper_tri_couple <- function(s, t) {
@@ -73,8 +73,8 @@ sort_by_columns <- function(mat, first_col_idx, second_col_idx) {
     .Call(`_adaptiveFTS_sort_by_columns`, mat, first_col_idx, second_col_idx)
 }
 
-estimate_autocov_cpp <- function(data, s, t, lag, optbw_s = NULL, optbw_t = NULL, bw_grid = NULL, use_same_bw = FALSE, center = TRUE, correct_diagonal = TRUE, kernel_name = "epanechnikov") {
-    .Call(`_adaptiveFTS_estimate_autocov_cpp`, data, s, t, lag, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name)
+estimate_autocov_cpp <- function(data, s, t, lag, bw_s = NULL, bw_t = NULL, bw_grid = NULL, common_bw = FALSE, center = TRUE, correct_diagonal = TRUE, kernel_name = "epanechnikov") {
+    .Call(`_adaptiveFTS_estimate_autocov_cpp`, data, s, t, lag, bw_s, bw_t, bw_grid, common_bw, center, correct_diagonal, kernel_name)
 }
 
 #' Estimate the risk of the covariance segment function
@@ -84,8 +84,8 @@ estimate_cov_segment_risk_cpp <- function(data, t, bw_grid = NULL, center = TRUE
     .Call(`_adaptiveFTS_estimate_cov_segment_risk_cpp`, data, t, bw_grid, center, kernel_name)
 }
 
-estimate_cov_segment_cpp <- function(data, t, optbw = NULL, bw_grid = NULL, center = TRUE, kernel_name = "epanechnikov") {
-    .Call(`_adaptiveFTS_estimate_cov_segment_cpp`, data, t, optbw, bw_grid, center, kernel_name)
+estimate_cov_segment_cpp <- function(data, t, bw = NULL, bw_grid = NULL, center = TRUE, kernel_name = "epanechnikov") {
+    .Call(`_adaptiveFTS_estimate_cov_segment_cpp`, data, t, bw, bw_grid, center, kernel_name)
 }
 
 estimate_sigma_cpp <- function(data, t) {
@@ -147,8 +147,8 @@ ensure_positive_definite <- function(A, c = 1e-6) {
     .Call(`_adaptiveFTS_ensure_positive_definite`, A, c)
 }
 
-estimate_curve_cpp <- function(data, t, id_curve = NULL, bw_grid = NULL, use_same_bw = FALSE, center = TRUE, correct_diagonal = TRUE, kernel_name = "epanechnikov") {
-    .Call(`_adaptiveFTS_estimate_curve_cpp`, data, t, id_curve, bw_grid, use_same_bw, center, correct_diagonal, kernel_name)
+estimate_curve_cpp <- function(data, t, id_curve = NULL, bw_grid = NULL, common_bw = FALSE, center = TRUE, correct_diagonal = TRUE, kernel_name = "epanechnikov") {
+    .Call(`_adaptiveFTS_estimate_curve_cpp`, data, t, id_curve, bw_grid, common_bw, center, correct_diagonal, kernel_name)
 }
 
 #' Project a matrix onto the PSD cone (C++ core)
@@ -169,7 +169,7 @@ psd_project_cpp <- function(M) {
 #' `select_tikhonov_parameter()`; not intended to be used directly.
 #'
 #' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
-#' @param opt_mean Cached mean adaptive-bandwidth matrix (`t`, `optbw`).
+#' @param opt_mean Cached mean adaptive-bandwidth matrix (`t`, `bw`).
 #' @param t Evaluation locations (assumed sorted).
 #' @param kernel_name Kernel name.
 #' @return The mean estimates at `t`.
@@ -184,8 +184,8 @@ blup_mean_at_cpp <- function(data, opt_mean, t, kernel_name) {
 #' object. Called by `select_tikhonov_parameter()`; not intended to be used directly.
 #'
 #' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
-#' @param opt_bw Cached (auto)covariance bandwidth matrix (`s`, `t`, `optbw_s`,
-#'   `optbw_t`).
+#' @param opt_bw Cached (auto)covariance bandwidth matrix (`s`, `t`, `bw_s`,
+#'   `bw_t`).
 #' @param s,t Evaluation locations (rows indexed by `s`, columns by `t`).
 #' @param lag 0 for the covariance, 1 for the lag-1 autocovariance.
 #' @param correct_diagonal Whether to correct the covariance diagonal.
@@ -203,19 +203,19 @@ blup_autocov_at_cpp <- function(data, opt_bw, s, t, lag, correct_diagonal, kerne
 #' the R function \code{blup_fit()}; not intended to be used directly.
 #'
 #' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
-#' @param id_lag Integer id of the conditioning curve.
+#' @param id_conditioning_curve Integer id of the conditioning curve.
 #' @param bw_grid Bandwidth grid for the adaptive risk.
 #' @param rho Design weights of the conditioning curve.
 #' @param homoscedastic Whether to use a constant noise variance.
 #' @param tikhonov Tikhonov regularisation parameter.
-#' @param n_subgrid_bw Number of points per axis of the bandwidth sub-grid.
+#' @param bw_subgrid_size Number of points per axis of the bandwidth sub-grid.
 #' @param kernel_name Kernel name.
 #'
 #' @return A list with the cached bandwidths, the covariance operator, the
 #'   mean, the noise level, the regularised variance matrix and the residual.
 #' @keywords internal
-blup_fit_cpp <- function(data, id_lag, bw_grid, rho, homoscedastic, tikhonov, n_subgrid_bw, kernel_name) {
-    .Call(`_adaptiveFTS_blup_fit_cpp`, data, id_lag, bw_grid, rho, homoscedastic, tikhonov, n_subgrid_bw, kernel_name)
+blup_fit_cpp <- function(data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, bw_subgrid_size, kernel_name) {
+    .Call(`_adaptiveFTS_blup_fit_cpp`, data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, bw_subgrid_size, kernel_name)
 }
 
 #' Predict with the adaptive functional BLUP (C++ core)

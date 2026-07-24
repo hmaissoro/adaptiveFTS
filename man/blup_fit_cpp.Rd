@@ -6,19 +6,19 @@
 \usage{
 blup_fit_cpp(
   data,
-  id_lag,
+  id_conditioning_curve,
   bw_grid,
   rho,
   homoscedastic,
   tikhonov,
-  n_subgrid_bw,
+  bw_subgrid_size,
   kernel_name
 )
 }
 \arguments{
 \item{data}{A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.}
 
-\item{id_lag}{Integer id of the conditioning curve.}
+\item{id_conditioning_curve}{Integer id of the conditioning curve.}
 
 \item{bw_grid}{Bandwidth grid for the adaptive risk.}
 
@@ -28,7 +28,7 @@ blup_fit_cpp(
 
 \item{tikhonov}{Tikhonov regularisation parameter.}
 
-\item{n_subgrid_bw}{Number of points per axis of the bandwidth sub-grid.}
+\item{bw_subgrid_size}{Number of points per axis of the bandwidth sub-grid.}
 
 \item{kernel_name}{Kernel name.}
 }

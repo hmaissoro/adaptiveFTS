@@ -33,7 +33,8 @@ values observed at those points.}
 
 \item{t}{A numeric vector. Observation points where the mean function of the underlying process is estimated.}
 
-\item{bw_grid}{A numeric vector. A bandwidth grid from which the best smoothing parameter is selected for each \code{t}.
+\item{bw_grid}{A numeric vector. A bandwidth grid from which the best smoothing parameter is selected for each
+\code{t}.
 Default is \code{NULL}, in which case it is defined as an exponential grid of \eqn{N \times \lambda}.}
 
 \item{center_curves}{Logical. If \code{TRUE} (default), the curves are centred
@@ -65,7 +66,8 @@ proposed by Maissoro, Patilea and Vimond (2026).
 \details{
 The local regularity parameters are estimated within the function using \code{estimate_locreg_cpp}.
 
-The dependence term includes contributions from both a term based on \eqn{\mathbb{D}(t; h_t)} derived from fourth-moment tensors,
+The dependence term includes contributions from both a term based on \eqn{\mathbb{D}(t; h_t)} derived from
+fourth-moment tensors,
 and an empirical autocovariance term computed using \code{estimate_empirical_XsXt_autocov_cpp}.
 }
 \examples{

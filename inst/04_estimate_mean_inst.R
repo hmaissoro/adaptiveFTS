@@ -37,11 +37,11 @@ ggplot(dt_bw_mean_rp, aes(x = h, y = cv_error)) +
   theme_minimal()
 
 ## Select the best bandwidth
-best_bw <- dt_bw_mean_rp[, h[which.min(cv_error)]]
+best_bw <- dt_bw_mean_rp[, bw[which.min(cv_error)]]
 
 ## Estimate the mean function
 dt_mean_rp <- estimate_mean_rp(
   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  t = c(1/4, 1/2, 3/4), h = best_bw, kernel_name = "epanechnikov")
+  t = c(1/4, 1/2, 3/4), bw = best_bw, kernel_name = "epanechnikov")
 
 dt_mean_rp[, lapply(.SD, function(X) round(X, 5))]

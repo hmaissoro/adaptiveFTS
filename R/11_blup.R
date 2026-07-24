@@ -121,9 +121,9 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   }
 
   cpp <- blup_fit_cpp(
-    data = data, id_lag = as.integer(n0), bw_grid = as.numeric(bw_grid),
+    data = data, id_conditioning_curve = as.integer(n0), bw_grid = as.numeric(bw_grid),
     rho = rho, homoscedastic = homoscedastic,
-    tikhonov = tikhonov, n_subgrid_bw = as.integer(bw_subgrid_size),
+    tikhonov = tikhonov, bw_subgrid_size = as.integer(bw_subgrid_size),
     kernel_name = kernel_name)
 
   return(structure(

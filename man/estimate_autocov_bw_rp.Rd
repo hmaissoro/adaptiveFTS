@@ -50,9 +50,9 @@ point of every curve, with columns \code{id_curve}, \code{tobs} and
 \value{
 A \code{data.table} with one row per candidate bandwidth and columns:
 \itemize{
-\item \code{h}: the candidate bandwidth.
-\item \code{cv_error}: the cross-validation error at \code{h}. The bandwidth
-minimising it is the one to pass to \link{estimate_autocov_rp}.
+\item \code{bw}: the candidate bandwidth.
+\item \code{cv_error}: the cross-validation error at \code{bw}. The
+bandwidth minimising it is the one to pass to \link{estimate_autocov_rp}.
 }
 }
 \description{

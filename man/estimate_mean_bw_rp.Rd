@@ -41,9 +41,9 @@ values observed at those points.}
 \value{
 A \code{data.table} with one row per candidate bandwidth and columns:
 \itemize{
-\item \code{h}: the candidate bandwidth.
-\item \code{cv_error}: the cross-validation error at \code{h}. The bandwidth
-minimising it is the one to pass to \link{estimate_mean_rp}.
+\item \code{bw}: the candidate bandwidth.
+\item \code{cv_error}: the cross-validation error at \code{bw}. The
+bandwidth minimising it is the one to pass to \link{estimate_mean_rp}.
 }
 }
 \description{
@@ -65,7 +65,7 @@ dt_bw <- estimate_mean_bw_rp(
 
 dt_mean_rp <- estimate_mean_rp(
   data = dt_small, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  t = c(1/4, 1/2, 3/4), h = dt_bw[, h[which.min(cv_error)]],
+  t = c(1/4, 1/2, 3/4), bw = dt_bw[, bw[which.min(cv_error)]],
   kernel_name = "epanechnikov")
 dt_mean_rp
 }

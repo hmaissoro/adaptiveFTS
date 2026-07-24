@@ -10,7 +10,7 @@ estimate_mean_rp(
   tcol = "tobs",
   ycol = "X",
   t = c(1/4, 1/2, 3/4),
-  h,
+  bw,
   kernel_name = "epanechnikov"
 )
 }
@@ -33,7 +33,7 @@ values observed at those points.}
 \item{t}{\code{vector (numeric)}. Points of \eqn{[0, 1]} at which the mean
 function is estimated.}
 
-\item{h}{\code{numeric (positive scalar)}. Bandwidth of the estimator, common
+\item{bw}{\code{numeric (positive scalar)}. Bandwidth of the estimator, common
 to every point of \code{t}. See \link{estimate_mean_bw_rp} to select it by
 cross-validation.}
 
@@ -45,7 +45,7 @@ cross-validation.}
 A \code{data.table} with one row per point of \code{t} and columns:
 \itemize{
 \item \code{t}: the point at which the mean function is estimated.
-\item \code{h}: the bandwidth used.
+\item \code{bw}: the bandwidth used.
 \item \code{muhat_RP}: the estimated mean function.
 }
 }
@@ -61,7 +61,7 @@ data("data_far")
 dt_mean_rp <- estimate_mean_rp(
   data = data_far[data_far$id_curve <= 20, ],
   idcol = "id_curve", tcol = "tobs", ycol = "X",
-  t = c(1/4, 1/2, 3/4), h = 5/70, kernel_name = "epanechnikov")
+  t = c(1/4, 1/2, 3/4), bw = 5/70, kernel_name = "epanechnikov")
 dt_mean_rp
 
 }

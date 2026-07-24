@@ -222,16 +222,16 @@ using namespace arma;
  //' @param data A data frame containing the functional data. It should have three columns:
  //' \code{id_curve} (curve identifiers), \code{tobs} (observation times), and \code{X} (observations).
  //' @param t A numeric vector of evaluation points between 0 and 1.
- //' @param optbw An optional numeric vector of optimal bandwidths. If \code{NULL}, the function
+ //' @param bw An optional numeric vector of optimal bandwidths. If \code{NULL}, the function
  //' will estimate the optimal bandwidths.
- //' @param bw_grid An optional numeric vector of bandwidths to be used if \code{optbw} is \code{NULL}.
+ //' @param bw_grid An optional numeric vector of bandwidths to be used if \code{bw} is \code{NULL}.
  //' @param kernel_name A string specifying the kernel to be used. Supported kernels are:
  //' \code{"epanechnikov"}, \code{"biweight"}, \code{"triweight"}, \code{"tricube"},
  //' \code{"triangular"}, and \code{"uniform"}.
  //' @return A matrix where each row contains the following columns:
  //' \itemize{
  //'   \item \code{t} - The evaluation point.
- //'   \item \code{optbw} - The optimal bandwidth used.
+ //'   \item \code{bw} - The optimal bandwidth used.
  //'   \item \code{Ht_used} - Intermediate result (Ht) used in the estimation.
  //'   \item \code{Lt_used} - Intermediate result (Lt) used in the estimation.
  //'   \item \code{PN} - The vector P_N(t;h).
@@ -256,7 +256,7 @@ using namespace arma;
  //'
  // [[Rcpp::export]]
  arma::mat estimate_mean_cpp(const Rcpp::DataFrame data, const arma::vec t,
-                             const Rcpp::Nullable<arma::vec> optbw = R_NilValue,
+                             const Rcpp::Nullable<arma::vec> bw = R_NilValue,
                              const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
                              const std::string kernel_name = "epanechnikov"){
    if (t.size() == 0) {
@@ -287,7 +287,7 @@ using namespace arma;
    arma::vec optbw_to_use(n);
    arma::vec Ht_used(n);
    arma::vec Lt_used(n);
-   if (optbw.isNull()) {
+   if (bw.isNull()) {
      arma::mat mat_risk = estimate_mean_risk_cpp(data, t, bw_grid, kernel_name);
      for (int k = 0; k < n; ++k) {
        // Find rows in mat_risk where the first column equals t(k)
@@ -305,10 +305,10 @@ using namespace arma;
        Lt_used(k) = mat_risk(idx_risk_cur(idx_min), 5);
      }
    } else {
-     arma::vec optbw_cur = as<arma::vec>(optbw);
+     arma::vec optbw_cur = as<arma::vec>(bw);
      int optbw_cur_size = optbw_cur.size();
      if (optbw_cur_size != n) {
-       stop("If 'optbw' is not NULL, it must be the same length as 't'.");
+       stop("If 'bw' is not NULL, it must be the same length as 't'.");
      } else {
        optbw_to_use = optbw_cur;
      }

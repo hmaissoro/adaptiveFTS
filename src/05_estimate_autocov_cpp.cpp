@@ -30,7 +30,7 @@ using namespace arma;
  //' @param lag \code{integer (positive integer)}. Lag of the autocovariance.
  //' @param bw_grid \code{vector (numeric)}. The bandwidth grid in which the best smoothing parameter is selected for each pair (\code{s}, \code{t}).
  //' It can be \code{NULL} and that way it will be defined as an exponential grid of \eqn{N\times\lambda}.
- //' @param use_same_bw A logical value indicating if the same bandwidth should be used for \code{s} and \code{t}. Default is \code{false}.
+ //' @param common_bw A logical value indicating if the same bandwidth should be used for \code{s} and \code{t}. Default is \code{false}.
  //' @param center A logical value indicating if the data should be centered before estimation. Default is \code{true}.
  //' @param kernel_name \code{string}. Specifies the kernel function for estimation; default is "epanechnikov".
  //' Supported kernels include: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".
@@ -39,7 +39,7 @@ using namespace arma;
  //'          \itemize{
  //'            \item{s : The first argument of the autocovariance function.}
  //'            \item{t : The second argument of the autocovariance function.}
- //'            \item{hs : The candidate bandwidth for the first argument of the autocovariance function. If \code{use_same_bw = TRUE}, the same bandwidth candidate is used for \code{s} and for \code{t}, so the 3rd and 4th columns contain the same values.}
+ //'            \item{hs : The candidate bandwidth for the first argument of the autocovariance function. If \code{common_bw = TRUE}, the same bandwidth candidate is used for \code{s} and for \code{t}, so the 3rd and 4th columns contain the same values.}
  //'            \item{ht : The candidate bandwidth for the second argument of the autocovariance function.}
  //'            \item{PNl : The number of curves used in the estimation the autocovariance at (s,t). It corresponds to \eqn{P_{N,\ell}(s,t;h_s, h_t)}.}
  //'            \item{locreg_bw : The bandwidth used to estimate the local regularity parameters.}
@@ -92,11 +92,11 @@ using namespace arma;
                                      const arma::vec t,
                                      const int lag,
                                      const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
-                                     const bool use_same_bw = false,
+                                     const bool common_bw = false,
                                      const bool center = true,
                                      const std::string kernel_name = "epanechnikov"){
    // NB : We consider that no vector is null
-   // NB : if use_same_bw = TRUE, then the same bandwidth is used for s and t
+   // NB : if common_bw = TRUE, then the same bandwidth is used for s and t
    //      otherwise, a different bandwidth is use for s and for t.
 
    if (s.size() != t.size()) {
@@ -174,7 +174,7 @@ using namespace arma;
    arma::mat mat_num_DD_t = estimate_numerator_dependence_term_DD_cpp(data, arma::unique(t), bw_grid_to_use, h, 3, kernel_name, center);
 
    // Definie result matrix
-   int n_rows_res = use_same_bw ? bw_size * n : bw_size * bw_size * n;
+   int n_rows_res = common_bw ? bw_size * n : bw_size * bw_size * n;
    arma::mat mat_res_risk(n_rows_res, 14);
 
    // ---- Precompute quantities shared across the bandwidth loops ----
@@ -290,7 +290,7 @@ using namespace arma;
    }
 
    // Compute the risk for each (s,t) and each bandwidth in bw_grid
-   if (use_same_bw) {
+   if (common_bw) {
 #pragma omp parallel for
      for (int idx_bw = 0; idx_bw < bw_size; ++idx_bw) {
        double bw = bw_grid_to_use[idx_bw];
@@ -498,10 +498,10 @@ using namespace arma;
  //' @param s A numeric vector specifying time points \code{s} for which to estimate autocovariance.
  //' @param t A numeric vector specifying time points \code{t} for which to estimate autocovariance.
  //' @param lag An integer specifying the lag value for autocovariance.
- //' @param optbw_s Optional numeric vector specifying optimal bandwidths for \code{s}. Default is \code{NULL}.
- //' @param optbw_t Optional numeric vector specifying optimal bandwidths for \code{t}. Default is \code{NULL}.
+ //' @param bw_s Optional numeric vector specifying optimal bandwidths for \code{s}. Default is \code{NULL}.
+ //' @param bw_t Optional numeric vector specifying optimal bandwidths for \code{t}. Default is \code{NULL}.
  //' @param bw_grid numeric vector of bandwidth grid values. Default is \code{NULL}.
- //' @param use_same_bw A logical value indicating if the same bandwidth should be used for \code{s} and \code{t}. Default is \code{false}.
+ //' @param common_bw A logical value indicating if the same bandwidth should be used for \code{s} and \code{t}. Default is \code{false}.
  //' @param center A logical value indicating if the data should be centered before estimation. Default is \code{true}.
  //' @param correct_diagonal A logical value indicating whether the diagonal of the covariance should be corrected when \code{lag=0}.
  //' @param kernel_name A string specifying the kernel to use for estimation. Supported values are \code{"epanechnikov"}, \code{"biweight"}, \code{"triweight"}, \code{"tricube"}, \code{"triangular"}, \code{"uniform"}. Default is \code{"epanechnikov"}.
@@ -510,8 +510,8 @@ using namespace arma;
  //'          \itemize{
  //'            \item{s : The first argument of the autocovariance function.}
  //'            \item{t : The second argument of the autocovariance function.}
- //'            \item{optbw_s : The optimal bandwidth for the first argument of the autocovariance function. If \code{use_same_bw = TRUE}, the same bandwidth candidate is used for \code{s} and for \code{t}, so the 3rd and 4th columns contain the same values.}
- //'            \item{optbw_t : The optimal bandwidth for the second argument of the autocovariance function.}
+ //'            \item{bw_s : The optimal bandwidth for the first argument of the autocovariance function. If \code{common_bw = TRUE}, the same bandwidth candidate is used for \code{s} and for \code{t}, so the 3rd and 4th columns contain the same values.}
+ //'            \item{bw_t : The optimal bandwidth for the second argument of the autocovariance function.}
  //'            \item{Hs : The estimates of the local exponent for each \code{s}. It corresponds to \eqn{H_s}.}
  //'            \item{Ls2 : The estimates of the Hölder constant for each \code{s}. It corresponds to \eqn{L_s^2}.}
  //'            \item{Ht : The estimates of the local exponent for each \code{t}. It corresponds to \eqn{H_t}.}
@@ -547,10 +547,10 @@ using namespace arma;
                                 const arma::vec s,
                                 const arma::vec t,
                                 const int lag,
-                                const Rcpp::Nullable<arma::vec> optbw_s = R_NilValue,
-                                const Rcpp::Nullable<arma::vec> optbw_t = R_NilValue,
+                                const Rcpp::Nullable<arma::vec> bw_s = R_NilValue,
+                                const Rcpp::Nullable<arma::vec> bw_t = R_NilValue,
                                 const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
-                                const bool use_same_bw = false,
+                                const bool common_bw = false,
                                 const bool center = true,
                                 const bool correct_diagonal = true,
                                 const std::string kernel_name = "epanechnikov") {
@@ -593,8 +593,8 @@ using namespace arma;
    arma::vec optbw_s_to_use(n), optbw_t_to_use(n);
    arma::mat mat_locreg(n, 6);
 
-   if (optbw_s.isNull() || optbw_t.isNull()) {
-     arma::mat mat_risk = estimate_autocov_risk_cpp(data, svec, tvec, lag, bw_grid, use_same_bw, center, kernel_name);
+   if (bw_s.isNull() || bw_t.isNull()) {
+     arma::mat mat_risk = estimate_autocov_risk_cpp(data, svec, tvec, lag, bw_grid, common_bw, center, kernel_name);
      for (int k = 0; k < n; ++k) {
        arma::uvec idx_risk_cur = arma::find((mat_risk.col(0) == svec(k)) % (mat_risk.col(1) == tvec(k)));
        arma::vec risk = mat_risk(idx_risk_cur, arma::uvec({13}));
@@ -607,8 +607,8 @@ using namespace arma;
                             mat_risk(idx_risk_cur(idx_min), 8), mat_risk(idx_risk_cur(idx_min), 9)};
      }
    } else {
-     arma::vec optbw_s_to_use_temp = as<arma::vec>(optbw_s);
-     arma::vec optbw_t_to_use_temp = as<arma::vec>(optbw_t);
+     arma::vec optbw_s_to_use_temp = as<arma::vec>(bw_s);
+     arma::vec optbw_t_to_use_temp = as<arma::vec>(bw_t);
      int optbw_s_to_use_temp_size = optbw_s_to_use_temp.size();
      int optbw_t_to_use_temp_size = optbw_t_to_use_temp.size();
 
@@ -639,7 +639,7 @@ using namespace arma;
        optbw_t_to_use = optbw_tvec;
 
      } else {
-       stop("If 'optbw_s' and 'optbw_t' are not NULL, they must be the same length as 's' and as 't' or of length 1.");
+       stop("If 'bw_s' and 'bw_t' are not NULL, they must be the same length as 's' and as 't' or of length 1.");
      }
 
      // init log reg mat

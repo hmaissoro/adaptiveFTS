@@ -11,9 +11,11 @@ estimate_nw_bw(y, t, bw_grid = NULL, kernel_name = "epanechnikov")
 
 \item{t}{\code{vector (numeric)}. A numeric vector containing the observed values of the independent variable.}
 
-\item{bw_grid}{\code{vector (numeric)}. A grid of bandwidth values to test. Default is \code{bw_grid = NULL}, in which case an exponential grid based on the length of \code{t} will be used.}
+\item{bw_grid}{\code{vector (numeric)}. A grid of bandwidth values to test. Default is \code{bw_grid = NULL}, in
+which case an exponential grid based on the length of \code{t} will be used.}
 
-\item{kernel_name}{\code{string}. A string specifying the name of the kernel function to use. The default is "epanechnikov".
+\item{kernel_name}{\code{string}. A string specifying the name of the kernel function to use. The default is
+"epanechnikov".
 Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform".}
 }
 \value{
@@ -23,7 +25,9 @@ A \code{numeric} value representing the optimal bandwidth that minimizes the cro
 Selects the optimal bandwidth for Nadaraya-Watson kernel regression using cross-validation.
 }
 \details{
-This function computes the optimal bandwidth for the Nadaraya-Watson kernel regression estimator by performing cross-validation over a set of candidate bandwidths defined by \code{bw_grid}. The function returns the bandwidth that minimizes the cross-validation error.
+This function computes the optimal bandwidth for the Nadaraya-Watson kernel regression estimator by
+performing cross-validation over a set of candidate bandwidths defined by \code{bw_grid}. The function returns the
+bandwidth that minimizes the cross-validation error.
 }
 \examples{
 # Define the true regression function
