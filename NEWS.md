@@ -71,7 +71,7 @@
 ## Documentation
 
 * The references are updated: the estimation paper is published in the
-  *Journal of Time Series Analysis* (2025, \doi:10.1111/jtsa.70006) and the
+  *Journal of Time Series Analysis* (2025, doi:10.1111/jtsa.70006) and the
   prediction paper is a 2026 preprint.
 * Nearly every example is now runnable rather than wrapped in `\dontrun{}`, and
   the estimator examples use a subset of `data_far` so they stay fast.

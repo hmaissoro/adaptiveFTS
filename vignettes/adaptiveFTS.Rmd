@@ -143,7 +143,7 @@ the estimated risk over a grid of candidates. `estimate_mean_risk()` exposes tha
 risk, split into its bias, variance and dependence terms.
 
 ```{r}
-bw_grid <- seq(0.005, 0.15, length.out = 20)
+bw_grid <- seq(0.02, 0.15, length.out = 10)
 
 dt_mean_risk <- estimate_mean_risk(
   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
@@ -175,12 +175,17 @@ estimators are available, selected by `common_bw`.
 With `common_bw = TRUE` a single bandwidth is selected for both arguments. This
 is the estimator of Maissoro, Patilea and Vimond (2025).
 
+The autocovariance and the sections below run on the first 60 curves, to keep
+this vignette quick to build.
+
 ```{r}
+dt_sub <- data_far[id_curve <= 60]
+
 sgrid <- c(1/5, 2/5, 3/5, 4/5)
 tgrid <- c(1/4, 1/2, 3/5, 3/4)
 
 dt_autocov_1bw <- estimate_autocov(
-  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  data = dt_sub, idcol = "id_curve", tcol = "tobs", ycol = "X",
   s = sgrid, t = tgrid, lag = 1, bw_grid = bw_grid,
   common_bw = TRUE, center_curves = TRUE, correct_diagonal = FALSE,
   kernel_name = "epanechnikov")
@@ -197,7 +202,7 @@ grid and therefore costs noticeably more.
 
 ```{r}
 dt_autocov_2bw <- estimate_autocov(
-  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  data = dt_sub, idcol = "id_curve", tcol = "tobs", ycol = "X",
   s = sgrid, t = tgrid, lag = 1, bw_grid = bw_grid,
   common_bw = FALSE, center_curves = TRUE, correct_diagonal = FALSE,
   kernel_name = "epanechnikov")
@@ -216,8 +221,9 @@ a convenient way to read the serial dependence of the sample.
 
 ```{r}
 dt_facf <- estimate_facf(
-  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  lag.max = 5, n_grid = 15, bw_grid = bw_grid, kernel_name = "epanechnikov")
+  data = dt_sub, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  lag.max = 3, n_grid = 8, bw_grid = bw_grid, common_bw = TRUE,
+  kernel_name = "epanechnikov")
 
 summary(dt_facf)
 plot(dt_facf)
@@ -231,10 +237,9 @@ Tikhonov regularisation parameter is selected by cross-validation when left to
 `NULL`.
 
 ```{r}
-data_train <- format_data(data_far, idcol = "id_curve", tcol = "tobs", ycol = "X")
-data_train <- data_train[id_curve <= 60]
+data_train <- format_data(dt_sub, idcol = "id_curve", tcol = "tobs", ycol = "X")
 
-fit <- blup_fit(data = data_train, n_cv_curves = 15L)
+fit <- blup_fit(data = data_train, n_cv_curves = 10L)
 summary(fit)
 ```
 
@@ -243,7 +248,7 @@ summary(fit)
 and every intermediate prediction is returned.
 
 ```{r}
-dt_pred <- predict(fit, t = seq(0.05, 0.95, length.out = 60), horizon = 2L)
+dt_pred <- predict(fit, t = seq(0.05, 0.95, length.out = 40), horizon = 2L)
 
 ggplot(dt_pred, aes(x = t, y = prediction, colour = factor(horizon))) +
   geom_line(linewidth = 0.7) +
