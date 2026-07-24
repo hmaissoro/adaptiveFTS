@@ -2,7 +2,7 @@
 % Please edit documentation in R/01_generateFTS.R
 \name{simulate_fma}
 \alias{simulate_fma}
-\title{Functional Moving Average process of order 1 (FMA(1)) simulation}
+\title{Simulate a Functional Moving Average Process of Order One}
 \usage{
 simulate_fma(
   N = 2L,
@@ -61,7 +61,11 @@ A \code{data.table} containing 3 column :
 }
 }
 \description{
-Functional Moving Average process of order 1 (FMA(1)) simulation
+Simulates \code{N} curves of a FMA(1) process, \eqn{X_n = \varepsilon_n +
+\Psi(\varepsilon_{n-1})}, where \eqn{\Psi} is the integral operator with
+kernel \code{fma_kernel} and the innovations are multifractional Brownian
+motions whose roughness follows \code{hurst_fun}. It is the moving-average
+counterpart of \code{\link{simulate_far}} and shares its arguments and output.
 }
 \examples{
 
