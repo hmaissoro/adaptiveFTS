@@ -151,23 +151,23 @@ BEGIN_RCPP
 END_RCPP
 }
 // estimate_mean_cpp
-arma::mat estimate_mean_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<arma::vec> optbw, const Rcpp::Nullable<arma::vec> bw_grid, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_estimate_mean_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP optbwSEXP, SEXP bw_gridSEXP, SEXP kernel_nameSEXP) {
+arma::mat estimate_mean_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<arma::vec> bw, const Rcpp::Nullable<arma::vec> bw_grid, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_estimate_mean_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP bwSEXP, SEXP bw_gridSEXP, SEXP kernel_nameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type data(dataSEXP);
     Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type optbw(optbwSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw(bwSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_grid(bw_gridSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_mean_cpp(data, t, optbw, bw_grid, kernel_name));
+    rcpp_result_gen = Rcpp::wrap(estimate_mean_cpp(data, t, bw, bw_grid, kernel_name));
     return rcpp_result_gen;
 END_RCPP
 }
 // estimate_autocov_risk_cpp
-arma::mat estimate_autocov_risk_cpp(const Rcpp::DataFrame data, const arma::vec s, const arma::vec t, const int lag, const Rcpp::Nullable<arma::vec> bw_grid, const bool use_same_bw, const bool center, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_estimate_autocov_risk_cpp(SEXP dataSEXP, SEXP sSEXP, SEXP tSEXP, SEXP lagSEXP, SEXP bw_gridSEXP, SEXP use_same_bwSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP) {
+arma::mat estimate_autocov_risk_cpp(const Rcpp::DataFrame data, const arma::vec s, const arma::vec t, const int lag, const Rcpp::Nullable<arma::vec> bw_grid, const bool common_bw, const bool center, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_estimate_autocov_risk_cpp(SEXP dataSEXP, SEXP sSEXP, SEXP tSEXP, SEXP lagSEXP, SEXP bw_gridSEXP, SEXP common_bwSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -176,10 +176,10 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
     Rcpp::traits::input_parameter< const int >::type lag(lagSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_grid(bw_gridSEXP);
-    Rcpp::traits::input_parameter< const bool >::type use_same_bw(use_same_bwSEXP);
+    Rcpp::traits::input_parameter< const bool >::type common_bw(common_bwSEXP);
     Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_autocov_risk_cpp(data, s, t, lag, bw_grid, use_same_bw, center, kernel_name));
+    rcpp_result_gen = Rcpp::wrap(estimate_autocov_risk_cpp(data, s, t, lag, bw_grid, common_bw, center, kernel_name));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -209,8 +209,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // estimate_autocov_cpp
-arma::mat estimate_autocov_cpp(const Rcpp::DataFrame data, const arma::vec s, const arma::vec t, const int lag, const Rcpp::Nullable<arma::vec> optbw_s, const Rcpp::Nullable<arma::vec> optbw_t, const Rcpp::Nullable<arma::vec> bw_grid, const bool use_same_bw, const bool center, const bool correct_diagonal, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_estimate_autocov_cpp(SEXP dataSEXP, SEXP sSEXP, SEXP tSEXP, SEXP lagSEXP, SEXP optbw_sSEXP, SEXP optbw_tSEXP, SEXP bw_gridSEXP, SEXP use_same_bwSEXP, SEXP centerSEXP, SEXP correct_diagonalSEXP, SEXP kernel_nameSEXP) {
+arma::mat estimate_autocov_cpp(const Rcpp::DataFrame data, const arma::vec s, const arma::vec t, const int lag, const Rcpp::Nullable<arma::vec> bw_s, const Rcpp::Nullable<arma::vec> bw_t, const Rcpp::Nullable<arma::vec> bw_grid, const bool common_bw, const bool center, const bool correct_diagonal, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_estimate_autocov_cpp(SEXP dataSEXP, SEXP sSEXP, SEXP tSEXP, SEXP lagSEXP, SEXP bw_sSEXP, SEXP bw_tSEXP, SEXP bw_gridSEXP, SEXP common_bwSEXP, SEXP centerSEXP, SEXP correct_diagonalSEXP, SEXP kernel_nameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -218,14 +218,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec >::type s(sSEXP);
     Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
     Rcpp::traits::input_parameter< const int >::type lag(lagSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type optbw_s(optbw_sSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type optbw_t(optbw_tSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_s(bw_sSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_t(bw_tSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_grid(bw_gridSEXP);
-    Rcpp::traits::input_parameter< const bool >::type use_same_bw(use_same_bwSEXP);
+    Rcpp::traits::input_parameter< const bool >::type common_bw(common_bwSEXP);
     Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
     Rcpp::traits::input_parameter< const bool >::type correct_diagonal(correct_diagonalSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_autocov_cpp(data, s, t, lag, optbw_s, optbw_t, bw_grid, use_same_bw, center, correct_diagonal, kernel_name));
+    rcpp_result_gen = Rcpp::wrap(estimate_autocov_cpp(data, s, t, lag, bw_s, bw_t, bw_grid, common_bw, center, correct_diagonal, kernel_name));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -245,18 +245,18 @@ BEGIN_RCPP
 END_RCPP
 }
 // estimate_cov_segment_cpp
-arma::mat estimate_cov_segment_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<arma::vec> optbw, const Rcpp::Nullable<arma::vec> bw_grid, const bool center, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_estimate_cov_segment_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP optbwSEXP, SEXP bw_gridSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP) {
+arma::mat estimate_cov_segment_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<arma::vec> bw, const Rcpp::Nullable<arma::vec> bw_grid, const bool center, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_estimate_cov_segment_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP bwSEXP, SEXP bw_gridSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type data(dataSEXP);
     Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
-    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type optbw(optbwSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw(bwSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_grid(bw_gridSEXP);
     Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_cov_segment_cpp(data, t, optbw, bw_grid, center, kernel_name));
+    rcpp_result_gen = Rcpp::wrap(estimate_cov_segment_cpp(data, t, bw, bw_grid, center, kernel_name));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -453,8 +453,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // estimate_curve_cpp
-Rcpp::List estimate_curve_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<int> id_curve, const Rcpp::Nullable<arma::vec> bw_grid, const bool use_same_bw, const bool center, const bool correct_diagonal, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_estimate_curve_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP id_curveSEXP, SEXP bw_gridSEXP, SEXP use_same_bwSEXP, SEXP centerSEXP, SEXP correct_diagonalSEXP, SEXP kernel_nameSEXP) {
+Rcpp::List estimate_curve_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<int> id_curve, const Rcpp::Nullable<arma::vec> bw_grid, const bool common_bw, const bool center, const bool correct_diagonal, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_estimate_curve_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP id_curveSEXP, SEXP bw_gridSEXP, SEXP common_bwSEXP, SEXP centerSEXP, SEXP correct_diagonalSEXP, SEXP kernel_nameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -462,11 +462,11 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<int> >::type id_curve(id_curveSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_grid(bw_gridSEXP);
-    Rcpp::traits::input_parameter< const bool >::type use_same_bw(use_same_bwSEXP);
+    Rcpp::traits::input_parameter< const bool >::type common_bw(common_bwSEXP);
     Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
     Rcpp::traits::input_parameter< const bool >::type correct_diagonal(correct_diagonalSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_curve_cpp(data, t, id_curve, bw_grid, use_same_bw, center, correct_diagonal, kernel_name));
+    rcpp_result_gen = Rcpp::wrap(estimate_curve_cpp(data, t, id_curve, bw_grid, common_bw, center, correct_diagonal, kernel_name));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -513,20 +513,20 @@ BEGIN_RCPP
 END_RCPP
 }
 // blup_fit_cpp
-Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data, const int id_lag, const arma::vec bw_grid, const arma::vec rho, const bool homoscedastic, const double tikhonov, const int n_subgrid_bw, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_blup_fit_cpp(SEXP dataSEXP, SEXP id_lagSEXP, SEXP bw_gridSEXP, SEXP rhoSEXP, SEXP homoscedasticSEXP, SEXP tikhonovSEXP, SEXP n_subgrid_bwSEXP, SEXP kernel_nameSEXP) {
+Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data, const int id_conditioning_curve, const arma::vec bw_grid, const arma::vec rho, const bool homoscedastic, const double tikhonov, const int bw_subgrid_size, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_blup_fit_cpp(SEXP dataSEXP, SEXP id_conditioning_curveSEXP, SEXP bw_gridSEXP, SEXP rhoSEXP, SEXP homoscedasticSEXP, SEXP tikhonovSEXP, SEXP bw_subgrid_sizeSEXP, SEXP kernel_nameSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< const int >::type id_lag(id_lagSEXP);
+    Rcpp::traits::input_parameter< const int >::type id_conditioning_curve(id_conditioning_curveSEXP);
     Rcpp::traits::input_parameter< const arma::vec >::type bw_grid(bw_gridSEXP);
     Rcpp::traits::input_parameter< const arma::vec >::type rho(rhoSEXP);
     Rcpp::traits::input_parameter< const bool >::type homoscedastic(homoscedasticSEXP);
     Rcpp::traits::input_parameter< const double >::type tikhonov(tikhonovSEXP);
-    Rcpp::traits::input_parameter< const int >::type n_subgrid_bw(n_subgrid_bwSEXP);
+    Rcpp::traits::input_parameter< const int >::type bw_subgrid_size(bw_subgrid_sizeSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(blup_fit_cpp(data, id_lag, bw_grid, rho, homoscedastic, tikhonov, n_subgrid_bw, kernel_name));
+    rcpp_result_gen = Rcpp::wrap(blup_fit_cpp(data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, bw_subgrid_size, kernel_name));
     return rcpp_result_gen;
 END_RCPP
 }

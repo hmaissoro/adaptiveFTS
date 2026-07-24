@@ -17,7 +17,3 @@ dt_locreg <- estimate_locreg(data = data_far,
 dt_locreg
 summary(dt_locreg)
 plot(dt_locreg)
-
-# Summary and diagnostic plot
-summary(dt_locreg)
-plot(dt_locreg)

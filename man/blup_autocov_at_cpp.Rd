@@ -9,8 +9,8 @@ blup_autocov_at_cpp(data, opt_bw, s, t, lag, correct_diagonal, kernel_name)
 \arguments{
 \item{data}{A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.}
 
-\item{opt_bw}{Cached (auto)covariance bandwidth matrix (\code{s}, \code{t}, \code{optbw_s},
-\code{optbw_t}).}
+\item{opt_bw}{Cached (auto)covariance bandwidth matrix (\code{s}, \code{t}, \code{bw_s},
+\code{bw_t}).}
 
 \item{s, t}{Evaluation locations (rows indexed by \code{s}, columns by \code{t}).}
 

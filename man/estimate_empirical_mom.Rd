@@ -35,7 +35,8 @@ values observed at those points.}
 \item{t}{\code{vector (numeric)}. Observation points at which the \eqn{p}-th order moment of \eqn{X(t)} is estimated.
 Each element should be a value between 0 and 1.}
 
-\item{mom_order}{\code{numeric (positive scalar)}. The order of the moment to be computed (e.g., 1 for mean, 2 for variance).}
+\item{mom_order}{\code{numeric (positive scalar)}. The order of the moment to be computed (e.g., 1 for mean, 2 for
+variance).}
 
 \item{presmooth_bw}{\code{numeric (positive vector or scalar)}. Bandwidth used
 to presmooth each curve before the estimation. A scalar applies the same
@@ -43,7 +44,8 @@ bandwidth to every curve; a vector must hold one bandwidth per curve, in the
 order the curves appear in \code{data}. Default \code{NULL} selects it by
 cross-validation, see \link{get_nw_optimal_bw}.}
 
-\item{center}{\code{logical}. If \code{TRUE}, then the \eqn{p}-th order moment of the centered \eqn{X(t)} is estimated.
+\item{center}{\code{logical}. If \code{TRUE}, then the \eqn{p}-th order moment of the centered \eqn{X(t)} is
+estimated.
 Default is \code{TRUE}.}
 
 \item{kernel_name}{\code{string}. Specifies the kernel function for estimation; default is "epanechnikov".

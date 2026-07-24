@@ -30,21 +30,28 @@ observation points of the curves.}
 \item{ycol}{\code{character(1)}. Name of the column (or vector) holding the
 values observed at those points.}
 
-\item{bw_grid}{\code{vector (numeric)}. A grid of candidate bandwidth values for cross-validation. Default is \code{bw_grid = NULL}, which sets an exponential grid based on the average number of observation points per curve.}
+\item{bw_grid}{\code{vector (numeric)}. A grid of candidate bandwidth values for cross-validation. Default is
+\code{bw_grid = NULL}, which sets an exponential grid based on the average number of observation points per curve.}
 
-\item{nsubset}{\code{integer (positive)}. The number of curves to randomly and uniformly select for bandwidth optimization. Default is \code{nsubset = NULL}, in which case an optimal bandwidth is calculated for each curve.}
+\item{nsubset}{\code{integer (positive)}. The number of curves to randomly and uniformly select for bandwidth
+optimization. Default is \code{nsubset = NULL}, in which case an optimal bandwidth is calculated for each curve.}
 
-\item{kernel_name}{\code{string}. A string specifying the name of the kernel function to use, with "epanechnikov" as the default.
+\item{kernel_name}{\code{string}. A string specifying the name of the kernel function to use, with "epanechnikov" as
+the default.
 Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".}
 }
 \value{
-A \code{numeric} scalar representing the estimated optimal bandwidth as the median of the best bandwidths from the subset of curves.
+A \code{numeric} scalar representing the estimated optimal bandwidth as the median of the best bandwidths
+from the subset of curves.
 }
 \description{
-This function estimates the median optimal bandwidth for the Nadaraya-Watson kernel estimator using cross-validation on a subset of curves.
+This function estimates the median optimal bandwidth for the Nadaraya-Watson kernel estimator using cross-validation
+on a subset of curves.
 }
 \details{
-This function performs cross-validation to determine the optimal bandwidth for each curve in a specified subset. It returns the median of these best bandwidths as the final estimate, providing a representative bandwidth that can generalize across curves.
+This function performs cross-validation to determine the optimal bandwidth for each curve in a specified
+subset. It returns the median of these best bandwidths as the final estimate, providing a representative bandwidth
+that can generalize across curves.
 }
 \examples{
 # Load the dataset

@@ -34,10 +34,12 @@ observation points of the curves.}
 \item{ycol}{\code{character(1)}. Name of the column (or vector) holding the
 values observed at those points.}
 
-\item{s}{\code{vector (numeric)}. First argument in \eqn{X_0(s)X_{\ell}(t)}, corresponding to observation points \code{s} in the pair (\code{s}, \code{t}).
+\item{s}{\code{vector (numeric)}. First argument in \eqn{X_0(s)X_{\ell}(t)}, corresponding to observation points
+\code{s} in the pair (\code{s}, \code{t}).
 Must be of the same length as \code{t}.}
 
-\item{t}{\code{vector (numeric)}. Second argument in \eqn{X_0(s)X_{\ell}(t)}, corresponding to observation points \code{t} in the pair (\code{s}, \code{t}).
+\item{t}{\code{vector (numeric)}. Second argument in \eqn{X_0(s)X_{\ell}(t)}, corresponding to observation points
+\code{t} in the pair (\code{s}, \code{t}).
 Must be of the same length as \code{s}.}
 
 \item{cross_lag}{\code{integer (positive integer)}. The lag \eqn{\ell} in \eqn{X_0(s)X_{\ell}(t)}.}
@@ -53,9 +55,11 @@ bandwidth to every curve; a vector must hold one bandwidth per curve, in the
 order the curves appear in \code{data}. Default \code{NULL} selects it by
 cross-validation, see \link{get_nw_optimal_bw}.}
 
-\item{center}{\code{logical}. If \code{TRUE}, the estimated autocovariance is centered: \eqn{\mathbb{E}(X_0(s) - \mu(s))(X_{\ell}(t) - \mu(t))}. Defaults to \code{FALSE}, providing \eqn{\mathbb{E}X_0(s)X_{\ell}(t)}.}
+\item{center}{\code{logical}. If \code{TRUE}, the estimated autocovariance is centered: \eqn{\mathbb{E}(X_0(s) -
+\mu(s))(X_{\ell}(t) - \mu(t))}. Defaults to \code{FALSE}, providing \eqn{\mathbb{E}X_0(s)X_{\ell}(t)}.}
 
-\item{kernel_name}{\code{string}. Kernel function for estimation; defaults to "epanechnikov". Supported kernels are: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".}
+\item{kernel_name}{\code{string}. Kernel function for estimation; defaults to "epanechnikov". Supported kernels are:
+"epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".}
 }
 \value{
 A \code{data.table} with columns:
@@ -63,14 +67,17 @@ A \code{data.table} with columns:
 \item{s :}{ First argument in \eqn{X_0(s)X_{\ell}(t)}.}
 \item{t :}{ Second argument in \eqn{X_0(s)X_{\ell}(t)}.}
 \item{cross_lag :}{ Lag \eqn{\ell} in \eqn{X_0(s)X_{\ell}(t)}.}
-\item{lag :}{ The lags at which the autocovariance of \eqn{X_0(s)X_{\ell}(t)} is estimated; \code{NA} if \code{autocov_lag = NULL}.}
+\item{lag :}{ The lags at which the autocovariance of \eqn{X_0(s)X_{\ell}(t)} is estimated; \code{NA} if
+\code{autocov_lag = NULL}.}
 \item{EXsXt_cross_lag :}{ Mean of \eqn{X_0(s)X_{\ell}(t)}.}
-\item{XsXt_autocov :}{ Autocovariance estimates of \eqn{X_0(s)X_{\ell}(t)} for each \code{autocov_lag}; \code{NA} if \code{autocov_lag = NULL}.}
+\item{XsXt_autocov :}{ Autocovariance estimates of \eqn{X_0(s)X_{\ell}(t)} for each \code{autocov_lag}; \code{NA}
+if \code{autocov_lag = NULL}.}
 }
 }
 \description{
 This function estimates the empirical \eqn{X_0(s)X_{\ell}(t)} autocovariance function for \eqn{\ell} = 0, 1, ...,
-used in the empirical study of the papers Maissoro, Patilea and Vimond (2025) and Maissoro, Patilea and Vimond (2026).
+used in the empirical study of the papers Maissoro, Patilea and Vimond (2025) and Maissoro, Patilea and Vimond
+(2026).
 }
 \examples{
 # Load data

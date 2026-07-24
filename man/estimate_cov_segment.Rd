@@ -38,7 +38,8 @@ values observed at those points.}
 recycled if a scalar. Default \code{NULL} selects it by minimising the risk
 estimated by \link{estimate_cov_segment_risk}.}
 
-\item{bw_grid}{A numeric vector. A bandwidth grid from which the best smoothing parameter is selected for each \code{t}.
+\item{bw_grid}{A numeric vector. A bandwidth grid from which the best smoothing parameter is selected for each
+\code{t}.
 Default is \code{NULL}, in which case it is defined as an exponential grid of \eqn{N \times \lambda}.}
 
 \item{center_curves}{Logical. If \code{TRUE} (default), the curves are centred

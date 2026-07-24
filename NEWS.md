@@ -11,6 +11,7 @@
   | `estimate_autocov()`, `estimate_autocov_risk()`, `estimate_cov_segment()`, `estimate_cov_segment_risk()`, `estimate_facf()`, `predict_curve()` | `center` | `center_curves` |
   | `estimate_mean()`, `estimate_cov_segment()` | `optbw` | `bw` |
   | `estimate_autocov()` | `optbw_s`, `optbw_t` | `bw_s`, `bw_t` |
+  | `estimate_mean_rp()`, `estimate_autocov_rp()` | `h` | `bw` |
   | `estimate_locreg()`, `estimate_empirical_autocov()`, `estimate_empirical_mom()`, `estimate_empirical_XsXt_autocov()` | `h` | `presmooth_bw` |
   | `estimate_empirical_XsXt_autocov()` | `lag` | `autocov_lag` |
   | `estimate_mean_rp()`, `estimate_mean_bw_rp()`, `estimate_autocov_rp()`, `estimate_autocov_bw_rp()` | `smooth_ker` (a function) | `kernel_name` (a string) |
@@ -20,7 +21,12 @@
   | `blup_fit()`, `blup()`, `select_tikhonov_parameter()` | `n_cv_tikhonov`, `n_subgrid_bw` | `n_cv_curves`, `bw_subgrid_size` |
   | `simulate_far()`, `simulate_fma()` | `Mdistribution`, `tdistribution`, `tdesign`, `tcommon`, `int_grid`, `burnin` | `M_distribution`, `t_distribution`, `design`, `t_common`, `n_int_grid`, `n_burnin` |
 
-  Output column names are unchanged.
+  The adaptive estimators' output column names are unchanged. The
+  Rubìn-Panaretos estimators, whose bandwidth argument was renamed `h` -> `bw`,
+  rename their bandwidth output columns to match: `estimate_mean_rp()`,
+  `estimate_mean_bw_rp()` and `estimate_autocov_bw_rp()` now return a `bw`
+  column instead of `h`, and `estimate_autocov_rp()` returns `bw_mean` instead
+  of `optbw_mean`.
 
 * The Rubìn-Panaretos estimators take the kernel by name (`kernel_name = "epanechnikov"`)
   rather than as a function object, matching the adaptive estimators. The kernel
@@ -35,6 +41,11 @@
   `estimate_autocov_rp()`, which is the entry point to use.
 * The `adaptive_meta` attribute of `autocov_est` and `autocov_risk` objects
   carries `common_bw` instead of `use_same_bw`.
+* The internal C++ routines were renamed to match the R argument names
+  (`optbw`/`optbw_s`/`optbw_t` -> `bw`/`bw_s`/`bw_t`, `use_same_bw` ->
+  `common_bw`, `id_lag`/`n_subgrid_bw` -> `id_conditioning_curve`/`bw_subgrid_size`).
+  These functions are not exported, so this affects only code that reached into
+  the compiled layer directly.
 * `format_data()` now validates its result instead of passing questionable data
   on to the estimators. It fails when the observation points fall outside
   `[0, 1]` (the domain the estimators assume), when the observation points or

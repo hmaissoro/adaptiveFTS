@@ -9,7 +9,8 @@
 \arguments{
 \item{t}{\code{vector (float)}. Points between 0 and 1 at which to compute the covariance function.}
 
-\item{hurst_fun}{\code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}}, \code{\link{hurst_logistic}}.}
+\item{hurst_fun}{\code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
+\code{\link{hurst_logistic}}.}
 
 \item{...}{Hurst function additional arguments.}
 }

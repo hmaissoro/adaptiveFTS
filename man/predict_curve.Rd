@@ -36,9 +36,11 @@ values observed at those points.}
 
 \item{t}{A numeric vector specifying the time points at which to predict the curve \code{id_curve_to_predict}.}
 
-\item{id_curve_to_predict}{An integer specifying the index of the curve to be predicted. Default is \code{NULL}, which considers the last curve in \code{data}.}
+\item{id_curve_to_predict}{An integer specifying the index of the curve to be predicted. Default is \code{NULL},
+which considers the last curve in \code{data}.}
 
-\item{bw_grid}{A numeric vector of bandwidth grid values for selecting optimal bandwidth parameters for (auto)covariance estimation.
+\item{bw_grid}{A numeric vector of bandwidth grid values for selecting optimal bandwidth parameters for
+(auto)covariance estimation.
 Default is \code{NULL}, which sets it in the function.}
 
 \item{common_bw}{A logical value indicating whether a single bandwidth is used
@@ -47,9 +49,11 @@ for both arguments of the (auto)covariance. Default is \code{FALSE}.}
 \item{center_curves}{A logical value indicating whether the curves are centred
 before smoothing. Default is \code{TRUE}.}
 
-\item{correct_diagonal}{A logical value indicating whether the diagonal of the covariances should be corrected. Default is \code{TRUE}.}
+\item{correct_diagonal}{A logical value indicating whether the diagonal of the covariances should be corrected.
+Default is \code{TRUE}.}
 
-\item{kernel_name}{A string specifying the kernel to use for estimation. Supported values are \code{"epanechnikov"}, \code{"biweight"},
+\item{kernel_name}{A string specifying the kernel to use for estimation. Supported values are \code{"epanechnikov"},
+\code{"biweight"},
 \code{"triweight"}, \code{"tricube"}, \code{"triangular"}, and \code{"uniform"}. Default is \code{"epanechnikov"}.}
 }
 \value{
@@ -70,7 +74,8 @@ prediction of the curve following a conditioning curve), use \code{\link[=blup_f
 with \code{\link[=predict.blup_fit]{predict.blup_fit()}}, or the one-call wrapper \code{\link[=blup]{blup()}}. Note that these
 compute a different quantity, so results are not interchangeable.
 
-This function predict a curve using the adaptive Best Linear Unbiased Predictor proposed by Maissoro, Patilea and Vimond (2026).
+This function predict a curve using the adaptive Best Linear Unbiased Predictor proposed by Maissoro, Patilea and
+Vimond (2026).
 }
 \references{
 Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for

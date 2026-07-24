@@ -26,5 +26,6 @@ exclusions: list(
     "tests",
     "data-raw",
     "inst",
-    "vignettes"
+    "vignettes",
+    "R/RcppExports.R"
   )

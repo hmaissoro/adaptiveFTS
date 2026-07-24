@@ -52,9 +52,11 @@ get_real_data_mean <- function(t = seq(0.1, 0.9, len = 10)){
 #'
 #' @param s \code{numeric (positive)}. A vector or scalar value(s) between 0 and 1.
 #' @param t \code{numeric (positive)}. A vector or scalar value(s) between 0 and 1.
-#' @param operator_norm \code{numeric (positive)}. A scalar corresponding to the norm of the integral operator associated with this kernel function.
+#' @param operator_norm \code{numeric (positive)}. A scalar corresponding to the norm of the integral operator
+#' associated with this kernel function.
 #'
-#' @return A vector (or scalar) of \code{numeric} values corresponding to the value of the kernel function evaluated at (\code{s}, \code{t}).
+#' @return A vector (or scalar) of \code{numeric} values corresponding to the value of the kernel function evaluated at
+#' (\code{s}, \code{t}).
 #' @export
 #'
 #' @examples

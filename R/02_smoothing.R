@@ -2,12 +2,14 @@
 #'
 #' Estimates the Nadaraya-Watson regression function using a specified kernel function.
 #'
-#' @param y \code{vector (numeric)}. A numeric vector containing the observed values of the dependent variable corresponding to the observation points \code{t}.
+#' @param y \code{vector (numeric)}. A numeric vector containing the observed values of the dependent variable
+#' corresponding to the observation points \code{t}.
 #' @param t \code{vector (numeric)}. A numeric vector containing the observed values of the independent variable.
 #' @param tnew \code{vector (numeric)}. New \code{t} values at which to estimate the regression function.
 #' @param h \code{numeric (positive)}. The bandwidth parameter.
 #' Default is \code{h = NULL}, in which case it will be chosen using cross-validation
-#' @param kernel_name \code{string}. A string specifying the name of the kernel function to use. The default is "epanechnikov".
+#' @param kernel_name \code{string}. A string specifying the name of the kernel function to use. The default is
+#' "epanechnikov".
 #' Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform".
 #'
 #' @return A \code{data.table} with the following columns:
@@ -92,13 +94,17 @@ estimate_nw <- function(y, t, tnew, h = NULL, kernel_name = "epanechnikov"){
 #'
 #' @param y \code{vector (numeric)}. A numeric vector containing the observed values of the dependent variable.
 #' @param t \code{vector (numeric)}. A numeric vector containing the observed values of the independent variable.
-#' @param bw_grid \code{vector (numeric)}. A grid of bandwidth values to test. Default is \code{bw_grid = NULL}, in which case an exponential grid based on the length of \code{t} will be used.
-#' @param kernel_name \code{string}. A string specifying the name of the kernel function to use. The default is "epanechnikov".
+#' @param bw_grid \code{vector (numeric)}. A grid of bandwidth values to test. Default is \code{bw_grid = NULL}, in
+#' which case an exponential grid based on the length of \code{t} will be used.
+#' @param kernel_name \code{string}. A string specifying the name of the kernel function to use. The default is
+#' "epanechnikov".
 #' Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform".
 #'
 #' @return A \code{numeric} value representing the optimal bandwidth that minimizes the cross-validation error.
 #'
-#' @details This function computes the optimal bandwidth for the Nadaraya-Watson kernel regression estimator by performing cross-validation over a set of candidate bandwidths defined by \code{bw_grid}. The function returns the bandwidth that minimizes the cross-validation error.
+#' @details This function computes the optimal bandwidth for the Nadaraya-Watson kernel regression estimator by
+#' performing cross-validation over a set of candidate bandwidths defined by \code{bw_grid}. The function returns the
+#' bandwidth that minimizes the cross-validation error.
 #'
 #' @export
 #' @seealso \code{\link{estimate_nw}}
@@ -168,17 +174,24 @@ estimate_nw_bw <- function(y, t, bw_grid = NULL, kernel_name = "epanechnikov") {
 
 #' Estimate Optimal Bandwidth for Nadaraya-Watson Estimator on a Subset of Curves
 #'
-#' This function estimates the median optimal bandwidth for the Nadaraya-Watson kernel estimator using cross-validation on a subset of curves.
+#' This function estimates the median optimal bandwidth for the Nadaraya-Watson kernel estimator using cross-validation
+#' on a subset of curves.
 #'
 #' @inheritParams format_data
-#' @param bw_grid \code{vector (numeric)}. A grid of candidate bandwidth values for cross-validation. Default is \code{bw_grid = NULL}, which sets an exponential grid based on the average number of observation points per curve.
-#' @param nsubset \code{integer (positive)}. The number of curves to randomly and uniformly select for bandwidth optimization. Default is \code{nsubset = NULL}, in which case an optimal bandwidth is calculated for each curve.
-#' @param kernel_name \code{string}. A string specifying the name of the kernel function to use, with "epanechnikov" as the default.
+#' @param bw_grid \code{vector (numeric)}. A grid of candidate bandwidth values for cross-validation. Default is
+#' \code{bw_grid = NULL}, which sets an exponential grid based on the average number of observation points per curve.
+#' @param nsubset \code{integer (positive)}. The number of curves to randomly and uniformly select for bandwidth
+#' optimization. Default is \code{nsubset = NULL}, in which case an optimal bandwidth is calculated for each curve.
+#' @param kernel_name \code{string}. A string specifying the name of the kernel function to use, with "epanechnikov" as
+#' the default.
 #' Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".
 #'
-#' @return A \code{numeric} scalar representing the estimated optimal bandwidth as the median of the best bandwidths from the subset of curves.
+#' @return A \code{numeric} scalar representing the estimated optimal bandwidth as the median of the best bandwidths
+#' from the subset of curves.
 #'
-#' @details This function performs cross-validation to determine the optimal bandwidth for each curve in a specified subset. It returns the median of these best bandwidths as the final estimate, providing a representative bandwidth that can generalize across curves.
+#' @details This function performs cross-validation to determine the optimal bandwidth for each curve in a specified
+#' subset. It returns the median of these best bandwidths as the final estimate, providing a representative bandwidth
+#' that can generalize across curves.
 #'
 #' @export
 #'
@@ -204,7 +217,8 @@ get_nw_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X
   N <- data[, length(unique(id_curve))]
 
   # Control parameters
-  if ((!is.null(bw_grid)) & (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1)))
+  if ((!is.null(bw_grid)) &
+      (! (all(methods::is(bw_grid, "numeric") & data.table::between(bw_grid, 0, 1)) & length(bw_grid) > 1)))
     stop("If'bw_grid' is not NULL, then it must be a vector of positive values between 0 and 1.")
 
   # Check the name of the kernel

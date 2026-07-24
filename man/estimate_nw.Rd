@@ -7,7 +7,8 @@
 estimate_nw(y, t, tnew, h = NULL, kernel_name = "epanechnikov")
 }
 \arguments{
-\item{y}{\code{vector (numeric)}. A numeric vector containing the observed values of the dependent variable corresponding to the observation points \code{t}.}
+\item{y}{\code{vector (numeric)}. A numeric vector containing the observed values of the dependent variable
+corresponding to the observation points \code{t}.}
 
 \item{t}{\code{vector (numeric)}. A numeric vector containing the observed values of the independent variable.}
 
@@ -16,7 +17,8 @@ estimate_nw(y, t, tnew, h = NULL, kernel_name = "epanechnikov")
 \item{h}{\code{numeric (positive)}. The bandwidth parameter.
 Default is \code{h = NULL}, in which case it will be chosen using cross-validation}
 
-\item{kernel_name}{\code{string}. A string specifying the name of the kernel function to use. The default is "epanechnikov".
+\item{kernel_name}{\code{string}. A string specifying the name of the kernel function to use. The default is
+"epanechnikov".
 Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform".}
 }
 \value{

@@ -189,8 +189,8 @@ using namespace arma;
  //'   \item \code{Ls^2}: The local Hölder constant estimate for \code{s}.
  //'   \item \code{Ht}: The local regularity estimate for \code{t}.
  //'   \item \code{Lt^2}: The local Hölder constant estimate for \code{t}.
- //'   \item \code{optbw_s}: The optimal bandwidth for \code{s}.
- //'   \item \code{optbw_t}: The optimal bandwidth for \code{t}.
+ //'   \item \code{bw_s}: The optimal bandwidth for \code{s}.
+ //'   \item \code{bw_t}: The optimal bandwidth for \code{t}.
  //' }
  //'
  //' @examples
@@ -217,8 +217,8 @@ using namespace arma;
      mat_res(k, 3) = mat_autocov_risk(idx_risk_cur(idx_min), 7); // L_s^2
      mat_res(k, 4) = mat_autocov_risk(idx_risk_cur(idx_min), 8); // H_t
      mat_res(k, 5) = mat_autocov_risk(idx_risk_cur(idx_min), 9); // L_t^2
-     mat_res(k, 6) = mat_autocov_risk(idx_risk_cur(idx_min), 2); // optbw_s
-     mat_res(k, 7) = mat_autocov_risk(idx_risk_cur(idx_min), 3); // optbw_t
+     mat_res(k, 6) = mat_autocov_risk(idx_risk_cur(idx_min), 2); // bw_s
+     mat_res(k, 7) = mat_autocov_risk(idx_risk_cur(idx_min), 3); // bw_t
    }
 
    return mat_res;
@@ -229,10 +229,10 @@ using namespace arma;
  //' This function finds the nearest optimal bandwidth parameters for new time points using a nearest neighbor strategy.
  //'
  //' @param mat_opt_param A \code{matrix} containing the optimal parameters, typically the output of the \code{get_best_autocov_bw} function.
- //' The matrix should have columns representing \code{s}, \code{t}, \code{Hs}, \code{Ls^2}, \code{Ht}, \code{Lt^2}, \code{optbw_s}, and \code{optbw_t}.
+ //' The matrix should have columns representing \code{s}, \code{t}, \code{Hs}, \code{Ls^2}, \code{Ht}, \code{Lt^2}, \code{bw_s}, and \code{bw_t}.
  //' @param snew A numeric vector specifying the new \code{s} time points.
  //' @param tnew A numeric vector specifying the new \code{t} time points.
- //' @return A \code{matrix} with four columns: \code{snew}, \code{tnew}, \code{optbw_s}, and \code{optbw_t} for the nearest optimal bandwidths.
+ //' @return A \code{matrix} with four columns: \code{snew}, \code{tnew}, \code{bw_s}, and \code{bw_t} for the nearest optimal bandwidths.
  //' @export
  // [[Rcpp::export]]
  arma::mat get_nearest_best_autocov_bw(const arma::mat& mat_opt_param, const arma::vec snew, const arma::vec tnew) {
@@ -281,7 +281,7 @@ using namespace arma;
  //'   \item{t : The time points.}
  //'   \item{Ht : The estimates of the local exponent for each time point.}
  //'   \item{Lt : The estimates of the Hölder constant for each time point.}
- //'   \item{optbw_t : The optimal bandwidth for the time point.}
+ //'   \item{bw_t : The optimal bandwidth for the time point.}
  //' }
  //'
  //' @examples
@@ -318,7 +318,7 @@ using namespace arma;
 
      mat_res(k, 1) = mat_mean_risk(idx_risk_cur(idx_min), 4); // Ht
      mat_res(k, 2) = mat_mean_risk(idx_risk_cur(idx_min), 5); // Lt
-     mat_res(k, 3) = mat_mean_risk(idx_risk_cur(idx_min), 1); // optbw_t
+     mat_res(k, 3) = mat_mean_risk(idx_risk_cur(idx_min), 1); // bw_t
    }
    return mat_res;
  }
@@ -333,14 +333,14 @@ using namespace arma;
  //'   \item{t : The time points.}
  //'   \item{Ht : The estimates of the local exponent for each time point.}
  //'   \item{Lt : The estimates of the Hölder constant for each time point.}
- //'   \item{optbw_t : The optimal bandwidth for each time point.}
+ //'   \item{bw_t : The optimal bandwidth for each time point.}
  //' }
  //' @param tnew A numeric vector specifying new time points \code{tnew} for which to get the optimal bandwidth.
  //'
  //' @return A \code{matrix} with the following columns:
  //' \itemize{
  //'   \item{tnew : The new time points.}
- //'   \item{optbw_t : The optimal bandwidth for each new time point.}
+ //'   \item{bw_t : The optimal bandwidth for each new time point.}
  //' }
  //'
  //' @examples
@@ -349,7 +349,7 @@ using namespace arma;
  //'   seq(0, 1, length.out = 10),  # t
  //'   rnorm(10, mean = 0.5),       # Ht
  //'   rnorm(10, mean = 0.5),       # Lt
- //'   runif(10, min = 0.1, max = 0.5)  # optbw_t
+ //'   runif(10, min = 0.1, max = 0.5)  # bw_t
  //' ), ncol = 4, byrow = FALSE)
  //'
  //' tnew <- seq(0, 1, length.out = 5)
@@ -471,7 +471,7 @@ using namespace arma;
  //' @param id_curve An integer specifying the index of the curve to be reconstructed. Default is \code{NULL}, which considers the last curve in \code{data}.
  //' @param bw_grid A numeric vector of bandwidth grid values for selecting optimal bandwidth parameters for (auto)covariance estimation.
  //' Default is \code{NULL}, which sets it in the function.
- //' @param use_same_bw A logical value indicating whether the same bandwidth should be used for the arguments \code{s} and \code{t} in the (auto)covariance estimation. Default is \code{FALSE}.
+ //' @param common_bw A logical value indicating whether the same bandwidth should be used for the arguments \code{s} and \code{t} in the (auto)covariance estimation. Default is \code{FALSE}.
  //' @param center A logical value indicating whether the data should be centered before estimating the (auto)covariance. Default is \code{TRUE}.
  //' @param correct_diagonal A logical value indicating whether the diagonal of the covariances should be corrected. Default is \code{TRUE}.
  //' @param kernel_name A string specifying the kernel to use for estimation. Supported values are \code{"epanechnikov"}, \code{"biweight"},
@@ -491,7 +491,7 @@ Rcpp::List estimate_curve_cpp(const Rcpp::DataFrame data,
                               const arma::vec t,
                               const Rcpp::Nullable<int> id_curve = R_NilValue,
                               const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
-                              const bool use_same_bw = false,
+                              const bool common_bw = false,
                               const bool center = true,
                               const bool correct_diagonal = true,
                               const std::string kernel_name = "epanechnikov"){
@@ -554,8 +554,8 @@ Rcpp::List estimate_curve_cpp(const Rcpp::DataFrame data,
    // // Estimate cov and autocovariance on the grid
    arma::vec vec_grid = arma::vec({0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95});
    arma::mat grid_fixe = build_grid(vec_grid, vec_grid);
-   arma::mat mat_cov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 0, bw_grid, use_same_bw, center, kernel_name);
-   arma::mat mat_autocov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 1, bw_grid, use_same_bw, center, kernel_name);
+   arma::mat mat_cov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 0, bw_grid, common_bw, center, kernel_name);
+   arma::mat mat_autocov_risk = estimate_autocov_risk_cpp(data, grid_fixe.col(0), grid_fixe.col(1), 1, bw_grid, common_bw, center, kernel_name);
 
    // // get optimal cov and autocov variance parameters
    mat mat_opt_cov_param = get_best_autocov_bw(mat_cov_risk, grid_fixe.col(0), grid_fixe.col(1));
@@ -578,19 +578,19 @@ Rcpp::List estimate_curve_cpp(const Rcpp::DataFrame data,
    // // estimate covariances and autocovariances
    arma::mat mat_cov_pred_pred_all = estimate_autocov_cpp(data, grid_pred_pred_optbw.col(0), grid_pred_pred_optbw.col(1), 0,
                                                           Rcpp::wrap(grid_pred_pred_optbw.col(2)), Rcpp::wrap(grid_pred_pred_optbw.col(3)),
-                                                          R_NilValue, use_same_bw, center, correct_diagonal, kernel_name);
+                                                          R_NilValue, common_bw, center, correct_diagonal, kernel_name);
    arma::mat mat_cov_lag_lag_all = estimate_autocov_cpp(data, grid_lag_lag_optbw.col(0), grid_lag_lag_optbw.col(1), 0,
                                                         Rcpp::wrap(grid_lag_lag_optbw.col(2)), Rcpp::wrap(grid_lag_lag_optbw.col(3)),
-                                                        R_NilValue, use_same_bw, center, correct_diagonal, kernel_name);
+                                                        R_NilValue, common_bw, center, correct_diagonal, kernel_name);
    arma::mat mat_autocov_lag_pred_all = estimate_autocov_cpp(data, grid_lag_pred_optbw.col(0), grid_lag_pred_optbw.col(1), 1,
                                                              Rcpp::wrap(grid_lag_pred_optbw.col(2)), Rcpp::wrap(grid_lag_pred_optbw.col(3)),
-                                                             R_NilValue, use_same_bw, center, correct_diagonal, kernel_name);
+                                                             R_NilValue, common_bw, center, correct_diagonal, kernel_name);
    arma::mat mat_autocov_lag_tvec_all = estimate_autocov_cpp(data, grid_lag_tvec_optbw.col(0), grid_lag_tvec_optbw.col(1), 1,
                                                              Rcpp::wrap(grid_lag_tvec_optbw.col(2)), Rcpp::wrap(grid_lag_tvec_optbw.col(3)),
-                                                             R_NilValue, use_same_bw, center, correct_diagonal, kernel_name);
+                                                             R_NilValue, common_bw, center, correct_diagonal, kernel_name);
    arma::mat mat_cov_pred_tvec_all = estimate_autocov_cpp(data, grid_pred_tvec_optbw.col(0), grid_pred_tvec_optbw.col(1), 0,
                                                           Rcpp::wrap(grid_pred_tvec_optbw.col(2)), Rcpp::wrap(grid_pred_tvec_optbw.col(3)),
-                                                          R_NilValue, use_same_bw, center, correct_diagonal, kernel_name);
+                                                          R_NilValue, common_bw, center, correct_diagonal, kernel_name);
 
    // Estimate mean functions
    // // Estimate bandwidth for mean function estimation on a grid

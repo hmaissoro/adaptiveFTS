@@ -31,7 +31,8 @@ observation points of the curves.}
 \item{ycol}{\code{character(1)}. Name of the column (or vector) holding the
 values observed at those points.}
 
-\item{t}{\code{vector (numeric)}. Observation points at which we want to estimate the empirical autocovariance function.}
+\item{t}{\code{vector (numeric)}. Observation points at which we want to estimate the empirical autocovariance
+function.}
 
 \item{lag}{\code{vector (integer)}. Lag of the autocovariance.}
 
@@ -45,7 +46,8 @@ cross-validation, see \link{get_nw_optimal_bw}.}
 Supported kernels include: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".}
 }
 \value{
-A \code{data.table} with three columns: \code{t}, \code{lag}, and \code{autocov} corresponding to the estimated autocovariance.
+A \code{data.table} with three columns: \code{t}, \code{lag}, and \code{autocov} corresponding to the
+estimated autocovariance.
 }
 \description{
 This function estimates the empirical autocovariance function used in the empirical study section

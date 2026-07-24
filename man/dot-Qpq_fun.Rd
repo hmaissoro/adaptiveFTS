@@ -14,7 +14,7 @@
   lag = 1,
   p = 1,
   q = 1,
-  h,
+  bw,
   mean_rp = NULL,
   bw_mean = NULL,
   kernel_name = "epanechnikov"
@@ -47,7 +47,7 @@ function.}
 \item{p, q}{\code{numeric (integer)}. Exponents of the centred and scaled
 observation points in the sum.}
 
-\item{h}{\code{numeric (positive scalar)}. Bandwidth of the estimator.}
+\item{bw}{\code{numeric (positive scalar)}. Bandwidth of the estimator.}
 
 \item{mean_rp}{\code{data.table}. Mean function estimated at every observation
 point of every curve, with columns \code{id_curve}, \code{tobs} and
