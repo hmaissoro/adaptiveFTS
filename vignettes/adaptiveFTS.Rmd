@@ -106,6 +106,13 @@ ggplot(data = data_far[, list("id_curve" = as.factor(id_curve), "t" = tobs, X)],
   theme_minimal()
 ```
 
+The estimation sections below run on the first 60 curves, to keep this vignette
+quick to build.
+
+```{r}
+dt_sub <- data_far[id_curve <= 60]
+```
+
 # Estimation of local regularity parameters
 
 `estimate_locreg()` estimates the local Hölder exponent $H_t$ and the squared
@@ -116,7 +123,7 @@ bandwidth.
 ```{r}
 t0 <- seq(0.1, 0.9, len = 9)
 
-dt_locreg <- estimate_locreg(data = data_far,
+dt_locreg <- estimate_locreg(data = dt_sub,
                              idcol = "id_curve",
                              tcol = "tobs",
                              ycol = "X",
@@ -146,7 +153,7 @@ risk, split into its bias, variance and dependence terms.
 bw_grid <- seq(0.02, 0.15, length.out = 10)
 
 dt_mean_risk <- estimate_mean_risk(
-  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  data = dt_sub, idcol = "id_curve", tcol = "tobs", ycol = "X",
   t = c(1/4, 1/2, 3/4), bw_grid = bw_grid, kernel_name = "epanechnikov")
 
 plot(dt_mean_risk)
@@ -157,7 +164,7 @@ bandwidth used at each point in the `optbw` column.
 
 ```{r}
 dt_mean <- estimate_mean(
-  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
+  data = dt_sub, idcol = "id_curve", tcol = "tobs", ycol = "X",
   t = seq(0.1, 0.9, length.out = 25), bw_grid = bw_grid,
   kernel_name = "epanechnikov")
 
@@ -175,12 +182,7 @@ estimators are available, selected by `common_bw`.
 With `common_bw = TRUE` a single bandwidth is selected for both arguments. This
 is the estimator of Maissoro, Patilea and Vimond (2025).
 
-The autocovariance and the sections below run on the first 60 curves, to keep
-this vignette quick to build.
-
 ```{r}
-dt_sub <- data_far[id_curve <= 60]
-
 sgrid <- c(1/5, 2/5, 3/5, 4/5)
 tgrid <- c(1/4, 1/2, 3/5, 3/4)
 

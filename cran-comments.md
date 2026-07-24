@@ -2,8 +2,11 @@
 
 This is the first submission of adaptiveFTS to CRAN. The package implements the
 adaptive estimation and prediction procedures for weakly dependent functional
-time series of Maissoro, Patilea and Vimond (2024, 2025), with the numerical
-core written in C++ via Rcpp/RcppArmadillo.
+time series of Maissoro, Patilea and Vimond (2025, doi:10.1111/jtsa.70006) and
+(2026), with the numerical core written in C++ via Rcpp/RcppArmadillo.
+
+The package requires R (>= 4.1) for the native `|>` pipe used in the vignette
+and the `inst/` demo scripts.
 
 ## R CMD check results
 
