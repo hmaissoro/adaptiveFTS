@@ -1,7 +1,8 @@
 # Estimate the Risk of the Covariance Segment Function
 
 Estimates the risk \\R\_{\Gamma_0}(t; h)\\ associated with the
-covariance segment line estimation proposed by Maissoro et al. (2025) .
+covariance segment line estimation proposed by Maissoro, Patilea and
+Vimond (2026).
 
 ## Usage
 
@@ -13,7 +14,7 @@ estimate_cov_segment_risk(
   ycol = "X",
   t = c(1/4, 1/2, 3/4),
   bw_grid = NULL,
-  center = TRUE,
+  center_curves = TRUE,
   kernel_name = "epanechnikov"
 )
 ```
@@ -22,58 +23,27 @@ estimate_cov_segment_risk(
 
 - data:
 
-  A `data.table` (or `data.frame`), a `list` of `data.table` (or
-  `data.frame`), or a `list` of `list`.
-
-  - If `data.table`: It should contain the raw curve observations in at
-    least three columns.
-
-    - `idcol` : The name of the column containing the curve index in the
-      sample. Each curve index is repeated according to the number of
-      observation points.
-
-    - `tcol` : The name of the column with observation points associated
-      with each curve index.
-
-    - `ycol` : The name of the column with observed values at each
-      observation point for each curve index.
-
-  - If `list` of `data.table`: In this case, each element in the `list`
-    represents the observation data of a curve in the form of a
-    `data.table` or `data.frame`. Each `data.table` contains at least
-    two columns.
-
-    - `tcol` : The name of the column with observation points for the
-      curve.
-
-    - `ycol` : The name of the column with observed values for the
-      curve.
-
-  - If `list` of `list`: In this case, `data` is a list where each
-    element is the observation data of a curve, given as a `list` of two
-    vectors.
-
-    - `tcol` : The vector containing observation points for the curve.
-
-    - `ycol` : The vector containing observed values for the curve.
+  Raw curve observations, as a `data.table` (or `data.frame`) in long
+  format, or as a `list` with one element per curve. See
+  [`format_data`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  for the accepted layouts and for the `id_curve` / `tobs` / `X` columns
+  they are converted to.
 
 - idcol:
 
-  `character`. If `data` is given as a `data.table` or `data.frame`,
-  this is the name of the column that holds the curve index. Each curve
-  index is repeated according to the number of observation points. If
-  `data` is a `list` of `data.table` (or `data.frame`) or a `list` of
-  `list`, set `idcol = NULL`.
+  `character(1)` or `NULL`. Name of the column holding the curve index
+  when `data` is a single table. Must be `NULL` when `data` is a list of
+  curves.
 
 - tcol:
 
-  `character`. The name of the column (or vector) containing the
-  observation points for the curves.
+  `character(1)`. Name of the column (or vector) holding the observation
+  points of the curves.
 
 - ycol:
 
-  `character`. The name of the column with observed values for the
-  curves.
+  `character(1)`. Name of the column (or vector) holding the values
+  observed at those points.
 
 - t:
 
@@ -86,10 +56,9 @@ estimate_cov_segment_risk(
   parameter is selected for each `t`. Default is `NULL`, in which case
   it is defined as an exponential grid of \\N \times \lambda\\.
 
-- center:
+- center_curves:
 
-  Logical. If `TRUE`, centers the data before estimation. Default is
-  `TRUE`.
+  Logical. If `TRUE` (default), the curves are centred before smoothing.
 
 - kernel_name:
 
@@ -138,8 +107,8 @@ empirical autocovariance term computed using
 
 ## References
 
-Maissoro H, Patilea V, Vimond M (2025). “Adaptive prediction for
-Functional Times Series.” *arXiv preprint arXiv:2501.xxxxx*.
+Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+Functional Time Series. *arXiv preprint* arXiv:2609.xxxxx.
 
 ## See also
 
@@ -152,5 +121,19 @@ Functional Times Series.” *arXiv preprint arXiv:2501.xxxxx*.
 ## Examples
 
 ``` r
-# Example coming soon
+data("data_far")
+
+dt_risk <- estimate_cov_segment_risk(
+  data = data_far[data_far$id_curve <= 20, ],
+  idcol = "id_curve", tcol = "tobs", ycol = "X",
+  t = c(1/4, 1/2, 3/4), bw_grid = seq(0.04, 0.15, length.out = 5),
+  center_curves = TRUE, kernel_name = "epanechnikov")
+
+# The risk-minimising bandwidth at each t.
+dt_risk[, list(h = h[which.min(cov_segment_risk)]), by = "t"]
+#>        t     h
+#>    <num> <num>
+#> 1:  0.25  0.04
+#> 2:  0.50  0.04
+#> 3:  0.75  0.04
 ```

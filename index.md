@@ -1,6 +1,6 @@
 # **adaptiveFTS**
 
-[![Version](https://img.shields.io/badge/version-0.1.1-blue)](https://github.com/hmaissoro/adaptiveFTS)  
+[![Version](https://img.shields.io/badge/version-0.3.0-blue)](https://github.com/hmaissoro/adaptiveFTS)  
 [![License](https://img.shields.io/badge/license-AGPL%20%3E%3D%203-lightgrey)](https://hmaissoro.github.io/adaptiveFTS/LICENSE)
 [![R-CMD-check](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/R-CMD-check.yaml)
 [![test-coverage](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/test-coverage.yaml)
@@ -12,8 +12,8 @@
 ## **Description**
 
 `adaptiveFTS` provides tools for adaptive estimation procedures for
-weakly dependent functional time series. Developed by Maissoro et
-al. (2024, 2025), it includes:
+weakly dependent functional time series. It implements the methods of
+Maissoro, Patilea and Vimond (2025, 2026) and includes:
 
 - Estimators for local regularity parameters
 - Mean function estimation
@@ -41,7 +41,8 @@ RcppArmadillo for high-performance functional data analysis.
 
 - Adaptive estimators for functional time series analysis.
 - Efficient computation using Rcpp and RcppArmadillo.
-- Implements methodologies from cutting-edge research (2024, 2025).
+- Implements the estimators of Maissoro, Patilea and Vimond (2025,
+  2026).
 - Tools for predicting functional time series via BLUP.
 
 ------------------------------------------------------------------------
@@ -116,32 +117,18 @@ dt_mean_risk <- estimate_mean_risk(
   kernel_name = "epanechnikov"
 )
 
-# Visualize mean risk at various observation points
-dt_dcast <- data.table::dcast(data = dt_mean_risk, formula = h ~ t, value.var = "mean_risk")
-manipulateWidget::combineWidgets(
-  list = list(
-    dygraphs::dygraph(
-      data = dt_dcast[, list(h, "t = 0.25" = `0.25`)],
-      main = "t = 0.25", xlab = "h", ylab = "Risk Function"),
-    dygraphs::dygraph(
-      data = dt_dcast[, list(h, "t = 0.5" = `0.5`)],
-      main = "t = 0.5", xlab = "h", ylab = "Risk Function"),
-    dygraphs::dygraph(
-      data = dt_dcast[, list(h, "t = 0.75" = `0.75`)],
-      main = "t = 0.75", xlab = "h", ylab = "Risk Function")
-  ),
-  nrow = 3
-)
+# Visualise the risk against the bandwidth, one panel per observation point
+plot(dt_mean_risk)
 
-# Estimate mean function with optimal bandwidths
+# Estimate the mean function, one bandwidth selected per point
 dt_mean <- estimate_mean(
   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
   t = c(1/4, 1/2, 3/4), bw_grid = seq(0.005, 0.15, len = 45),
   kernel_name = "epanechnikov"
 )
 
-# Display rounded estimates of the mean function
-DT::datatable(data = dt_mean[, lapply(.SD, function(X) round(X, 3))])
+summary(dt_mean)
+dt_mean
 ```
 
 ------------------------------------------------------------------------
@@ -221,18 +208,18 @@ details.
 ## **Acknowledgements**
 
 - Built using **Rcpp** and **RcppArmadillo** for efficient computation.
-- Inspired by methodologies developed in Maissoro et al. (2024, 2025).
+- Implements the methods of Maissoro, Patilea and Vimond (2025, 2026).
 
 ------------------------------------------------------------------------
 
 ## **References**
 
 1.  **Hassan Maissoro, Valentin Patilea, and Myriam Vimond.** *Adaptive
-    Estimation for Weakly Dependent Functional Time Series.* 2024.
-    Available at [arXiv:2403.13706](https://arxiv.org/abs/2403.13706).
+    Estimation for Weakly Dependent Functional Time Series.* Journal of
+    Time Series Analysis, 2025.
+    [doi:10.1111/jtsa.70006](https://doi.org/10.1111/jtsa.70006).
 
 2.  **Hassan Maissoro, Valentin Patilea, and Myriam Vimond.** *Adaptive
-    prediction for Functional Times Series.* 2024. [Work in
-    progress](https://hassan.maissoro.com/assets/pdf/2024-adaptive-estimation-for-functional-time-series.pdf).
+    Prediction for Functional Time Series.* 2026. arXiv:2609.xxxxx.
 
 ------------------------------------------------------------------------

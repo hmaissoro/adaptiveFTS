@@ -1,7 +1,10 @@
-# Estimate lag-\\\ell\\ (\\\ell \leq 0\\) autocovariance function using Rubín and Panaretos (2020) method
+# Estimate the Autocovariance Function by the Rubìn-Panaretos Method
 
-Estimate lag-\\\ell\\ (\\\ell \leq 0\\) autocovariance function using
-Rubín and Panaretos (2020) method
+Estimates the lag-\\\ell\\ autocovariance function with the local-linear
+estimator of Rubìn and Panaretos (2020), which smooths every pair of
+observation points of curves \\\ell\\ apart with a single bandwidth. It
+is provided for comparison with the adaptive estimator of
+[estimate_autocov](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md).
 
 ## Usage
 
@@ -14,10 +17,10 @@ estimate_autocov_rp(
   s = c(1/5, 2/5, 4/5),
   t = c(1/4, 1/2, 3/4),
   lag = 1,
-  h,
-  optbw_mean = NULL,
-  dt_mean_rp = NULL,
-  smooth_ker = epanechnikov
+  bw,
+  bw_mean = NULL,
+  mean_rp = NULL,
+  kernel_name = "epanechnikov"
 )
 ```
 
@@ -25,119 +28,108 @@ estimate_autocov_rp(
 
 - data:
 
-  A `data.table` (or `data.frame`), a `list` of `data.table` (or
-  `data.frame`), or a `list` of `list`.
-
-  - If `data.table`: It should contain the raw curve observations in at
-    least three columns.
-
-    - `idcol` : The name of the column containing the curve index in the
-      sample. Each curve index is repeated according to the number of
-      observation points.
-
-    - `tcol` : The name of the column with observation points associated
-      with each curve index.
-
-    - `ycol` : The name of the column with observed values at each
-      observation point for each curve index.
-
-  - If `list` of `data.table`: In this case, each element in the `list`
-    represents the observation data of a curve in the form of a
-    `data.table` or `data.frame`. Each `data.table` contains at least
-    two columns.
-
-    - `tcol` : The name of the column with observation points for the
-      curve.
-
-    - `ycol` : The name of the column with observed values for the
-      curve.
-
-  - If `list` of `list`: In this case, `data` is a list where each
-    element is the observation data of a curve, given as a `list` of two
-    vectors.
-
-    - `tcol` : The vector containing observation points for the curve.
-
-    - `ycol` : The vector containing observed values for the curve.
+  Raw curve observations, as a `data.table` (or `data.frame`) in long
+  format, or as a `list` with one element per curve. See
+  [`format_data`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  for the accepted layouts and for the `id_curve` / `tobs` / `X` columns
+  they are converted to.
 
 - idcol:
 
-  `character`. If `data` is given as a `data.table` or `data.frame`,
-  this is the name of the column that holds the curve index. Each curve
-  index is repeated according to the number of observation points. If
-  `data` is a `list` of `data.table` (or `data.frame`) or a `list` of
-  `list`, set `idcol = NULL`.
+  `character(1)` or `NULL`. Name of the column holding the curve index
+  when `data` is a single table. Must be `NULL` when `data` is a list of
+  curves.
 
 - tcol:
 
-  `character`. The name of the column (or vector) containing the
-  observation points for the curves.
+  `character(1)`. Name of the column (or vector) holding the observation
+  points of the curves.
 
 - ycol:
 
-  `character`. The name of the column with observed values for the
-  curves.
+  `character(1)`. Name of the column (or vector) holding the values
+  observed at those points.
 
 - s:
 
-  `vector (numeric)`. First argument of the autocovariance function. It
-  corresponds to the observation points `s` in the pair (`s`, `t`). It
-  has to be of the same length as the `t`
+  `vector (numeric)`. First argument of the autocovariance function: the
+  points `s` of the pairs (`s`, `t`). Must have the same length as `t`.
 
 - t:
 
-  `vector (numeric)`. Second argument of the autocovariance function. It
-  corresponds to the observation points `t` in the pair (`s`, `t`). It
-  has to be of the same length as the `s`.
+  `vector (numeric)`. Second argument of the autocovariance function:
+  the points `t` of the pairs (`s`, `t`). Must have the same length as
+  `s`.
 
 - lag:
 
-  `integer (positive integer)`. Lag of the autocovariance.
+  `integer (non-negative)`. Lag \\\ell\\ of the autocovariance.
 
-- h:
+- bw:
 
-  `numeric (positive scalar)`. The bandwidth of the estimator.
+  `numeric (positive scalar)`. Bandwidth of the estimator, common to
+  every pair. See
+  [estimate_autocov_bw_rp](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_bw_rp.md)
+  to select it by cross-validation.
 
-- optbw_mean:
+- bw_mean:
 
-  `numeric (positive scalar)`. Optimal bandwidth for the mean function
-  estimator. It is `NULL` if `dt_mean_rp` is not `NULL`.
+  `numeric (positive scalar)`. Bandwidth of the mean function estimator,
+  used only when `mean_rp` is `NULL`.
 
-- dt_mean_rp:
+- mean_rp:
 
-  `data.table`. It contains the estimates of the mean function at each
-  observation point for each curve. The name of the curve identification
-  column must be `id_curve`, the observation points column `tobs` and
-  the mean estimates column `muhat_RP`. Default `dt_mean_rp = NULL` and
-  so it will be estimated.
+  `data.table`. Mean function estimated at every observation point of
+  every curve, with columns `id_curve`, `tobs` and `muhat_RP`. Default
+  `NULL` estimates it from `bw_mean`.
 
-- smooth_ker:
+- kernel_name:
 
-  `function`. The kernel function of the Nadaraya-Watson estimator.
-  Default `smooth_ker = epanechnikov`.
+  `string`. Kernel of the smoothing estimator, one of "epanechnikov"
+  (default), "biweight", "triweight", "tricube", "triangular" and
+  "uniform".
 
 ## Value
 
-A `data.table` containing the following columns.
+A `data.table` with one row per pair (`s`, `t`) and columns:
 
-- s : The first argument of the autocovariance function.
+- `s`, `t`: the arguments of the autocovariance function.
 
-- t : The second argument of the autocovariance function.
+- `lag`: the lag \\\ell\\.
 
-- lag : The lag of the autocovariance. It corresponds to \\\ell \leq
-  0\\.
+- `bw_mean`: the bandwidth used for the mean function.
 
-- optbw_mean : The optimal bandwidth for the mean function estimator.
+- `bw`: the bandwidth used for the autocovariance.
 
-- h : The bandwidth used to estimate the lag-\\\ell\\, \\\ell \leq 0\\
-  autocovariance function
-
-- autocovhat_rp : The estimates of the lag-\\\ell\\ autocovariance
-  function for each (`s`, `t`) using Rubìn and Panaretos (2020) method.
+- `autocovhat_rp`: the estimated autocovariance.
 
 ## References
 
-Rubín T, Panaretos VM (2020). “Sparsely observed functional time series:
-estimation and prediction.” *Electronic Journal of Statistics*,
-**14**(1), 1137 – 1210.
-[doi:10.1214/20-EJS1690](https://doi.org/10.1214/20-EJS1690) .
+Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+series: estimation and prediction. *Electronic Journal of Statistics*,
+14(1), 1137–1210.
+[doi:10.1214/20-EJS1690](https://doi.org/10.1214/20-EJS1690)
+
+## See also
+
+[`estimate_autocov_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_bw_rp.md),
+[`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md).
+
+## Examples
+
+``` r
+# \donttest{
+data("data_far")
+
+dt_autocov_rp <- estimate_autocov_rp(
+  data = data_far[data_far$id_curve <= 10, ],
+  idcol = "id_curve", tcol = "tobs", ycol = "X",
+  s = c(1/5, 2/5), t = c(1/4, 1/2), lag = 1,
+  bw = 0.1, bw_mean = 0.1, mean_rp = NULL, kernel_name = "epanechnikov")
+dt_autocov_rp
+#>        s     t   lag bw_mean autocovhat_rp
+#>    <num> <num> <num>   <num>         <num>
+#> 1:   0.2  0.25     1     0.1    0.29505726
+#> 2:   0.4  0.50     1     0.1   -0.08008549
+# }
+```

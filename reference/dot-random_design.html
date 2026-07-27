@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">adaptiveFTS</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,7 +40,7 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">.random_design</span><span class="op">(</span><span class="va">N</span>, <span class="va">lambda</span>, Mdistribution <span class="op">=</span> <span class="va">rpois</span>, tdistribution <span class="op">=</span> <span class="va">runif</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">.random_design</span><span class="op">(</span><span class="va">N</span>, <span class="va">lambda</span>, M_distribution <span class="op">=</span> <span class="va">rpois</span>, t_distribution <span class="op">=</span> <span class="va">runif</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -55,19 +55,19 @@
 <dd><p><code>integer</code>. Mean of the number of observations per curve.</p></dd>
 
 
-<dt id="arg-mdistribution">Mdistribution<a class="anchor" aria-label="anchor" href="#arg-mdistribution"></a></dt>
+<dt id="arg-m-distribution">M_distribution<a class="anchor" aria-label="anchor" href="#arg-m-distribution"></a></dt>
 <dd><p><code>function</code>. Distribution of the number of observation points per curve.
 The first argument of the function must correspond to <code>N</code> and the second to <code>lambda</code>.
-Default <code>Mdistribution = rpois</code>.</p></dd>
+Default <code>M_distribution = rpois</code>.</p></dd>
 
 
-<dt id="arg-tdistribution">tdistribution<a class="anchor" aria-label="anchor" href="#arg-tdistribution"></a></dt>
+<dt id="arg-t-distribution">t_distribution<a class="anchor" aria-label="anchor" href="#arg-t-distribution"></a></dt>
 <dd><p><code>function</code>. Distribution of the observation point in the domain.
 Currently only <code>runif</code> is accepted.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Additional argument of <code>tdistribution</code>.</p></dd>
+<dd><p>Additional argument of <code>t_distribution</code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

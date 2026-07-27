@@ -3,16 +3,14 @@
 ## Data formatting
 
 - [`format_data()`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
-  :
-
-  Convert Data to a `data.table` Format
+  : Convert Raw Curve Observations to the Package Data Format
 
 ## Simulation
 
 - [`simulate_far()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.md)
-  : Functional Autoregressive process of order 1 (FAR(1)) simulation
+  : Simulate a Functional Autoregressive Process of Order One
 - [`simulate_fma()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fma.md)
-  : Functional Moving Average process of order 1 (FMA(1)) simulation
+  : Simulate a Functional Moving Average Process of Order One
 - [`simulate_fBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fBm.md)
   : Draw a fractional Brownian motion sample path.
 - [`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md)
@@ -49,32 +47,29 @@
 ## Local regularity
 
 - [`estimate_locreg()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_locreg.md)
-  : Local Regularity Parameters Estimation
+  : Estimate the Local Regularity Parameters
 
 ## Mean function
 
 - [`estimate_mean()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean.md)
-  : Estimate Mean Function
+  : Estimate the Mean Function
 - [`estimate_mean_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_risk.md)
-  : Estimate the Risk Function of the Mean Function
+  : Estimate the Risk of the Mean Function Estimator
 - [`estimate_mean_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_rp.md)
-  : Estimate mean function using Rubín and Panaretos (2020) method.
+  : Estimate the Mean Function by the Rubìn-Panaretos Method
 - [`estimate_mean_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_bw_rp.md)
-  : Bandwidth estimation using cross-validation for the Rubín and
-  Panaretos (2020) mean function estimator.
+  : Select the Bandwidth of the Rubìn-Panaretos Mean Estimator
 
 ## Autocovariance function
 
 - [`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md)
   : Estimate the Covariance or Autocovariance Function
 - [`estimate_autocov_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_risk.md)
-  : Estimate the Risk of the Covariance or Autocovariance Function
+  : Estimate the Risk of the Autocovariance Function Estimator
 - [`estimate_autocov_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_rp.md)
-  : Estimate lag-\\\ell\\ (\\\ell \leq 0\\) autocovariance function
-  using Rubín and Panaretos (2020) method
+  : Estimate the Autocovariance Function by the Rubìn-Panaretos Method
 - [`estimate_autocov_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_bw_rp.md)
-  : Bandwidth estimation using cross-validation for the Rubín and
-  Panaretos (2020) autocovariance function estimator.
+  : Select the Bandwidth of the Rubìn-Panaretos Autocovariance Estimator
 
 ## Covariance segment
 
@@ -163,7 +158,7 @@
 
 - [`get_real_data_mean()`](https://hmaissoro.github.io/adaptiveFTS/reference/get_real_data_mean.md)
   : Mean function learned from the voltage curves of the electricity
-- [`get_real_data_far_kenel()`](https://hmaissoro.github.io/adaptiveFTS/reference/get_real_data_far_kenel.md)
+- [`get_real_data_far_kernel()`](https://hmaissoro.github.io/adaptiveFTS/reference/get_real_data_far_kernel.md)
   : FAR kernel learned from the voltage curves of the electricity
 
 ## Data
@@ -174,11 +169,11 @@
 ## Internal helpers
 
 - [`.Spq_fun()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-Spq_fun.md)
-  : \\S\_{pq}^{(\ell)}\\, (\\\ell \leq 0\\) function. See Rubín and
-  Panaretos (2020) Equation (B.7)
+  : Weight Sum \\S\_{pq}^{(\ell)}\\ of the Rubìn-Panaretos
+  Autocovariance Estimator
 - [`.Qpq_fun()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-Qpq_fun.md)
-  : \\Q\_{pq}^{(\ell)}\\, (\\\ell \leq 0\\) function. See Rubín and
-  Panaretos (2020) Equation (B.7)
+  : Weighted Cross-Product \\Q\_{pq}^{(\ell)}\\ of the Rubìn-Panaretos
+  Estimator
 - [`.constant_d()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-constant_d.md)
   : Constant D(x,y) function
 - [`.covariance_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-covariance_mfBm.md)

@@ -20,7 +20,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">adaptiveFTS</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,12 +47,8 @@
 
 
 
-<link href="adaptiveFTS_files/htmltools-fill-0.5.9/fill.css" rel="stylesheet">
-<script src="adaptiveFTS_files/htmlwidgets-1.6.4/htmlwidgets.js"></script><link href="adaptiveFTS_files/datatables-css-0.0.0/datatables-crosstalk.css" rel="stylesheet">
-<script src="adaptiveFTS_files/datatables-binding-0.34.0/datatables.js"></script><link href="adaptiveFTS_files/dt-core-1.13.6/css/jquery.dataTables.min.css" rel="stylesheet">
-<link href="adaptiveFTS_files/dt-core-1.13.6/css/jquery.dataTables.extra.css" rel="stylesheet">
-<script src="adaptiveFTS_files/dt-core-1.13.6/js/jquery.dataTables.min.js"></script><link href="adaptiveFTS_files/crosstalk-1.2.2/css/crosstalk.min.css" rel="stylesheet">
-<script src="adaptiveFTS_files/crosstalk-1.2.2/js/crosstalk.min.js"></script><div class="row">
+
+<div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
 
       <h1>adaptiveFTS</h1>
@@ -64,19 +60,21 @@
 
     
     
-<p>The vignette proposes an overview on how to perform the adaptive
-estimation procedure of mean and the covariance functions estimation as
-well as the adaptive prediction of the unobserved part of a curve using
-the Best Linear Unbiased Estimator (BLUP). One can refer to the
-following references for more ddetails.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/hmaissoro/adaptiveFTS" class="external-link">adaptiveFTS</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://r-datatable.com" class="external-link">data.table</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></code></pre></div>
+<p>This vignette gives an overview of the adaptive estimation of the
+mean and the (auto)covariance functions, and of the adaptive prediction
+of a curve by the Best Linear Unbiased Predictor (BLUP). See the
+following references for the methodology.</p>
 <ol style="list-style-type: decimal">
 <li><p><strong>Hassan Maissoro, Valentin Patilea, and Myriam
 Vimond.</strong> <em>Adaptive Estimation for Weakly Dependent Functional
-Time Series.</em> 2024. Available at <a href="https://arxiv.org/abs/2403.13706" class="external-link">arXiv:2403.13706</a>.</p></li>
+Time Series.</em> Journal of Time Series Analysis, 2025. <a href="https://doi.org/10.1111/jtsa.70006" class="external-link">doi:10.1111/jtsa.70006</a>.</p></li>
 <li><p><strong>Hassan Maissoro, Valentin Patilea, and Myriam
-Vimond.</strong> <em>Adaptive prediction for Functional Times
-Series.</em> 2024. <a href="https://hassan.maissoro.com/assets/pdf/2024-adaptive-estimation-for-functional-time-series.pdf" class="external-link">Work
-in progress</a>.</p></li>
+Vimond.</strong> <em>Adaptive Prediction for Functional Time
+Series.</em> 2026. arXiv:2609.xxxxx.</p></li>
 </ol>
 <div class="section level2">
 <h2 id="the-data">The data<a class="anchor" aria-label="anchor" href="#the-data"></a>
@@ -100,8 +98,8 @@ consist of the pairs $(Y_{n,i} , T_{n,i} ) R I
 Y_{n,i} = X_n(T_{n,i}) + (T_{n,i})_{n,i}, n N, ; ; 1i M_n. $$ The data
 generating process satisfies the following assumptions.</p>
 <ul>
-<li><p>The
-series<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">{</mo><msub><mi>X</mi><mi>n</mi></msub><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\{X_n\}</annotation></semantics></math>
+<li><p>The series
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">{</mo><msub><mi>X</mi><mi>n</mi></msub><mo stretchy="false" form="postfix">}</mo></mrow><annotation encoding="application/x-tex">\{X_n\}</annotation></semantics></math>
 is a (strictly) stationary
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>ℋ</mi><mo>−</mo></mrow><annotation encoding="application/x-tex">\mathcal H-</annotation></semantics></math>valued
 series.</p></li>
@@ -127,8 +125,11 @@ are the points of the same equidistant grid of
 points in
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>I</mi><annotation encoding="application/x-tex">I</annotation></semantics></math>
 (common design case).</p></li>
-<li><p>The $_{n,i} $ are independent copies of a centered error variable
-<span class="math inline">$\e$</span> with unit variance, and
+<li><p>The
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>ε</mi><mrow><mi>n</mi><mo>,</mo><mi>i</mi></mrow></msub><annotation encoding="application/x-tex">\varepsilon_{n,i}</annotation></semantics></math>
+are independent copies of a centered error variable
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ε</mi><annotation encoding="application/x-tex">\varepsilon</annotation></semantics></math>
+with unit variance, and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>σ</mi><mn>2</mn></msup><mo stretchy="false" form="prefix">(</mo><mi>⋅</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">\sigma^2(\cdot)</annotation></semantics></math>
 is a Lipschitz continuous function.</p></li>
 <li><p>The series
@@ -140,54 +141,277 @@ and
 <math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ε</mi><annotation encoding="application/x-tex">\varepsilon</annotation></semantics></math>
 are mutually independent.</p></li>
 </ul>
-<p>The package includes an example of dataset <code>data_far</code>
-drawn as a sample of an Functional Autoreressive Process of order one
-(FAR(1)). Thus, in the following, we first describe how to generate data
-from a FRA(1). Second, we explain the data</p>
+<p>Every estimator takes the data through <code><a href="../reference/format_data.html">format_data()</a></code>,
+which reshapes it into a <code>data.table</code> with three columns:
+<code>id_curve</code>, <code>tobs</code> and <code>X</code>. The curve
+index defines the order of the series, so the curves must be given in
+chronological order. The domain is
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>I</mi><mo>=</mo><mo stretchy="false" form="prefix">[</mo><mn>0</mn><mo>,</mo><mn>1</mn><mo stretchy="false" form="postfix">]</mo></mrow><annotation encoding="application/x-tex">I = [0, 1]</annotation></semantics></math>.</p>
+<p>The package ships <code>data_far</code>, a sample drawn from a
+functional autoregressive process of order one, FAR(1).</p>
 </div>
 <div class="section level2">
 <h2 id="sample-of-fts-generation">Sample of FTS generation<a class="anchor" aria-label="anchor" href="#sample-of-fts-generation"></a>
 </h2>
-<p><strong>TODO:</strong> Describe the procedure</p>
+<p><code><a href="../reference/simulate_far.html">simulate_far()</a></code> draws a FAR(1) sample. The curves are
+built on an integration grid of <code>n_int_grid</code> points, then
+observed at <code>M_distribution</code> random points per curve drawn
+from <code>t_distribution</code> (independent design) or at the common
+grid <code>t_common</code> (common design). The roughness of the sample
+paths is set by the Hurst function <code>hurst_fun</code> and the Hölder
+constant <code>L</code>, and the first <code>n_burnin</code> curves are
+dropped so that the returned sample is close to stationary.</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
+<span><span class="va">dt_sim</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_far.html">simulate_far</a></span><span class="op">(</span></span>
+<span>  N <span class="op">=</span> <span class="fl">50L</span>, lambda <span class="op">=</span> <span class="fl">40L</span>,</span>
+<span>  design <span class="op">=</span> <span class="st">"random"</span>,</span>
+<span>  M_distribution <span class="op">=</span> <span class="va">rpois</span>,</span>
+<span>  t_distribution <span class="op">=</span> <span class="va">runif</span>,</span>
+<span>  t_common <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  hurst_fun <span class="op">=</span> <span class="va">hurst_logistic</span>,</span>
+<span>  L <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  far_kernel <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">t</span><span class="op">)</span> <span class="fl">9</span> <span class="op">/</span> <span class="fl">4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="op">(</span><span class="va">t</span> <span class="op">+</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">s</span><span class="op">)</span> <span class="op">**</span> <span class="fl">2</span><span class="op">)</span>,</span>
+<span>  far_mean <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="fl">4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">sin</a></span><span class="op">(</span><span class="fl">1.5</span> <span class="op">*</span> <span class="va">pi</span> <span class="op">*</span> <span class="va">t</span><span class="op">)</span>,</span>
+<span>  n_int_grid <span class="op">=</span> <span class="fl">100L</span>,</span>
+<span>  n_burnin <span class="op">=</span> <span class="fl">100L</span>,</span>
+<span>  remove_burnin <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">dt_sim</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    id_curve        tobs    ttag   far_mean           X</span></span>
+<span><span class="co">#&gt;       &lt;int&gt;       &lt;num&gt;  &lt;char&gt;      &lt;num&gt;       &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:        1 0.002338519 trandom 0.04407915 -2.58155115</span></span>
+<span><span class="co">#&gt; 2:        1 0.031619531 trandom 0.59381111 -1.63645971</span></span>
+<span><span class="co">#&gt; 3:        1 0.037706318 trandom 0.70701322 -1.43776541</span></span>
+<span><span class="co">#&gt; 4:        1 0.103313245 trandom 1.87138461 -2.65614825</span></span>
+<span><span class="co">#&gt; 5:        1 0.118140133 trandom 2.11362507 -0.46933534</span></span>
+<span><span class="co">#&gt; 6:        1 0.123435143 trandom 2.19769500  0.03569165</span></span></code></pre></div>
+<p>The packaged <code>data_far</code> was drawn the same way. Its curves
+look like this.</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"data_far"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">data_far</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"id_curve"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">as.factor</a></span><span class="op">(</span><span class="va">id_curve</span><span class="op">)</span>, <span class="st">"t"</span> <span class="op">=</span> <span class="va">tobs</span>, <span class="va">X</span><span class="op">)</span><span class="op">]</span>,</span>
+<span>       mapping <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">t</span>, y <span class="op">=</span> <span class="va">X</span>, group <span class="op">=</span> <span class="va">id_curve</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>colour <span class="op">=</span> <span class="st">"#1B4F72"</span>, alpha <span class="op">=</span> <span class="fl">0.3</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"t"</span>, y <span class="op">=</span> <span class="st">"X(t)"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="adaptiveFTS_files/figure-html/unnamed-chunk-3-1.png" class="r-plt" alt="" width="700"></p>
+<p>The estimation sections below run on the first 60 curves, to keep
+this vignette quick to build.</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">dt_sub</span> <span class="op">&lt;-</span> <span class="va">data_far</span><span class="op">[</span><span class="va">id_curve</span> <span class="op">&lt;=</span> <span class="fl">60</span><span class="op">]</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="estimation-of-local-regularity-parameters">Estimation of local regularity parameters<a class="anchor" aria-label="anchor" href="#estimation-of-local-regularity-parameters"></a>
 </h2>
-<p>To estimate the local regularity parameters, call the function
-<code>estimate_locreg</code>.</p>
-<div class="datatables html-widget html-fill-item" id="htmlwidget-ac96cb3ee4656e2e9ec3" style="width:100%;height:auto;"></div>
-<script type="application/json" data-for="htmlwidget-ac96cb3ee4656e2e9ec3">{"x":{"filter":"none","vertical":false,"data":[["1","2","3","4","5","6","7","8","9"],[0.1,0.2,0.3,0.4,0.5,0.6,0.7000000000000001,0.8,0.9],[0.017406287551008,0.017406287551008,0.017406287551008,0.017406287551008,0.017406287551008,0.017406287551008,0.017406287551008,0.017406287551008,0.017406287551008],[0.1923983347321581,0.1923983347321581,0.1923983347321581,0.1923983347321581,0.1923983347321581,0.1923983347321581,0.1923983347321581,0.1923983347321581,0.1923983347321581],[105,118,118,115,122,117,119,127,111],[0.3861326533544633,0.5645556622870711,0.3291595647570436,0.3879540530334213,0.6187841979010202,0.77244308675928,0.4530097001204575,0.4184367124506057,0.4063427184318061],[3.8392158759015,9.870244452181051,3.032601327857252,4.542480971294504,8.05126992688575,9.991424784871082,3.022983177389806,2.174434478785733,2.204504017420987]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>t<\/th>\n      <th>locreg_bw<\/th>\n      <th>Delta<\/th>\n      <th>Nused<\/th>\n      <th>Ht<\/th>\n      <th>Lt2<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"columnDefs":[{"className":"dt-right","targets":[1,2,3,4,5,6]},{"orderable":false,"targets":0},{"name":" ","targets":0},{"name":"t","targets":1},{"name":"locreg_bw","targets":2},{"name":"Delta","targets":3},{"name":"Nused","targets":4},{"name":"Ht","targets":5},{"name":"Lt2","targets":6}],"order":[],"autoWidth":false,"orderClasses":false},"selection":{"mode":"multiple","selected":null,"target":"row","selectable":null}},"evals":[],"jsHooks":[]}</script><pre><code><span><span class="co">#&gt;        t  locreg_bw     Delta Nused        Ht      Lt2</span></span>
-<span><span class="co">#&gt;    &lt;num&gt;      &lt;num&gt;     &lt;num&gt; &lt;num&gt;     &lt;num&gt;    &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:   0.1 0.01740629 0.1923983   105 0.3861327 3.839216</span></span>
-<span><span class="co">#&gt; 2:   0.2 0.01740629 0.1923983   118 0.5645557 9.870244</span></span>
-<span><span class="co">#&gt; 3:   0.3 0.01740629 0.1923983   118 0.3291596 3.032601</span></span>
-<span><span class="co">#&gt; 4:   0.4 0.01740629 0.1923983   115 0.3879541 4.542481</span></span>
-<span><span class="co">#&gt; 5:   0.5 0.01740629 0.1923983   122 0.6187842 8.051270</span></span>
-<span><span class="co">#&gt; 6:   0.6 0.01740629 0.1923983   117 0.7724431 9.991425</span></span>
-<span><span class="co">#&gt; 7:   0.7 0.01740629 0.1923983   119 0.4530097 3.022983</span></span>
-<span><span class="co">#&gt; 8:   0.8 0.01740629 0.1923983   127 0.4184367 2.174434</span></span>
-<span><span class="co">#&gt; 9:   0.9 0.01740629 0.1923983   111 0.4063427 2.204504</span></span></code></pre>
+<p><code><a href="../reference/estimate_locreg.html">estimate_locreg()</a></code> estimates the local Hölder exponent
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>H</mi><mi>t</mi></msub><annotation encoding="application/x-tex">H_t</annotation></semantics></math>
+and the squared Hölder constant
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>L</mi><mi>t</mi><mn>2</mn></msubsup><annotation encoding="application/x-tex">L_t^2</annotation></semantics></math>
+at each point of <code>t</code>. Together they drive the bandwidth
+chosen by every estimator below: the rougher the process at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>,
+the smaller the bandwidth.</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">t0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0.9</span>, len <span class="op">=</span> <span class="fl">9</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">dt_locreg</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/estimate_locreg.html">estimate_locreg</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">dt_sub</span>,</span>
+<span>                             idcol <span class="op">=</span> <span class="st">"id_curve"</span>,</span>
+<span>                             tcol <span class="op">=</span> <span class="st">"tobs"</span>,</span>
+<span>                             ycol <span class="op">=</span> <span class="st">"X"</span>,</span>
+<span>                             t <span class="op">=</span> <span class="va">t0</span>,</span>
+<span>                             Delta <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>                             presmooth_bw <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>                             kernel_name <span class="op">=</span> <span class="st">"epanechnikov"</span>,</span>
+<span>                             center <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">dt_locreg</span></span>
+<span><span class="co">#&gt;        t locreg_bw    Delta Nused        Ht       Lt2</span></span>
+<span><span class="co">#&gt;    &lt;num&gt;     &lt;num&gt;    &lt;num&gt; &lt;num&gt;     &lt;num&gt;     &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:   0.1 0.0155714 0.192132    43 0.5982658  7.897670</span></span>
+<span><span class="co">#&gt; 2:   0.2 0.0155714 0.192132    49 0.3545932  4.051798</span></span>
+<span><span class="co">#&gt; 3:   0.3 0.0155714 0.192132    47 0.2769889  2.385011</span></span>
+<span><span class="co">#&gt; 4:   0.4 0.0155714 0.192132    46 0.2431588  2.487977</span></span>
+<span><span class="co">#&gt; 5:   0.5 0.0155714 0.192132    48 0.7386256 11.097135</span></span>
+<span><span class="co">#&gt; 6:   0.6 0.0155714 0.192132    39 1.0000000 24.526444</span></span>
+<span><span class="co">#&gt; 7:   0.7 0.0155714 0.192132    48 0.5694092  4.526377</span></span>
+<span><span class="co">#&gt; 8:   0.8 0.0155714 0.192132    48 0.3991194  1.931887</span></span>
+<span><span class="co">#&gt; 9:   0.9 0.0155714 0.192132    43 0.6186443  4.131826</span></span></code></pre></div>
+<p>Every estimator output carries <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> and
+<code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> methods.</p>
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">dt_locreg</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Adaptive local regularity estimates</span></span>
+<span><span class="co">#&gt;   Evaluation points  : 9 (t in [0.1, 0.9])</span></span>
+<span><span class="co">#&gt;   Kernel             : epanechnikov (centred: TRUE)</span></span>
+<span><span class="co">#&gt;   Delta              : 0.1921</span></span>
+<span><span class="co">#&gt;   Curves used (Nused): [39, 49]</span></span>
+<span><span class="co">#&gt;   Ht                 : [0.243, 1]</span></span>
+<span><span class="co">#&gt;   Lt2                : [1.93, 24.5]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">dt_locreg</span><span class="op">)</span></span></code></pre></div>
+<p><img src="adaptiveFTS_files/figure-html/unnamed-chunk-6-1.png" class="r-plt" alt="" width="700"></p>
 </div>
 <div class="section level2">
 <h2 id="estimation-of-the-mean-function">Estimation of the mean function<a class="anchor" aria-label="anchor" href="#estimation-of-the-mean-function"></a>
 </h2>
+<p>The adaptive mean estimator selects its bandwidth point by point, by
+minimising the estimated risk over a grid of candidates.
+<code><a href="../reference/estimate_mean_risk.html">estimate_mean_risk()</a></code> exposes that risk, split into its
+bias, variance and dependence terms.</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">bw_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.02</span>, <span class="fl">0.15</span>, length.out <span class="op">=</span> <span class="fl">10</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">dt_mean_risk</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/estimate_mean_risk.html">estimate_mean_risk</a></span><span class="op">(</span></span>
+<span>  data <span class="op">=</span> <span class="va">dt_sub</span>, idcol <span class="op">=</span> <span class="st">"id_curve"</span>, tcol <span class="op">=</span> <span class="st">"tobs"</span>, ycol <span class="op">=</span> <span class="st">"X"</span>,</span>
+<span>  t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">/</span><span class="fl">4</span>, <span class="fl">1</span><span class="op">/</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">/</span><span class="fl">4</span><span class="op">)</span>, bw_grid <span class="op">=</span> <span class="va">bw_grid</span>, kernel_name <span class="op">=</span> <span class="st">"epanechnikov"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">dt_mean_risk</span><span class="op">)</span></span></code></pre></div>
+<p><img src="adaptiveFTS_files/figure-html/unnamed-chunk-7-1.png" class="r-plt" alt="" width="700"></p>
+<p><code><a href="../reference/estimate_mean.html">estimate_mean()</a></code> runs the same selection and returns the
+estimate, reporting the bandwidth used at each point in the
+<code>optbw</code> column.</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">dt_mean</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/estimate_mean.html">estimate_mean</a></span><span class="op">(</span></span>
+<span>  data <span class="op">=</span> <span class="va">dt_sub</span>, idcol <span class="op">=</span> <span class="st">"id_curve"</span>, tcol <span class="op">=</span> <span class="st">"tobs"</span>, ycol <span class="op">=</span> <span class="st">"X"</span>,</span>
+<span>  t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.1</span>, <span class="fl">0.9</span>, length.out <span class="op">=</span> <span class="fl">25</span><span class="op">)</span>, bw_grid <span class="op">=</span> <span class="va">bw_grid</span>,</span>
+<span>  kernel_name <span class="op">=</span> <span class="st">"epanechnikov"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">dt_mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Adaptive mean function estimate</span></span>
+<span><span class="co">#&gt;   Evaluation points  : 25 (t in [0.1, 0.9])</span></span>
+<span><span class="co">#&gt;   Training curves    : 60</span></span>
+<span><span class="co">#&gt;   Kernel             : epanechnikov</span></span>
+<span><span class="co">#&gt;   Optimal bandwidth  : [0.02, 0.02]</span></span>
+<span><span class="co">#&gt;   Curves used (PN)   : [55, 60]</span></span>
+<span><span class="co">#&gt;   muhat              : [239, 243]</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">dt_mean</span><span class="op">)</span></span></code></pre></div>
+<p><img src="adaptiveFTS_files/figure-html/unnamed-chunk-8-1.png" class="r-plt" alt="" width="700"></p>
 </div>
 <div class="section level2">
 <h2 id="estimation-of-the-autocovariance-function">Estimation of the autocovariance function<a class="anchor" aria-label="anchor" href="#estimation-of-the-autocovariance-function"></a>
 </h2>
+<p>The
+lag-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ℓ</mi><annotation encoding="application/x-tex">\ell</annotation></semantics></math>
+autocovariance is estimated at pairs of points
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>s</mi><mo>,</mo><mi>t</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(s, t)</annotation></semantics></math>.
+Two estimators are available, selected by <code>common_bw</code>.</p>
 <div class="section level3">
-<h3 id="using-on-bandwidth">Using on bandwidth<a class="anchor" aria-label="anchor" href="#using-on-bandwidth"></a>
+<h3 id="using-one-bandwidth">Using one bandwidth<a class="anchor" aria-label="anchor" href="#using-one-bandwidth"></a>
 </h3>
+<p>With <code>common_bw = TRUE</code> a single bandwidth is selected for
+both arguments. This is the estimator of Maissoro, Patilea and Vimond
+(2025).</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">sgrid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">/</span><span class="fl">5</span>, <span class="fl">2</span><span class="op">/</span><span class="fl">5</span>, <span class="fl">3</span><span class="op">/</span><span class="fl">5</span>, <span class="fl">4</span><span class="op">/</span><span class="fl">5</span><span class="op">)</span></span>
+<span><span class="va">tgrid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span><span class="op">/</span><span class="fl">4</span>, <span class="fl">1</span><span class="op">/</span><span class="fl">2</span>, <span class="fl">3</span><span class="op">/</span><span class="fl">5</span>, <span class="fl">3</span><span class="op">/</span><span class="fl">4</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">dt_autocov_1bw</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/estimate_autocov.html">estimate_autocov</a></span><span class="op">(</span></span>
+<span>  data <span class="op">=</span> <span class="va">dt_sub</span>, idcol <span class="op">=</span> <span class="st">"id_curve"</span>, tcol <span class="op">=</span> <span class="st">"tobs"</span>, ycol <span class="op">=</span> <span class="st">"X"</span>,</span>
+<span>  s <span class="op">=</span> <span class="va">sgrid</span>, t <span class="op">=</span> <span class="va">tgrid</span>, lag <span class="op">=</span> <span class="fl">1</span>, bw_grid <span class="op">=</span> <span class="va">bw_grid</span>,</span>
+<span>  common_bw <span class="op">=</span> <span class="cn">TRUE</span>, center_curves <span class="op">=</span> <span class="cn">TRUE</span>, correct_diagonal <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  kernel_name <span class="op">=</span> <span class="st">"epanechnikov"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">dt_autocov_1bw</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">s</span>, <span class="va">t</span>, <span class="va">optbw_s</span>, <span class="va">optbw_t</span>, <span class="va">autocov</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;        s     t    optbw_s    optbw_t  autocov</span></span>
+<span><span class="co">#&gt;    &lt;num&gt; &lt;num&gt;      &lt;num&gt;      &lt;num&gt;    &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:   0.2  0.25 0.02000000 0.02000000 7.458938</span></span>
+<span><span class="co">#&gt; 2:   0.4  0.50 0.02000000 0.02000000 6.759217</span></span>
+<span><span class="co">#&gt; 3:   0.6  0.60 0.02000000 0.02000000 5.369041</span></span>
+<span><span class="co">#&gt; 4:   0.8  0.75 0.03444444 0.03444444 5.115933</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="using-two-bandwidth">Using two bandwidth<a class="anchor" aria-label="anchor" href="#using-two-bandwidth"></a>
+<h3 id="using-two-bandwidths">Using two bandwidths<a class="anchor" aria-label="anchor" href="#using-two-bandwidths"></a>
 </h3>
+<p>With <code>common_bw = FALSE</code> the risk is minimised over pairs
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><msub><mi>h</mi><mi>s</mi></msub><mo>,</mo><msub><mi>h</mi><mi>t</mi></msub><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(h_s, h_t)</annotation></semantics></math>,
+so the estimator adapts to the regularity at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>s</mi><annotation encoding="application/x-tex">s</annotation></semantics></math>
+and at
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>
+separately. This is the estimator of Maissoro, Patilea and Vimond
+(2026). It explores the square of the grid and therefore costs
+noticeably more.</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">dt_autocov_2bw</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/estimate_autocov.html">estimate_autocov</a></span><span class="op">(</span></span>
+<span>  data <span class="op">=</span> <span class="va">dt_sub</span>, idcol <span class="op">=</span> <span class="st">"id_curve"</span>, tcol <span class="op">=</span> <span class="st">"tobs"</span>, ycol <span class="op">=</span> <span class="st">"X"</span>,</span>
+<span>  s <span class="op">=</span> <span class="va">sgrid</span>, t <span class="op">=</span> <span class="va">tgrid</span>, lag <span class="op">=</span> <span class="fl">1</span>, bw_grid <span class="op">=</span> <span class="va">bw_grid</span>,</span>
+<span>  common_bw <span class="op">=</span> <span class="cn">FALSE</span>, center_curves <span class="op">=</span> <span class="cn">TRUE</span>, correct_diagonal <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  kernel_name <span class="op">=</span> <span class="st">"epanechnikov"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">dt_autocov_2bw</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">s</span>, <span class="va">t</span>, <span class="va">optbw_s</span>, <span class="va">optbw_t</span>, <span class="va">autocov</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;        s     t optbw_s    optbw_t  autocov</span></span>
+<span><span class="co">#&gt;    &lt;num&gt; &lt;num&gt;   &lt;num&gt;      &lt;num&gt;    &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:   0.2  0.25    0.02 0.02000000 7.458938</span></span>
+<span><span class="co">#&gt; 2:   0.4  0.50    0.02 0.02000000 6.759217</span></span>
+<span><span class="co">#&gt; 3:   0.6  0.60    0.02 0.02000000 5.369041</span></span>
+<span><span class="co">#&gt; 4:   0.8  0.75    0.02 0.03444444 5.168580</span></span></code></pre></div>
+<p>The two bandwidths differ wherever the estimated regularity differs
+between
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>s</mi><annotation encoding="application/x-tex">s</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>t</mi><annotation encoding="application/x-tex">t</annotation></semantics></math>.</p>
+</div>
+<div class="section level3">
+<h3 id="functional-autocorrelation">Functional autocorrelation<a class="anchor" aria-label="anchor" href="#functional-autocorrelation"></a>
+</h3>
+<p><code><a href="../reference/estimate_facf.html">estimate_facf()</a></code> normalises the
+lag-<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>ℓ</mi><annotation encoding="application/x-tex">\ell</annotation></semantics></math>
+autocovariance surfaces into a functional analogue of the
+autocorrelation function of a scalar series, which is a convenient way
+to read the serial dependence of the sample.</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">dt_facf</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/estimate_facf.html">estimate_facf</a></span><span class="op">(</span></span>
+<span>  data <span class="op">=</span> <span class="va">dt_sub</span>, idcol <span class="op">=</span> <span class="st">"id_curve"</span>, tcol <span class="op">=</span> <span class="st">"tobs"</span>, ycol <span class="op">=</span> <span class="st">"X"</span>,</span>
+<span>  lag.max <span class="op">=</span> <span class="fl">3</span>, n_grid <span class="op">=</span> <span class="fl">8</span>, bw_grid <span class="op">=</span> <span class="va">bw_grid</span>, common_bw <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  kernel_name <span class="op">=</span> <span class="st">"epanechnikov"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">dt_facf</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Functional autocorrelation function (FACF)</span></span>
+<span><span class="co">#&gt;   Design             : independent</span></span>
+<span><span class="co">#&gt;   Evaluation grid    : 8 points</span></span>
+<span><span class="co">#&gt;   Training curves    : 60</span></span>
+<span><span class="co">#&gt;   Kernel             : epanechnikov</span></span>
+<span><span class="co">#&gt;   Lags               : 1 to 3</span></span>
+<span><span class="co">#&gt;   rho                : [0.234, 0.586]</span></span>
+<span><span class="co">#&gt;   Largest |rho|      : 0.5864 (lag 1)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">dt_facf</span><span class="op">)</span></span></code></pre></div>
+<p><img src="adaptiveFTS_files/figure-html/unnamed-chunk-11-1.png" class="r-plt" alt="" width="700"></p>
 </div>
 </div>
 <div class="section level2">
 <h2 id="adaptive-prediction-of-a-curve">Adaptive prediction of a curve<a class="anchor" aria-label="anchor" href="#adaptive-prediction-of-a-curve"></a>
 </h2>
+<p><code><a href="../reference/blup_fit.html">blup_fit()</a></code> estimates every component of the adaptive
+BLUP that does not depend on the prediction points, and
+<code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> evaluates the predictor on a grid. The Tikhonov
+regularisation parameter is selected by cross-validation when left to
+<code>NULL</code>.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">data_train</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/format_data.html">format_data</a></span><span class="op">(</span><span class="va">dt_sub</span>, idcol <span class="op">=</span> <span class="st">"id_curve"</span>, tcol <span class="op">=</span> <span class="st">"tobs"</span>, ycol <span class="op">=</span> <span class="st">"X"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">fit</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/blup_fit.html">blup_fit</a></span><span class="op">(</span>data <span class="op">=</span> <span class="va">data_train</span>, n_cv_curves <span class="op">=</span> <span class="fl">10L</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">fit</span><span class="op">)</span></span>
+<span><span class="co">#&gt; Adaptive functional BLUP fit</span></span>
+<span><span class="co">#&gt;   Design             : independent</span></span>
+<span><span class="co">#&gt;   Training curves    : 60</span></span>
+<span><span class="co">#&gt;   Conditioning curve : id 60, M = 86 points</span></span>
+<span><span class="co">#&gt;   Kernel             : epanechnikov (homoscedastic)</span></span>
+<span><span class="co">#&gt;   Noise variance     : 0.1257</span></span>
+<span><span class="co">#&gt;   Tikhonov           : 0.5134 (CV-selected, min CV =  6.56)</span></span></code></pre></div>
+<p><code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> reconstructs the curve following the
+conditioning one. With <code>horizon &gt; 1</code>, each intermediate
+curve is fed back as the new conditioning curve and every intermediate
+prediction is returned.</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">dt_pred</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict</a></span><span class="op">(</span><span class="va">fit</span>, t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.05</span>, <span class="fl">0.95</span>, length.out <span class="op">=</span> <span class="fl">40</span><span class="op">)</span>, horizon <span class="op">=</span> <span class="fl">2L</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">dt_pred</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">t</span>, y <span class="op">=</span> <span class="va">prediction</span>, colour <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">horizon</span><span class="op">)</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_path.html" class="external-link">geom_line</a></span><span class="op">(</span>linewidth <span class="op">=</span> <span class="fl">0.7</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"t"</span>, y <span class="op">=</span> <span class="st">"prediction"</span>, colour <span class="op">=</span> <span class="st">"horizon"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"bottom"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="adaptiveFTS_files/figure-html/unnamed-chunk-13-1.png" class="r-plt" alt="" width="700"></p>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside>

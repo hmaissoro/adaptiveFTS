@@ -1,6 +1,6 @@
 # **adaptiveFTS**
 
-[![Version](https://img.shields.io/badge/version-0.1.1-blue)](https://github.com/hmaissoro/adaptiveFTS)  
+[![Version](https://img.shields.io/badge/version-0.3.0-blue)](https://github.com/hmaissoro/adaptiveFTS)  
 [![License](https://img.shields.io/badge/license-AGPL%20%3E%3D%203-lightgrey)](https://hmaissoro.github.io/adaptiveFTS/LICENSE)
 [![R-CMD-check](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/R-CMD-check.yaml)
 [![test-coverage](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/test-coverage.yaml/badge.svg)](https://github.com/hmaissoro/adaptiveFTS/actions/workflows/test-coverage.yaml)
@@ -12,8 +12,8 @@
 ## **Description**
 
 `adaptiveFTS` provides tools for adaptive estimation procedures for
-weakly dependent functional time series. Developed by Maissoro et
-al. (2024, 2025), it includes:
+weakly dependent functional time series. It implements the methods of
+Maissoro, Patilea and Vimond (2025, 2026) and includes:
 
 - Estimators for local regularity parameters
 - Mean function estimation
@@ -41,7 +41,8 @@ RcppArmadillo for high-performance functional data analysis.
 
 - Adaptive estimators for functional time series analysis.
 - Efficient computation using Rcpp and RcppArmadillo.
-- Implements methodologies from cutting-edge research (2024, 2025).
+- Implements the estimators of Maissoro, Patilea and Vimond (2025,
+  2026).
 - Tools for predicting functional time series via BLUP.
 
 ------------------------------------------------------------------------
@@ -116,32 +117,18 @@ dt_mean_risk <- estimate_mean_risk(
   kernel_name = "epanechnikov"
 )
 
-# Visualize mean risk at various observation points
-dt_dcast <- data.table::dcast(data = dt_mean_risk, formula = h ~ t, value.var = "mean_risk")
-manipulateWidget::combineWidgets(
-  list = list(
-    dygraphs::dygraph(
-      data = dt_dcast[, list(h, "t = 0.25" = `0.25`)],
-      main = "t = 0.25", xlab = "h", ylab = "Risk Function"),
-    dygraphs::dygraph(
-      data = dt_dcast[, list(h, "t = 0.5" = `0.5`)],
-      main = "t = 0.5", xlab = "h", ylab = "Risk Function"),
-    dygraphs::dygraph(
-      data = dt_dcast[, list(h, "t = 0.75" = `0.75`)],
-      main = "t = 0.75", xlab = "h", ylab = "Risk Function")
-  ),
-  nrow = 3
-)
+# Visualise the risk against the bandwidth, one panel per observation point
+plot(dt_mean_risk)
 
-# Estimate mean function with optimal bandwidths
+# Estimate the mean function, one bandwidth selected per point
 dt_mean <- estimate_mean(
   data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
   t = c(1/4, 1/2, 3/4), bw_grid = seq(0.005, 0.15, len = 45),
   kernel_name = "epanechnikov"
 )
 
-# Display rounded estimates of the mean function
-DT::datatable(data = dt_mean[, lapply(.SD, function(X) round(X, 3))])
+summary(dt_mean)
+dt_mean
 ```
 
 ------------------------------------------------------------------------
@@ -221,19 +208,19 @@ details.
 ## **Acknowledgements**
 
 - Built using **Rcpp** and **RcppArmadillo** for efficient computation.
-- Inspired by methodologies developed in Maissoro et al. (2024, 2025).
+- Implements the methods of Maissoro, Patilea and Vimond (2025, 2026).
 
 ------------------------------------------------------------------------
 
 ## **References**
 
 1.  **Hassan Maissoro, Valentin Patilea, and Myriam Vimond.** *Adaptive
-    Estimation for Weakly Dependent Functional Time Series.* 2024.
-    Available at [arXiv:2403.13706](https://arxiv.org/abs/2403.13706).
+    Estimation for Weakly Dependent Functional Time Series.* Journal of
+    Time Series Analysis, 2025.
+    [doi:10.1111/jtsa.70006](https://doi.org/10.1111/jtsa.70006).
 
 2.  **Hassan Maissoro, Valentin Patilea, and Myriam Vimond.** *Adaptive
-    prediction for Functional Times Series.* 2024. [Work in
-    progress](https://hassan.maissoro.com/assets/pdf/2024-adaptive-estimation-for-functional-time-series.pdf).
+    Prediction for Functional Time Series.* 2026. arXiv:2609.xxxxx.
 
 ------------------------------------------------------------------------
 
@@ -242,16 +229,14 @@ details.
 ## Data formatting
 
 - [`format_data()`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
-  :
-
-  Convert Data to a `data.table` Format
+  : Convert Raw Curve Observations to the Package Data Format
 
 ## Simulation
 
 - [`simulate_far()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.md)
-  : Functional Autoregressive process of order 1 (FAR(1)) simulation
+  : Simulate a Functional Autoregressive Process of Order One
 - [`simulate_fma()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fma.md)
-  : Functional Moving Average process of order 1 (FMA(1)) simulation
+  : Simulate a Functional Moving Average Process of Order One
 - [`simulate_fBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fBm.md)
   : Draw a fractional Brownian motion sample path.
 - [`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md)
@@ -288,32 +273,29 @@ details.
 ## Local regularity
 
 - [`estimate_locreg()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_locreg.md)
-  : Local Regularity Parameters Estimation
+  : Estimate the Local Regularity Parameters
 
 ## Mean function
 
 - [`estimate_mean()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean.md)
-  : Estimate Mean Function
+  : Estimate the Mean Function
 - [`estimate_mean_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_risk.md)
-  : Estimate the Risk Function of the Mean Function
+  : Estimate the Risk of the Mean Function Estimator
 - [`estimate_mean_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_rp.md)
-  : Estimate mean function using Rubín and Panaretos (2020) method.
+  : Estimate the Mean Function by the Rubìn-Panaretos Method
 - [`estimate_mean_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_bw_rp.md)
-  : Bandwidth estimation using cross-validation for the Rubín and
-  Panaretos (2020) mean function estimator.
+  : Select the Bandwidth of the Rubìn-Panaretos Mean Estimator
 
 ## Autocovariance function
 
 - [`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md)
   : Estimate the Covariance or Autocovariance Function
 - [`estimate_autocov_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_risk.md)
-  : Estimate the Risk of the Covariance or Autocovariance Function
+  : Estimate the Risk of the Autocovariance Function Estimator
 - [`estimate_autocov_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_rp.md)
-  : Estimate lag-\\\ell\\ (\\\ell \leq 0\\) autocovariance function
-  using Rubín and Panaretos (2020) method
+  : Estimate the Autocovariance Function by the Rubìn-Panaretos Method
 - [`estimate_autocov_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_bw_rp.md)
-  : Bandwidth estimation using cross-validation for the Rubín and
-  Panaretos (2020) autocovariance function estimator.
+  : Select the Bandwidth of the Rubìn-Panaretos Autocovariance Estimator
 
 ## Covariance segment
 
@@ -402,7 +384,7 @@ details.
 
 - [`get_real_data_mean()`](https://hmaissoro.github.io/adaptiveFTS/reference/get_real_data_mean.md)
   : Mean function learned from the voltage curves of the electricity
-- [`get_real_data_far_kenel()`](https://hmaissoro.github.io/adaptiveFTS/reference/get_real_data_far_kenel.md)
+- [`get_real_data_far_kernel()`](https://hmaissoro.github.io/adaptiveFTS/reference/get_real_data_far_kernel.md)
   : FAR kernel learned from the voltage curves of the electricity
 
 ## Data
@@ -413,11 +395,11 @@ details.
 ## Internal helpers
 
 - [`.Spq_fun()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-Spq_fun.md)
-  : \\S\_{pq}^{(\ell)}\\, (\\\ell \leq 0\\) function. See Rubín and
-  Panaretos (2020) Equation (B.7)
+  : Weight Sum \\S\_{pq}^{(\ell)}\\ of the Rubìn-Panaretos
+  Autocovariance Estimator
 - [`.Qpq_fun()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-Qpq_fun.md)
-  : \\Q\_{pq}^{(\ell)}\\, (\\\ell \leq 0\\) function. See Rubín and
-  Panaretos (2020) Equation (B.7)
+  : Weighted Cross-Product \\Q\_{pq}^{(\ell)}\\ of the Rubìn-Panaretos
+  Estimator
 - [`.constant_d()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-constant_d.md)
   : Constant D(x,y) function
 - [`.covariance_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-covariance_mfBm.md)

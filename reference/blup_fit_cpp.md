@@ -11,12 +11,12 @@ not intended to be used directly.
 ``` r
 blup_fit_cpp(
   data,
-  id_lag,
+  id_conditioning_curve,
   bw_grid,
   rho,
   homoscedastic,
   tikhonov,
-  n_subgrid_bw,
+  bw_subgrid_size,
   kernel_name
 )
 ```
@@ -27,7 +27,7 @@ blup_fit_cpp(
 
   A DataFrame with columns `id_curve`, `tobs`, `X`.
 
-- id_lag:
+- id_conditioning_curve:
 
   Integer id of the conditioning curve.
 
@@ -47,7 +47,7 @@ blup_fit_cpp(
 
   Tikhonov regularisation parameter.
 
-- n_subgrid_bw:
+- bw_subgrid_size:
 
   Number of points per axis of the bandwidth sub-grid.
 

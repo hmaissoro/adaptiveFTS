@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">adaptiveFTS</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -47,7 +47,7 @@
           <code><a href="format_data.html">format_data()</a></code>
 
         </dt>
-        <dd>Convert Data to a <code>data.table</code> Format</dd>
+        <dd>Convert Raw Curve Observations to the Package Data Format</dd>
       </dl></div><div class="section level2">
       <h2 id="simulation">Simulation<a class="anchor" aria-label="anchor" href="#simulation"></a></h2>
 
@@ -63,14 +63,14 @@
           <code><a href="simulate_far.html">simulate_far()</a></code>
 
         </dt>
-        <dd>Functional Autoregressive process of order 1 (FAR(1)) simulation</dd>
+        <dd>Simulate a Functional Autoregressive Process of Order One</dd>
 
         <dt>
 
           <code><a href="simulate_fma.html">simulate_fma()</a></code>
 
         </dt>
-        <dd>Functional Moving Average process of order 1 (FMA(1)) simulation</dd>
+        <dd>Simulate a Functional Moving Average Process of Order One</dd>
 
         <dt>
 
@@ -193,7 +193,7 @@
           <code><a href="estimate_locreg.html">estimate_locreg()</a></code>
 
         </dt>
-        <dd>Local Regularity Parameters Estimation</dd>
+        <dd>Estimate the Local Regularity Parameters</dd>
       </dl></div><div class="section level2">
       <h2 id="mean-function">Mean function<a class="anchor" aria-label="anchor" href="#mean-function"></a></h2>
 
@@ -209,28 +209,28 @@
           <code><a href="estimate_mean.html">estimate_mean()</a></code>
 
         </dt>
-        <dd>Estimate Mean Function</dd>
+        <dd>Estimate the Mean Function</dd>
 
         <dt>
 
           <code><a href="estimate_mean_risk.html">estimate_mean_risk()</a></code>
 
         </dt>
-        <dd>Estimate the Risk Function of the Mean Function</dd>
+        <dd>Estimate the Risk of the Mean Function Estimator</dd>
 
         <dt>
 
           <code><a href="estimate_mean_rp.html">estimate_mean_rp()</a></code>
 
         </dt>
-        <dd>Estimate mean function using Rubín and Panaretos (2020) method.</dd>
+        <dd>Estimate the Mean Function by the Rubìn-Panaretos Method</dd>
 
         <dt>
 
           <code><a href="estimate_mean_bw_rp.html">estimate_mean_bw_rp()</a></code>
 
         </dt>
-        <dd>Bandwidth estimation using cross-validation for the Rubín and Panaretos (2020) mean function estimator.</dd>
+        <dd>Select the Bandwidth of the Rubìn-Panaretos Mean Estimator</dd>
       </dl></div><div class="section level2">
       <h2 id="autocovariance-function">Autocovariance function<a class="anchor" aria-label="anchor" href="#autocovariance-function"></a></h2>
 
@@ -253,21 +253,21 @@
           <code><a href="estimate_autocov_risk.html">estimate_autocov_risk()</a></code>
 
         </dt>
-        <dd>Estimate the Risk of the Covariance or Autocovariance Function</dd>
+        <dd>Estimate the Risk of the Autocovariance Function Estimator</dd>
 
         <dt>
 
           <code><a href="estimate_autocov_rp.html">estimate_autocov_rp()</a></code>
 
         </dt>
-        <dd>Estimate lag-\(\ell\) (\(\ell \leq 0\)) autocovariance function using Rubín and Panaretos (2020) method</dd>
+        <dd>Estimate the Autocovariance Function by the Rubìn-Panaretos Method</dd>
 
         <dt>
 
           <code><a href="estimate_autocov_bw_rp.html">estimate_autocov_bw_rp()</a></code>
 
         </dt>
-        <dd>Bandwidth estimation using cross-validation for the Rubín and Panaretos (2020) autocovariance function estimator.</dd>
+        <dd>Select the Bandwidth of the Rubìn-Panaretos Autocovariance Estimator</dd>
       </dl></div><div class="section level2">
       <h2 id="covariance-segment">Covariance segment<a class="anchor" aria-label="anchor" href="#covariance-segment"></a></h2>
 
@@ -483,7 +483,7 @@
 
         <dt>
 
-          <code><a href="get_real_data_far_kenel.html">get_real_data_far_kenel()</a></code>
+          <code><a href="get_real_data_far_kernel.html">get_real_data_far_kernel()</a></code>
 
         </dt>
         <dd>FAR kernel learned from the voltage curves of the electricity</dd>
@@ -518,14 +518,14 @@
           <code><a href="dot-Spq_fun.html">.Spq_fun()</a></code>
 
         </dt>
-        <dd>\(S_{pq}^{(\ell)}\), (\(\ell \leq 0\)) function. See Rubín and Panaretos (2020) Equation (B.7)</dd>
+        <dd>Weight Sum \(S_{pq}^{(\ell)}\) of the Rubìn-Panaretos Autocovariance Estimator</dd>
 
         <dt>
 
           <code><a href="dot-Qpq_fun.html">.Qpq_fun()</a></code>
 
         </dt>
-        <dd>\(Q_{pq}^{(\ell)}\), (\(\ell \leq 0\)) function. See Rubín and Panaretos (2020) Equation (B.7)</dd>
+        <dd>Weighted Cross-Product \(Q_{pq}^{(\ell)}\) of the Rubìn-Panaretos Estimator</dd>
 
         <dt>
 

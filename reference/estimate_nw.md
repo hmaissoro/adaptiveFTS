@@ -56,7 +56,6 @@ A `data.table` with the following columns:
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
 # Define the true regression function
 m <- function(t) 4 * sin(1.5 * pi * t)
 
@@ -73,6 +72,7 @@ y <- m(t) + e
 plot(x = t, y = y, main = "Observed points and true regression function")
 lines(x = t, y = m(t), col = "red")
 
+
 # Estimate optimal bandwidth using cross-validation
 bw_grid <- seq(1 / (2 * length(t)), length(t) ** (-1/3), length.out = 100)
 hbest <- estimate_nw_bw(y = y, t = t, bw_grid = bw_grid, kernel_name = "epanechnikov")
@@ -86,5 +86,6 @@ plot(x = dt_nw[, tnew], y = dt_nw[, yhat], type = "l", col = "blue",
      main = "Estimated and true regression function")
 lines(x = dt_nw[, tnew], y = m(dt_nw[, tnew]), col = "red")
 legend(x = 0.64, y = 4.1, fill = c("blue", "red"), legend = c("Estimated m", "True m"))
-} # }
+
+
 ```

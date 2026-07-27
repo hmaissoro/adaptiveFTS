@@ -1,5 +1,135 @@
 # Changelog
 
+## adaptiveFTS 0.3.0 (in development)
+
+### Breaking changes
+
+- Arguments were renamed for clarity. There are no deprecation shims:
+  update calls that name these arguments.
+
+  | Function | Old | New |
+  |----|----|----|
+  | [`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md), [`estimate_autocov_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_risk.md), [`estimate_facf()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_facf.md), [`predict_curve()`](https://hmaissoro.github.io/adaptiveFTS/reference/predict_curve.md) | `use_same_bw` | `common_bw` |
+  | [`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md), [`estimate_autocov_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_risk.md), [`estimate_cov_segment()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_cov_segment.md), [`estimate_cov_segment_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_cov_segment_risk.md), [`estimate_facf()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_facf.md), [`predict_curve()`](https://hmaissoro.github.io/adaptiveFTS/reference/predict_curve.md) | `center` | `center_curves` |
+  | [`estimate_mean()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean.md), [`estimate_cov_segment()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_cov_segment.md) | `optbw` | `bw` |
+  | [`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md) | `optbw_s`, `optbw_t` | `bw_s`, `bw_t` |
+  | [`estimate_mean_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_rp.md), [`estimate_autocov_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_rp.md) | `h` | `bw` |
+  | [`estimate_locreg()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_locreg.md), [`estimate_empirical_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_empirical_autocov.md), [`estimate_empirical_mom()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_empirical_mom.md), [`estimate_empirical_XsXt_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_empirical_XsXt_autocov.md) | `h` | `presmooth_bw` |
+  | [`estimate_empirical_XsXt_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_empirical_XsXt_autocov.md) | `lag` | `autocov_lag` |
+  | [`estimate_mean_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_rp.md), [`estimate_mean_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_bw_rp.md), [`estimate_autocov_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_rp.md), [`estimate_autocov_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_bw_rp.md) | `smooth_ker` (a function) | `kernel_name` (a string) |
+  | [`estimate_mean_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_bw_rp.md), [`estimate_autocov_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_bw_rp.md) | `Kfold` | `n_folds` |
+  | [`estimate_autocov_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_rp.md), [`estimate_autocov_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_bw_rp.md) | `optbw_mean`, `dt_mean_rp` | `bw_mean`, `mean_rp` |
+  | [`blup_fit()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup_fit.md), [`blup()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup.md) | `id_lag` | `id_conditioning_curve` |
+  | [`blup_fit()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup_fit.md), [`blup()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup.md), [`select_tikhonov_parameter()`](https://hmaissoro.github.io/adaptiveFTS/reference/select_tikhonov_parameter.md) | `n_cv_tikhonov`, `n_subgrid_bw` | `n_cv_curves`, `bw_subgrid_size` |
+  | [`simulate_far()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.md), [`simulate_fma()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fma.md) | `Mdistribution`, `tdistribution`, `tdesign`, `tcommon`, `int_grid`, `burnin` | `M_distribution`, `t_distribution`, `design`, `t_common`, `n_int_grid`, `n_burnin` |
+
+  The adaptive estimators’ output column names are unchanged. The
+  Rubìn-Panaretos estimators, whose bandwidth argument was renamed `h`
+  -\> `bw`, rename their bandwidth output columns to match:
+  [`estimate_mean_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_rp.md),
+  [`estimate_mean_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_bw_rp.md)
+  and
+  [`estimate_autocov_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_bw_rp.md)
+  now return a `bw` column instead of `h`, and
+  [`estimate_autocov_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_rp.md)
+  returns `bw_mean` instead of `optbw_mean`.
+
+- The Rubìn-Panaretos estimators take the kernel by name
+  (`kernel_name = "epanechnikov"`) rather than as a function object,
+  matching the adaptive estimators. The kernel functions themselves
+  remain exported.
+
+- `idcol` now defaults to `"id_curve"` in
+  [`estimate_sigma()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_sigma.md),
+  [`estimate_empirical_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_empirical_autocov.md),
+  [`estimate_empirical_mom()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_empirical_mom.md)
+  and
+  [`estimate_empirical_XsXt_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_empirical_XsXt_autocov.md),
+  as it already did elsewhere. These four previously defaulted to
+  `NULL`, which made
+  [`format_data()`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  reject a `data.frame` input.
+
+- `get_real_data_far_kenel()` is renamed
+  [`get_real_data_far_kernel()`](https://hmaissoro.github.io/adaptiveFTS/reference/get_real_data_far_kernel.md).
+
+- [`.Spq_fun()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-Spq_fun.md)
+  and
+  [`.Qpq_fun()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-Qpq_fun.md)
+  are no longer exported. They are internals of
+  [`estimate_autocov_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_rp.md),
+  which is the entry point to use.
+
+- The `adaptive_meta` attribute of `autocov_est` and `autocov_risk`
+  objects carries `common_bw` instead of `use_same_bw`.
+
+- The internal C++ routines were renamed to match the R argument names
+  (`optbw`/`optbw_s`/`optbw_t` -\> `bw`/`bw_s`/`bw_t`, `use_same_bw` -\>
+  `common_bw`, `id_lag`/`n_subgrid_bw` -\>
+  `id_conditioning_curve`/`bw_subgrid_size`). These functions are not
+  exported, so this affects only code that reached into the compiled
+  layer directly.
+
+- [`format_data()`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  now validates its result instead of passing questionable data on to
+  the estimators. It fails when the observation points fall outside
+  `[0, 1]` (the domain the estimators assume), when the observation
+  points or the observed values are not numeric, and when any value is
+  missing; it warns when a curve carries repeated observation points.
+  Data that used to flow through and yield `NaN` estimates now stops at
+  the formatting step.
+
+### Bug fixes
+
+- [`estimate_autocov_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_bw_rp.md)
+  always returned a cross-validation error of zero, so the selected
+  bandwidth was simply the first of the grid. The held-out mean
+  estimates were read from the wrong grid object and silently resolved
+  to `NULL`, which collapsed the error sum to zero for every candidate.
+- [`format_data()`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  mis-assigned observations when the rows of a curve were not contiguous
+  in the input: the curve index was rebuilt from run lengths counted by
+  value but written back in row order, scattering a curve’s observation
+  points across its neighbours. Curves are now identified by value, and
+  the result is always sorted by `id_curve` then `tobs`.
+
+### Dependencies
+
+- **Requires R \>= 4.1** (was 3.5.0), for the native `|>` pipe used in
+  the vignette and the `inst/` demo scripts.
+- `Rdpack` is no longer an `Imports`, and `RdMacros` is dropped. The
+  four references are written directly in the `\references{}` sections,
+  with their DOIs. `inst/REFERENCES.bib` remains as the bibliography
+  source, and a new `inst/CITATION` provides `citation("adaptiveFTS")`.
+- `Suggests` goes from twelve packages to five (`ggplot2`, `knitr`,
+  `rmarkdown`, `testthat`, `tikzDevice`). `crosstalk`, `DT`, `dygraphs`,
+  `ggpubr`, `magrittr`, `manipulateWidget` and `plotly` are dropped: the
+  examples, the `inst/` demos, the vignette and the README now use the
+  package’s own
+  [`plot()`](https://rdrr.io/r/graphics/plot.default.html)/[`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  methods, plain `ggplot2`, or base graphics.
+
+### Documentation
+
+- The references are updated: the estimation paper is published in the
+  *Journal of Time Series Analysis* (2025, <doi:10.1111/jtsa.70006>) and
+  the prediction paper is a 2026 preprint.
+- Nearly every example is now runnable rather than wrapped in
+  `\dontrun{}`, and the estimator examples use a subset of `data_far` so
+  they stay fast.
+- The vignette covers the mean, the autocovariance with one and with two
+  bandwidths, the functional autocorrelation and the BLUP; those
+  sections were previously empty headings.
+- [`format_data()`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  gained runnable examples, an explicit description of the three
+  accepted input layouts, and a stated output contract (columns, curve
+  renumbering by order of first appearance, sorting).
+- The `data`, `idcol`, `tcol` and `ycol` descriptions inherited by every
+  estimator are now two lines pointing at
+  [`format_data()`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md),
+  instead of a 27-line copy of its input specification repeated on 25
+  help pages.
+
 ## adaptiveFTS 0.2.0
 
 ### Breaking changes

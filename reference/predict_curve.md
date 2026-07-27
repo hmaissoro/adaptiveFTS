@@ -15,7 +15,7 @@ Note that these compute a different quantity, so results are not
 interchangeable.
 
 This function predict a curve using the adaptive Best Linear Unbiased
-Predictor proposed by Maissoro et al. (2025) .
+Predictor proposed by Maissoro, Patilea and Vimond (2026).
 
 ## Usage
 
@@ -28,8 +28,8 @@ predict_curve(
   t = seq(0.01, 0.99, len = 99),
   id_curve_to_predict = NULL,
   bw_grid = NULL,
-  use_same_bw = FALSE,
-  center = TRUE,
+  common_bw = FALSE,
+  center_curves = TRUE,
   correct_diagonal = TRUE,
   kernel_name = "epanechnikov"
 )
@@ -39,58 +39,27 @@ predict_curve(
 
 - data:
 
-  A `data.table` (or `data.frame`), a `list` of `data.table` (or
-  `data.frame`), or a `list` of `list`.
-
-  - If `data.table`: It should contain the raw curve observations in at
-    least three columns.
-
-    - `idcol` : The name of the column containing the curve index in the
-      sample. Each curve index is repeated according to the number of
-      observation points.
-
-    - `tcol` : The name of the column with observation points associated
-      with each curve index.
-
-    - `ycol` : The name of the column with observed values at each
-      observation point for each curve index.
-
-  - If `list` of `data.table`: In this case, each element in the `list`
-    represents the observation data of a curve in the form of a
-    `data.table` or `data.frame`. Each `data.table` contains at least
-    two columns.
-
-    - `tcol` : The name of the column with observation points for the
-      curve.
-
-    - `ycol` : The name of the column with observed values for the
-      curve.
-
-  - If `list` of `list`: In this case, `data` is a list where each
-    element is the observation data of a curve, given as a `list` of two
-    vectors.
-
-    - `tcol` : The vector containing observation points for the curve.
-
-    - `ycol` : The vector containing observed values for the curve.
+  Raw curve observations, as a `data.table` (or `data.frame`) in long
+  format, or as a `list` with one element per curve. See
+  [`format_data`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  for the accepted layouts and for the `id_curve` / `tobs` / `X` columns
+  they are converted to.
 
 - idcol:
 
-  `character`. If `data` is given as a `data.table` or `data.frame`,
-  this is the name of the column that holds the curve index. Each curve
-  index is repeated according to the number of observation points. If
-  `data` is a `list` of `data.table` (or `data.frame`) or a `list` of
-  `list`, set `idcol = NULL`.
+  `character(1)` or `NULL`. Name of the column holding the curve index
+  when `data` is a single table. Must be `NULL` when `data` is a list of
+  curves.
 
 - tcol:
 
-  `character`. The name of the column (or vector) containing the
-  observation points for the curves.
+  `character(1)`. Name of the column (or vector) holding the observation
+  points of the curves.
 
 - ycol:
 
-  `character`. The name of the column with observed values for the
-  curves.
+  `character(1)`. Name of the column (or vector) holding the values
+  observed at those points.
 
 - t:
 
@@ -108,16 +77,15 @@ predict_curve(
   bandwidth parameters for (auto)covariance estimation. Default is
   `NULL`, which sets it in the function.
 
-- use_same_bw:
+- common_bw:
 
-  A logical value indicating whether the same bandwidth should be used
-  for the arguments `s` and `t` in the (auto)covariance estimation.
-  Default is `FALSE`.
+  A logical value indicating whether a single bandwidth is used for both
+  arguments of the (auto)covariance. Default is `FALSE`.
 
-- center:
+- center_curves:
 
-  A logical value indicating whether the data should be centered before
-  estimating the (auto)covariance. Default is `TRUE`.
+  A logical value indicating whether the curves are centred before
+  smoothing. Default is `TRUE`.
 
 - correct_diagonal:
 
@@ -144,8 +112,8 @@ A `data.table` containing the predicted curve:
 
 ## References
 
-Maissoro H, Patilea V, Vimond M (2025). “Adaptive prediction for
-Functional Times Series.” *arXiv preprint arXiv:2501.xxxxx*.
+Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+Functional Time Series. *arXiv preprint* arXiv:2609.xxxxx.
 
 ## See also
 

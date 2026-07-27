@@ -1,7 +1,11 @@
-# Bandwidth estimation using cross-validation for the Rubín and Panaretos (2020) autocovariance function estimator.
+# Select the Bandwidth of the Rubìn-Panaretos Autocovariance Estimator
 
-Bandwidth estimation using cross-validation for the Rubín and Panaretos
-(2020) autocovariance function estimator.
+Selects the bandwidth of
+[estimate_autocov_rp](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_rp.md)
+by \\K\\-fold cross-validation over the curves, as described in Rubìn
+and Panaretos (2020). Each fold is scored by the squared error between
+the empirical cross-products of the held-out curves and the lag-0
+autocovariance estimated on the others.
 
 ## Usage
 
@@ -11,11 +15,11 @@ estimate_autocov_bw_rp(
   idcol = "id_curve",
   tcol = "tobs",
   ycol = "X",
-  Kfold = 10,
+  n_folds = 10,
   bw_grid = seq(0.001, 0.15, len = 45),
-  optbw_mean = NULL,
-  dt_mean_rp = NULL,
-  smooth_ker = epanechnikov
+  bw_mean = NULL,
+  mean_rp = NULL,
+  kernel_name = "epanechnikov"
 )
 ```
 
@@ -23,102 +27,78 @@ estimate_autocov_bw_rp(
 
 - data:
 
-  A `data.table` (or `data.frame`), a `list` of `data.table` (or
-  `data.frame`), or a `list` of `list`.
-
-  - If `data.table`: It should contain the raw curve observations in at
-    least three columns.
-
-    - `idcol` : The name of the column containing the curve index in the
-      sample. Each curve index is repeated according to the number of
-      observation points.
-
-    - `tcol` : The name of the column with observation points associated
-      with each curve index.
-
-    - `ycol` : The name of the column with observed values at each
-      observation point for each curve index.
-
-  - If `list` of `data.table`: In this case, each element in the `list`
-    represents the observation data of a curve in the form of a
-    `data.table` or `data.frame`. Each `data.table` contains at least
-    two columns.
-
-    - `tcol` : The name of the column with observation points for the
-      curve.
-
-    - `ycol` : The name of the column with observed values for the
-      curve.
-
-  - If `list` of `list`: In this case, `data` is a list where each
-    element is the observation data of a curve, given as a `list` of two
-    vectors.
-
-    - `tcol` : The vector containing observation points for the curve.
-
-    - `ycol` : The vector containing observed values for the curve.
+  Raw curve observations, as a `data.table` (or `data.frame`) in long
+  format, or as a `list` with one element per curve. See
+  [`format_data`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  for the accepted layouts and for the `id_curve` / `tobs` / `X` columns
+  they are converted to.
 
 - idcol:
 
-  `character`. If `data` is given as a `data.table` or `data.frame`,
-  this is the name of the column that holds the curve index. Each curve
-  index is repeated according to the number of observation points. If
-  `data` is a `list` of `data.table` (or `data.frame`) or a `list` of
-  `list`, set `idcol = NULL`.
+  `character(1)` or `NULL`. Name of the column holding the curve index
+  when `data` is a single table. Must be `NULL` when `data` is a list of
+  curves.
 
 - tcol:
 
-  `character`. The name of the column (or vector) containing the
-  observation points for the curves.
+  `character(1)`. Name of the column (or vector) holding the observation
+  points of the curves.
 
 - ycol:
 
-  `character`. The name of the column with observed values for the
-  curves.
+  `character(1)`. Name of the column (or vector) holding the values
+  observed at those points.
 
-- Kfold:
+- n_folds:
 
-  `integer (positive)`. Number of fold for the cross-validation.
+  `integer (positive)`. Number of cross-validation folds.
 
 - bw_grid:
 
-  `vector (numeric)`. The bandwidth grid.
+  `vector (numeric)`. Candidate bandwidths.
 
-- optbw_mean:
+- bw_mean:
 
-  `numeric (positive scalar)`. Optimal bandwidth for the mean function
-  estimator. It is `NULL` if `dt_mean_rp` is not `NULL`.
+  `numeric (positive scalar)`. Bandwidth of the mean function estimator,
+  used only when `mean_rp` is `NULL`.
 
-- dt_mean_rp:
+- mean_rp:
 
-  `data.table`. It contains the estimates of the mean function at each
-  observation point for each curve. The name of the curve identification
-  column must be `id_curve`, the observation points column `tobs` and
-  the mean estimates column `muhat_RP`. Default `dt_mean_rp = NULL` and
-  so it will be estimated.
+  `data.table`. Mean function estimated at every observation point of
+  every curve, with columns `id_curve`, `tobs` and `muhat_RP`. Default
+  `NULL` estimates it from `bw_mean`.
 
-- smooth_ker:
+- kernel_name:
 
-  `function`. The kernel function of the Nadaraya-Watson estimator.
-  Default `smooth_ker = epanechnikov`.
+  `string`. Kernel of the smoothing estimator, one of "epanechnikov"
+  (default), "biweight", "triweight", "tricube", "triangular" and
+  "uniform".
 
 ## Value
 
-A `data.table` containing the following columns.
+A `data.table` with one row per candidate bandwidth and columns:
 
-- h : The candidate bandwidth.
+- `bw`: the candidate bandwidth.
 
-- cv_error : The estimates of the Cross-Validation error for each `h`.
+- `cv_error`: the cross-validation error at `bw`. The bandwidth
+  minimising it is the one to pass to
+  [estimate_autocov_rp](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_rp.md).
+
+## Details
+
+Every candidate bandwidth requires a Rubìn-Panaretos estimate at every
+pair of observation points of the held-out curves, so the runtime grows
+with the fourth power of the number of points per curve. Keep `bw_grid`
+short and the number of curves small.
 
 ## References
 
-Rubín T, Panaretos VM (2020). “Sparsely observed functional time series:
-estimation and prediction.” *Electronic Journal of Statistics*,
-**14**(1), 1137 – 1210.
-[doi:10.1214/20-EJS1690](https://doi.org/10.1214/20-EJS1690) .
+Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+series: estimation and prediction. *Electronic Journal of Statistics*,
+14(1), 1137–1210.
+[doi:10.1214/20-EJS1690](https://doi.org/10.1214/20-EJS1690)
 
 ## See also
 
-[`estimate_mean_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_rp.md),
-[`estimate_mean_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_bw_rp.md),
-[`estimate_autocov_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_rp.md)
+[`estimate_autocov_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_rp.md),
+[`estimate_mean_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_bw_rp.md).

@@ -1,6 +1,12 @@
-# Functional Moving Average process of order 1 (FMA(1)) simulation
+# Simulate a Functional Moving Average Process of Order One
 
-Functional Moving Average process of order 1 (FMA(1)) simulation
+Simulates `N` curves of a FMA(1) process, \\X_n = \varepsilon_n +
+\Psi(\varepsilon\_{n-1})\\, where \\\Psi\\ is the integral operator with
+kernel `fma_kernel` and the innovations are multifractional Brownian
+motions whose roughness follows `hurst_fun`. It is the moving-average
+counterpart of
+[`simulate_far`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.md)
+and shares its arguments and output.
 
 ## Usage
 
@@ -8,16 +14,16 @@ Functional Moving Average process of order 1 (FMA(1)) simulation
 simulate_fma(
   N = 2L,
   lambda = 70L,
-  tdesign = "random",
-  Mdistribution = rpois,
-  tdistribution = runif,
-  tcommon = seq(0.2, 0.8, len = 50),
+  design = "random",
+  M_distribution = rpois,
+  t_distribution = runif,
+  t_common = seq(0.2, 0.8, len = 50),
   hurst_fun = hurst_logistic,
   L = 4,
   fma_kernel = function(s, t) 9/4 * exp(-(t + 2 * s)^2),
   fma_mean = function(t) 4 * sin(1.5 * pi * t),
-  int_grid = 100L,
-  burnin = 100L,
+  n_int_grid = 100L,
+  n_burnin = 100L,
   remove_burnin = TRUE
 )
 ```
@@ -32,25 +38,25 @@ simulate_fma(
 
   `integer`. Mean of the number of observations per curve.
 
-- tdesign:
+- design:
 
   `character`. Type of the design. It is either 'random' or 'common'.
 
-- Mdistribution:
+- M_distribution:
 
   `function`. Distribution of the number of observation points per
   curve. The first argument of the function must correspond to `N` and
-  the second to `lambda`. Default `Mdistribution = rpois`.
+  the second to `lambda`. Default `M_distribution = rpois`.
 
-- tdistribution:
+- t_distribution:
 
   `function (or NULL)`. Observation point distribution if
-  `tdesign = 'random'` and `NULL` otherwise.
+  `design = 'random'` and `NULL` otherwise.
 
-- tcommon:
+- t_common:
 
-  `vector (float)`. Observation point vector if `tdesign = 'common'`. If
-  `tdesign = 'random'` and if we want to run some tests at a particular
+  `vector (float)`. Observation point vector if `design = 'common'`. If
+  `design = 'random'` and if we want to run some tests at a particular
   observation position, this can also be specified.
 
 - hurst_fun:
@@ -72,17 +78,17 @@ simulate_fma(
 
   `function`. Mean function of the FMA(1).
 
-- int_grid:
+- n_int_grid:
 
   `integer`. Length of the grid used to approximate the integral.
 
-- burnin:
+- n_burnin:
 
   `integer`. Burnin period of the FMA(1).
 
 - remove_burnin:
 
-  `boolean`. If `TRUE`, burnin period is removed.
+  `boolean`. If `TRUE`, n_burnin period is removed.
 
 ## Value
 
@@ -92,9 +98,9 @@ A `data.table` containing 3 column :
 
 - tobs : Sampled observation points, for each `id_curve`.
 
-- ttag : Tag on the observations points, for each `id_curve`. It is
-  either `tcommon` for common design grid or `tcommon` pour random
-  design.
+- ttag : Tag on the observation points, for each `id_curve`. It is
+  either `tcommon` for the common design grid or `trandom` for the
+  random design.
 
 - fma_mean : The mean of the process evaluate at `tobs`, for each
   `id_curve`.
@@ -105,18 +111,17 @@ A `data.table` containing 3 column :
 
 ``` r
 
-if (FALSE) { # \dontrun{
 dt_fma <- simulate_fma(N = 2L, lambda = 70L,
-                       tdesign = "random",
-                       Mdistribution = rpois,
-                       tdistribution = runif,
-                       tcommon = seq(0.2, 0.8, len = 50),
+                       design = "random",
+                       M_distribution = rpois,
+                       t_distribution = runif,
+                       t_common = seq(0.2, 0.8, len = 50),
                        hurst_fun = hurst_logistic,
                        L = 4,
                        fma_kernel = function(s,t) 9/4 * exp(- (t + 2 * s) ** 2),
                        fma_mean = function(t) 4 * sin(1.5 * pi * t),
-                       int_grid = 100L,
-                       burnin = 100L,
+                       n_int_grid = 100L,
+                       n_burnin = 100L,
                        remove_burnin = TRUE)
 # plot simulated curve
 library(ggplot2)
@@ -127,5 +132,6 @@ ggplot(data = dt_fma[ttag == "trandom", .("id_curve" = as.factor(id_curve), tobs
   scale_colour_grey() +
   theme_minimal()
 
-} # }
+
+
 ```

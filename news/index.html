@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">adaptiveFTS</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,6 +33,130 @@
       <small>Source: <a href="https://github.com/hmaissoro/adaptiveFTS/blob/main/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.3.0" id="adaptivefts-030-in-development">adaptiveFTS 0.3.0 (in development)<a class="anchor" aria-label="anchor" href="#adaptivefts-030-in-development"></a></h2>
+<div class="section level3">
+<h3 id="breaking-changes-0-3-0">Breaking changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-3-0"></a></h3>
+<ul><li>
+<p>Arguments were renamed for clarity. There are no deprecation shims: update calls that name these arguments.</p>
+<table class="table"><colgroup><col width="33%"><col width="33%"><col width="33%"></colgroup><thead><tr><th>Function</th>
+<th>Old</th>
+<th>New</th>
+</tr></thead><tbody><tr><td>
+<code><a href="../reference/estimate_autocov.html">estimate_autocov()</a></code>, <code><a href="../reference/estimate_autocov_risk.html">estimate_autocov_risk()</a></code>, <code><a href="../reference/estimate_facf.html">estimate_facf()</a></code>, <code><a href="../reference/predict_curve.html">predict_curve()</a></code>
+</td>
+<td><code>use_same_bw</code></td>
+<td><code>common_bw</code></td>
+</tr><tr><td>
+<code><a href="../reference/estimate_autocov.html">estimate_autocov()</a></code>, <code><a href="../reference/estimate_autocov_risk.html">estimate_autocov_risk()</a></code>, <code><a href="../reference/estimate_cov_segment.html">estimate_cov_segment()</a></code>, <code><a href="../reference/estimate_cov_segment_risk.html">estimate_cov_segment_risk()</a></code>, <code><a href="../reference/estimate_facf.html">estimate_facf()</a></code>, <code><a href="../reference/predict_curve.html">predict_curve()</a></code>
+</td>
+<td><code>center</code></td>
+<td><code>center_curves</code></td>
+</tr><tr><td>
+<code><a href="../reference/estimate_mean.html">estimate_mean()</a></code>, <code><a href="../reference/estimate_cov_segment.html">estimate_cov_segment()</a></code>
+</td>
+<td><code>optbw</code></td>
+<td><code>bw</code></td>
+</tr><tr><td><code><a href="../reference/estimate_autocov.html">estimate_autocov()</a></code></td>
+<td>
+<code>optbw_s</code>, <code>optbw_t</code>
+</td>
+<td>
+<code>bw_s</code>, <code>bw_t</code>
+</td>
+</tr><tr><td>
+<code><a href="../reference/estimate_mean_rp.html">estimate_mean_rp()</a></code>, <code><a href="../reference/estimate_autocov_rp.html">estimate_autocov_rp()</a></code>
+</td>
+<td><code>h</code></td>
+<td><code>bw</code></td>
+</tr><tr><td>
+<code><a href="../reference/estimate_locreg.html">estimate_locreg()</a></code>, <code><a href="../reference/estimate_empirical_autocov.html">estimate_empirical_autocov()</a></code>, <code><a href="../reference/estimate_empirical_mom.html">estimate_empirical_mom()</a></code>, <code><a href="../reference/estimate_empirical_XsXt_autocov.html">estimate_empirical_XsXt_autocov()</a></code>
+</td>
+<td><code>h</code></td>
+<td><code>presmooth_bw</code></td>
+</tr><tr><td><code><a href="../reference/estimate_empirical_XsXt_autocov.html">estimate_empirical_XsXt_autocov()</a></code></td>
+<td><code>lag</code></td>
+<td><code>autocov_lag</code></td>
+</tr><tr><td>
+<code><a href="../reference/estimate_mean_rp.html">estimate_mean_rp()</a></code>, <code><a href="../reference/estimate_mean_bw_rp.html">estimate_mean_bw_rp()</a></code>, <code><a href="../reference/estimate_autocov_rp.html">estimate_autocov_rp()</a></code>, <code><a href="../reference/estimate_autocov_bw_rp.html">estimate_autocov_bw_rp()</a></code>
+</td>
+<td>
+<code>smooth_ker</code> (a function)</td>
+<td>
+<code>kernel_name</code> (a string)</td>
+</tr><tr><td>
+<code><a href="../reference/estimate_mean_bw_rp.html">estimate_mean_bw_rp()</a></code>, <code><a href="../reference/estimate_autocov_bw_rp.html">estimate_autocov_bw_rp()</a></code>
+</td>
+<td><code>Kfold</code></td>
+<td><code>n_folds</code></td>
+</tr><tr><td>
+<code><a href="../reference/estimate_autocov_rp.html">estimate_autocov_rp()</a></code>, <code><a href="../reference/estimate_autocov_bw_rp.html">estimate_autocov_bw_rp()</a></code>
+</td>
+<td>
+<code>optbw_mean</code>, <code>dt_mean_rp</code>
+</td>
+<td>
+<code>bw_mean</code>, <code>mean_rp</code>
+</td>
+</tr><tr><td>
+<code><a href="../reference/blup_fit.html">blup_fit()</a></code>, <code><a href="../reference/blup.html">blup()</a></code>
+</td>
+<td><code>id_lag</code></td>
+<td><code>id_conditioning_curve</code></td>
+</tr><tr><td>
+<code><a href="../reference/blup_fit.html">blup_fit()</a></code>, <code><a href="../reference/blup.html">blup()</a></code>, <code><a href="../reference/select_tikhonov_parameter.html">select_tikhonov_parameter()</a></code>
+</td>
+<td>
+<code>n_cv_tikhonov</code>, <code>n_subgrid_bw</code>
+</td>
+<td>
+<code>n_cv_curves</code>, <code>bw_subgrid_size</code>
+</td>
+</tr><tr><td>
+<code><a href="../reference/simulate_far.html">simulate_far()</a></code>, <code><a href="../reference/simulate_fma.html">simulate_fma()</a></code>
+</td>
+<td>
+<code>Mdistribution</code>, <code>tdistribution</code>, <code>tdesign</code>, <code>tcommon</code>, <code>int_grid</code>, <code>burnin</code>
+</td>
+<td>
+<code>M_distribution</code>, <code>t_distribution</code>, <code>design</code>, <code>t_common</code>, <code>n_int_grid</code>, <code>n_burnin</code>
+</td>
+</tr></tbody></table><p>The adaptive estimators’ output column names are unchanged. The Rubìn-Panaretos estimators, whose bandwidth argument was renamed <code>h</code> -&gt; <code>bw</code>, rename their bandwidth output columns to match: <code><a href="../reference/estimate_mean_rp.html">estimate_mean_rp()</a></code>, <code><a href="../reference/estimate_mean_bw_rp.html">estimate_mean_bw_rp()</a></code> and <code><a href="../reference/estimate_autocov_bw_rp.html">estimate_autocov_bw_rp()</a></code> now return a <code>bw</code> column instead of <code>h</code>, and <code><a href="../reference/estimate_autocov_rp.html">estimate_autocov_rp()</a></code> returns <code>bw_mean</code> instead of <code>optbw_mean</code>.</p>
+</li>
+<li><p>The Rubìn-Panaretos estimators take the kernel by name (<code>kernel_name = "epanechnikov"</code>) rather than as a function object, matching the adaptive estimators. The kernel functions themselves remain exported.</p></li>
+<li><p><code>idcol</code> now defaults to <code>"id_curve"</code> in <code><a href="../reference/estimate_sigma.html">estimate_sigma()</a></code>, <code><a href="../reference/estimate_empirical_autocov.html">estimate_empirical_autocov()</a></code>, <code><a href="../reference/estimate_empirical_mom.html">estimate_empirical_mom()</a></code> and <code><a href="../reference/estimate_empirical_XsXt_autocov.html">estimate_empirical_XsXt_autocov()</a></code>, as it already did elsewhere. These four previously defaulted to <code>NULL</code>, which made <code><a href="../reference/format_data.html">format_data()</a></code> reject a <code>data.frame</code> input.</p></li>
+<li><p><code>get_real_data_far_kenel()</code> is renamed <code><a href="../reference/get_real_data_far_kernel.html">get_real_data_far_kernel()</a></code>.</p></li>
+<li><p><code><a href="../reference/dot-Spq_fun.html">.Spq_fun()</a></code> and <code><a href="../reference/dot-Qpq_fun.html">.Qpq_fun()</a></code> are no longer exported. They are internals of <code><a href="../reference/estimate_autocov_rp.html">estimate_autocov_rp()</a></code>, which is the entry point to use.</p></li>
+<li><p>The <code>adaptive_meta</code> attribute of <code>autocov_est</code> and <code>autocov_risk</code> objects carries <code>common_bw</code> instead of <code>use_same_bw</code>.</p></li>
+<li><p>The internal C++ routines were renamed to match the R argument names (<code>optbw</code>/<code>optbw_s</code>/<code>optbw_t</code> -&gt; <code>bw</code>/<code>bw_s</code>/<code>bw_t</code>, <code>use_same_bw</code> -&gt; <code>common_bw</code>, <code>id_lag</code>/<code>n_subgrid_bw</code> -&gt; <code>id_conditioning_curve</code>/<code>bw_subgrid_size</code>). These functions are not exported, so this affects only code that reached into the compiled layer directly.</p></li>
+<li><p><code><a href="../reference/format_data.html">format_data()</a></code> now validates its result instead of passing questionable data on to the estimators. It fails when the observation points fall outside <code>[0, 1]</code> (the domain the estimators assume), when the observation points or the observed values are not numeric, and when any value is missing; it warns when a curve carries repeated observation points. Data that used to flow through and yield <code>NaN</code> estimates now stops at the formatting step.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-3-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-3-0"></a></h3>
+<ul><li>
+<code><a href="../reference/estimate_autocov_bw_rp.html">estimate_autocov_bw_rp()</a></code> always returned a cross-validation error of zero, so the selected bandwidth was simply the first of the grid. The held-out mean estimates were read from the wrong grid object and silently resolved to <code>NULL</code>, which collapsed the error sum to zero for every candidate.</li>
+<li>
+<code><a href="../reference/format_data.html">format_data()</a></code> mis-assigned observations when the rows of a curve were not contiguous in the input: the curve index was rebuilt from run lengths counted by value but written back in row order, scattering a curve’s observation points across its neighbours. Curves are now identified by value, and the result is always sorted by <code>id_curve</code> then <code>tobs</code>.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="dependencies-0-3-0">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies-0-3-0"></a></h3>
+<ul><li>
+<strong>Requires R &gt;= 4.1</strong> (was 3.5.0), for the native <code>|&gt;</code> pipe used in the vignette and the <code>inst/</code> demo scripts.</li>
+<li>
+<code>Rdpack</code> is no longer an <code>Imports</code>, and <code>RdMacros</code> is dropped. The four references are written directly in the <code>\references{}</code> sections, with their DOIs. <code>inst/REFERENCES.bib</code> remains as the bibliography source, and a new <code>inst/CITATION</code> provides <code>citation("adaptiveFTS")</code>.</li>
+<li>
+<code>Suggests</code> goes from twelve packages to five (<code>ggplot2</code>, <code>knitr</code>, <code>rmarkdown</code>, <code>testthat</code>, <code>tikzDevice</code>). <code>crosstalk</code>, <code>DT</code>, <code>dygraphs</code>, <code>ggpubr</code>, <code>magrittr</code>, <code>manipulateWidget</code> and <code>plotly</code> are dropped: the examples, the <code>inst/</code> demos, the vignette and the README now use the package’s own <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>/<code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> methods, plain <code>ggplot2</code>, or base graphics.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="documentation-0-3-0">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-3-0"></a></h3>
+<ul><li>The references are updated: the estimation paper is published in the <em>Journal of Time Series Analysis</em> (2025, <a href="doi:10.1111/jtsa.70006" class="uri">doi:10.1111/jtsa.70006</a>) and the prediction paper is a 2026 preprint.</li>
+<li>Nearly every example is now runnable rather than wrapped in <code>\dontrun{}</code>, and the estimator examples use a subset of <code>data_far</code> so they stay fast.</li>
+<li>The vignette covers the mean, the autocovariance with one and with two bandwidths, the functional autocorrelation and the BLUP; those sections were previously empty headings.</li>
+<li>
+<code><a href="../reference/format_data.html">format_data()</a></code> gained runnable examples, an explicit description of the three accepted input layouts, and a stated output contract (columns, curve renumbering by order of first appearance, sorting).</li>
+<li>The <code>data</code>, <code>idcol</code>, <code>tcol</code> and <code>ycol</code> descriptions inherited by every estimator are now two lines pointing at <code><a href="../reference/format_data.html">format_data()</a></code>, instead of a 27-line copy of its input specification repeated on 25 help pages.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.0" id="adaptivefts-020">adaptiveFTS 0.2.0<a class="anchor" aria-label="anchor" href="#adaptivefts-020"></a></h2>
 <div class="section level3">

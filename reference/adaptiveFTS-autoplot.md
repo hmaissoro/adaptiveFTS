@@ -85,11 +85,11 @@ object (`plot` methods return it invisibly, after drawing).
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
 data("data_far")
 if (requireNamespace("ggplot2", quietly = TRUE)) {
-  ggplot2::autoplot(estimate_mean(data = data_far,
-                                  t = seq(0.1, 0.9, length.out = 20)))
+  dt_mean <- estimate_mean(data = data_far[data_far$id_curve <= 20, ],
+                           t = seq(0.1, 0.9, length.out = 20),
+                           bw_grid = seq(0.04, 0.15, length.out = 5))
+  ggplot2::autoplot(dt_mean)
 }
-} # }
 ```

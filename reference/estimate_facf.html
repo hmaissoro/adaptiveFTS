@@ -23,7 +23,7 @@ non-stationarity in a functional time series."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">adaptiveFTS</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,8 +73,8 @@ non-stationarity in a functional time series.</p>
 <span>  t <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  n_grid <span class="op">=</span> <span class="fl">25L</span>,</span>
 <span>  bw_grid <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  use_same_bw <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  center <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  common_bw <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  center_curves <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  kernel_name <span class="op">=</span> <span class="st">"epanechnikov"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -84,38 +84,26 @@ non-stationarity in a functional time series.</p>
 
 
 <dl><dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
-<dd><p>A <code>data.table</code> (or <code>data.frame</code>), a <code>list</code> of <code>data.table</code> (or <code>data.frame</code>), or a <code>list</code> of <code>list</code>.</p><ul><li><p>If <code>data.table</code>:
-It should contain the raw curve observations in at least three columns.
-</p><ul><li><p><code>idcol</code> : The name of the column containing the curve index in the sample.
-Each curve index is repeated according to the number of observation points.</p></li>
-<li><p><code>tcol</code> : The name of the column with observation points associated with each curve index.</p></li>
-<li><p><code>ycol</code> : The name of the column with observed values at each observation point for each curve index.</p></li>
-</ul></li>
-<li><p>If <code>list</code> of <code>data.table</code>:
-In this case, each element in the <code>list</code> represents the observation data of a curve in the form of a <code>data.table</code> or <code>data.frame</code>.
-Each <code>data.table</code> contains at least two columns.
-</p><ul><li><p><code>tcol</code> : The name of the column with observation points for the curve.</p></li>
-<li><p><code>ycol</code> : The name of the column with observed values for the curve.</p></li>
-</ul></li>
-<li><p>If <code>list</code> of <code>list</code>:
-In this case, <code>data</code> is a list where each element is the observation data of a curve, given as a <code>list</code> of two vectors.
-</p><ul><li><p><code>tcol</code> : The vector containing observation points for the curve.</p></li>
-<li><p><code>ycol</code> : The vector containing observed values for the curve.</p></li>
-</ul></li>
-</ul></dd>
+<dd><p>Raw curve observations, as a <code>data.table</code> (or
+<code>data.frame</code>) in long format, or as a <code>list</code> with one element per
+curve. See <code><a href="format_data.html">format_data</a></code> for the accepted layouts and for the
+<code>id_curve</code> / <code>tobs</code> / <code>X</code> columns they are converted to.</p></dd>
 
 
 <dt id="arg-idcol">idcol<a class="anchor" aria-label="anchor" href="#arg-idcol"></a></dt>
-<dd><p><code>character</code>. If <code>data</code> is given as a <code>data.table</code> or <code>data.frame</code>, this is the name of the column that holds the curve index.
-Each curve index is repeated according to the number of observation points. If <code>data</code> is a <code>list</code> of <code>data.table</code> (or <code>data.frame</code>) or a <code>list</code> of <code>list</code>, set <code>idcol = NULL</code>.</p></dd>
+<dd><p><code>character(1)</code> or <code>NULL</code>. Name of the column holding the
+curve index when <code>data</code> is a single table. Must be <code>NULL</code> when
+<code>data</code> is a list of curves.</p></dd>
 
 
 <dt id="arg-tcol">tcol<a class="anchor" aria-label="anchor" href="#arg-tcol"></a></dt>
-<dd><p><code>character</code>. The name of the column (or vector) containing the observation points for the curves.</p></dd>
+<dd><p><code>character(1)</code>. Name of the column (or vector) holding the
+observation points of the curves.</p></dd>
 
 
 <dt id="arg-ycol">ycol<a class="anchor" aria-label="anchor" href="#arg-ycol"></a></dt>
-<dd><p><code>character</code>. The name of the column with observed values for the curves.</p></dd>
+<dd><p><code>character(1)</code>. Name of the column (or vector) holding the
+values observed at those points.</p></dd>
 
 
 <dt id="arg-lag-max">lag.max<a class="anchor" aria-label="anchor" href="#arg-lag-max"></a></dt>
@@ -136,21 +124,26 @@ is <code>NULL</code>. Default <code>25</code>.</p></dd>
 
 
 <dt id="arg-bw-grid">bw_grid<a class="anchor" aria-label="anchor" href="#arg-bw-grid"></a></dt>
-<dd><p><code>vector (numeric)</code>. Bandwidth grid for selecting the optimal smoothing parameter for each pair (<code>s</code>, <code>t</code>). Defaults to <code>NULL</code>, which generates an exponential grid of \(N \lambda\).</p></dd>
+<dd><p><code>vector (numeric)</code>. Candidate bandwidths, from which
+<a href="estimate_autocov.html">estimate_autocov</a> picks the risk-minimising one for each pair. Default
+<code>NULL</code> builds the grid from the data; see Details.</p></dd>
 
 
-<dt id="arg-use-same-bw">use_same_bw<a class="anchor" aria-label="anchor" href="#arg-use-same-bw"></a></dt>
-<dd><p><code>logical</code>. Indicates whether the same bandwidth should be used for both <code>s</code> and <code>t</code>. Defaults to <code>FALSE</code>.</p></dd>
+<dt id="arg-common-bw">common_bw<a class="anchor" aria-label="anchor" href="#arg-common-bw"></a></dt>
+<dd><p><code>logical</code>. If <code>TRUE</code>, a single bandwidth is selected
+for both arguments of the autocovariance; if <code>FALSE</code> (default), one
+bandwidth per argument. See Details.</p></dd>
 
 
-<dt id="arg-center">center<a class="anchor" aria-label="anchor" href="#arg-center"></a></dt>
-<dd><p><code>logical (TRUE or FALSE)</code>. Default <code>center = TRUE</code> and so the curves are centred when the autocovariance is estimated: \(\mathbb{E}(X_0(s) - \mu(s))(X_{\ell}(t) - \mu(t))\).
-Otherwise, the two parts \(\mathbb{E}X_0(s)X_{\ell}(t)\) and \(\mu(s)\mu(t)\) will be estimated separately.
-The first part with a bandwidth obtained with <a href="estimate_autocov_risk.html">estimate_autocov_risk</a> and the second part with a bandwidth obtained with <a href="estimate_mean_risk.html">estimate_mean_risk</a>.</p></dd>
+<dt id="arg-center-curves">center_curves<a class="anchor" aria-label="anchor" href="#arg-center-curves"></a></dt>
+<dd><p><code>logical</code>. If <code>TRUE</code> (default), the curves are
+centred before smoothing.</p></dd>
 
 
 <dt id="arg-kernel-name">kernel_name<a class="anchor" aria-label="anchor" href="#arg-kernel-name"></a></dt>
-<dd><p><code>string</code>. Specifies the kernel function for estimation; default is "epanechnikov". Supported kernels include: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".</p></dd>
+<dd><p><code>string</code>. Kernel of the smoothing estimator, one of
+"epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
+"uniform".</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -171,12 +164,10 @@ can be costly; keep <code>n_grid</code> modest, pass a coarser <code>t</code>, o
     </div>
     <div class="section level2">
     <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a></h2>
-    <p>Horváth L, Rice G, Whipple S (2016).
-“Adaptive bandwidth selection in the long run covariance estimator of functional time series.”
-<em>Computational Statistics &amp; Data Analysis</em>, <b>100</b>, 676–693.
-ISSN 0167-9473.
-<a href="https://doi.org/10.1016/j.csda.2014.06.008" class="external-link">doi:10.1016/j.csda.2014.06.008</a>
-.</p>
+    <p>Horváth, L., Rice, G. and Whipple, S. (2016). Adaptive bandwidth selection
+in the long run covariance estimator of functional time series.
+<em>Computational Statistics and Data Analysis</em>, 100, 676–693.
+<a href="https://doi.org/10.1016/j.csda.2014.06.008" class="external-link">doi:10.1016/j.csda.2014.06.008</a></p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

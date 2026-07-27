@@ -1,7 +1,10 @@
-# Estimate mean function using Rubín and Panaretos (2020) method.
+# Estimate the Mean Function by the Rubìn-Panaretos Method
 
-This function estimates the mean function of a set of curves using the
-method proposed by Rubín and Panaretos (2020) .
+Estimates the mean function with the local-linear estimator of Rubìn and
+Panaretos (2020), which pools the observation points of all curves and
+smooths them with a single bandwidth. It is provided for comparison with
+the adaptive estimator of
+[estimate_mean](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean.md).
 
 ## Usage
 
@@ -12,8 +15,8 @@ estimate_mean_rp(
   tcol = "tobs",
   ycol = "X",
   t = c(1/4, 1/2, 3/4),
-  h,
-  smooth_ker = epanechnikov
+  bw,
+  kernel_name = "epanechnikov"
 )
 ```
 
@@ -21,122 +24,81 @@ estimate_mean_rp(
 
 - data:
 
-  A `data.table` (or `data.frame`), a `list` of `data.table` (or
-  `data.frame`), or a `list` of `list`.
-
-  - If `data.table`: It should contain the raw curve observations in at
-    least three columns.
-
-    - `idcol` : The name of the column containing the curve index in the
-      sample. Each curve index is repeated according to the number of
-      observation points.
-
-    - `tcol` : The name of the column with observation points associated
-      with each curve index.
-
-    - `ycol` : The name of the column with observed values at each
-      observation point for each curve index.
-
-  - If `list` of `data.table`: In this case, each element in the `list`
-    represents the observation data of a curve in the form of a
-    `data.table` or `data.frame`. Each `data.table` contains at least
-    two columns.
-
-    - `tcol` : The name of the column with observation points for the
-      curve.
-
-    - `ycol` : The name of the column with observed values for the
-      curve.
-
-  - If `list` of `list`: In this case, `data` is a list where each
-    element is the observation data of a curve, given as a `list` of two
-    vectors.
-
-    - `tcol` : The vector containing observation points for the curve.
-
-    - `ycol` : The vector containing observed values for the curve.
+  Raw curve observations, as a `data.table` (or `data.frame`) in long
+  format, or as a `list` with one element per curve. See
+  [`format_data`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  for the accepted layouts and for the `id_curve` / `tobs` / `X` columns
+  they are converted to.
 
 - idcol:
 
-  `character`. If `data` is given as a `data.table` or `data.frame`,
-  this is the name of the column that holds the curve index. Each curve
-  index is repeated according to the number of observation points. If
-  `data` is a `list` of `data.table` (or `data.frame`) or a `list` of
-  `list`, set `idcol = NULL`.
+  `character(1)` or `NULL`. Name of the column holding the curve index
+  when `data` is a single table. Must be `NULL` when `data` is a list of
+  curves.
 
 - tcol:
 
-  `character`. The name of the column (or vector) containing the
-  observation points for the curves.
+  `character(1)`. Name of the column (or vector) holding the observation
+  points of the curves.
 
 - ycol:
 
-  `character`. The name of the column with observed values for the
-  curves.
+  `character(1)`. Name of the column (or vector) holding the values
+  observed at those points.
 
 - t:
 
-  `vector (numeric)`. Observation points at which we want to estimate
-  the mean function of the underlying process.
+  `vector (numeric)`. Points of \\\[0, 1\]\\ at which the mean function
+  is estimated.
 
-- h:
+- bw:
 
-  `numeric (positive scalar)`. The bandwidth of the estimator.
+  `numeric (positive scalar)`. Bandwidth of the estimator, common to
+  every point of `t`. See
+  [estimate_mean_bw_rp](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_bw_rp.md)
+  to select it by cross-validation.
 
-- smooth_ker:
+- kernel_name:
 
-  `function`. The kernel function of the Nadaraya-Watson estimator.
-  Default `smooth_ker = epanechnikov`.
+  `string`. Kernel of the smoothing estimator, one of "epanechnikov"
+  (default), "biweight", "triweight", "tricube", "triangular" and
+  "uniform".
 
 ## Value
 
-A `data.table` containing the following columns.
+A `data.table` with one row per point of `t` and columns:
 
-- t : The Observation points at which the mean function is estimated.
+- `t`: the point at which the mean function is estimated.
 
-- h : The bandwidth parameter.
+- `bw`: the bandwidth used.
 
-- muhat_RP : The estimates of the mean function using Rubìn and
-  Panaretos (2020) method.
+- `muhat_RP`: the estimated mean function.
 
 ## References
 
-Rubín T, Panaretos VM (2020). “Sparsely observed functional time series:
-estimation and prediction.” *Electronic Journal of Statistics*,
-**14**(1), 1137 – 1210.
-[doi:10.1214/20-EJS1690](https://doi.org/10.1214/20-EJS1690) .
+Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+series: estimation and prediction. *Electronic Journal of Statistics*,
+14(1), 1137–1210.
+[doi:10.1214/20-EJS1690](https://doi.org/10.1214/20-EJS1690)
 
 ## See also
 
-[`estimate_mean_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_bw_rp.md)
+[`estimate_mean_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_bw_rp.md),
+[`estimate_mean()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean.md).
 
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-# Generate a FAR A process
-dt_far <- simulate_far(N = 50, lambda = 70,
-                       tdesign = "random",
-                       Mdistribution = rpois,
-                       tdistribution = runif,
-                       tcommon = NULL,
-                       hurst_fun = hurst_logistic,
-                       L = 4,
-                       far_kernel = get_real_data_far_kenel,
-                       far_mean = get_real_data_mean,
-                       int_grid = 100L,
-                       burnin = 100L,
-                       remove_burnin = TRUE)
+data("data_far")
 
-# Add noise
-dt_far[, X := X + rnorm(n = .N, mean = 0, sd = 0.9 ** (0.1)), by = id_curve]
-
-# Estimate mean function using Rubìn and Panaretos (2020) method
 dt_mean_rp <- estimate_mean_rp(
-  data = dt_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  t = c(1/4, 1/2, 3/4), h = 5/70, smooth_ker = epanechnikov)
-
-DT::datatable(data = dt_mean_rp[, lapply(.SD, function(X) round(X, 5))])
-
-} # }
+  data = data_far[data_far$id_curve <= 20, ],
+  idcol = "id_curve", tcol = "tobs", ycol = "X",
+  t = c(1/4, 1/2, 3/4), bw = 5/70, kernel_name = "epanechnikov")
+dt_mean_rp
+#>        t         bw muhat_RP
+#>    <num>      <num>    <num>
+#> 1:  0.25 0.07142857 243.3595
+#> 2:  0.50 0.07142857 241.1444
+#> 3:  0.75 0.07142857 241.4589
 ```

@@ -2,8 +2,8 @@
 
 Estimates the covariance segment function \\\Gamma\_{N,0}(t,t;h_t,h_t)\\
 for functional data using the Nadaraya–Watson estimator with a specified
-kernel. This is part of the methodology described in Maissoro et al.
-(2025) .
+kernel. This is part of the methodology described in Maissoro, Patilea
+and Vimond (2026).
 
 ## Usage
 
@@ -14,9 +14,9 @@ estimate_cov_segment(
   tcol = "tobs",
   ycol = "X",
   t = c(1/4, 1/2, 3/4),
-  optbw = NULL,
+  bw = NULL,
   bw_grid = NULL,
-  center = TRUE,
+  center_curves = TRUE,
   kernel_name = "epanechnikov"
 )
 ```
@@ -25,71 +25,38 @@ estimate_cov_segment(
 
 - data:
 
-  A `data.table` (or `data.frame`), a `list` of `data.table` (or
-  `data.frame`), or a `list` of `list`.
-
-  - If `data.table`: It should contain the raw curve observations in at
-    least three columns.
-
-    - `idcol` : The name of the column containing the curve index in the
-      sample. Each curve index is repeated according to the number of
-      observation points.
-
-    - `tcol` : The name of the column with observation points associated
-      with each curve index.
-
-    - `ycol` : The name of the column with observed values at each
-      observation point for each curve index.
-
-  - If `list` of `data.table`: In this case, each element in the `list`
-    represents the observation data of a curve in the form of a
-    `data.table` or `data.frame`. Each `data.table` contains at least
-    two columns.
-
-    - `tcol` : The name of the column with observation points for the
-      curve.
-
-    - `ycol` : The name of the column with observed values for the
-      curve.
-
-  - If `list` of `list`: In this case, `data` is a list where each
-    element is the observation data of a curve, given as a `list` of two
-    vectors.
-
-    - `tcol` : The vector containing observation points for the curve.
-
-    - `ycol` : The vector containing observed values for the curve.
+  Raw curve observations, as a `data.table` (or `data.frame`) in long
+  format, or as a `list` with one element per curve. See
+  [`format_data`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  for the accepted layouts and for the `id_curve` / `tobs` / `X` columns
+  they are converted to.
 
 - idcol:
 
-  `character`. If `data` is given as a `data.table` or `data.frame`,
-  this is the name of the column that holds the curve index. Each curve
-  index is repeated according to the number of observation points. If
-  `data` is a `list` of `data.table` (or `data.frame`) or a `list` of
-  `list`, set `idcol = NULL`.
+  `character(1)` or `NULL`. Name of the column holding the curve index
+  when `data` is a single table. Must be `NULL` when `data` is a list of
+  curves.
 
 - tcol:
 
-  `character`. The name of the column (or vector) containing the
-  observation points for the curves.
+  `character(1)`. Name of the column (or vector) holding the observation
+  points of the curves.
 
 - ycol:
 
-  `character`. The name of the column with observed values for the
-  curves.
+  `character(1)`. Name of the column (or vector) holding the values
+  observed at those points.
 
 - t:
 
   A numeric vector. Observation points where the mean function of the
   underlying process is estimated.
 
-- optbw:
+- bw:
 
-  A numeric vector. Optimal bandwidth parameters for covariance segment
-  function estimation at each `t`. Default is `NULL`, in which case it
-  will be estimated using the
-  [estimate_cov_segment_risk](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_cov_segment_risk.md)
-  function.
+  A numeric vector. Bandwidth to use at each point of `t`, recycled if a
+  scalar. Default `NULL` selects it by minimising the risk estimated by
+  [estimate_cov_segment_risk](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_cov_segment_risk.md).
 
 - bw_grid:
 
@@ -97,10 +64,9 @@ estimate_cov_segment(
   parameter is selected for each `t`. Default is `NULL`, in which case
   it is defined as an exponential grid of \\N \times \lambda\\.
 
-- center:
+- center_curves:
 
-  Logical. If `TRUE`, centers the data before estimation. Default is
-  `TRUE`.
+  Logical. If `TRUE` (default), the curves are centred before smoothing.
 
 - kernel_name:
 
@@ -139,8 +105,8 @@ containing the following columns:
 
 ## References
 
-Maissoro H, Patilea V, Vimond M (2025). “Adaptive prediction for
-Functional Times Series.” *arXiv preprint arXiv:2501.xxxxx*.
+Maissoro, H., Patilea, V. and Vimond, M. (2026). Adaptive Prediction for
+Functional Time Series. *arXiv preprint* arXiv:2609.xxxxx.
 
 ## See also
 
@@ -153,6 +119,22 @@ Functional Times Series.” *arXiv preprint arXiv:2501.xxxxx*.
 ## Examples
 
 ``` r
-# Example coming soon
+data("data_far")
 
+dt_cov_segment <- estimate_cov_segment(
+  data = data_far[data_far$id_curve <= 20, ],
+  idcol = "id_curve", tcol = "tobs", ycol = "X",
+  t = c(1/4, 1/2, 3/4), bw_grid = seq(0.04, 0.15, length.out = 5),
+  center_curves = TRUE, kernel_name = "epanechnikov")
+dt_cov_segment
+#>        t optbw        Ht       Lt2    PN cov_segment_hat covseg_correction
+#>    <num> <num>     <num>     <num> <num>           <num>             <num>
+#> 1:  0.25  0.04 0.5116001  7.372248    20        3.855708        0.02946757
+#> 2:  0.50  0.04 1.0000000 13.320572    20        5.244993        0.04664560
+#> 3:  0.75  0.04 0.7944922 10.397411    20        6.313028        0.12520059
+#>    cov_segment_hat_corrected
+#>                        <num>
+#> 1:                  3.826240
+#> 2:                  5.198347
+#> 3:                  6.187827
 ```

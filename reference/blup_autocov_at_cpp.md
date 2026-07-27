@@ -19,8 +19,7 @@ blup_autocov_at_cpp(data, opt_bw, s, t, lag, correct_diagonal, kernel_name)
 
 - opt_bw:
 
-  Cached (auto)covariance bandwidth matrix (`s`, `t`, `optbw_s`,
-  `optbw_t`).
+  Cached (auto)covariance bandwidth matrix (`s`, `t`, `bw_s`, `bw_t`).
 
 - s, t:
 

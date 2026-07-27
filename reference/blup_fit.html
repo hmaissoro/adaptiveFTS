@@ -9,7 +9,7 @@ does not depend on the prediction points."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">adaptiveFTS</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -50,9 +50,9 @@ does not depend on the prediction points.</p>
 <span>  ycol <span class="op">=</span> <span class="st">"X"</span>,</span>
 <span>  kernel_name <span class="op">=</span> <span class="st">"epanechnikov"</span>,</span>
 <span>  homoscedastic <span class="op">=</span> <span class="cn">TRUE</span>,</span>
-<span>  n_subgrid_bw <span class="op">=</span> <span class="fl">10L</span>,</span>
-<span>  n_cv_tikhonov <span class="op">=</span> <span class="fl">30L</span>,</span>
-<span>  id_lag <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  bw_subgrid_size <span class="op">=</span> <span class="fl">10L</span>,</span>
+<span>  n_cv_curves <span class="op">=</span> <span class="fl">30L</span>,</span>
+<span>  id_conditioning_curve <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  tikhonov <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  tikhonov_grid <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  bw_grid <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -65,38 +65,26 @@ does not depend on the prediction points.</p>
 
 
 <dl><dt id="arg-data">data<a class="anchor" aria-label="anchor" href="#arg-data"></a></dt>
-<dd><p>A <code>data.table</code> (or <code>data.frame</code>), a <code>list</code> of <code>data.table</code> (or <code>data.frame</code>), or a <code>list</code> of <code>list</code>.</p><ul><li><p>If <code>data.table</code>:
-It should contain the raw curve observations in at least three columns.
-</p><ul><li><p><code>idcol</code> : The name of the column containing the curve index in the sample.
-Each curve index is repeated according to the number of observation points.</p></li>
-<li><p><code>tcol</code> : The name of the column with observation points associated with each curve index.</p></li>
-<li><p><code>ycol</code> : The name of the column with observed values at each observation point for each curve index.</p></li>
-</ul></li>
-<li><p>If <code>list</code> of <code>data.table</code>:
-In this case, each element in the <code>list</code> represents the observation data of a curve in the form of a <code>data.table</code> or <code>data.frame</code>.
-Each <code>data.table</code> contains at least two columns.
-</p><ul><li><p><code>tcol</code> : The name of the column with observation points for the curve.</p></li>
-<li><p><code>ycol</code> : The name of the column with observed values for the curve.</p></li>
-</ul></li>
-<li><p>If <code>list</code> of <code>list</code>:
-In this case, <code>data</code> is a list where each element is the observation data of a curve, given as a <code>list</code> of two vectors.
-</p><ul><li><p><code>tcol</code> : The vector containing observation points for the curve.</p></li>
-<li><p><code>ycol</code> : The vector containing observed values for the curve.</p></li>
-</ul></li>
-</ul></dd>
+<dd><p>Raw curve observations, as a <code>data.table</code> (or
+<code>data.frame</code>) in long format, or as a <code>list</code> with one element per
+curve. See <code><a href="format_data.html">format_data</a></code> for the accepted layouts and for the
+<code>id_curve</code> / <code>tobs</code> / <code>X</code> columns they are converted to.</p></dd>
 
 
 <dt id="arg-idcol">idcol<a class="anchor" aria-label="anchor" href="#arg-idcol"></a></dt>
-<dd><p><code>character</code>. If <code>data</code> is given as a <code>data.table</code> or <code>data.frame</code>, this is the name of the column that holds the curve index.
-Each curve index is repeated according to the number of observation points. If <code>data</code> is a <code>list</code> of <code>data.table</code> (or <code>data.frame</code>) or a <code>list</code> of <code>list</code>, set <code>idcol = NULL</code>.</p></dd>
+<dd><p><code>character(1)</code> or <code>NULL</code>. Name of the column holding the
+curve index when <code>data</code> is a single table. Must be <code>NULL</code> when
+<code>data</code> is a list of curves.</p></dd>
 
 
 <dt id="arg-tcol">tcol<a class="anchor" aria-label="anchor" href="#arg-tcol"></a></dt>
-<dd><p><code>character</code>. The name of the column (or vector) containing the observation points for the curves.</p></dd>
+<dd><p><code>character(1)</code>. Name of the column (or vector) holding the
+observation points of the curves.</p></dd>
 
 
 <dt id="arg-ycol">ycol<a class="anchor" aria-label="anchor" href="#arg-ycol"></a></dt>
-<dd><p><code>character</code>. The name of the column with observed values for the curves.</p></dd>
+<dd><p><code>character(1)</code>. Name of the column (or vector) holding the
+values observed at those points.</p></dd>
 
 
 <dt id="arg-kernel-name">kernel_name<a class="anchor" aria-label="anchor" href="#arg-kernel-name"></a></dt>
@@ -108,19 +96,20 @@ Each curve index is repeated according to the number of observation points. If <
 the pointwise estimates) is used; otherwise the t-varying estimates.</p></dd>
 
 
-<dt id="arg-n-subgrid-bw">n_subgrid_bw<a class="anchor" aria-label="anchor" href="#arg-n-subgrid-bw"></a></dt>
-<dd><p>Number of points per axis of the coarse sub-grid on which
-the adaptive bandwidths are selected. Default <code>10</code>.</p></dd>
+<dt id="arg-bw-subgrid-size">bw_subgrid_size<a class="anchor" aria-label="anchor" href="#arg-bw-subgrid-size"></a></dt>
+<dd><p>Number of points per axis of the coarse sub-grid on
+which the adaptive bandwidths are selected. Default <code>10</code>.</p></dd>
 
 
-<dt id="arg-n-cv-tikhonov">n_cv_tikhonov<a class="anchor" aria-label="anchor" href="#arg-n-cv-tikhonov"></a></dt>
-<dd><p>Number of trailing curves used for the Tikhonov
+<dt id="arg-n-cv-curves">n_cv_curves<a class="anchor" aria-label="anchor" href="#arg-n-cv-curves"></a></dt>
+<dd><p>Number of trailing curves held out for the Tikhonov
 cross-validation when <code>tikhonov</code> is <code>NULL</code>. Default <code>30</code>.</p></dd>
 
 
-<dt id="arg-id-lag">id_lag<a class="anchor" aria-label="anchor" href="#arg-id-lag"></a></dt>
-<dd><p>Integer id of the conditioning curve. Its successor is the
-curve to be predicted. Default <code>NULL</code> uses the last curve in <code>data</code>.</p></dd>
+<dt id="arg-id-conditioning-curve">id_conditioning_curve<a class="anchor" aria-label="anchor" href="#arg-id-conditioning-curve"></a></dt>
+<dd><p>Integer id of the curve conditioned on. Its
+successor is the curve that <code><a href="https://rdrr.io/r/stats/predict.html" class="external-link">predict()</a></code> reconstructs. Default <code>NULL</code> uses
+the last curve in <code>data</code>.</p></dd>
 
 
 <dt id="arg-tikhonov">tikhonov<a class="anchor" aria-label="anchor" href="#arg-tikhonov"></a></dt>

@@ -19,7 +19,7 @@ blup_mean_at_cpp(data, opt_mean, t, kernel_name)
 
 - opt_mean:
 
-  Cached mean adaptive-bandwidth matrix (`t`, `optbw`).
+  Cached mean adaptive-bandwidth matrix (`t`, `bw`).
 
 - t:
 

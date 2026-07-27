@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">adaptiveFTS</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.3.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -56,11 +56,13 @@
 
 
 <dt id="arg-bw-grid">bw_grid<a class="anchor" aria-label="anchor" href="#arg-bw-grid"></a></dt>
-<dd><p><code>vector (numeric)</code>. A grid of bandwidth values to test. Default is <code>bw_grid = NULL</code>, in which case an exponential grid based on the length of <code>t</code> will be used.</p></dd>
+<dd><p><code>vector (numeric)</code>. A grid of bandwidth values to test. Default is <code>bw_grid = NULL</code>, in
+which case an exponential grid based on the length of <code>t</code> will be used.</p></dd>
 
 
 <dt id="arg-kernel-name">kernel_name<a class="anchor" aria-label="anchor" href="#arg-kernel-name"></a></dt>
-<dd><p><code>string</code>. A string specifying the name of the kernel function to use. The default is "epanechnikov".
+<dd><p><code>string</code>. A string specifying the name of the kernel function to use. The default is
+"epanechnikov".
 Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform".</p></dd>
 
 </dl></div>
@@ -70,7 +72,9 @@ Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangul
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
-    <p>This function computes the optimal bandwidth for the Nadaraya-Watson kernel regression estimator by performing cross-validation over a set of candidate bandwidths defined by <code>bw_grid</code>. The function returns the bandwidth that minimizes the cross-validation error.</p>
+    <p>This function computes the optimal bandwidth for the Nadaraya-Watson kernel regression estimator by
+performing cross-validation over a set of candidate bandwidths defined by <code>bw_grid</code>. The function returns the
+bandwidth that minimizes the cross-validation error.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -79,8 +83,7 @@ Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangul
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="co"># Define the true regression function</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="co"># Define the true regression function</span></span></span>
 <span class="r-in"><span><span class="va">m</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="fl">4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">sin</a></span><span class="op">(</span><span class="fl">1.5</span> <span class="op">*</span> <span class="va">pi</span> <span class="op">*</span> <span class="va">t</span><span class="op">)</span></span></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Generate observation points</span></span></span>
@@ -95,6 +98,7 @@ Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangul
 <span class="r-in"><span><span class="co"># Plot observed points and true regression function</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">t</span>, y <span class="op">=</span> <span class="va">y</span>, main <span class="op">=</span> <span class="st">"Observed points and true regression function"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">t</span>, y <span class="op">=</span> <span class="fu">m</span><span class="op">(</span><span class="va">t</span><span class="op">)</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="estimate_nw_bw-1.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Define a grid of candidate bandwidths</span></span></span>
 <span class="r-in"><span><span class="va">bw_grid</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">1</span> <span class="op">/</span> <span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">t</span><span class="op">)</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">t</span><span class="op">)</span><span class="op">^</span><span class="op">(</span><span class="op">-</span><span class="fl">1</span><span class="op">/</span><span class="fl">3</span><span class="op">)</span>, length.out <span class="op">=</span> <span class="fl">100</span><span class="op">)</span></span></span>
@@ -111,7 +115,8 @@ Supported kernels: "epanechnikov", "biweight", "triweight", "tricube", "triangul
 <span class="r-in"><span>     main <span class="op">=</span> <span class="st">"Estimated and true regression function"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/lines.html" class="external-link">lines</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">dt_nw</span><span class="op">[</span>, <span class="va">tnew</span><span class="op">]</span>, y <span class="op">=</span> <span class="fu">m</span><span class="op">(</span><span class="va">dt_nw</span><span class="op">[</span>, <span class="va">tnew</span><span class="op">]</span><span class="op">)</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/legend.html" class="external-link">legend</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fl">0.64</span>, y <span class="op">=</span> <span class="fl">4.1</span>, fill <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"blue"</span>, <span class="st">"red"</span><span class="op">)</span>, legend <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Estimated m"</span>, <span class="st">"True m"</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-plt img"><img src="estimate_nw_bw-2.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

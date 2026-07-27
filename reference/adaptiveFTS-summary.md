@@ -65,10 +65,28 @@ summary(object, ...)
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
 data("data_far")
-summary(estimate_mean(data = data_far, t = seq(0.1, 0.9, length.out = 9)))
-summary(estimate_autocov(data = data_far,
-                         s = c(1/5, 2/5, 4/5), t = c(1/4, 1/2, 3/4), lag = 1))
-} # }
+dt_small <- data_far[data_far$id_curve <= 20, ]
+bwg <- seq(0.04, 0.15, length.out = 5)
+
+summary(estimate_mean(data = dt_small, t = seq(0.1, 0.9, length.out = 9),
+                      bw_grid = bwg))
+#> Adaptive mean function estimate
+#>   Evaluation points  : 9 (t in [0.1, 0.9])
+#>   Training curves    : 20
+#>   Kernel             : epanechnikov
+#>   Optimal bandwidth  : [0.04, 0.04]
+#>   Curves used (PN)   : [20, 20]
+#>   muhat              : [240, 244]
+summary(estimate_autocov(data = dt_small, s = c(1/5, 2/5), t = c(1/4, 1/2),
+                         lag = 1, bw_grid = bwg))
+#> Adaptive autocovariance estimate (lag = 1)
+#>   (s, t) pairs       : 2 (0 on the diagonal s = t)
+#>   Training curves    : 20
+#>   Kernel             : epanechnikov (centred: TRUE)
+#>   Common bw for s, t : FALSE
+#>   Bandwidth (s)      : [0.04, 0.04]
+#>   Bandwidth (t)      : [0.04, 0.04]
+#>   Curves used (PNl)  : [19, 19]
+#>   autocov            : [-0.175, 0.936]
 ```

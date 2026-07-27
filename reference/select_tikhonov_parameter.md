@@ -15,8 +15,8 @@ select_tikhonov_parameter(
   method = c("cv"),
   kernel_name = "epanechnikov",
   homoscedastic = TRUE,
-  n_subgrid_bw = 10L,
-  n_cv_tikhonov = 30L,
+  bw_subgrid_size = 10L,
+  n_cv_curves = 30L,
   tikhonov_grid = NULL,
   bw_grid = NULL,
   density_bw = NULL
@@ -27,58 +27,27 @@ select_tikhonov_parameter(
 
 - data:
 
-  A `data.table` (or `data.frame`), a `list` of `data.table` (or
-  `data.frame`), or a `list` of `list`.
-
-  - If `data.table`: It should contain the raw curve observations in at
-    least three columns.
-
-    - `idcol` : The name of the column containing the curve index in the
-      sample. Each curve index is repeated according to the number of
-      observation points.
-
-    - `tcol` : The name of the column with observation points associated
-      with each curve index.
-
-    - `ycol` : The name of the column with observed values at each
-      observation point for each curve index.
-
-  - If `list` of `data.table`: In this case, each element in the `list`
-    represents the observation data of a curve in the form of a
-    `data.table` or `data.frame`. Each `data.table` contains at least
-    two columns.
-
-    - `tcol` : The name of the column with observation points for the
-      curve.
-
-    - `ycol` : The name of the column with observed values for the
-      curve.
-
-  - If `list` of `list`: In this case, `data` is a list where each
-    element is the observation data of a curve, given as a `list` of two
-    vectors.
-
-    - `tcol` : The vector containing observation points for the curve.
-
-    - `ycol` : The vector containing observed values for the curve.
+  Raw curve observations, as a `data.table` (or `data.frame`) in long
+  format, or as a `list` with one element per curve. See
+  [`format_data`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  for the accepted layouts and for the `id_curve` / `tobs` / `X` columns
+  they are converted to.
 
 - idcol:
 
-  `character`. If `data` is given as a `data.table` or `data.frame`,
-  this is the name of the column that holds the curve index. Each curve
-  index is repeated according to the number of observation points. If
-  `data` is a `list` of `data.table` (or `data.frame`) or a `list` of
-  `list`, set `idcol = NULL`.
+  `character(1)` or `NULL`. Name of the column holding the curve index
+  when `data` is a single table. Must be `NULL` when `data` is a list of
+  curves.
 
 - tcol:
 
-  `character`. The name of the column (or vector) containing the
-  observation points for the curves.
+  `character(1)`. Name of the column (or vector) holding the observation
+  points of the curves.
 
 - ycol:
 
-  `character`. The name of the column with observed values for the
-  curves.
+  `character(1)`. Name of the column (or vector) holding the values
+  observed at those points.
 
 - method:
 
@@ -94,15 +63,15 @@ select_tikhonov_parameter(
   If `TRUE` (default) a constant noise variance (median of the pointwise
   estimates) is used; otherwise the t-varying estimates.
 
-- n_subgrid_bw:
+- bw_subgrid_size:
 
   Number of points per axis of the coarse sub-grid on which the adaptive
   bandwidths are selected. Default `10`.
 
-- n_cv_tikhonov:
+- n_cv_curves:
 
-  Number of trailing curves used for the Tikhonov cross-validation when
-  `tikhonov` is `NULL`. Default `30`.
+  Number of trailing curves held out for the Tikhonov cross-validation
+  when `tikhonov` is `NULL`. Default `30`.
 
 - tikhonov_grid:
 
@@ -137,7 +106,7 @@ A list with:
 
 ## Details
 
-Each of the last `n_cv_tikhonov` curves is predicted from its immediate
+Each of the last `n_cv_curves` curves is predicted from its immediate
 predecessor and scored by the design-weighted squared prediction error
 at its observation points, \\\sum_i \varrho\_{n,i}\\(Y\_{n,i} - \widehat
 X_n(T\_{n,i};\alpha))^2\\, where \\\varrho\_{n,i}\\ is the design weight

@@ -23,8 +23,8 @@ estimate_facf(
   t = NULL,
   n_grid = 25L,
   bw_grid = NULL,
-  use_same_bw = FALSE,
-  center = TRUE,
+  common_bw = FALSE,
+  center_curves = TRUE,
   kernel_name = "epanechnikov"
 )
 ```
@@ -33,58 +33,27 @@ estimate_facf(
 
 - data:
 
-  A `data.table` (or `data.frame`), a `list` of `data.table` (or
-  `data.frame`), or a `list` of `list`.
-
-  - If `data.table`: It should contain the raw curve observations in at
-    least three columns.
-
-    - `idcol` : The name of the column containing the curve index in the
-      sample. Each curve index is repeated according to the number of
-      observation points.
-
-    - `tcol` : The name of the column with observation points associated
-      with each curve index.
-
-    - `ycol` : The name of the column with observed values at each
-      observation point for each curve index.
-
-  - If `list` of `data.table`: In this case, each element in the `list`
-    represents the observation data of a curve in the form of a
-    `data.table` or `data.frame`. Each `data.table` contains at least
-    two columns.
-
-    - `tcol` : The name of the column with observation points for the
-      curve.
-
-    - `ycol` : The name of the column with observed values for the
-      curve.
-
-  - If `list` of `list`: In this case, `data` is a list where each
-    element is the observation data of a curve, given as a `list` of two
-    vectors.
-
-    - `tcol` : The vector containing observation points for the curve.
-
-    - `ycol` : The vector containing observed values for the curve.
+  Raw curve observations, as a `data.table` (or `data.frame`) in long
+  format, or as a `list` with one element per curve. See
+  [`format_data`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  for the accepted layouts and for the `id_curve` / `tobs` / `X` columns
+  they are converted to.
 
 - idcol:
 
-  `character`. If `data` is given as a `data.table` or `data.frame`,
-  this is the name of the column that holds the curve index. Each curve
-  index is repeated according to the number of observation points. If
-  `data` is a `list` of `data.table` (or `data.frame`) or a `list` of
-  `list`, set `idcol = NULL`.
+  `character(1)` or `NULL`. Name of the column holding the curve index
+  when `data` is a single table. Must be `NULL` when `data` is a list of
+  curves.
 
 - tcol:
 
-  `character`. The name of the column (or vector) containing the
-  observation points for the curves.
+  `character(1)`. Name of the column (or vector) holding the observation
+  points of the curves.
 
 - ycol:
 
-  `character`. The name of the column with observed values for the
-  curves.
+  `character(1)`. Name of the column (or vector) holding the values
+  observed at those points.
 
 - lag.max:
 
@@ -105,31 +74,27 @@ estimate_facf(
 
 - bw_grid:
 
-  `vector (numeric)`. Bandwidth grid for selecting the optimal smoothing
-  parameter for each pair (`s`, `t`). Defaults to `NULL`, which
-  generates an exponential grid of \\N \lambda\\.
+  `vector (numeric)`. Candidate bandwidths, from which
+  [estimate_autocov](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md)
+  picks the risk-minimising one for each pair. Default `NULL` builds the
+  grid from the data; see Details.
 
-- use_same_bw:
+- common_bw:
 
-  `logical`. Indicates whether the same bandwidth should be used for
-  both `s` and `t`. Defaults to `FALSE`.
+  `logical`. If `TRUE`, a single bandwidth is selected for both
+  arguments of the autocovariance; if `FALSE` (default), one bandwidth
+  per argument. See Details.
 
-- center:
+- center_curves:
 
-  `logical (TRUE or FALSE)`. Default `center = TRUE` and so the curves
-  are centred when the autocovariance is estimated:
-  \\\mathbb{E}(X_0(s) - \mu(s))(X\_{\ell}(t) - \mu(t))\\. Otherwise, the
-  two parts \\\mathbb{E}X_0(s)X\_{\ell}(t)\\ and \\\mu(s)\mu(t)\\ will
-  be estimated separately. The first part with a bandwidth obtained with
-  [estimate_autocov_risk](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_risk.md)
-  and the second part with a bandwidth obtained with
-  [estimate_mean_risk](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_risk.md).
+  `logical`. If `TRUE` (default), the curves are centred before
+  smoothing.
 
 - kernel_name:
 
-  `string`. Specifies the kernel function for estimation; default is
-  "epanechnikov". Supported kernels include: "epanechnikov", "biweight",
-  "triweight", "tricube", "triangular", and "uniform".
+  `string`. Kernel of the smoothing estimator, one of "epanechnikov"
+  (default), "biweight", "triweight", "tricube", "triangular" and
+  "uniform".
 
 ## Value
 
@@ -159,12 +124,10 @@ costly; keep `n_grid` modest, pass a coarser `t`, or supply `bw_grid`.
 
 ## References
 
-Horváth L, Rice G, Whipple S (2016). “Adaptive bandwidth selection in
-the long run covariance estimator of functional time series.”
-*Computational Statistics & Data Analysis*, **100**, 676–693. ISSN
-0167-9473.
+Horváth, L., Rice, G. and Whipple, S. (2016). Adaptive bandwidth
+selection in the long run covariance estimator of functional time
+series. *Computational Statistics and Data Analysis*, 100, 676–693.
 [doi:10.1016/j.csda.2014.06.008](https://doi.org/10.1016/j.csda.2014.06.008)
-.
 
 ## See also
 

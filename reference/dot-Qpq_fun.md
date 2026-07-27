@@ -1,7 +1,9 @@
-# \\Q\_{pq}^{(\ell)}\\, (\\\ell \leq 0\\) function. See Rubín and Panaretos (2020) Equation (B.7)
+# Weighted Cross-Product \\Q\_{pq}^{(\ell)}\\ of the Rubìn-Panaretos Estimator
 
-\\Q\_{pq}^{(\ell)}\\, (\\\ell \leq 0\\) function. See Rubín and
-Panaretos (2020) Equation (B.7)
+Computes the \\Q\_{pq}^{(\ell)}\\ term of Equation (B.7) of Rubìn and
+Panaretos (2020), the counterpart of
+[.Spq_fun](https://hmaissoro.github.io/adaptiveFTS/reference/dot-Spq_fun.md)
+weighting the centred cross-products of the observed values.
 
 ## Usage
 
@@ -16,10 +18,10 @@ Panaretos (2020) Equation (B.7)
   lag = 1,
   p = 1,
   q = 1,
-  h,
-  dt_mean_rp = NULL,
-  optbw_mean = NULL,
-  smooth_ker = epanechnikov
+  bw,
+  mean_rp = NULL,
+  bw_mean = NULL,
+  kernel_name = "epanechnikov"
 )
 ```
 
@@ -27,104 +29,65 @@ Panaretos (2020) Equation (B.7)
 
 - data:
 
-  A `data.table` (or `data.frame`), a `list` of `data.table` (or
-  `data.frame`), or a `list` of `list`.
-
-  - If `data.table`: It should contain the raw curve observations in at
-    least three columns.
-
-    - `idcol` : The name of the column containing the curve index in the
-      sample. Each curve index is repeated according to the number of
-      observation points.
-
-    - `tcol` : The name of the column with observation points associated
-      with each curve index.
-
-    - `ycol` : The name of the column with observed values at each
-      observation point for each curve index.
-
-  - If `list` of `data.table`: In this case, each element in the `list`
-    represents the observation data of a curve in the form of a
-    `data.table` or `data.frame`. Each `data.table` contains at least
-    two columns.
-
-    - `tcol` : The name of the column with observation points for the
-      curve.
-
-    - `ycol` : The name of the column with observed values for the
-      curve.
-
-  - If `list` of `list`: In this case, `data` is a list where each
-    element is the observation data of a curve, given as a `list` of two
-    vectors.
-
-    - `tcol` : The vector containing observation points for the curve.
-
-    - `ycol` : The vector containing observed values for the curve.
+  Raw curve observations, as a `data.table` (or `data.frame`) in long
+  format, or as a `list` with one element per curve. See
+  [`format_data`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  for the accepted layouts and for the `id_curve` / `tobs` / `X` columns
+  they are converted to.
 
 - idcol:
 
-  `character`. If `data` is given as a `data.table` or `data.frame`,
-  this is the name of the column that holds the curve index. Each curve
-  index is repeated according to the number of observation points. If
-  `data` is a `list` of `data.table` (or `data.frame`) or a `list` of
-  `list`, set `idcol = NULL`.
+  `character(1)` or `NULL`. Name of the column holding the curve index
+  when `data` is a single table. Must be `NULL` when `data` is a list of
+  curves.
 
 - tcol:
 
-  `character`. The name of the column (or vector) containing the
-  observation points for the curves.
+  `character(1)`. Name of the column (or vector) holding the observation
+  points of the curves.
 
 - ycol:
 
-  `character`. The name of the column with observed values for the
-  curves.
+  `character(1)`. Name of the column (or vector) holding the values
+  observed at those points.
 
 - s:
 
-  `vector (numeric)`. First argument of the autocovariance function. It
-  corresponds to the observation points `s` in the pair (`s`, `t`). It
-  has to be of the same length as the `t`
+  `numeric (scalar)`. First argument of the autocovariance function.
 
 - t:
 
-  `vector (numeric)`. Second argument of the autocovariance function. It
-  corresponds to the observation points `t` in the pair (`s`, `t`). It
-  has to be of the same length as the `s`.
+  `numeric (scalar)`. Second argument of the autocovariance function.
 
 - lag:
 
-  `integer (positive integer)`. Lag of the autocovariance.
+  `integer (non-negative)`. Lag of the autocovariance.
 
-- p:
+- p, q:
 
-  `numeric (integer)`. It is used as exponent.
+  `numeric (integer)`. Exponents of the centred and scaled observation
+  points in the sum.
 
-- q:
+- bw:
 
-  `numeric (integer)`. It is used as exponent.
+  `numeric (positive scalar)`. Bandwidth of the estimator.
 
-- h:
+- mean_rp:
 
-  `numeric (positive scalar)`. The bandwidth of the estimator.
+  `data.table`. Mean function estimated at every observation point of
+  every curve, with columns `id_curve`, `tobs` and `muhat_RP`. Default
+  `NULL` estimates it from `bw_mean`.
 
-- dt_mean_rp:
+- bw_mean:
 
-  `data.table`. It contains the estimates of the mean function at each
-  observation point for each curve. The name of the curve identification
-  column must be `id_curve`, the observation points column `tobs` and
-  the mean estimates column `muhat_RP`. Default `dt_mean_rp = NULL` and
-  so it will be estimated.
+  `numeric (positive scalar)`. Bandwidth of the mean function estimator,
+  used only when `mean_rp` is `NULL`.
 
-- optbw_mean:
+- kernel_name:
 
-  `numeric (positive scalar)`. Optimal bandwidth for the mean function
-  estimator. It is `NULL` if `dt_mean_rp` is not `NULL`.
-
-- smooth_ker:
-
-  `function`. The kernel function of the Nadaraya-Watson estimator.
-  Default `smooth_ker = epanechnikov`.
+  `string`. Kernel of the smoothing estimator, one of "epanechnikov"
+  (default), "biweight", "triweight", "tricube", "triangular" and
+  "uniform".
 
 ## Value
 
@@ -132,7 +95,7 @@ A `numeric` scalar.
 
 ## References
 
-Rubín T, Panaretos VM (2020). “Sparsely observed functional time series:
-estimation and prediction.” *Electronic Journal of Statistics*,
-**14**(1), 1137 – 1210.
-[doi:10.1214/20-EJS1690](https://doi.org/10.1214/20-EJS1690) .
+Rubìn, T. and Panaretos, V. M. (2020). Sparsely observed functional time
+series: estimation and prediction. *Electronic Journal of Statistics*,
+14(1), 1137–1210.
+[doi:10.1214/20-EJS1690](https://doi.org/10.1214/20-EJS1690)

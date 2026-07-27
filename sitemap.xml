@@ -24,6 +24,7 @@
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-as_adaptive_est.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-constant_d.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-covariance_mfBm.html</loc></url>
+<url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-default_bw_grid.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-density_cv_score.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-density_loo_estimate.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-est_meta.html</loc></url>
@@ -31,7 +32,9 @@
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-fmt_range.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-is_common_design.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-random_design.html</loc></url>
+<url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-resolve_presmooth_bw.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-select_density_kernel.html</loc></url>
+<url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-select_kernel.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/dot-trapz.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/epanechnikov.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.html</loc></url>
@@ -56,7 +59,7 @@
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/format_data.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/get_density_optimal_bw.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/get_nw_optimal_bw.html</loc></url>
-<url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/get_real_data_far_kenel.html</loc></url>
+<url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/get_real_data_far_kernel.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/get_real_data_mean.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/hurst_arctan.html</loc></url>
 <url><loc>https://hmaissoro.github.io/adaptiveFTS/reference/hurst_linear.html</loc></url>

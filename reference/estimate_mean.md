@@ -1,7 +1,8 @@
-# Estimate Mean Function
+# Estimate the Mean Function
 
-This function estimates the mean function of an underlying process using
-the adaptive estimator described in Maissoro et al. (2024) .
+Estimates the mean function of the underlying process with the adaptive
+estimator of Maissoro, Patilea and Vimond (2025), using at each point
+the bandwidth that minimises the estimated risk.
 
 ## Usage
 
@@ -12,7 +13,7 @@ estimate_mean(
   tcol = "tobs",
   ycol = "X",
   t = c(1/4, 1/2, 3/4),
-  optbw = NULL,
+  bw = NULL,
   bw_grid = NULL,
   kernel_name = "epanechnikov"
 )
@@ -22,156 +23,113 @@ estimate_mean(
 
 - data:
 
-  A `data.table` (or `data.frame`), a `list` of `data.table` (or
-  `data.frame`), or a `list` of `list`.
-
-  - If `data.table`: It should contain the raw curve observations in at
-    least three columns.
-
-    - `idcol` : The name of the column containing the curve index in the
-      sample. Each curve index is repeated according to the number of
-      observation points.
-
-    - `tcol` : The name of the column with observation points associated
-      with each curve index.
-
-    - `ycol` : The name of the column with observed values at each
-      observation point for each curve index.
-
-  - If `list` of `data.table`: In this case, each element in the `list`
-    represents the observation data of a curve in the form of a
-    `data.table` or `data.frame`. Each `data.table` contains at least
-    two columns.
-
-    - `tcol` : The name of the column with observation points for the
-      curve.
-
-    - `ycol` : The name of the column with observed values for the
-      curve.
-
-  - If `list` of `list`: In this case, `data` is a list where each
-    element is the observation data of a curve, given as a `list` of two
-    vectors.
-
-    - `tcol` : The vector containing observation points for the curve.
-
-    - `ycol` : The vector containing observed values for the curve.
+  Raw curve observations, as a `data.table` (or `data.frame`) in long
+  format, or as a `list` with one element per curve. See
+  [`format_data`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
+  for the accepted layouts and for the `id_curve` / `tobs` / `X` columns
+  they are converted to.
 
 - idcol:
 
-  `character`. If `data` is given as a `data.table` or `data.frame`,
-  this is the name of the column that holds the curve index. Each curve
-  index is repeated according to the number of observation points. If
-  `data` is a `list` of `data.table` (or `data.frame`) or a `list` of
-  `list`, set `idcol = NULL`.
+  `character(1)` or `NULL`. Name of the column holding the curve index
+  when `data` is a single table. Must be `NULL` when `data` is a list of
+  curves.
 
 - tcol:
 
-  `character`. The name of the column (or vector) containing the
-  observation points for the curves.
+  `character(1)`. Name of the column (or vector) holding the observation
+  points of the curves.
 
 - ycol:
 
-  `character`. The name of the column with observed values for the
-  curves.
+  `character(1)`. Name of the column (or vector) holding the values
+  observed at those points.
 
 - t:
 
-  `vector (numeric)`. Observation points where the mean function of the
-  underlying process is estimated.
+  `vector (numeric)`. Points of \\\[0, 1\]\\ at which the risk is
+  estimated.
 
-- optbw:
+- bw:
 
-  `vector (numeric)`. Optimal bandwidth parameters for mean function
-  estimation at each `t`. If `optbw = NULL` (default), it will be
-  estimated using the
-  [estimate_mean_risk](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_risk.md)
-  function.
+  `vector (numeric)`. Bandwidth to use at each point of `t`, recycled if
+  a scalar. Default `NULL` selects it by minimising the risk estimated
+  by
+  [estimate_mean_risk](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_risk.md).
 
 - bw_grid:
 
-  `vector (numeric)`. A bandwidth grid from which the best smoothing
-  parameter is selected for each `t`. Default is `NULL`, in which case
-  it is defined as an exponential grid of \\N \lambda\\.
+  `vector (numeric)`. Candidate bandwidths, from which estimate_mean
+  picks the risk-minimising one at each `t`. Default `NULL` builds the
+  grid from the data; see Details.
 
 - kernel_name:
 
-  `string`. Specifies the kernel function for estimation; default is
-  "epanechnikov". Supported kernels include: "epanechnikov", "biweight",
-  "triweight", "tricube", "triangular", and "uniform".
+  `string`. Kernel of the smoothing estimator, one of "epanechnikov"
+  (default), "biweight", "triweight", "tricube", "triangular" and
+  "uniform".
 
 ## Value
 
-A `data.table` containing the following columns:
+A `data.table` with one row per point of `t` and columns:
 
-- `t` : The observation points at which the mean function is estimated.
+- `t`: the point at which the mean function is estimated.
 
-- `optbw` : The optimal bandwidth used to estimate the mean function at
-  each `t`.
+- `optbw`: the bandwidth used at `t`.
 
-- `Ht` : Local exponent estimates for each `t`, corresponding to
-  \\H_t\\.
+- `Ht`: the estimated local exponent \\H_t\\.
 
-- `Lt2` : Estimates of the Hölder constant for each `t`, corresponding
-  to \\L_t^2\\.
+- `Lt2`: the estimated squared Hölder constant \\L_t^2\\.
 
-- `PN` : The number of selected curves used in the estimation for each
-  `t`.
+- `PN`: the number of curves contributing to the estimate at `t`.
 
-- `muhat` : Estimated values of the mean function at each `t`.
+- `muhat`: the estimated mean function.
+
+## Details
+
+Unless `bw` is supplied, the bandwidth is selected point by point by
+minimising the risk of
+[estimate_mean_risk](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_risk.md)
+over `bw_grid`, so neighbouring points may be smoothed differently
+according to the local regularity of the process. Supplying `bw` skips
+the risk estimation entirely, which is worth doing when the same
+bandwidths are reused across many calls.
 
 ## References
 
-Maissoro H, Patilea V, Vimond M (2024). “Adaptive estimation for Weakly
-Dependent Functional Times Series.” *arXiv preprint arXiv:2403.13706*.
+Maissoro, H., Patilea, V. and Vimond, M. (2025). Adaptive Estimation for
+Weakly Dependent Functional Time Series. *Journal of Time Series
+Analysis*. [doi:10.1111/jtsa.70006](https://doi.org/10.1111/jtsa.70006)
 
 ## See also
 
 [`estimate_mean_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_risk.md),
 [`estimate_locreg()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_locreg.md),
-[`estimate_sigma()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_sigma.md),
-[`estimate_nw()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_nw.md),
-[`estimate_empirical_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_empirical_autocov.md).
+[`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md).
 
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-# Load data
 data("data_far")
 
-# Estimate risk function for the mean
-dt_mean_risk <- estimate_mean_risk(
-  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  t = c(1/4, 1/2, 3/4), bw_grid = NULL,
-  kernel_name = "epanechnikov"
-)
-
-# Visualize mean risk at various observation points
-dt_dcast <- data.table::dcast(data = dt_mean_risk, formula = h ~ t, value.var = "mean_risk")
-manipulateWidget::combineWidgets(
-  list = list(
-    dygraphs::dygraph(
-      data = dt_dcast[, list(h, "t = 0.25" = `0.25`)],
-      main = "t = 0.25", xlab = "h", ylab = "Risk Function"),
-    dygraphs::dygraph(
-      data = dt_dcast[, list(h, "t = 0.5" = `0.5`)],
-      main = "t = 0.5", xlab = "h", ylab = "Risk Function"),
-    dygraphs::dygraph(
-      data = dt_dcast[, list(h, "t = 0.75" = `0.75`)],
-      main = "t = 0.75", xlab = "h", ylab = "Risk Function")
-  ),
-  nrow = 3
-)
-
-# Estimate mean function with optimal bandwidths
 dt_mean <- estimate_mean(
-  data = data_far, idcol = "id_curve", tcol = "tobs", ycol = "X",
-  t = c(1/4, 1/2, 3/4), bw_grid = seq(0.005, 0.15, len = 45),
-  kernel_name = "epanechnikov"
-)
+  data = data_far[data_far$id_curve <= 20, ],
+  idcol = "id_curve", tcol = "tobs", ycol = "X",
+  t = c(1/4, 1/2, 3/4), bw_grid = seq(0.02, 0.15, length.out = 8),
+  kernel_name = "epanechnikov")
+dt_mean
+#>        t optbw        Ht       Lt2    PN    muhat
+#>    <num> <num>     <num>     <num> <num>    <num>
+#> 1:  0.25  0.02 0.5116001  7.372248    20 243.5573
+#> 2:  0.50  0.02 1.0000000 13.320572    19 241.4676
+#> 3:  0.75  0.02 0.7944922 10.397411    18 241.3353
 
-# Display rounded estimates of the mean function
-DT::datatable(data = dt_mean[, lapply(.SD, function(X) round(X, 3))])
-} # }
+summary(dt_mean)
+#> Adaptive mean function estimate
+#>   Evaluation points  : 3 (t in [0.25, 0.75])
+#>   Training curves    : 20
+#>   Kernel             : epanechnikov
+#>   Optimal bandwidth  : [0.02, 0.02]
+#>   Curves used (PN)   : [18, 20]
+#>   muhat              : [241, 244]
 ```

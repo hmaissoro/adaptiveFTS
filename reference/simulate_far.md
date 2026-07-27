@@ -1,6 +1,11 @@
-# Functional Autoregressive process of order 1 (FAR(1)) simulation
+# Simulate a Functional Autoregressive Process of Order One
 
-Functional Autoregressive process of order 1 (FAR(1)) simulation
+Simulates `N` curves of a FAR(1) process, \\X_n = \Psi(X\_{n-1}) +
+\varepsilon_n\\, where \\\Psi\\ is the integral operator with kernel
+`far_kernel` and the innovations are multifractional Brownian motions
+whose roughness follows `hurst_fun`. Each curve is observed at random or
+common design points, and the returned sample is the one this package's
+estimators consume.
 
 ## Usage
 
@@ -8,16 +13,16 @@ Functional Autoregressive process of order 1 (FAR(1)) simulation
 simulate_far(
   N = 2L,
   lambda = 70L,
-  tdesign = "random",
-  Mdistribution = rpois,
-  tdistribution = runif,
-  tcommon = seq(0.2, 0.8, len = 50),
+  design = "random",
+  M_distribution = rpois,
+  t_distribution = runif,
+  t_common = seq(0.2, 0.8, len = 50),
   hurst_fun = hurst_logistic,
   L = 4,
   far_kernel = function(s, t) 9/4 * exp(-(t + 2 * s)^2),
   far_mean = function(t) 4 * sin(1.5 * pi * t),
-  int_grid = 100L,
-  burnin = 100L,
+  n_int_grid = 100L,
+  n_burnin = 100L,
   remove_burnin = TRUE
 )
 ```
@@ -32,25 +37,25 @@ simulate_far(
 
   `integer`. Mean of the number of observations per curve.
 
-- tdesign:
+- design:
 
   `character`. Type of the design. It is either 'random' or 'common'.
 
-- Mdistribution:
+- M_distribution:
 
   `function`. Distribution of the number of observation points per
   curve. The first argument of the function must correspond to `N` and
-  the second to `lambda`. Default `Mdistribution = rpois`.
+  the second to `lambda`. Default `M_distribution = rpois`.
 
-- tdistribution:
+- t_distribution:
 
   `function (or NULL)`. Observation point distribution if
-  `tdesign = 'random'` and `NULL` otherwise.
+  `design = 'random'` and `NULL` otherwise.
 
-- tcommon:
+- t_common:
 
-  `vector (float)`. Observation point vector if `tdesign = 'common'`. If
-  `tdesign = 'random'` and if we want to run some tests at a particular
+  `vector (float)`. Observation point vector if `design = 'common'`. If
+  `design = 'random'` and if we want to run some tests at a particular
   observation position, this can also be specified.
 
 - hurst_fun:
@@ -72,17 +77,17 @@ simulate_far(
 
   `function`. Mean function of the FAR(1).
 
-- int_grid:
+- n_int_grid:
 
   `integer`. Length of the grid used to approximate the integral.
 
-- burnin:
+- n_burnin:
 
   `integer`. Burnin period of the FAR(1).
 
 - remove_burnin:
 
-  `boolean`. If `TRUE`, burnin period is removed.
+  `boolean`. If `TRUE`, n_burnin period is removed.
 
 ## Value
 
@@ -92,32 +97,41 @@ A `data.table` containing 3 column :
 
 - tobs : Sampled observation points, for each `id_curve`.
 
-- ttag : Tag on the observations points, for each `id_curve`. It is
-  either `tcommon` for common design grid or `tcommon` pour random
-  design.
+- ttag : Tag on the observation points, for each `id_curve`. It is
+  either `tcommon` for the common design grid or `trandom` for the
+  random design.
 
 - far_mean : The mean of the process evaluate at `tobs`, for each
   `id_curve`.
 
 - X : The process observed at tobs, for each `id_curve`.
 
+## Details
+
+The process is built on a regular integration grid of `n_int_grid`
+points and iterated for `n_burnin` steps before the `N` curves are kept,
+so that the returned sample is (close to) stationary; set
+`remove_burnin = FALSE` to keep the burn-in curves as well. Each curve
+is then observed at `M` points, with `M` drawn from `M_distribution`: at
+random locations drawn from `t_distribution` when `design = "random"`,
+or at the shared grid `t_common` when `design = "common"`.
+
 ## Examples
 
 ``` r
 
-if (FALSE) { # \dontrun{
 dt_far <- simulate_far(N = 2L, lambda = 70L,
-                       tdesign = "random",
-                       Mdistribution = rpois,
-                       tdistribution = runif,
-                       tcommon = seq(0.2, 0.8, len = 50),
+                       design = "random",
+                       M_distribution = rpois,
+                       t_distribution = runif,
+                       t_common = seq(0.2, 0.8, len = 50),
                        hurst_fun = hurst_logistic,
                        L = 4,
                        far_kernel = function(s,t) 9/4 * exp(- (t + 2 * s) ** 2),
                        far_mean = function(t) 4 * sin(1.5 * pi * t),
-                       int_grid = 100L,
-                       burnin = 100L,
+                       n_int_grid = 100L,
+                       n_burnin = 100L,
                        remove_burnin = TRUE)
 
-} # }
+
 ```
