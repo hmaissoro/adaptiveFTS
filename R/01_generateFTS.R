@@ -169,19 +169,35 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' This function generates a sample path of a multifractional Brownian motion (mfBm) based on the provided Hurst
 #' function and other parameters.
 #'
+#' @details
+#' Let \eqn{\xi} denote the standardised mfBm with Hurst function \code{hurst_fun}, that is the centred Gaussian
+#' process with covariance \code{\link{.covariance_mfBm}}. Its variance is \eqn{Var(\xi(t)) = t^{2 H_t}}, so that
+#' \eqn{Var(\xi(1)) = 1}. The returned sample path is \eqn{\sqrt{L} \, \xi(t)} when \code{intercept_var = 0} and
+#' \code{tied = FALSE}.
+#'
+#' \code{intercept_var} adds a per-curve random intercept: the returned path becomes
+#' \eqn{\sqrt{L} \, (\xi(t) + Z)}, where \eqn{Z} is a centred Gaussian variable of variance \code{intercept_var},
+#' drawn independently of \eqn{\xi} and constant in \code{t}. The intercept \eqn{\sqrt{L} Z} therefore has variance
+#' \code{L * intercept_var}, and \code{sqrt(intercept_var)} is its standard deviation as a fraction of the standard
+#' deviation of the process at \eqn{t = 1}.
+#'
+#' Being constant in \code{t}, the intercept cancels in the increments \eqn{\xi(t + \delta) - \xi(t)}. It leaves the
+#' local Hölder exponent \eqn{H_t} and the local Hölder constant \eqn{L_t} unchanged, and only displaces the sample
+#' path on the ordinate axis. This is useful because \eqn{Var(\xi(t))} vanishes as \eqn{t \to 0}, so without it every
+#' sample path leaves the origin at the same point.
+#'
+#' A non-zero intercept is incompatible with a tied-down path and is ignored, with a warning, when \code{tied = TRUE}:
+#' the tie-down subtracts \eqn{t \sqrt{L} (\xi(1) + Z)}, which turns the constant intercept into the random ramp
+#' \eqn{\sqrt{L} Z (1 - t)}, leaving a path that is neither tied down at the origin nor an intercept-shifted mfBm.
+#'
 #' @param t \code{vector (float)}. Grid of points between 0 and 1 where the sample path will be generated.
 #' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
 #' \code{\link{hurst_logistic}}, or any custom Hurst function.
 #' @param L \code{float (positive)}. Hölder constant.
-#' @param intercept_var \code{float (non-negative)}. Variance of a per-curve random intercept added to the sample path,
-#' expressed relative to the scale of the process. The intercept is a Gaussian variable with mean 0 and variance
-#' \code{L * intercept_var}, drawn independently of the mfBm and constant in \code{t}. Since \eqn{Var(\xi(1)) = 1},
-#' \code{sqrt(intercept_var)} is the intercept standard deviation as a fraction of the process standard deviation at
-#' \eqn{u = 1}. Being constant in \code{t}, the intercept cancels in the increments
-#' \eqn{\xi(u + \delta) - \xi(u)}, so it leaves the local Hölder exponent \eqn{H_t} and the local Hölder constant
-#' \eqn{L_t} unchanged and only displaces the realisation on the ordinate axis. It is useful because
-#' \eqn{Var(\xi(u)) = u^{2 H_u}} vanishes as \eqn{u \to 0}, so without it every path leaves the origin at the same
-#' point. Default is \code{intercept_var = 0}, which adds no intercept. It is ignored when \code{tied = TRUE}.
+#' @param intercept_var \code{float (non-negative)}. Variance of a per-curve random intercept added to the sample
+#' path, expressed relative to the scale of the process, so that the intercept has variance \code{L * intercept_var}.
+#' It displaces the path on the ordinate axis without changing its local regularity. Default is
+#' \code{intercept_var = 0}, which adds no intercept. Ignored when \code{tied = TRUE}. See the Details section.
 #' @param tied \code{boolean}. If \code{TRUE}, the sample path is tied down.
 #' @param ... Additional arguments for the Hurst function.
 #'
@@ -251,18 +267,32 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 
 #' Draw a fractional Brownian motion sample path.
 #'
+#' @details
+#' Let \eqn{\xi} denote the standardised fractional Brownian motion with exponent \code{hurst}, whose variance
+#' satisfies \eqn{Var(\xi(1)) = 1}. The returned sample path is \eqn{\sqrt{L} \, \xi(t)} when
+#' \code{intercept_var = 0} and \code{tied = FALSE}, and \eqn{\sqrt{L} \, (\xi(t) + Z)} otherwise, where \eqn{Z} is
+#' a centred Gaussian variable of variance \code{intercept_var}, drawn independently of \eqn{\xi} and constant in
+#' \code{t}. See the Details section of \code{\link{simulate_mfBm}} for the role of the intercept.
+#'
 #' @param t \code{vector (float)}. Grid of points between 0 and 1 where we want to generate the sample path.
 #' @param hurst \code{float (positive)}. The Hurst exponent scalar value between 0 and 1.
 #' @param L \code{float (positive)}. Hölder constant.
+#' @param intercept_var \code{float (non-negative)}. Variance of a per-curve random intercept added to the sample
+#' path, expressed relative to the scale of the process, so that the intercept has variance \code{L * intercept_var}.
+#' It displaces the path on the ordinate axis without changing its local regularity. Default is
+#' \code{intercept_var = 0}, which adds no intercept. Ignored when \code{tied = TRUE}. See the Details section.
 #' @param tied \code{boolean}. If \code{TRUE}, the sample path is tied-down.
 #'
-#' @return A \code{data.table} containing 2 column : \code{t} and \code{mfBm}, the sample path.
+#' @return A \code{data.table} containing 2 column : \code{t} and \code{fBm}, the sample path.
 #'
 #' @export
 #'
 #' @importFrom MASS mvrnorm
 #' @importFrom data.table data.table between
 #' @importFrom methods is
+#' @importFrom stats rnorm
+#'
+#' @seealso [simulate_mfBm()].
 #'
 #' @examples
 #'
@@ -270,13 +300,21 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 #' dt_fBm <- simulate_fBm(t = t0, hurst = 0.6, L = 1, tied = TRUE)
 #' plot(x = dt_fBm$t, y = dt_fBm$fBm, type = "l", col = "red")
 #'
-simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied = TRUE) {
+simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, intercept_var = 0, tied = TRUE) {
   if (! methods::is(t, "numeric") && all(t >= 0 & t <= 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! (methods::is(hurst, "numeric") & (hurst >= 0 & hurst <=1) & length(hurst) == 1))
     stop("'hurst' must be a positive scalar value between 0 and 1.")
   if (! (methods::is(L, "numeric") & L > 0 & length(L) == 1))
     stop("'L' must be a positive scalar value.")
+  if (! (methods::is(intercept_var, "numeric") && intercept_var >= 0 && length(intercept_var) == 1))
+    stop("'intercept_var' must be a non-negative scalar value.")
+
+  if (tied && intercept_var > 0) {
+    warning(paste("'intercept_var' is ignored when 'tied = TRUE': a tied-down path with a non-zero intercept is",
+                  "neither tied down at the origin nor an intercept-shifted fBm. Setting 'intercept_var = 0'."))
+    intercept_var <- 0
+  }
 
   tmp <- expand.grid(u = t, v = t)
   u <- tmp$u
@@ -288,6 +326,9 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
   out <- MASS::mvrnorm(1,
                        mu = rep(0, ncol(cov_mat)),
                        Sigma = L * cov_mat)
+  if (intercept_var > 0) {
+    out <- out + sqrt(L * intercept_var) * stats::rnorm(1)
+  }
   fBm_path <- out - tied * t * out[length(out)]
   dt <- data.table::data.table("t" = t, "fBm" = fBm_path)
   return(dt)
@@ -365,15 +406,10 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied =
 #' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
 #' \code{\link{hurst_logistic}}.
 #' @param L \code{float (positive)}. Hölder constant.
-#' @param intercept_var \code{float (non-negative)}. Variance of a per-curve random intercept added to the innovation,
-#' expressed relative to the scale of the innovation. The intercept is a Gaussian variable with mean 0 and variance
-#' \code{L * intercept_var}, drawn independently of the mfBm and constant in \code{t}. Since the innovation has unit
-#' variance at \eqn{u = 1}, \code{sqrt(intercept_var)} is the intercept standard deviation as a fraction of the
-#' innovation standard deviation at \eqn{u = 1}. Being constant in \code{t}, the intercept cancels in the increments
-#' of the innovation, so it leaves the local Hölder exponent \eqn{H_t} and the local Hölder constant \eqn{L_t}
-#' unchanged and only displaces each innovation on the ordinate axis. It is useful because the innovation variance
-#' \eqn{u^{2 H_u}} vanishes as \eqn{u \to 0}, so without it every innovation leaves the origin at the same point.
-#' Default is \code{intercept_var = 0}, which reproduces the previous behaviour exactly.
+#' @param intercept_var \code{float (non-negative)}. Variance of a per-curve random intercept added to each
+#' innovation, expressed relative to the scale of the innovation, so that the intercept has variance
+#' \code{L * intercept_var}. It displaces each innovation on the ordinate axis without changing its local regularity.
+#' Passed to \code{\link{simulate_mfBm}}, whose Details section describes it. Default is \code{intercept_var = 0}.
 #' @param far_kernel \code{function}. Kernel function of the operator of the FAR(1).
 #' @param far_mean \code{function}. Mean function of the FAR(1).
 #' @param n_int_grid \code{integer}. Length of the grid used to approximate the integral.
@@ -563,15 +599,10 @@ simulate_far <- function(N = 2L, lambda = 70L,
 #' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
 #' \code{\link{hurst_logistic}}.
 #' @param L \code{float (positive)}. Hölder constant.
-#' @param intercept_var \code{float (non-negative)}. Variance of a per-curve random intercept added to the innovation,
-#' expressed relative to the scale of the innovation. The intercept is a Gaussian variable with mean 0 and variance
-#' \code{L * intercept_var}, drawn independently of the mfBm and constant in \code{t}. Since the innovation has unit
-#' variance at \eqn{u = 1}, \code{sqrt(intercept_var)} is the intercept standard deviation as a fraction of the
-#' innovation standard deviation at \eqn{u = 1}. Being constant in \code{t}, the intercept cancels in the increments
-#' of the innovation, so it leaves the local Hölder exponent \eqn{H_t} and the local Hölder constant \eqn{L_t}
-#' unchanged and only displaces each innovation on the ordinate axis. It is useful because the innovation variance
-#' \eqn{u^{2 H_u}} vanishes as \eqn{u \to 0}, so without it every innovation leaves the origin at the same point.
-#' Default is \code{intercept_var = 0}, which reproduces the previous behaviour exactly.
+#' @param intercept_var \code{float (non-negative)}. Variance of a per-curve random intercept added to each
+#' innovation, expressed relative to the scale of the innovation, so that the intercept has variance
+#' \code{L * intercept_var}. It displaces each innovation on the ordinate axis without changing its local regularity.
+#' Passed to \code{\link{simulate_mfBm}}, whose Details section describes it. Default is \code{intercept_var = 0}.
 #' @param fma_kernel \code{function}. Kernel function of the operator of the FMA(1).
 #' @param fma_mean \code{function}. Mean function of the FMA(1).
 #' @param n_int_grid \code{integer}. Length of the grid used to approximate the integral.

@@ -21,15 +21,10 @@ simulate_mfBm(
 
 \item{L}{\code{float (positive)}. Hölder constant.}
 
-\item{intercept_var}{\code{float (non-negative)}. Variance of a per-curve random intercept added to the sample path,
-expressed relative to the scale of the process. The intercept is a Gaussian variable with mean 0 and variance
-\code{L * intercept_var}, drawn independently of the mfBm and constant in \code{t}. Since \eqn{Var(\xi(1)) = 1},
-\code{sqrt(intercept_var)} is the intercept standard deviation as a fraction of the process standard deviation at
-\eqn{u = 1}. Being constant in \code{t}, the intercept cancels in the increments
-\eqn{\xi(u + \delta) - \xi(u)}, so it leaves the local Hölder exponent \eqn{H_t} and the local Hölder constant
-\eqn{L_t} unchanged and only displaces the realisation on the ordinate axis. It is useful because
-\eqn{Var(\xi(u)) = u^{2 H_u}} vanishes as \eqn{u \to 0}, so without it every path leaves the origin at the same
-point. Default is \code{intercept_var = 0}, which adds no intercept. It is ignored when \code{tied = TRUE}.}
+\item{intercept_var}{\code{float (non-negative)}. Variance of a per-curve random intercept added to the sample
+path, expressed relative to the scale of the process, so that the intercept has variance \code{L * intercept_var}.
+It displaces the path on the ordinate axis without changing its local regularity. Default is
+\code{intercept_var = 0}, which adds no intercept. Ignored when \code{tied = TRUE}. See the Details section.}
 
 \item{tied}{\code{boolean}. If \code{TRUE}, the sample path is tied down.}
 
@@ -42,6 +37,27 @@ corresponding values of the mfBm sample path.
 \description{
 This function generates a sample path of a multifractional Brownian motion (mfBm) based on the provided Hurst
 function and other parameters.
+}
+\details{
+Let \eqn{\xi} denote the standardised mfBm with Hurst function \code{hurst_fun}, that is the centred Gaussian
+process with covariance \code{\link{.covariance_mfBm}}. Its variance is \eqn{Var(\xi(t)) = t^{2 H_t}}, so that
+\eqn{Var(\xi(1)) = 1}. The returned sample path is \eqn{\sqrt{L} \, \xi(t)} when \code{intercept_var = 0} and
+\code{tied = FALSE}.
+
+\code{intercept_var} adds a per-curve random intercept: the returned path becomes
+\eqn{\sqrt{L} \, (\xi(t) + Z)}, where \eqn{Z} is a centred Gaussian variable of variance \code{intercept_var},
+drawn independently of \eqn{\xi} and constant in \code{t}. The intercept \eqn{\sqrt{L} Z} therefore has variance
+\code{L * intercept_var}, and \code{sqrt(intercept_var)} is its standard deviation as a fraction of the standard
+deviation of the process at \eqn{t = 1}.
+
+Being constant in \code{t}, the intercept cancels in the increments \eqn{\xi(t + \delta) - \xi(t)}. It leaves the
+local Hölder exponent \eqn{H_t} and the local Hölder constant \eqn{L_t} unchanged, and only displaces the sample
+path on the ordinate axis. This is useful because \eqn{Var(\xi(t))} vanishes as \eqn{t \to 0}, so without it every
+sample path leaves the origin at the same point.
+
+A non-zero intercept is incompatible with a tied-down path and is ignored, with a warning, when \code{tied = TRUE}:
+the tie-down subtracts \eqn{t \sqrt{L} (\xi(1) + Z)}, which turns the constant intercept into the random ramp
+\eqn{\sqrt{L} Z (1 - t)}, leaving a path that is neither tied down at the origin nor an intercept-shifted mfBm.
 }
 \examples{
 t0 <- seq(0.2, 0.8, len = 20)

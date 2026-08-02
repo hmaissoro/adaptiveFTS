@@ -4,7 +4,13 @@
 \alias{simulate_fBm}
 \title{Draw a fractional Brownian motion sample path.}
 \usage{
-simulate_fBm(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied = TRUE)
+simulate_fBm(
+  t = seq(0.2, 0.8, len = 20),
+  hurst = 0.6,
+  L = 1,
+  intercept_var = 0,
+  tied = TRUE
+)
 }
 \arguments{
 \item{t}{\code{vector (float)}. Grid of points between 0 and 1 where we want to generate the sample path.}
@@ -13,13 +19,25 @@ simulate_fBm(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied = TRUE)
 
 \item{L}{\code{float (positive)}. Hölder constant.}
 
+\item{intercept_var}{\code{float (non-negative)}. Variance of a per-curve random intercept added to the sample
+path, expressed relative to the scale of the process, so that the intercept has variance \code{L * intercept_var}.
+It displaces the path on the ordinate axis without changing its local regularity. Default is
+\code{intercept_var = 0}, which adds no intercept. Ignored when \code{tied = TRUE}. See the Details section.}
+
 \item{tied}{\code{boolean}. If \code{TRUE}, the sample path is tied-down.}
 }
 \value{
-A \code{data.table} containing 2 column : \code{t} and \code{mfBm}, the sample path.
+A \code{data.table} containing 2 column : \code{t} and \code{fBm}, the sample path.
 }
 \description{
 Draw a fractional Brownian motion sample path.
+}
+\details{
+Let \eqn{\xi} denote the standardised fractional Brownian motion with exponent \code{hurst}, whose variance
+satisfies \eqn{Var(\xi(1)) = 1}. The returned sample path is \eqn{\sqrt{L} \, \xi(t)} when
+\code{intercept_var = 0} and \code{tied = FALSE}, and \eqn{\sqrt{L} \, (\xi(t) + Z)} otherwise, where \eqn{Z} is
+a centred Gaussian variable of variance \code{intercept_var}, drawn independently of \eqn{\xi} and constant in
+\code{t}. See the Details section of \code{\link{simulate_mfBm}} for the role of the intercept.
 }
 \examples{
 
@@ -27,4 +45,7 @@ t0 <- seq(0.2, 0.8, len = 20)
 dt_fBm <- simulate_fBm(t = t0, hurst = 0.6, L = 1, tied = TRUE)
 plot(x = dt_fBm$t, y = dt_fBm$fBm, type = "l", col = "red")
 
+}
+\seealso{
+\code{\link[=simulate_mfBm]{simulate_mfBm()}}.
 }
