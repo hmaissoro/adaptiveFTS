@@ -13,6 +13,7 @@ simulate_fma(
   t_common = seq(0.2, 0.8, len = 50),
   hurst_fun = hurst_logistic,
   L = 4,
+  intercept_var = 0,
   fma_kernel = function(s, t) 9/4 * exp(-(t + 2 * s)^2),
   fma_mean = function(t) 4 * sin(1.5 * pi * t),
   n_int_grid = 100L,
@@ -42,6 +43,16 @@ specified.}
 \code{\link{hurst_logistic}}.}
 
 \item{L}{\code{float (positive)}. Hölder constant.}
+
+\item{intercept_var}{\code{float (non-negative)}. Variance of a per-curve random intercept added to the innovation,
+expressed relative to the scale of the innovation. The intercept is a Gaussian variable with mean 0 and variance
+\code{L * intercept_var}, drawn independently of the mfBm and constant in \code{t}. Since the innovation has unit
+variance at \eqn{u = 1}, \code{sqrt(intercept_var)} is the intercept standard deviation as a fraction of the
+innovation standard deviation at \eqn{u = 1}. Being constant in \code{t}, the intercept cancels in the increments
+of the innovation, so it leaves the local Hölder exponent \eqn{H_t} and the local Hölder constant \eqn{L_t}
+unchanged and only displaces each innovation on the ordinate axis. It is useful because the innovation variance
+\eqn{u^{2 H_u}} vanishes as \eqn{u \to 0}, so without it every innovation leaves the origin at the same point.
+Default is \code{intercept_var = 0}, which reproduces the previous behaviour exactly.}
 
 \item{fma_kernel}{\code{function}. Kernel function of the operator of the FMA(1).}
 
