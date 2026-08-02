@@ -8,7 +8,7 @@ simulate_mfBm(
   t = seq(0.2, 0.8, len = 50),
   hurst_fun = hurst_logistic,
   L = 1,
-  shift_var = 0,
+  intercept_var = 0,
   tied = TRUE,
   ...
 )
@@ -21,8 +21,15 @@ simulate_mfBm(
 
 \item{L}{\code{float (positive)}. Hölder constant.}
 
-\item{shift_var}{\code{float (positive)}. The variance of the shift Gaussian random variable. Default is
-\code{shift_var = 1}, meaning a normal random variable with mean 0 and variance 1 is added.}
+\item{intercept_var}{\code{float (non-negative)}. Variance of a per-curve random intercept added to the sample path,
+expressed relative to the scale of the process. The intercept is a Gaussian variable with mean 0 and variance
+\code{L * intercept_var}, drawn independently of the mfBm and constant in \code{t}. Since \eqn{Var(\xi(1)) = 1},
+\code{sqrt(intercept_var)} is the intercept standard deviation as a fraction of the process standard deviation at
+\eqn{u = 1}. Being constant in \code{t}, the intercept cancels in the increments
+\eqn{\xi(u + \delta) - \xi(u)}, so it leaves the local Hölder exponent \eqn{H_t} and the local Hölder constant
+\eqn{L_t} unchanged and only displaces the realisation on the ordinate axis. It is useful because
+\eqn{Var(\xi(u)) = u^{2 H_u}} vanishes as \eqn{u \to 0}, so without it every path leaves the origin at the same
+point. Default is \code{intercept_var = 0}, which adds no intercept. It is ignored when \code{tied = TRUE}.}
 
 \item{tied}{\code{boolean}. If \code{TRUE}, the sample path is tied down.}
 
@@ -40,5 +47,10 @@ function and other parameters.
 t0 <- seq(0.2, 0.8, len = 20)
 dt_mfBm <- simulate_mfBm(t = t0, hurst_fun = hurst_logistic, L = 1, tied = TRUE)
 plot(x = dt_mfBm$t, y = dt_mfBm$mfBm, type = "l", col = "red")
+
+# A free path with a random intercept: the paths no longer share their origin.
+dt_shifted <- simulate_mfBm(t = t0, hurst_fun = hurst_logistic, L = 1,
+                            intercept_var = 0.05, tied = FALSE)
+plot(x = dt_shifted$t, y = dt_shifted$mfBm, type = "l", col = "blue")
 
 }
