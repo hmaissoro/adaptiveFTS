@@ -49,7 +49,8 @@
   the compiled layer directly.
 * `simulate_far()` and `simulate_fma()` gain an `intercept_var` argument, placed
   after `L`. Callers that pass `far_kernel`/`fma_kernel` and the arguments after
-  it *by position* must be updated; named calls are unaffected.
+  it *by position* must be updated; named calls are unaffected. Likewise
+  `simulate_fBm()` gains `intercept_var` after `L`, ahead of `tied`.
 * `format_data()` now validates its result instead of passing questionable data
   on to the estimators. It fails when the observation points fall outside
   `[0, 1]` (the domain the estimators assume), when the observation points or
@@ -60,7 +61,7 @@
 ## New features
 
 * `simulate_mfBm()`'s `shift_var` becomes `intercept_var` and is now exposed by
-  `simulate_far()` and `simulate_fma()`. It is the variance of a per-curve random
+  `simulate_fBm()`, `simulate_far()` and `simulate_fma()`. It is the variance of a per-curve random
   Gaussian intercept added to the innovation, expressed relative to the
   innovation scale: the intercept has variance `L * intercept_var`, so
   `sqrt(intercept_var)` is its standard deviation as a fraction of the innovation
@@ -69,7 +70,7 @@
   keeps the curves from all leaving the origin at the same point, since
   `Var(xi(u)) = u^(2 H_u)` vanishes as `u -> 0`. The default `intercept_var = 0`
   reproduces the previous output bit-for-bit.
-* `simulate_mfBm()` now warns and ignores `intercept_var` when `tied = TRUE`: a
+* `simulate_mfBm()` and `simulate_fBm()` now warn and ignore `intercept_var` when `tied = TRUE`: a
   tied-down path carrying an intercept is neither tied down at the origin nor an
   intercept-shifted mfBm, because the tie-down turns the intercept into a random
   ramp.

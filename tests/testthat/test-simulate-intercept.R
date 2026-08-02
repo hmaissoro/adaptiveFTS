@@ -47,6 +47,28 @@ test_that("intercept_var = 0 reproduces the default path bit-for-bit", {
   expect_identical(ma[["X"]], mb[["X"]])
 })
 
+test_that("simulate_fBm behaves like simulate_mfBm under intercept_var", {
+  set.seed(41); a <- simulate_fBm(t = TG, hurst = 0.6, L = LC, tied = FALSE)
+  set.seed(41); b <- simulate_fBm(t = TG, hurst = 0.6, L = LC, intercept_var = 0, tied = FALSE)
+  expect_identical(a[["fBm"]], b[["fBm"]])
+
+  set.seed(41)
+  c0 <- simulate_fBm(t = TG, hurst = 0.6, L = LC, intercept_var = 0, tied = FALSE)[["fBm"]]
+  z <- stats::rnorm(1)
+  set.seed(41)
+  c1 <- simulate_fBm(t = TG, hurst = 0.6, L = LC, intercept_var = IV, tied = FALSE)[["fBm"]]
+  expect_equal(diff(c1), diff(c0), tolerance = 1e-12)
+  expect_equal(mean(c1 - c0), sqrt(LC * IV) * z, tolerance = 1e-10)
+
+  set.seed(43); d0 <- simulate_fBm(t = TG, hurst = 0.6, L = LC, intercept_var = 0, tied = TRUE)
+  set.seed(43)
+  expect_warning(d1 <- simulate_fBm(t = TG, hurst = 0.6, L = LC, intercept_var = IV, tied = TRUE),
+                 "ignored when 'tied = TRUE'")
+  expect_identical(d0[["fBm"]], d1[["fBm"]])
+
+  expect_error(simulate_fBm(t = TG, intercept_var = -1), "non-negative")
+})
+
 test_that("the intercept cancels in the increments", {
   # This is the property that leaves H_t and L_t unchanged: with a shared seed
   # the two paths differ by a constant, so their first differences coincide.
