@@ -47,6 +47,27 @@ test_that("intercept_var = 0 reproduces the default path bit-for-bit", {
   expect_identical(ma[["X"]], mb[["X"]])
 })
 
+test_that("simulate_fBm is simulate_mfBm at a constant Hurst function", {
+  # The fBm covariance carries the exponent 2 * hurst, so the two generators must
+  # agree when the Hurst function is constant. Before the exponent was corrected,
+  # simulate_fBm(hurst = h) produced the process of exponent h / 2 instead.
+  h <- 0.6
+  set.seed(5)
+  a <- simulate_fBm(t = TG, hurst = h, L = LC, tied = FALSE)[["fBm"]]
+  set.seed(5)
+  b <- simulate_mfBm(t = TG, hurst_fun = function(t, ...) rep(h, length(t)),
+                     L = LC, tied = FALSE)[["mfBm"]]
+  expect_equal(a, b, tolerance = 1e-8)
+
+  # Increment variance scales as delta^(2 * hurst), not delta^hurst.
+  tt <- c(0.5, 0.5 + 0.1)
+  d2 <- vapply(seq_len(600), function(r) {
+    set.seed(r)
+    diff(simulate_fBm(t = tt, hurst = h, L = LC, tied = FALSE)[["fBm"]])
+  }, numeric(1))
+  expect_equal(mean(d2 ^ 2), LC * 0.1 ^ (2 * h), tolerance = 0.15)
+})
+
 test_that("simulate_fBm behaves like simulate_mfBm under intercept_var", {
   set.seed(41); a <- simulate_fBm(t = TG, hurst = 0.6, L = LC, tied = FALSE)
   set.seed(41); b <- simulate_fBm(t = TG, hurst = 0.6, L = LC, intercept_var = 0, tied = FALSE)

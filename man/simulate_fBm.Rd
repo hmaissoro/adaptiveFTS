@@ -33,11 +33,15 @@ A \code{data.table} containing 2 column : \code{t} and \code{fBm}, the sample pa
 Draw a fractional Brownian motion sample path.
 }
 \details{
-Let \eqn{\xi} denote the standardised fractional Brownian motion with exponent \code{hurst}, whose variance
-satisfies \eqn{Var(\xi(1)) = 1}. The returned sample path is \eqn{\sqrt{L} \, \xi(t)} when
+Let \eqn{\xi} denote the standardised fractional Brownian motion with exponent \code{hurst}, that is the centred
+Gaussian process with covariance \eqn{(u^{2H} + v^{2H} - |u - v|^{2H}) / 2}. Its variance is
+\eqn{Var(\xi(t)) = t^{2H}}, so that \eqn{Var(\xi(1)) = 1}, and its increments satisfy
+\eqn{E[(\xi(t + \delta) - \xi(t))^2] = \delta^{2H}}. The returned sample path is \eqn{\sqrt{L} \, \xi(t)} when
 \code{intercept_var = 0} and \code{tied = FALSE}, and \eqn{\sqrt{L} \, (\xi(t) + Z)} otherwise, where \eqn{Z} is
 a centred Gaussian variable of variance \code{intercept_var}, drawn independently of \eqn{\xi} and constant in
 \code{t}. See the Details section of \code{\link{simulate_mfBm}} for the role of the intercept.
+
+This is the same process as \code{\link{simulate_mfBm}} given a Hurst function constant at \code{hurst}.
 }
 \examples{
 
