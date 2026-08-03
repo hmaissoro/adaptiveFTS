@@ -137,10 +137,11 @@ test_that("intercept_var is refused when tied = TRUE", {
 })
 
 test_that("the old shift_var name is rejected", {
-  # simulate_mfBm forwards ... to hurst_fun, so without the guard a stale
-  # shift_var would surface as an error raised inside the user's Hurst function.
+  # simulate_mfBm forwards ... to hurst_fun, which takes no shift_var, so the
+  # stale name errors there; the others do not forward ... and reject it directly.
   expect_error(simulate_mfBm(t = TG, hurst_fun = hurst_logistic, shift_var = IV),
                "shift_var")
+  expect_error(simulate_fBm(t = TG, shift_var = IV), "shift_var")
   expect_error(sim_far(shift_var = IV), "shift_var")
   expect_error(sim_fma(shift_var = IV), "shift_var")
 })

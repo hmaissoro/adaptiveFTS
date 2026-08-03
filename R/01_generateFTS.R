@@ -240,11 +240,6 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
     stop("'tied' must be TRUE or FALSE.")
   }
 
-  dots <- list(...)
-  if ("shift_var" %in% names(dots)) {
-    stop("'shift_var' has been renamed to 'intercept_var'.")
-  }
-
   if (tied && intercept_var > 0) {
     warning(paste("'intercept_var' is ignored when 'tied = TRUE': a tied-down path with a non-zero intercept is",
                   "neither tied down at the origin nor an intercept-shifted mfBm. Setting 'intercept_var = 0'."))
