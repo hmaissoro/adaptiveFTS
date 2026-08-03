@@ -49,13 +49,21 @@ A `data.table` containing 2 column : `t` and `fBm`, the sample path.
 ## Details
 
 Let \\\xi\\ denote the standardised fractional Brownian motion with
-exponent `hurst`, whose variance satisfies \\Var(\xi(1)) = 1\\. The
-returned sample path is \\\sqrt{L} \\ \xi(t)\\ when `intercept_var = 0`
-and `tied = FALSE`, and \\\sqrt{L} \\ (\xi(t) + Z)\\ otherwise, where
-\\Z\\ is a centred Gaussian variable of variance `intercept_var`, drawn
-independently of \\\xi\\ and constant in `t`. See the Details section of
+exponent `hurst`, that is the centred Gaussian process with covariance
+\\(u^{2H} + v^{2H} - \|u - v\|^{2H}) / 2\\. Its variance is
+\\Var(\xi(t)) = t^{2H}\\, so that \\Var(\xi(1)) = 1\\, and its
+increments satisfy \\E\[(\xi(t + \delta) - \xi(t))^2\] = \delta^{2H}\\.
+The returned sample path is \\\sqrt{L} \\ \xi(t)\\ when
+`intercept_var = 0` and `tied = FALSE`, and \\\sqrt{L} \\ (\xi(t) + Z)\\
+otherwise, where \\Z\\ is a centred Gaussian variable of variance
+`intercept_var`, drawn independently of \\\xi\\ and constant in `t`. See
+the Details section of
 [`simulate_mfBm`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md)
 for the role of the intercept.
+
+This is the same process as
+[`simulate_mfBm`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md)
+given a Hurst function constant at `hurst`.
 
 ## See also
 
