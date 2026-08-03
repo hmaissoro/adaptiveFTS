@@ -25,7 +25,7 @@ fixture_far_small <- function(seed = 42L, N = 20L, lambda = 30L) {
     t_distribution = stats::runif,
     t_common = NULL,
     hurst_fun = hurst_logistic,
-    L = 4,
+    L2 = 4,
     far_kernel = function(s, t) 9 / 4 * exp(-(t + 2 * s) ** 2),
     far_mean = function(t) 4 * sin(1.5 * pi * t),
     n_int_grid = 100L,

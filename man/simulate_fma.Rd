@@ -12,7 +12,7 @@ simulate_fma(
   t_distribution = runif,
   t_common = seq(0.2, 0.8, len = 50),
   hurst_fun = hurst_logistic,
-  L = 4,
+  L2 = 4,
   intercept_var = 0,
   fma_kernel = function(s, t) 9/4 * exp(-(t + 2 * s)^2),
   fma_mean = function(t) 4 * sin(1.5 * pi * t),
@@ -42,11 +42,14 @@ specified.}
 \item{hurst_fun}{\code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
 \code{\link{hurst_logistic}}.}
 
-\item{L}{\code{float (positive)}. Hölder constant.}
+\item{L2}{\code{float (positive)}. Squared Hölder constant \eqn{L_t^2} of the innovation, the quantity the
+package's estimators report in their \code{Lt2}/\code{Ls2} columns. The Hölder constant itself is
+\eqn{L_t = \sqrt{L2}}: the innovation increments satisfy
+\eqn{E[(\varepsilon(t + \delta) - \varepsilon(t))^2] = L_t^2 \, \delta^{2 H_t}}.}
 
 \item{intercept_var}{\code{float (non-negative)}. Variance of a per-curve random intercept added to each
 innovation, expressed relative to the scale of the innovation, so that the intercept has variance
-\code{L * intercept_var}. It displaces each innovation on the ordinate axis without changing its local regularity.
+\code{L2 * intercept_var}. It displaces each innovation on the ordinate axis without changing its local regularity.
 Passed to \code{\link{simulate_mfBm}}, whose Details section describes it. Default is \code{intercept_var = 0}.}
 
 \item{fma_kernel}{\code{function}. Kernel function of the operator of the FMA(1).}
@@ -86,7 +89,7 @@ dt_fma <- simulate_fma(N = 2L, lambda = 70L,
                        t_distribution = runif,
                        t_common = seq(0.2, 0.8, len = 50),
                        hurst_fun = hurst_logistic,
-                       L = 4,
+                       L2 = 4,
                        fma_kernel = function(s,t) 9/4 * exp(- (t + 2 * s) ** 2),
                        fma_mean = function(t) 4 * sin(1.5 * pi * t),
                        n_int_grid = 100L,

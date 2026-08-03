@@ -48,7 +48,7 @@ test_that("simulators are reproducible and well-formed", {
     set.seed(123)
     simulate_far(N = 6L, lambda = 30L, design = "random",
                  M_distribution = stats::rpois, t_distribution = stats::runif,
-                 t_common = NULL, hurst_fun = hurst_logistic, L = 4,
+                 t_common = NULL, hurst_fun = hurst_logistic, L2 = 4,
                  far_kernel = function(s, t) 9/4 * exp(-(t + 2 * s)^2),
                  far_mean = function(t) 4 * sin(1.5 * pi * t),
                  n_int_grid = 100L, n_burnin = 50L, remove_burnin = TRUE)
@@ -63,7 +63,7 @@ test_that("simulators are reproducible and well-formed", {
   set.seed(7)
   fma <- simulate_fma(N = 5L, lambda = 25L, design = "random",
                       M_distribution = stats::rpois, t_distribution = stats::runif,
-                      t_common = NULL, hurst_fun = hurst_logistic, L = 4,
+                      t_common = NULL, hurst_fun = hurst_logistic, L2 = 4,
                       fma_kernel = function(s, t) exp(-(t + 2 * s)^2),
                       fma_mean = function(t) sin(2 * pi * t),
                       n_int_grid = 100L, n_burnin = 50L, remove_burnin = TRUE)
@@ -73,13 +73,13 @@ test_that("simulators are reproducible and well-formed", {
 
 test_that("simulate_fBm / simulate_mfBm are reproducible and finite", {
   tg <- seq(0.1, 0.9, length.out = 20)
-  set.seed(11); a <- simulate_fBm(t = tg, hurst = 0.5, L = 1)
-  set.seed(11); b <- simulate_fBm(t = tg, hurst = 0.5, L = 1)
+  set.seed(11); a <- simulate_fBm(t = tg, hurst = 0.5, L2 = 1)
+  set.seed(11); b <- simulate_fBm(t = tg, hurst = 0.5, L2 = 1)
   expect_equal(a, b)
   expect_true(all(is.finite(unlist(a))))
 
-  set.seed(13); m1 <- simulate_mfBm(t = tg, hurst_fun = hurst_logistic, L = 1)
-  set.seed(13); m2 <- simulate_mfBm(t = tg, hurst_fun = hurst_logistic, L = 1)
+  set.seed(13); m1 <- simulate_mfBm(t = tg, hurst_fun = hurst_logistic, L2 = 1)
+  set.seed(13); m2 <- simulate_mfBm(t = tg, hurst_fun = hurst_logistic, L2 = 1)
   expect_equal(m1, m2)
   expect_true(all(is.finite(unlist(m1))))
 })

@@ -172,9 +172,11 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' @param t \code{vector (float)}. Grid of points between 0 and 1 where the sample path will be generated.
 #' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
 #' \code{\link{hurst_logistic}}, or any custom Hurst function.
-#' @param L \code{float (positive)}. Hölder constant.
+#' @param L2 \code{float (positive)}. Squared Hölder constant \eqn{L_t^2}, the quantity the package's estimators
+#' report in their \code{Lt2}/\code{Ls2} columns. The Hölder constant itself is \eqn{L_t = \sqrt{L2}}. See the
+#' Details section.
 #' @param intercept_var \code{float (non-negative)}. Variance of a per-curve random intercept added to the sample
-#' path, expressed relative to the scale of the process, so that the intercept has variance \code{L * intercept_var}.
+#' path, expressed relative to the scale of the process, so that the intercept has variance \code{L2 * intercept_var}.
 #' It displaces the path on the ordinate axis without changing its local regularity. Default is
 #' \code{intercept_var = 0}, which adds no intercept. Ignored when \code{tied = TRUE}. See the Details section.
 #' @param tied \code{boolean}. If \code{TRUE}, the sample path is tied down.
@@ -183,23 +185,27 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' @details
 #' Let \eqn{\xi} denote the standardised mfBm with Hurst function \code{hurst_fun}, that is the centred Gaussian
 #' process with covariance \code{\link{.covariance_mfBm}}. Its variance is \eqn{Var(\xi(t)) = t^{2 H_t}}, so that
-#' \eqn{Var(\xi(1)) = 1}. The returned sample path is \eqn{\sqrt{L} \, \xi(t)} when \code{intercept_var = 0} and
-#' \code{tied = FALSE}.
+#' \eqn{Var(\xi(1)) = 1}. The returned sample path is \eqn{L_t \, \xi(t)} with \eqn{L_t = \sqrt{L2}}, when
+#' \code{intercept_var = 0} and \code{tied = FALSE}.
+#'
+#' \code{L2} is the *squared* Hölder constant: the increments of the returned path satisfy
+#' \eqn{E[(X(t + \delta) - X(t))^2] = L_t^2 \, \delta^{2 H_t}}, so \code{L2} is exactly the \eqn{L_t^2} estimated by
+#' \code{\link{estimate_locreg}} and reported as \code{Lt2} by the adaptive estimators.
 #'
 #' \code{intercept_var} adds a per-curve random intercept: the returned path becomes
-#' \eqn{\sqrt{L} \, (\xi(t) + Z)}, where \eqn{Z} is a centred Gaussian variable of variance \code{intercept_var},
-#' drawn independently of \eqn{\xi} and constant in \code{t}. The intercept \eqn{\sqrt{L} Z} therefore has variance
-#' \code{L * intercept_var}, and \code{sqrt(intercept_var)} is its standard deviation as a fraction of the standard
+#' \eqn{L_t \, (\xi(t) + Z)}, where \eqn{Z} is a centred Gaussian variable of variance \code{intercept_var},
+#' drawn independently of \eqn{\xi} and constant in \code{t}. The intercept \eqn{L_t Z} therefore has variance
+#' \code{L2 * intercept_var}, and \code{sqrt(intercept_var)} is its standard deviation as a fraction of the standard
 #' deviation of the process at \eqn{t = 1}.
 #'
 #' Being constant in \code{t}, the intercept cancels in the increments \eqn{\xi(t + \delta) - \xi(t)}. It leaves the
-#' local Hölder exponent \eqn{H_t} and the local Hölder constant \eqn{L_t} unchanged, and only displaces the sample
+#' local Hölder exponent \eqn{H_t} and the local Hölder constant \eqn{L_t^2} unchanged, and only displaces the sample
 #' path on the ordinate axis. This is useful because \eqn{Var(\xi(t))} vanishes as \eqn{t \to 0}, so without it every
 #' sample path leaves the origin at the same point.
 #'
 #' A non-zero intercept is incompatible with a tied-down path and is ignored, with a warning, when \code{tied = TRUE}:
-#' the tie-down subtracts \eqn{t \sqrt{L} (\xi(1) + Z)}, which turns the constant intercept into the random ramp
-#' \eqn{\sqrt{L} Z (1 - t)}, leaving a path that is neither tied down at the origin nor an intercept-shifted mfBm.
+#' the tie-down subtracts \eqn{t L_t (\xi(1) + Z)}, which turns the constant intercept into the random ramp
+#' \eqn{L_t Z (1 - t)}, leaving a path that is neither tied down at the origin nor an intercept-shifted mfBm.
 #'
 #' @return A \code{data.table} containing 2 columns: \code{t} and \code{mfBm}, representing the grid points and the
 #' corresponding values of the mfBm sample path.
@@ -213,24 +219,24 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #'
 #' @examples
 #' t0 <- seq(0.2, 0.8, len = 20)
-#' dt_mfBm <- simulate_mfBm(t = t0, hurst_fun = hurst_logistic, L = 1, tied = TRUE)
+#' dt_mfBm <- simulate_mfBm(t = t0, hurst_fun = hurst_logistic, L2 = 1, tied = TRUE)
 #' plot(x = dt_mfBm$t, y = dt_mfBm$mfBm, type = "l", col = "red")
 #'
 #' # A free path with a random intercept: the paths no longer share their origin.
-#' dt_shifted <- simulate_mfBm(t = t0, hurst_fun = hurst_logistic, L = 1,
+#' dt_shifted <- simulate_mfBm(t = t0, hurst_fun = hurst_logistic, L2 = 1,
 #'                             intercept_var = 0.05, tied = FALSE)
 #' plot(x = dt_shifted$t, y = dt_shifted$mfBm, type = "l", col = "blue")
 #'
 simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logistic,
-                          L = 1, intercept_var = 0, tied = TRUE, ...) {
+                          L2 = 1, intercept_var = 0, tied = TRUE, ...) {
   if (! (methods::is(t, "numeric") && all(t >= 0 & t <= 1))) {
     stop("'t' must be a numeric vector with values between 0 and 1.")
   }
   if (!methods::is(hurst_fun, "function")) {
     stop("'hurst_fun' must be a function.")
   }
-  if (! (methods::is(L, "numeric") && L > 0 && length(L) == 1)) {
-    stop("'L' must be a positive scalar value.")
+  if (! (methods::is(L2, "numeric") && L2 > 0 && length(L2) == 1)) {
+    stop("'L2' must be a positive scalar value.")
   }
   if (! (methods::is(intercept_var, "numeric") && intercept_var >= 0 && length(intercept_var) == 1)) {
     stop("'intercept_var' must be a non-negative scalar value.")
@@ -248,9 +254,9 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 
   t <- sort(t)
   cov_mat <- .covariance_mfBm(t = t, hurst_fun = hurst_fun, ...)
-  out <- MASS::mvrnorm(1, mu = rep(0, ncol(cov_mat)), Sigma = L * cov_mat)
+  out <- MASS::mvrnorm(1, mu = rep(0, ncol(cov_mat)), Sigma = L2 * cov_mat)
   if (intercept_var > 0) {
-    out <- out + sqrt(L * intercept_var) * stats::rnorm(1)
+    out <- out + sqrt(L2 * intercept_var) * stats::rnorm(1)
   }
   mfBm_path <- out - tied * t * out[length(out)]
   dt <- data.table::data.table("t" = t, mfBm = mfBm_path)
@@ -264,9 +270,11 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 #'
 #' @param t \code{vector (float)}. Grid of points between 0 and 1 where we want to generate the sample path.
 #' @param hurst \code{float (positive)}. The Hurst exponent scalar value between 0 and 1.
-#' @param L \code{float (positive)}. Hölder constant.
+#' @param L2 \code{float (positive)}. Squared Hölder constant \eqn{L^2}, the quantity the package's estimators
+#' report in their \code{Lt2}/\code{Ls2} columns. The Hölder constant itself is \eqn{L = \sqrt{L2}}. See the
+#' Details section.
 #' @param intercept_var \code{float (non-negative)}. Variance of a per-curve random intercept added to the sample
-#' path, expressed relative to the scale of the process, so that the intercept has variance \code{L * intercept_var}.
+#' path, expressed relative to the scale of the process, so that the intercept has variance \code{L2 * intercept_var}.
 #' It displaces the path on the ordinate axis without changing its local regularity. Default is
 #' \code{intercept_var = 0}, which adds no intercept. Ignored when \code{tied = TRUE}. See the Details section.
 #' @param tied \code{boolean}. If \code{TRUE}, the sample path is tied-down.
@@ -275,10 +283,14 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 #' Let \eqn{\xi} denote the standardised fractional Brownian motion with exponent \code{hurst}, that is the centred
 #' Gaussian process with covariance \eqn{(u^{2H} + v^{2H} - |u - v|^{2H}) / 2}. Its variance is
 #' \eqn{Var(\xi(t)) = t^{2H}}, so that \eqn{Var(\xi(1)) = 1}, and its increments satisfy
-#' \eqn{E[(\xi(t + \delta) - \xi(t))^2] = \delta^{2H}}. The returned sample path is \eqn{\sqrt{L} \, \xi(t)} when
-#' \code{intercept_var = 0} and \code{tied = FALSE}, and \eqn{\sqrt{L} \, (\xi(t) + Z)} otherwise, where \eqn{Z} is
-#' a centred Gaussian variable of variance \code{intercept_var}, drawn independently of \eqn{\xi} and constant in
-#' \code{t}. See the Details section of \code{\link{simulate_mfBm}} for the role of the intercept.
+#' \eqn{E[(\xi(t + \delta) - \xi(t))^2] = \delta^{2H}}. The returned sample path is \eqn{L \, \xi(t)} with
+#' \eqn{L = \sqrt{L2}}, when \code{intercept_var = 0} and \code{tied = FALSE}, and \eqn{L \, (\xi(t) + Z)}
+#' otherwise, where \eqn{Z} is a centred Gaussian variable of variance \code{intercept_var}, drawn independently of
+#' \eqn{\xi} and constant in \code{t}. See the Details section of \code{\link{simulate_mfBm}} for the role of the
+#' intercept.
+#'
+#' \code{L2} is the *squared* Hölder constant: the increments of the returned path satisfy
+#' \eqn{E[(X(t + \delta) - X(t))^2] = L^2 \, \delta^{2H}}.
 #'
 #' This is the same process as \code{\link{simulate_mfBm}} given a Hurst function constant at \code{hurst}.
 #'
@@ -296,16 +308,16 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 #' @examples
 #'
 #' t0 <- seq(0.2, 0.8, len = 20)
-#' dt_fBm <- simulate_fBm(t = t0, hurst = 0.6, L = 1, tied = TRUE)
+#' dt_fBm <- simulate_fBm(t = t0, hurst = 0.6, L2 = 1, tied = TRUE)
 #' plot(x = dt_fBm$t, y = dt_fBm$fBm, type = "l", col = "red")
 #'
-simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, intercept_var = 0, tied = TRUE) {
+simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L2 = 1, intercept_var = 0, tied = TRUE) {
   if (! methods::is(t, "numeric") && all(t >= 0 & t <= 1))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! (methods::is(hurst, "numeric") & (hurst >= 0 & hurst <=1) & length(hurst) == 1))
     stop("'hurst' must be a positive scalar value between 0 and 1.")
-  if (! (methods::is(L, "numeric") & L > 0 & length(L) == 1))
-    stop("'L' must be a positive scalar value.")
+  if (! (methods::is(L2, "numeric") & L2 > 0 & length(L2) == 1))
+    stop("'L2' must be a positive scalar value.")
   if (! (methods::is(intercept_var, "numeric") && intercept_var >= 0 && length(intercept_var) == 1))
     stop("'intercept_var' must be a non-negative scalar value.")
 
@@ -325,9 +337,9 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, interc
 
   out <- MASS::mvrnorm(1,
                        mu = rep(0, ncol(cov_mat)),
-                       Sigma = L * cov_mat)
+                       Sigma = L2 * cov_mat)
   if (intercept_var > 0) {
-    out <- out + sqrt(L * intercept_var) * stats::rnorm(1)
+    out <- out + sqrt(L2 * intercept_var) * stats::rnorm(1)
   }
   fBm_path <- out - tied * t * out[length(out)]
   dt <- data.table::data.table("t" = t, "fBm" = fBm_path)
@@ -405,10 +417,13 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, interc
 #' specified.
 #' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
 #' \code{\link{hurst_logistic}}.
-#' @param L \code{float (positive)}. Hölder constant.
+#' @param L2 \code{float (positive)}. Squared Hölder constant \eqn{L_t^2} of the innovation, the quantity the
+#' package's estimators report in their \code{Lt2}/\code{Ls2} columns. The Hölder constant itself is
+#' \eqn{L_t = \sqrt{L2}}: the innovation increments satisfy
+#' \eqn{E[(\varepsilon(t + \delta) - \varepsilon(t))^2] = L_t^2 \, \delta^{2 H_t}}.
 #' @param intercept_var \code{float (non-negative)}. Variance of a per-curve random intercept added to each
 #' innovation, expressed relative to the scale of the innovation, so that the intercept has variance
-#' \code{L * intercept_var}. It displaces each innovation on the ordinate axis without changing its local regularity.
+#' \code{L2 * intercept_var}. It displaces each innovation on the ordinate axis without changing its local regularity.
 #' Passed to \code{\link{simulate_mfBm}}, whose Details section describes it. Default is \code{intercept_var = 0}.
 #' @param far_kernel \code{function}. Kernel function of the operator of the FAR(1).
 #' @param far_mean \code{function}. Mean function of the FAR(1).
@@ -440,7 +455,7 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, interc
 #'                        t_distribution = runif,
 #'                        t_common = seq(0.2, 0.8, len = 50),
 #'                        hurst_fun = hurst_logistic,
-#'                        L = 4,
+#'                        L2 = 4,
 #'                        far_kernel = function(s,t) 9/4 * exp(- (t + 2 * s) ** 2),
 #'                        far_mean = function(t) 4 * sin(1.5 * pi * t),
 #'                        n_int_grid = 100L,
@@ -449,7 +464,7 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, interc
 #'
 #' # Give each innovation a random intercept, so the curves do not share an origin.
 #' dt_far_shifted <- simulate_far(N = 3L, lambda = 40L, design = "random",
-#'                                t_common = NULL, L = 4, intercept_var = 0.05,
+#'                                t_common = NULL, L2 = 4, intercept_var = 0.05,
 #'                                n_int_grid = 60L, n_burnin = 40L)
 #'
 #'
@@ -460,7 +475,7 @@ simulate_far <- function(N = 2L, lambda = 70L,
                          t_distribution = runif,
                          t_common = seq(0.2, 0.8, len = 50),
                          hurst_fun = hurst_logistic,
-                         L = 4,
+                         L2 = 4,
                          intercept_var = 0,
                          far_kernel = function(s,t) 9/4 * exp( - (t + 2 * s) ** 2),
                          far_mean = function(t) 4 * sin(1.5 * pi * t),
@@ -489,8 +504,8 @@ simulate_far <- function(N = 2L, lambda = 70L,
   }
   if (! methods::is(hurst_fun, "function"))
     stop("'hurst_fun' must be a function.")
-  if (! (methods::is(L, "numeric") & L > 0 & length(L) == 1))
-    stop("'L' must be a positive scalar value.")
+  if (! (methods::is(L2, "numeric") & L2 > 0 & length(L2) == 1))
+    stop("'L2' must be a positive scalar value.")
   if (! (methods::is(intercept_var, "numeric") && intercept_var >= 0 && length(intercept_var) == 1))
     stop("'intercept_var' must be a non-negative scalar value.")
   if (! methods::is(far_kernel, "function"))
@@ -514,7 +529,8 @@ simulate_far <- function(N = 2L, lambda = 70L,
                                  t_distribution = t_distribution)
     M <- dt_rdesign[, unique(Mn), by = "id_curve"][, V1]
 
-    dt_far <- data.table::rbindlist(lapply(1:n, function(i, dt_rdesign, grid, t_common, M, hurst_fun, L, intercept_var){
+    dt_far <- data.table::rbindlist(lapply(1:n, function(i, dt_rdesign, grid, t_common, M, hurst_fun, L2,
+                                                         intercept_var){
       # Combine design + integration grid + t_common
       tall <- c(dt_rdesign[id_curve == i, Tn], grid, t_common)
       ttag <- c(rep("trandom", M[i]), rep("int_grid", length(grid)), rep("tcommon", length(t_common)))
@@ -522,17 +538,17 @@ simulate_far <- function(N = 2L, lambda = 70L,
       dt <- dt[order(tall)]
 
       # Generate and add mfBm
-      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L = L,
+      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L2 = L2,
                               intercept_var = intercept_var, tied = FALSE)
       dt[, eps := dt_eps[, mfBm]]
 
       # Add mean function
       dt[, far_mean := far_mean(tall)]
-    }, dt_rdesign = dt_rdesign, grid = grid, t_common = t_common, M = M, hurst_fun = hurst_fun, L = L,
+    }, dt_rdesign = dt_rdesign, grid = grid, t_common = t_common, M = M, hurst_fun = hurst_fun, L2 = L2,
     intercept_var = intercept_var))
   } else {
     # Common design case
-    dt_far <- data.table::rbindlist(lapply(1:n, function(i, t_common, grid, hurst_fun, L, intercept_var){
+    dt_far <- data.table::rbindlist(lapply(1:n, function(i, t_common, grid, hurst_fun, L2, intercept_var){
       # Combine design + integration grid
       tall <- c(t_common, grid)
       ttag <- c(rep("tcommon", length(t_common)), rep("int_grid", length(grid)))
@@ -540,13 +556,13 @@ simulate_far <- function(N = 2L, lambda = 70L,
       dt <- dt[order(tall)]
 
       # Generate and add mfBm
-      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L = L,
+      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L2 = L2,
                               intercept_var = intercept_var, tied = FALSE)
       dt[, eps := dt_eps[, mfBm]]
 
       # Add mean function
       dt[, far_mean := far_mean(tall)]
-    }, t_common = t_common, grid = grid, hurst_fun = hurst_fun, L = L, intercept_var = intercept_var))
+    }, t_common = t_common, grid = grid, hurst_fun = hurst_fun, L2 = L2, intercept_var = intercept_var))
   }
 
   # Generate FAR(1)
@@ -598,10 +614,13 @@ simulate_far <- function(N = 2L, lambda = 70L,
 #' specified.
 #' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
 #' \code{\link{hurst_logistic}}.
-#' @param L \code{float (positive)}. Hölder constant.
+#' @param L2 \code{float (positive)}. Squared Hölder constant \eqn{L_t^2} of the innovation, the quantity the
+#' package's estimators report in their \code{Lt2}/\code{Ls2} columns. The Hölder constant itself is
+#' \eqn{L_t = \sqrt{L2}}: the innovation increments satisfy
+#' \eqn{E[(\varepsilon(t + \delta) - \varepsilon(t))^2] = L_t^2 \, \delta^{2 H_t}}.
 #' @param intercept_var \code{float (non-negative)}. Variance of a per-curve random intercept added to each
 #' innovation, expressed relative to the scale of the innovation, so that the intercept has variance
-#' \code{L * intercept_var}. It displaces each innovation on the ordinate axis without changing its local regularity.
+#' \code{L2 * intercept_var}. It displaces each innovation on the ordinate axis without changing its local regularity.
 #' Passed to \code{\link{simulate_mfBm}}, whose Details section describes it. Default is \code{intercept_var = 0}.
 #' @param fma_kernel \code{function}. Kernel function of the operator of the FMA(1).
 #' @param fma_mean \code{function}. Mean function of the FMA(1).
@@ -633,7 +652,7 @@ simulate_far <- function(N = 2L, lambda = 70L,
 #'                        t_distribution = runif,
 #'                        t_common = seq(0.2, 0.8, len = 50),
 #'                        hurst_fun = hurst_logistic,
-#'                        L = 4,
+#'                        L2 = 4,
 #'                        fma_kernel = function(s,t) 9/4 * exp(- (t + 2 * s) ** 2),
 #'                        fma_mean = function(t) 4 * sin(1.5 * pi * t),
 #'                        n_int_grid = 100L,
@@ -656,7 +675,7 @@ simulate_fma <- function(N = 2L, lambda = 70L,
                          t_distribution = runif,
                          t_common = seq(0.2, 0.8, len = 50),
                          hurst_fun = hurst_logistic,
-                         L = 4,
+                         L2 = 4,
                          intercept_var = 0,
                          fma_kernel = function(s,t) 9/4 * exp( - (t + 2 * s) ** 2),
                          fma_mean = function(t) 4 * sin(1.5 * pi * t),
@@ -685,8 +704,8 @@ simulate_fma <- function(N = 2L, lambda = 70L,
   }
   if (! methods::is(hurst_fun, "function"))
     stop("'hurst_fun' must be a function.")
-  if (! (methods::is(L, "numeric") & L > 0 & length(L) == 1))
-    stop("'L' must be a positive scalar value.")
+  if (! (methods::is(L2, "numeric") & L2 > 0 & length(L2) == 1))
+    stop("'L2' must be a positive scalar value.")
   if (! (methods::is(intercept_var, "numeric") && intercept_var >= 0 && length(intercept_var) == 1))
     stop("'intercept_var' must be a non-negative scalar value.")
   if (! methods::is(fma_kernel, "function"))
@@ -709,7 +728,8 @@ simulate_fma <- function(N = 2L, lambda = 70L,
                                  t_distribution = t_distribution)
     M <- dt_rdesign[, unique(Mn), by = "id_curve"][, V1]
 
-    dt_fma <- data.table::rbindlist(lapply(1:n, function(i, dt_rdesign, grid, t_common, M, hurst_fun, L, intercept_var){
+    dt_fma <- data.table::rbindlist(lapply(1:n, function(i, dt_rdesign, grid, t_common, M, hurst_fun, L2,
+                                                         intercept_var){
       # Combine design + integration grid + t_common
       tall <- c(dt_rdesign[id_curve == i, Tn], grid, t_common)
       ttag <- c(rep("trandom", M[i]), rep("int_grid", length(grid)), rep("tcommon", length(t_common)))
@@ -717,17 +737,17 @@ simulate_fma <- function(N = 2L, lambda = 70L,
       dt <- dt[order(tall)]
 
       # Generate and add mfBm
-      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L = L,
+      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L2 = L2,
                               intercept_var = intercept_var, tied = FALSE)
       dt[, eps := dt_eps[, mfBm]]
 
       # Add mean function
       dt[, fma_mean := fma_mean(tall)]
-    }, dt_rdesign = dt_rdesign, grid = grid, t_common = t_common, M = M, hurst_fun = hurst_fun, L = L,
+    }, dt_rdesign = dt_rdesign, grid = grid, t_common = t_common, M = M, hurst_fun = hurst_fun, L2 = L2,
     intercept_var = intercept_var))
   } else {
     # Common design case
-    dt_fma <- data.table::rbindlist(lapply(1:n, function(i, t_common, grid, hurst_fun, L, intercept_var){
+    dt_fma <- data.table::rbindlist(lapply(1:n, function(i, t_common, grid, hurst_fun, L2, intercept_var){
       # Combine design + integration grid
       tall <- c(t_common, grid)
       ttag <- c(rep("tcommon", length(t_common)), rep("int_grid", length(grid)))
@@ -735,13 +755,13 @@ simulate_fma <- function(N = 2L, lambda = 70L,
       dt <- dt[order(tall)]
 
       # Generate and add mfBm
-      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L = L,
+      dt_eps <- simulate_mfBm(t = dt[, tall], hurst_fun = hurst_fun, L2 = L2,
                               intercept_var = intercept_var, tied = FALSE)
       dt[, eps := dt_eps[, mfBm]]
 
       # Add mean function
       dt[, fma_mean := fma_mean(tall)]
-    }, t_common = t_common, grid = grid, hurst_fun = hurst_fun, L = L, intercept_var = intercept_var))
+    }, t_common = t_common, grid = grid, hurst_fun = hurst_fun, L2 = L2, intercept_var = intercept_var))
   }
 
   # Generate FAR(1)
