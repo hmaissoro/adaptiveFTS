@@ -55,6 +55,18 @@
 
 ## Bug fixes
 
+* The C++ layer passed unprotected `Rcpp::wrap()` temporaries into
+  `Rcpp::Nullable<arma::vec>` parameters at 19 call sites. `Rcpp::Nullable`
+  stores a bare `SEXP` without protecting it, so the garbage collector could
+  reclaim a wrapped bandwidth vector while the callee was still running — the
+  callee only converts it after allocating R memory of its own. The result was
+  either a hard error (`Not compatible with requested type: [target=double]`,
+  with the reported type varying run to run) or, when the reclaimed node was
+  reused as a numeric vector of the same length, silently wrong bandwidths.
+  This affected `blup_fit()`/`select_tikhonov_parameter()`, `predict_curve()`,
+  `estimate_autocov()` and `estimate_cov_segment()`. Every wrapped vector is now
+  held in a protecting `Rcpp::NumericVector` for the duration of the call.
+  Results are unchanged (bit-identical to the committed references).
 * `estimate_autocov_bw_rp()` always returned a cross-validation error of zero,
   so the selected bandwidth was simply the first of the grid. The held-out mean
   estimates were read from the wrong grid object and silently resolved to

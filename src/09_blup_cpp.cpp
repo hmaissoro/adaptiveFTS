@@ -98,7 +98,10 @@ arma::vec mean_at(const DataFrame& data, const arma::mat& opt_mean,
   arma::uvec idx = nn1_1d(opt_mean.col(0), tq);
   arma::vec optbw_all = opt_mean.col(1);
   arma::vec bw = optbw_all.elem(idx);
-  arma::mat m = estimate_mean_cpp(data, tq, Rcpp::wrap(bw), R_NilValue, kernel);
+  // `Rcpp::Nullable` stores a bare SEXP without protecting it, so the wrapped
+  // vector must be held in an Rcpp type that keeps it alive across the call.
+  Rcpp::NumericVector bw_r = Rcpp::wrap(bw);
+  arma::mat m = estimate_mean_cpp(data, tq, Rcpp::Nullable<arma::vec>((SEXP) bw_r), R_NilValue, kernel);
   arma::vec muhat = m.col(5);
   return muhat;
 }
@@ -119,7 +122,10 @@ arma::mat autocov_at(const DataFrame& data, const arma::mat& opt_bw,
   arma::vec obt_all = opt_bw.col(3);
   arma::vec obs = obs_all.elem(idx);
   arma::vec obt = obt_all.elem(idx);
-  arma::mat out = estimate_autocov_cpp(data, gs, gt, lag, Rcpp::wrap(obs), Rcpp::wrap(obt),
+  Rcpp::NumericVector obs_r = Rcpp::wrap(obs);
+  Rcpp::NumericVector obt_r = Rcpp::wrap(obt);
+  arma::mat out = estimate_autocov_cpp(data, gs, gt, lag, Rcpp::Nullable<arma::vec>((SEXP) obs_r),
+                                       Rcpp::Nullable<arma::vec>((SEXP) obt_r),
                                        R_NilValue, false, true, correct_diagonal, kernel);
   arma::mat block = reshape_long(out, 0, 1, 13);
   return block;
@@ -320,7 +326,8 @@ Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data,
       gs(j * ng + i) = sub_vec(i);
       gt(j * ng + i) = sub_vec(j);
     }
-  Rcpp::Nullable<arma::vec> bwg = Rcpp::wrap(bw_grid);
+  Rcpp::NumericVector bw_grid_r = Rcpp::wrap(bw_grid);
+  Rcpp::Nullable<arma::vec> bwg((SEXP) bw_grid_r);
 
   arma::mat mean_risk = estimate_mean_risk_cpp(data, sub_vec, bwg, kernel_name);
   arma::mat opt_mean = select_mean_optbw(mean_risk, sub_vec);

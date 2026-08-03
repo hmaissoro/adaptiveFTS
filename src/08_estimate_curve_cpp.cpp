@@ -576,20 +576,37 @@ Rcpp::List estimate_curve_cpp(const Rcpp::DataFrame data,
    arma::mat grid_pred_tvec_optbw = get_nearest_best_autocov_bw(mat_opt_cov_param, grid_pred_tvec.col(0), grid_pred_tvec.col(1));
 
    // // estimate covariances and autocovariances
+   // `Rcpp::Nullable` stores a bare SEXP without protecting it, so every wrapped
+   // bandwidth vector must be held in an Rcpp type that keeps it alive across the call.
+   Rcpp::NumericVector bw_pred_pred_s = Rcpp::wrap(grid_pred_pred_optbw.col(2));
+   Rcpp::NumericVector bw_pred_pred_t = Rcpp::wrap(grid_pred_pred_optbw.col(3));
    arma::mat mat_cov_pred_pred_all = estimate_autocov_cpp(data, grid_pred_pred_optbw.col(0), grid_pred_pred_optbw.col(1), 0,
-                                                          Rcpp::wrap(grid_pred_pred_optbw.col(2)), Rcpp::wrap(grid_pred_pred_optbw.col(3)),
+                                                          Rcpp::Nullable<arma::vec>((SEXP) bw_pred_pred_s),
+                                                          Rcpp::Nullable<arma::vec>((SEXP) bw_pred_pred_t),
                                                           R_NilValue, common_bw, center, correct_diagonal, kernel_name);
+   Rcpp::NumericVector bw_lag_lag_s = Rcpp::wrap(grid_lag_lag_optbw.col(2));
+   Rcpp::NumericVector bw_lag_lag_t = Rcpp::wrap(grid_lag_lag_optbw.col(3));
    arma::mat mat_cov_lag_lag_all = estimate_autocov_cpp(data, grid_lag_lag_optbw.col(0), grid_lag_lag_optbw.col(1), 0,
-                                                        Rcpp::wrap(grid_lag_lag_optbw.col(2)), Rcpp::wrap(grid_lag_lag_optbw.col(3)),
+                                                        Rcpp::Nullable<arma::vec>((SEXP) bw_lag_lag_s),
+                                                        Rcpp::Nullable<arma::vec>((SEXP) bw_lag_lag_t),
                                                         R_NilValue, common_bw, center, correct_diagonal, kernel_name);
+   Rcpp::NumericVector bw_lag_pred_s = Rcpp::wrap(grid_lag_pred_optbw.col(2));
+   Rcpp::NumericVector bw_lag_pred_t = Rcpp::wrap(grid_lag_pred_optbw.col(3));
    arma::mat mat_autocov_lag_pred_all = estimate_autocov_cpp(data, grid_lag_pred_optbw.col(0), grid_lag_pred_optbw.col(1), 1,
-                                                             Rcpp::wrap(grid_lag_pred_optbw.col(2)), Rcpp::wrap(grid_lag_pred_optbw.col(3)),
+                                                             Rcpp::Nullable<arma::vec>((SEXP) bw_lag_pred_s),
+                                                             Rcpp::Nullable<arma::vec>((SEXP) bw_lag_pred_t),
                                                              R_NilValue, common_bw, center, correct_diagonal, kernel_name);
+   Rcpp::NumericVector bw_lag_tvec_s = Rcpp::wrap(grid_lag_tvec_optbw.col(2));
+   Rcpp::NumericVector bw_lag_tvec_t = Rcpp::wrap(grid_lag_tvec_optbw.col(3));
    arma::mat mat_autocov_lag_tvec_all = estimate_autocov_cpp(data, grid_lag_tvec_optbw.col(0), grid_lag_tvec_optbw.col(1), 1,
-                                                             Rcpp::wrap(grid_lag_tvec_optbw.col(2)), Rcpp::wrap(grid_lag_tvec_optbw.col(3)),
+                                                             Rcpp::Nullable<arma::vec>((SEXP) bw_lag_tvec_s),
+                                                             Rcpp::Nullable<arma::vec>((SEXP) bw_lag_tvec_t),
                                                              R_NilValue, common_bw, center, correct_diagonal, kernel_name);
+   Rcpp::NumericVector bw_pred_tvec_s = Rcpp::wrap(grid_pred_tvec_optbw.col(2));
+   Rcpp::NumericVector bw_pred_tvec_t = Rcpp::wrap(grid_pred_tvec_optbw.col(3));
    arma::mat mat_cov_pred_tvec_all = estimate_autocov_cpp(data, grid_pred_tvec_optbw.col(0), grid_pred_tvec_optbw.col(1), 0,
-                                                          Rcpp::wrap(grid_pred_tvec_optbw.col(2)), Rcpp::wrap(grid_pred_tvec_optbw.col(3)),
+                                                          Rcpp::Nullable<arma::vec>((SEXP) bw_pred_tvec_s),
+                                                          Rcpp::Nullable<arma::vec>((SEXP) bw_pred_tvec_t),
                                                           R_NilValue, common_bw, center, correct_diagonal, kernel_name);
 
    // Estimate mean functions
@@ -603,8 +620,14 @@ Rcpp::List estimate_curve_cpp(const Rcpp::DataFrame data,
    arma::mat mat_opt_mean_bw_lag_pred = get_nearest_best_mean_bw(mat_opt_mean_param, vec_Tn0_raw);
    arma::mat mat_opt_mean_bw_tvec = get_nearest_best_mean_bw(mat_opt_mean_param, tvec);
    // // Estimate mean functions
-   arma::mat mat_mean_lag_pred = estimate_mean_cpp(data, mat_opt_mean_bw_lag_pred.col(0), Rcpp::wrap(mat_opt_mean_bw_lag_pred.col(1)), R_NilValue, kernel_name);
-   arma::mat mat_mean_tvec = estimate_mean_cpp(data, mat_opt_mean_bw_tvec.col(0), Rcpp::wrap(mat_opt_mean_bw_tvec.col(1)), R_NilValue, kernel_name);
+   Rcpp::NumericVector bw_mean_lag_pred = Rcpp::wrap(mat_opt_mean_bw_lag_pred.col(1));
+   Rcpp::NumericVector bw_mean_tvec = Rcpp::wrap(mat_opt_mean_bw_tvec.col(1));
+   arma::mat mat_mean_lag_pred = estimate_mean_cpp(data, mat_opt_mean_bw_lag_pred.col(0),
+                                                   Rcpp::Nullable<arma::vec>((SEXP) bw_mean_lag_pred),
+                                                   R_NilValue, kernel_name);
+   arma::mat mat_mean_tvec = estimate_mean_cpp(data, mat_opt_mean_bw_tvec.col(0),
+                                               Rcpp::Nullable<arma::vec>((SEXP) bw_mean_tvec),
+                                               R_NilValue, kernel_name);
 
    // Build the vector Y_{n_0, 1} - M_{n_0, 1}
    arma::vec vec_Yn0_lag = vec_Yn0_raw - mat_mean_lag_pred.col(5);
