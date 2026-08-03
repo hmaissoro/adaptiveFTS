@@ -677,8 +677,14 @@ using namespace arma;
    int Us = svec_u.n_elem, Ut = tvec_u.n_elem;
 
    // Estimate mean function (once per distinct tuple, then expand by row)
-   arma::mat mat_mean_s_u = estimate_mean_cpp(data, svec_u, Rcpp::wrap(obs_u), R_NilValue, kernel_name);
-   arma::mat mat_mean_t_u = estimate_mean_cpp(data, tvec_u, Rcpp::wrap(obt_u), R_NilValue, kernel_name);
+   // `Rcpp::Nullable` stores a bare SEXP without protecting it, so the wrapped
+   // vectors must be held in an Rcpp type that keeps them alive across the call.
+   Rcpp::NumericVector obs_u_r = Rcpp::wrap(obs_u);
+   Rcpp::NumericVector obt_u_r = Rcpp::wrap(obt_u);
+   arma::mat mat_mean_s_u = estimate_mean_cpp(data, svec_u, Rcpp::Nullable<arma::vec>((SEXP) obs_u_r),
+                                              R_NilValue, kernel_name);
+   arma::mat mat_mean_t_u = estimate_mean_cpp(data, tvec_u, Rcpp::Nullable<arma::vec>((SEXP) obt_u_r),
+                                              R_NilValue, kernel_name);
    arma::mat mat_mean_s = mat_mean_s_u.rows(map_s);
    arma::mat mat_mean_t = mat_mean_t_u.rows(map_t);
    arma::vec muhat_s = mat_mean_s.col(5);

@@ -345,7 +345,11 @@ using namespace arma;
    }
 
    // Compute the mean function
-   arma::mat mat_res_mean = estimate_mean_cpp(data, t, Rcpp::wrap(optbw_to_use), R_NilValue, kernel_name);
+   // `Rcpp::Nullable` stores a bare SEXP without protecting it, so the wrapped
+   // vector must be held in an Rcpp type that keeps it alive across the call.
+   Rcpp::NumericVector optbw_to_use_r = Rcpp::wrap(optbw_to_use);
+   arma::mat mat_res_mean = estimate_mean_cpp(data, t, Rcpp::Nullable<arma::vec>((SEXP) optbw_to_use_r),
+                                              R_NilValue, kernel_name);
    arma::vec muhat = mat_res_mean.col(5);
 
    // Compute the covariance segment function
