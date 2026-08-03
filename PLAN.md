@@ -388,10 +388,11 @@ users actually call.
 
 1. `simulate_mfBm()`: hard rename `shift_var` -> `intercept_var`, no deprecation
    alias. Default stays `0`.
-2. `simulate_mfBm()`: explicit guard for the old name. `...` is forwarded to
-   `hurst_fun` through `.covariance_mfBm()`, so a stale `shift_var = 0.05` would
-   otherwise surface as `unused argument` raised inside the user's Hurst function,
-   three levels from the cause. (Confirmed by observation against a stale build.)
+2. No explicit guard for the old name, on any of the four functions. A stale
+   `shift_var` reaches `hurst_fun` through `.covariance_mfBm()` and dies there
+   with R's own `unused argument (shift_var = ...)`, since no Hurst function
+   takes such an argument; `simulate_fBm()`, `simulate_far()` and
+   `simulate_fma()` do not forward `...` and reject it directly.
 3. `simulate_mfBm()`: warn and drop the intercept when `tied = TRUE`. The
    tie-down `out - tied * t * out[length(out)]` turns a constant intercept into a
    random ramp `sqrt(L) * Z * (1 - t)`, leaving a path that is neither tied down
@@ -422,12 +423,13 @@ Identical in law; the path consumes the same RNG stream either way, so
 `intercept_var = 0` stays bit-identical and the increments become exactly
 seed-invariant. Post-change measurements: `4.4e-16` and `2.1e-16`.
 
-**The rename guard is on `simulate_mfBm()` only.** `simulate_far()` and
-`simulate_fma()` do not forward `...`, so a stale `shift_var` already dies with
-R's own `unused argument (shift_var = ...)`. Giving them a `...` purely to
-re-raise a nicer message would make them silently swallow every other misspelled
-argument — a real regression in their input validation. The test matches the
-token `shift_var`, which both messages carry.
+**No explicit guard for the old name.** The spec asked for a `stop()` naming the
+rename in `simulate_mfBm()`, since `...` is forwarded to `hurst_fun` through
+`.covariance_mfBm()`. It was dropped: no Hurst function accepts a `shift_var`
+argument, so the stale name dies there with R's own
+`unused argument (shift_var = ...)`, and the other three simulators do not
+forward `...` and reject it in the call itself. The test matches the token
+`shift_var`, which every one of those messages carries.
 
 **The marginal-spread test targets a variance difference, not a level.** At a
 realistic smallest design point the mfBm variance does not vanish: measured at
