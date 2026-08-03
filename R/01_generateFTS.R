@@ -169,6 +169,17 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' This function generates a sample path of a multifractional Brownian motion (mfBm) based on the provided Hurst
 #' function and other parameters.
 #'
+#' @param t \code{vector (float)}. Grid of points between 0 and 1 where the sample path will be generated.
+#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
+#' \code{\link{hurst_logistic}}, or any custom Hurst function.
+#' @param L \code{float (positive)}. Hölder constant.
+#' @param intercept_var \code{float (non-negative)}. Variance of a per-curve random intercept added to the sample
+#' path, expressed relative to the scale of the process, so that the intercept has variance \code{L * intercept_var}.
+#' It displaces the path on the ordinate axis without changing its local regularity. Default is
+#' \code{intercept_var = 0}, which adds no intercept. Ignored when \code{tied = TRUE}. See the Details section.
+#' @param tied \code{boolean}. If \code{TRUE}, the sample path is tied down.
+#' @param ... Additional arguments for the Hurst function.
+#'
 #' @details
 #' Let \eqn{\xi} denote the standardised mfBm with Hurst function \code{hurst_fun}, that is the centred Gaussian
 #' process with covariance \code{\link{.covariance_mfBm}}. Its variance is \eqn{Var(\xi(t)) = t^{2 H_t}}, so that
@@ -189,17 +200,6 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' A non-zero intercept is incompatible with a tied-down path and is ignored, with a warning, when \code{tied = TRUE}:
 #' the tie-down subtracts \eqn{t \sqrt{L} (\xi(1) + Z)}, which turns the constant intercept into the random ramp
 #' \eqn{\sqrt{L} Z (1 - t)}, leaving a path that is neither tied down at the origin nor an intercept-shifted mfBm.
-#'
-#' @param t \code{vector (float)}. Grid of points between 0 and 1 where the sample path will be generated.
-#' @param hurst_fun \code{function}. Hurst function. It can be \code{\link{hurst_arctan}}, \code{\link{hurst_linear}},
-#' \code{\link{hurst_logistic}}, or any custom Hurst function.
-#' @param L \code{float (positive)}. Hölder constant.
-#' @param intercept_var \code{float (non-negative)}. Variance of a per-curve random intercept added to the sample
-#' path, expressed relative to the scale of the process, so that the intercept has variance \code{L * intercept_var}.
-#' It displaces the path on the ordinate axis without changing its local regularity. Default is
-#' \code{intercept_var = 0}, which adds no intercept. Ignored when \code{tied = TRUE}. See the Details section.
-#' @param tied \code{boolean}. If \code{TRUE}, the sample path is tied down.
-#' @param ... Additional arguments for the Hurst function.
 #'
 #' @return A \code{data.table} containing 2 columns: \code{t} and \code{mfBm}, representing the grid points and the
 #' corresponding values of the mfBm sample path.
@@ -267,13 +267,6 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 
 #' Draw a fractional Brownian motion sample path.
 #'
-#' @details
-#' Let \eqn{\xi} denote the standardised fractional Brownian motion with exponent \code{hurst}, whose variance
-#' satisfies \eqn{Var(\xi(1)) = 1}. The returned sample path is \eqn{\sqrt{L} \, \xi(t)} when
-#' \code{intercept_var = 0} and \code{tied = FALSE}, and \eqn{\sqrt{L} \, (\xi(t) + Z)} otherwise, where \eqn{Z} is
-#' a centred Gaussian variable of variance \code{intercept_var}, drawn independently of \eqn{\xi} and constant in
-#' \code{t}. See the Details section of \code{\link{simulate_mfBm}} for the role of the intercept.
-#'
 #' @param t \code{vector (float)}. Grid of points between 0 and 1 where we want to generate the sample path.
 #' @param hurst \code{float (positive)}. The Hurst exponent scalar value between 0 and 1.
 #' @param L \code{float (positive)}. Hölder constant.
@@ -282,6 +275,13 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 #' It displaces the path on the ordinate axis without changing its local regularity. Default is
 #' \code{intercept_var = 0}, which adds no intercept. Ignored when \code{tied = TRUE}. See the Details section.
 #' @param tied \code{boolean}. If \code{TRUE}, the sample path is tied-down.
+#'
+#' @details
+#' Let \eqn{\xi} denote the standardised fractional Brownian motion with exponent \code{hurst}, whose variance
+#' satisfies \eqn{Var(\xi(1)) = 1}. The returned sample path is \eqn{\sqrt{L} \, \xi(t)} when
+#' \code{intercept_var = 0} and \code{tied = FALSE}, and \eqn{\sqrt{L} \, (\xi(t) + Z)} otherwise, where \eqn{Z} is
+#' a centred Gaussian variable of variance \code{intercept_var}, drawn independently of \eqn{\xi} and constant in
+#' \code{t}. See the Details section of \code{\link{simulate_mfBm}} for the role of the intercept.
 #'
 #' @return A \code{data.table} containing 2 column : \code{t} and \code{fBm}, the sample path.
 #'
