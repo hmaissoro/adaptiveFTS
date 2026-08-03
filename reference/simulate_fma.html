@@ -61,6 +61,7 @@ counterpart of <code><a href="simulate_far.html">simulate_far</a></code> and sha
 <span>  t_common <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">0.8</span>, len <span class="op">=</span> <span class="fl">50</span><span class="op">)</span>,</span>
 <span>  hurst_fun <span class="op">=</span> <span class="va">hurst_logistic</span>,</span>
 <span>  L <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  intercept_var <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  fma_kernel <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">t</span><span class="op">)</span> <span class="fl">9</span><span class="op">/</span><span class="fl">4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="op">(</span><span class="va">t</span> <span class="op">+</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">s</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span>,</span>
 <span>  fma_mean <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="fl">4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">sin</a></span><span class="op">(</span><span class="fl">1.5</span> <span class="op">*</span> <span class="va">pi</span> <span class="op">*</span> <span class="va">t</span><span class="op">)</span>,</span>
 <span>  n_int_grid <span class="op">=</span> <span class="fl">100L</span>,</span>
@@ -109,6 +110,13 @@ specified.</p></dd>
 
 <dt id="arg-l">L<a class="anchor" aria-label="anchor" href="#arg-l"></a></dt>
 <dd><p><code>float (positive)</code>. Hölder constant.</p></dd>
+
+
+<dt id="arg-intercept-var">intercept_var<a class="anchor" aria-label="anchor" href="#arg-intercept-var"></a></dt>
+<dd><p><code>float (non-negative)</code>. Variance of a per-curve random intercept added to each
+innovation, expressed relative to the scale of the innovation, so that the intercept has variance
+<code>L * intercept_var</code>. It displaces each innovation on the ordinate axis without changing its local regularity.
+Passed to <code><a href="simulate_mfBm.html">simulate_mfBm</a></code>, whose Details section describes it. Default is <code>intercept_var = 0</code>.</p></dd>
 
 
 <dt id="arg-fma-kernel">fma_kernel<a class="anchor" aria-label="anchor" href="#arg-fma-kernel"></a></dt>

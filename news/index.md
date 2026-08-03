@@ -22,6 +22,7 @@
   | [`blup_fit()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup_fit.md), [`blup()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup.md) | `id_lag` | `id_conditioning_curve` |
   | [`blup_fit()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup_fit.md), [`blup()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup.md), [`select_tikhonov_parameter()`](https://hmaissoro.github.io/adaptiveFTS/reference/select_tikhonov_parameter.md) | `n_cv_tikhonov`, `n_subgrid_bw` | `n_cv_curves`, `bw_subgrid_size` |
   | [`simulate_far()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.md), [`simulate_fma()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fma.md) | `Mdistribution`, `tdistribution`, `tdesign`, `tcommon`, `int_grid`, `burnin` | `M_distribution`, `t_distribution`, `design`, `t_common`, `n_int_grid`, `n_burnin` |
+  | [`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md) | `shift_var` | `intercept_var` |
 
   The adaptive estimators’ output column names are unchanged. The
   Rubìn-Panaretos estimators, whose bandwidth argument was renamed `h`
@@ -70,6 +71,15 @@
   exported, so this affects only code that reached into the compiled
   layer directly.
 
+- [`simulate_far()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.md)
+  and
+  [`simulate_fma()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fma.md)
+  gain an `intercept_var` argument, placed after `L`. Callers that pass
+  `far_kernel`/`fma_kernel` and the arguments after it *by position*
+  must be updated; named calls are unaffected. Likewise
+  [`simulate_fBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fBm.md)
+  gains `intercept_var` after `L`, ahead of `tied`.
+
 - [`format_data()`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
   now validates its result instead of passing questionable data on to
   the estimators. It fails when the observation points fall outside
@@ -78,6 +88,32 @@
   missing; it warns when a curve carries repeated observation points.
   Data that used to flow through and yield `NaN` estimates now stops at
   the formatting step.
+
+### New features
+
+- [`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md)’s
+  `shift_var` becomes `intercept_var` and is now exposed by
+  [`simulate_fBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fBm.md),
+  [`simulate_far()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.md)
+  and
+  [`simulate_fma()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fma.md).
+  It is the variance of a per-curve random Gaussian intercept added to
+  the innovation, expressed relative to the innovation scale: the
+  intercept has variance `L * intercept_var`, so `sqrt(intercept_var)`
+  is its standard deviation as a fraction of the innovation standard
+  deviation at `u = 1`. Being constant in `t`, it cancels in the
+  increments and leaves the local regularity (`H_t`, `L_t`) unchanged;
+  it only keeps the curves from all leaving the origin at the same
+  point, since `Var(xi(u)) = u^(2 H_u)` vanishes as `u -> 0`. The
+  default `intercept_var = 0` reproduces the previous output
+  bit-for-bit.
+- [`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md)
+  and
+  [`simulate_fBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fBm.md)
+  now warn and ignore `intercept_var` when `tied = TRUE`: a tied-down
+  path carrying an intercept is neither tied down at the origin nor an
+  intercept-shifted mfBm, because the tie-down turns the intercept into
+  a random ramp.
 
 ### Bug fixes
 

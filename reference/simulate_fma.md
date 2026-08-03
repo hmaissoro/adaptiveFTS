@@ -20,6 +20,7 @@ simulate_fma(
   t_common = seq(0.2, 0.8, len = 50),
   hurst_fun = hurst_logistic,
   L = 4,
+  intercept_var = 0,
   fma_kernel = function(s, t) 9/4 * exp(-(t + 2 * s)^2),
   fma_mean = function(t) 4 * sin(1.5 * pi * t),
   n_int_grid = 100L,
@@ -69,6 +70,16 @@ simulate_fma(
 - L:
 
   `float (positive)`. Hölder constant.
+
+- intercept_var:
+
+  `float (non-negative)`. Variance of a per-curve random intercept added
+  to each innovation, expressed relative to the scale of the innovation,
+  so that the intercept has variance `L * intercept_var`. It displaces
+  each innovation on the ordinate axis without changing its local
+  regularity. Passed to
+  [`simulate_mfBm`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md),
+  whose Details section describes it. Default is `intercept_var = 0`.
 
 - fma_kernel:
 

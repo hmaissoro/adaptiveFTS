@@ -40,7 +40,13 @@
 
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">simulate_fBm</span><span class="op">(</span>t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">0.8</span>, len <span class="op">=</span> <span class="fl">20</span><span class="op">)</span>, hurst <span class="op">=</span> <span class="fl">0.6</span>, L <span class="op">=</span> <span class="fl">1</span>, tied <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">simulate_fBm</span><span class="op">(</span></span>
+<span>  t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">0.8</span>, len <span class="op">=</span> <span class="fl">20</span><span class="op">)</span>,</span>
+<span>  hurst <span class="op">=</span> <span class="fl">0.6</span>,</span>
+<span>  L <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>  intercept_var <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  tied <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -59,13 +65,32 @@
 <dd><p><code>float (positive)</code>. Hölder constant.</p></dd>
 
 
+<dt id="arg-intercept-var">intercept_var<a class="anchor" aria-label="anchor" href="#arg-intercept-var"></a></dt>
+<dd><p><code>float (non-negative)</code>. Variance of a per-curve random intercept added to the sample
+path, expressed relative to the scale of the process, so that the intercept has variance <code>L * intercept_var</code>.
+It displaces the path on the ordinate axis without changing its local regularity. Default is
+<code>intercept_var = 0</code>, which adds no intercept. Ignored when <code>tied = TRUE</code>. See the Details section.</p></dd>
+
+
 <dt id="arg-tied">tied<a class="anchor" aria-label="anchor" href="#arg-tied"></a></dt>
 <dd><p><code>boolean</code>. If <code>TRUE</code>, the sample path is tied-down.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code>data.table</code> containing 2 column : <code>t</code> and <code>mfBm</code>, the sample path.</p>
+    <p>A <code>data.table</code> containing 2 column : <code>t</code> and <code>fBm</code>, the sample path.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Let \(\xi\) denote the standardised fractional Brownian motion with exponent <code>hurst</code>, whose variance
+satisfies \(Var(\xi(1)) = 1\). The returned sample path is \(\sqrt{L} \, \xi(t)\) when
+<code>intercept_var = 0</code> and <code>tied = FALSE</code>, and \(\sqrt{L} \, (\xi(t) + Z)\) otherwise, where \(Z\) is
+a centred Gaussian variable of variance <code>intercept_var</code>, drawn independently of \(\xi\) and constant in
+<code>t</code>. See the Details section of <code><a href="simulate_mfBm.html">simulate_mfBm</a></code> for the role of the intercept.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="simulate_mfBm.html">simulate_mfBm()</a></code>.</p></div>
     </div>
 
     <div class="section level2">

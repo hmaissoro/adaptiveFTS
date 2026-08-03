@@ -5,7 +5,13 @@ Draw a fractional Brownian motion sample path.
 ## Usage
 
 ``` r
-simulate_fBm(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied = TRUE)
+simulate_fBm(
+  t = seq(0.2, 0.8, len = 20),
+  hurst = 0.6,
+  L = 1,
+  intercept_var = 0,
+  tied = TRUE
+)
 ```
 
 ## Arguments
@@ -23,13 +29,37 @@ simulate_fBm(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, tied = TRUE)
 
   `float (positive)`. Hölder constant.
 
+- intercept_var:
+
+  `float (non-negative)`. Variance of a per-curve random intercept added
+  to the sample path, expressed relative to the scale of the process, so
+  that the intercept has variance `L * intercept_var`. It displaces the
+  path on the ordinate axis without changing its local regularity.
+  Default is `intercept_var = 0`, which adds no intercept. Ignored when
+  `tied = TRUE`. See the Details section.
+
 - tied:
 
   `boolean`. If `TRUE`, the sample path is tied-down.
 
 ## Value
 
-A `data.table` containing 2 column : `t` and `mfBm`, the sample path.
+A `data.table` containing 2 column : `t` and `fBm`, the sample path.
+
+## Details
+
+Let \\\xi\\ denote the standardised fractional Brownian motion with
+exponent `hurst`, whose variance satisfies \\Var(\xi(1)) = 1\\. The
+returned sample path is \\\sqrt{L} \\ \xi(t)\\ when `intercept_var = 0`
+and `tied = FALSE`, and \\\sqrt{L} \\ (\xi(t) + Z)\\ otherwise, where
+\\Z\\ is a centred Gaussian variable of variance `intercept_var`, drawn
+independently of \\\xi\\ and constant in `t`. See the Details section of
+[`simulate_mfBm`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md)
+for the role of the intercept.
+
+## See also
+
+[`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md).
 
 ## Examples
 

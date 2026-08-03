@@ -47,7 +47,7 @@ function and other parameters.</p>
 <span>  t <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">0.8</span>, len <span class="op">=</span> <span class="fl">50</span><span class="op">)</span>,</span>
 <span>  hurst_fun <span class="op">=</span> <span class="va">hurst_logistic</span>,</span>
 <span>  L <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>  shift_var <span class="op">=</span> <span class="fl">0</span>,</span>
+<span>  intercept_var <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  tied <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -70,9 +70,11 @@ function and other parameters.</p>
 <dd><p><code>float (positive)</code>. Hölder constant.</p></dd>
 
 
-<dt id="arg-shift-var">shift_var<a class="anchor" aria-label="anchor" href="#arg-shift-var"></a></dt>
-<dd><p><code>float (positive)</code>. The variance of the shift Gaussian random variable. Default is
-<code>shift_var = 1</code>, meaning a normal random variable with mean 0 and variance 1 is added.</p></dd>
+<dt id="arg-intercept-var">intercept_var<a class="anchor" aria-label="anchor" href="#arg-intercept-var"></a></dt>
+<dd><p><code>float (non-negative)</code>. Variance of a per-curve random intercept added to the sample
+path, expressed relative to the scale of the process, so that the intercept has variance <code>L * intercept_var</code>.
+It displaces the path on the ordinate axis without changing its local regularity. Default is
+<code>intercept_var = 0</code>, which adds no intercept. Ignored when <code>tied = TRUE</code>. See the Details section.</p></dd>
 
 
 <dt id="arg-tied">tied<a class="anchor" aria-label="anchor" href="#arg-tied"></a></dt>
@@ -88,6 +90,25 @@ function and other parameters.</p>
     <p>A <code>data.table</code> containing 2 columns: <code>t</code> and <code>mfBm</code>, representing the grid points and the
 corresponding values of the mfBm sample path.</p>
     </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Let \(\xi\) denote the standardised mfBm with Hurst function <code>hurst_fun</code>, that is the centred Gaussian
+process with covariance <code><a href="dot-covariance_mfBm.html">.covariance_mfBm</a></code>. Its variance is \(Var(\xi(t)) = t^{2 H_t}\), so that
+\(Var(\xi(1)) = 1\). The returned sample path is \(\sqrt{L} \, \xi(t)\) when <code>intercept_var = 0</code> and
+<code>tied = FALSE</code>.</p>
+<p><code>intercept_var</code> adds a per-curve random intercept: the returned path becomes
+\(\sqrt{L} \, (\xi(t) + Z)\), where \(Z\) is a centred Gaussian variable of variance <code>intercept_var</code>,
+drawn independently of \(\xi\) and constant in <code>t</code>. The intercept \(\sqrt{L} Z\) therefore has variance
+<code>L * intercept_var</code>, and <code>sqrt(intercept_var)</code> is its standard deviation as a fraction of the standard
+deviation of the process at \(t = 1\).</p>
+<p>Being constant in <code>t</code>, the intercept cancels in the increments \(\xi(t + \delta) - \xi(t)\). It leaves the
+local Hölder exponent \(H_t\) and the local Hölder constant \(L_t\) unchanged, and only displaces the sample
+path on the ordinate axis. This is useful because \(Var(\xi(t))\) vanishes as \(t \to 0\), so without it every
+sample path leaves the origin at the same point.</p>
+<p>A non-zero intercept is incompatible with a tied-down path and is ignored, with a warning, when <code>tied = TRUE</code>:
+the tie-down subtracts \(t \sqrt{L} (\xi(1) + Z)\), which turns the constant intercept into the random ramp
+\(\sqrt{L} Z (1 - t)\), leaving a path that is neither tied down at the origin nor an intercept-shifted mfBm.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -95,6 +116,12 @@ corresponding values of the mfBm sample path.</p>
 <span class="r-in"><span><span class="va">dt_mfBm</span> <span class="op">&lt;-</span> <span class="fu">simulate_mfBm</span><span class="op">(</span>t <span class="op">=</span> <span class="va">t0</span>, hurst_fun <span class="op">=</span> <span class="va">hurst_logistic</span>, L <span class="op">=</span> <span class="fl">1</span>, tied <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">dt_mfBm</span><span class="op">$</span><span class="va">t</span>, y <span class="op">=</span> <span class="va">dt_mfBm</span><span class="op">$</span><span class="va">mfBm</span>, type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="st">"red"</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="simulate_mfBm-1.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># A free path with a random intercept: the paths no longer share their origin.</span></span></span>
+<span class="r-in"><span><span class="va">dt_shifted</span> <span class="op">&lt;-</span> <span class="fu">simulate_mfBm</span><span class="op">(</span>t <span class="op">=</span> <span class="va">t0</span>, hurst_fun <span class="op">=</span> <span class="va">hurst_logistic</span>, L <span class="op">=</span> <span class="fl">1</span>,</span></span>
+<span class="r-in"><span>                            intercept_var <span class="op">=</span> <span class="fl">0.05</span>, tied <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">dt_shifted</span><span class="op">$</span><span class="va">t</span>, y <span class="op">=</span> <span class="va">dt_shifted</span><span class="op">$</span><span class="va">mfBm</span>, type <span class="op">=</span> <span class="st">"l"</span>, col <span class="op">=</span> <span class="st">"blue"</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="simulate_mfBm-2.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

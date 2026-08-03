@@ -427,3 +427,125 @@ time”, and `.claude`/`PLAN.md` top-level (build-ignored). The
 substantive package defects to fix for 0/0/0 are: vignette
 engine/path/backticks, Rd cross-ref links, ORCID, Description wording,
 and the `globalVariables` bindings.
+
+------------------------------------------------------------------------
+
+## Task: expose `intercept_var` (branch `feature/expose-intercept-var`)
+
+### Context
+
+[`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md)
+carried an argument `shift_var` that added a constant to every entry of
+the mfBm covariance before the draw. Statistically this is a **per-curve
+random intercept**: it cancels identically in the increments
+`xi(u + delta) - xi(u)`, so it leaves the local Hölder exponent `H_t`
+and the local Hölder constant `L_t` untouched and only displaces each
+realisation on the ordinate axis. It exists because
+`Var xi(u) = u^{2 H_u} -> 0` as `u -> 0`, so without it every innovation
+path leaves the origin at the same point. Because
+`.constant_d(h, h) = 1/2` gives `Var xi(1) = 1`, `sqrt(intercept_var)`
+is exactly the ratio of the intercept standard deviation to the
+innovation standard deviation at `u = 1`.
+
+The name did not say this, the roxygen block was wrong on three counts,
+and the knob was invisible from
+[`simulate_far()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.md)
+/
+[`simulate_fma()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fma.md)
+— the two functions users actually call.
+
+### Scope
+
+1.  [`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md):
+    hard rename `shift_var` -\> `intercept_var`, no deprecation alias.
+    Default stays `0`.
+2.  No explicit guard for the old name, on any of the four functions. A
+    stale `shift_var` reaches `hurst_fun` through
+    [`.covariance_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-covariance_mfBm.md)
+    and dies there with R’s own `unused argument (shift_var = ...)`,
+    since no Hurst function takes such an argument;
+    [`simulate_fBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fBm.md),
+    [`simulate_far()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.md)
+    and
+    [`simulate_fma()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fma.md)
+    do not forward `...` and reject it directly.
+3.  [`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md):
+    warn and drop the intercept when `tied = TRUE`. The tie-down
+    `out - tied * t * out[length(out)]` turns a constant intercept into
+    a random ramp `sqrt(L) * Z * (1 - t)`, leaving a path that is
+    neither tied down at the origin nor an intercept-shifted mfBm.
+4.  [`simulate_far()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.md)
+    /
+    [`simulate_fma()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fma.md):
+    new `intercept_var = 0` argument after `L`, validated identically,
+    threaded through all four
+    [`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md)
+    call sites (random and common design in each).
+5.  Roxygen: fix the three defects in the old `@param shift_var`
+    (claimed default `1` against a signature default of `0`; claimed a
+    variance-1 normal when the added variable has variance
+    `L * intercept_var`; said “positive” for a `>= 0` condition).
+    Document the new argument on all three functions.
+6.  Tests in `tests/testthat/test-simulate-intercept.R`.
+
+Out of scope:
+[`estimate_locreg()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_locreg.md)
+and `src/03_estimate_locreg_rcpp.cpp`.
+
+### Deviations from the original specification
+
+**The intercept is drawn separately, not folded into `Sigma`.** The spec
+called for `Sigma = L * (cov_mat + intercept_var)`.
+[`MASS::mvrnorm`](https://rdrr.io/pkg/MASS/man/mvrnorm.html)
+eigen-decomposes whatever `Sigma` it is handed, and the all-ones rank-1
+perturbation is not an eigenvector of the mfBm covariance `C`, so under
+a fixed seed that draw is *not* `sqrt(L) * (xi + Z)` with the same `xi`
+— it is a different linear map of the same iid normal vector. Measured
+on a 40-point grid, `L = 4`, `intercept_var = 0.05`:
+`max|diff(a) - diff(b)| = 1.198` and `sd(b - a) = 2.292`, where a pure
+shift would give `0` for both. The implementation instead draws the path
+first and adds `sqrt(L * intercept_var) * rnorm(1)` under an
+`intercept_var > 0` guard. Identical in law; the path consumes the same
+RNG stream either way, so `intercept_var = 0` stays bit-identical and
+the increments become exactly seed-invariant. Post-change measurements:
+`4.4e-16` and `2.1e-16`.
+
+**No explicit guard for the old name.** The spec asked for a
+[`stop()`](https://rdrr.io/r/base/stop.html) naming the rename in
+[`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md),
+since `...` is forwarded to `hurst_fun` through
+[`.covariance_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-covariance_mfBm.md).
+It was dropped: no Hurst function accepts a `shift_var` argument, so the
+stale name dies there with R’s own `unused argument (shift_var = ...)`,
+and the other three simulators do not forward `...` and reject it in the
+call itself. The test matches the token `shift_var`, which every one of
+those messages carries.
+
+**The marginal-spread test targets a variance difference, not a level.**
+At a realistic smallest design point the mfBm variance does not vanish:
+measured at `t = 0.01`, `L = 4`, `L * C[1,1] = 0.634` against
+`L * intercept_var = 0.2`. The across-curve sd there is
+`sqrt(0.834) = 0.913`, not `sqrt(0.2) = 0.447`, so the test asserts
+`var(with) - var(without) ~ L * intercept_var`.
+
+### Validation
+
+Pre-change output of
+[`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md)
+(tied and free),
+[`simulate_far()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.md)
+and
+[`simulate_fma()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fma.md)
+(random and common design) was captured under fixed seeds and
+re-compared after the change: identical in every case, for the default
+call and for an explicit `intercept_var = 0`. Compare with
+[`as.data.frame()`](https://rdrr.io/r/base/as.data.frame.html) —
+[`identical()`](https://rdrr.io/r/base/identical.html) on a `data.table`
+restored from RDS is always `FALSE` because of the `.internal.selfref`
+external pointer, which is not a numerical difference.
+
+`lintr` clean on `R/01_generateFTS.R`; `devtools::test()` green
+(`FAIL 0 | WARN 0`). `styler` is deliberately not run over the file: it
+would reformat unrelated legacy code (`function(s,t)`,
+`if(remove_burnin)`, `}else{`) and bury the change in a
+several-hundred-line diff.
