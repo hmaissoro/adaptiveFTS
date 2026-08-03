@@ -90,14 +90,14 @@ dt_sim <- simulate_far(
   remove_burnin = TRUE)
 
 head(dt_sim)
-#>    id_curve        tobs    ttag   far_mean           X
-#>       <int>       <num>  <char>      <num>       <num>
-#> 1:        1 0.002338519 trandom 0.04407915 -2.58155115
-#> 2:        1 0.031619531 trandom 0.59381111 -1.63645971
-#> 3:        1 0.037706318 trandom 0.70701322 -1.43776541
-#> 4:        1 0.103313245 trandom 1.87138461 -2.65614825
-#> 5:        1 0.118140133 trandom 2.11362507 -0.46933534
-#> 6:        1 0.123435143 trandom 2.19769500  0.03569165
+#>    id_curve        tobs    ttag   far_mean         X
+#>       <int>       <num>  <char>      <num>     <num>
+#> 1:        1 0.002338519 trandom 0.04407915 0.7264436
+#> 2:        1 0.031619531 trandom 0.59381111 3.3791868
+#> 3:        1 0.037706318 trandom 0.70701322 3.7074432
+#> 4:        1 0.103313245 trandom 1.87138461 3.7353709
+#> 5:        1 0.118140133 trandom 2.11362507 5.9565695
+#> 6:        1 0.123435143 trandom 2.19769500 6.2219460
 ```
 
 The packaged `data_far` was drawn the same way. Its curves look like

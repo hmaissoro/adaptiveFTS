@@ -81,6 +81,24 @@
 
 ### Bug fixes
 
+- The C++ layer passed unprotected `Rcpp::wrap()` temporaries into
+  `Rcpp::Nullable<arma::vec>` parameters at 19 call sites.
+  `Rcpp::Nullable` stores a bare `SEXP` without protecting it, so the
+  garbage collector could reclaim a wrapped bandwidth vector while the
+  callee was still running — the callee only converts it after
+  allocating R memory of its own. The result was either a hard error
+  (`Not compatible with requested type: [target=double]`, with the
+  reported type varying run to run) or, when the reclaimed node was
+  reused as a numeric vector of the same length, silently wrong
+  bandwidths. This affected
+  [`blup_fit()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup_fit.md)/[`select_tikhonov_parameter()`](https://hmaissoro.github.io/adaptiveFTS/reference/select_tikhonov_parameter.md),
+  [`predict_curve()`](https://hmaissoro.github.io/adaptiveFTS/reference/predict_curve.md),
+  [`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md)
+  and
+  [`estimate_cov_segment()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_cov_segment.md).
+  Every wrapped vector is now held in a protecting `Rcpp::NumericVector`
+  for the duration of the call. Results are unchanged (bit-identical to
+  the committed references).
 - [`estimate_autocov_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_bw_rp.md)
   always returned a cross-validation error of zero, so the selected
   bandwidth was simply the first of the grid. The held-out mean
