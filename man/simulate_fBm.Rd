@@ -7,7 +7,7 @@
 simulate_fBm(
   t = seq(0.2, 0.8, len = 20),
   hurst = 0.6,
-  L = 1,
+  L2 = 1,
   intercept_var = 0,
   tied = TRUE
 )
@@ -17,10 +17,12 @@ simulate_fBm(
 
 \item{hurst}{\code{float (positive)}. The Hurst exponent scalar value between 0 and 1.}
 
-\item{L}{\code{float (positive)}. Hölder constant.}
+\item{L2}{\code{float (positive)}. Squared Hölder constant \eqn{L^2}, the quantity the package's estimators
+report in their \code{Lt2}/\code{Ls2} columns. The Hölder constant itself is \eqn{L = \sqrt{L2}}. See the
+Details section.}
 
 \item{intercept_var}{\code{float (non-negative)}. Variance of a per-curve random intercept added to the sample
-path, expressed relative to the scale of the process, so that the intercept has variance \code{L * intercept_var}.
+path, expressed relative to the scale of the process, so that the intercept has variance \code{L2 * intercept_var}.
 It displaces the path on the ordinate axis without changing its local regularity. Default is
 \code{intercept_var = 0}, which adds no intercept. Ignored when \code{tied = TRUE}. See the Details section.}
 
@@ -36,17 +38,21 @@ Draw a fractional Brownian motion sample path.
 Let \eqn{\xi} denote the standardised fractional Brownian motion with exponent \code{hurst}, that is the centred
 Gaussian process with covariance \eqn{(u^{2H} + v^{2H} - |u - v|^{2H}) / 2}. Its variance is
 \eqn{Var(\xi(t)) = t^{2H}}, so that \eqn{Var(\xi(1)) = 1}, and its increments satisfy
-\eqn{E[(\xi(t + \delta) - \xi(t))^2] = \delta^{2H}}. The returned sample path is \eqn{\sqrt{L} \, \xi(t)} when
-\code{intercept_var = 0} and \code{tied = FALSE}, and \eqn{\sqrt{L} \, (\xi(t) + Z)} otherwise, where \eqn{Z} is
-a centred Gaussian variable of variance \code{intercept_var}, drawn independently of \eqn{\xi} and constant in
-\code{t}. See the Details section of \code{\link{simulate_mfBm}} for the role of the intercept.
+\eqn{E[(\xi(t + \delta) - \xi(t))^2] = \delta^{2H}}. The returned sample path is \eqn{L \, \xi(t)} with
+\eqn{L = \sqrt{L2}}, when \code{intercept_var = 0} and \code{tied = FALSE}, and \eqn{L \, (\xi(t) + Z)}
+otherwise, where \eqn{Z} is a centred Gaussian variable of variance \code{intercept_var}, drawn independently of
+\eqn{\xi} and constant in \code{t}. See the Details section of \code{\link{simulate_mfBm}} for the role of the
+intercept.
+
+\code{L2} is the \emph{squared} Hölder constant: the increments of the returned path satisfy
+\eqn{E[(X(t + \delta) - X(t))^2] = L^2 \, \delta^{2H}}.
 
 This is the same process as \code{\link{simulate_mfBm}} given a Hurst function constant at \code{hurst}.
 }
 \examples{
 
 t0 <- seq(0.2, 0.8, len = 20)
-dt_fBm <- simulate_fBm(t = t0, hurst = 0.6, L = 1, tied = TRUE)
+dt_fBm <- simulate_fBm(t = t0, hurst = 0.6, L2 = 1, tied = TRUE)
 plot(x = dt_fBm$t, y = dt_fBm$fBm, type = "l", col = "red")
 
 }

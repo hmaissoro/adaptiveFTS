@@ -14,7 +14,7 @@ IV <- 0.05
 sim_far <- function(...) {
   simulate_far(N = 4L, lambda = 25L, design = "random",
                M_distribution = stats::rpois, t_distribution = stats::runif,
-               t_common = NULL, hurst_fun = hurst_logistic, L = LC,
+               t_common = NULL, hurst_fun = hurst_logistic, L2 = LC,
                far_kernel = function(s, t) 9 / 4 * exp(-(t + 2 * s)^2),
                far_mean = function(t) 4 * sin(1.5 * pi * t),
                n_int_grid = 60L, n_burnin = 40L, remove_burnin = TRUE, ...)
@@ -23,7 +23,7 @@ sim_far <- function(...) {
 sim_fma <- function(...) {
   simulate_fma(N = 4L, lambda = 25L, design = "random",
                M_distribution = stats::rpois, t_distribution = stats::runif,
-               t_common = NULL, hurst_fun = hurst_logistic, L = LC,
+               t_common = NULL, hurst_fun = hurst_logistic, L2 = LC,
                fma_kernel = function(s, t) 9 / 4 * exp(-(t + 2 * s)^2),
                fma_mean = function(t) 4 * sin(1.5 * pi * t),
                n_int_grid = 60L, n_burnin = 40L, remove_burnin = TRUE, ...)
@@ -32,8 +32,8 @@ sim_fma <- function(...) {
 test_that("intercept_var = 0 reproduces the default path bit-for-bit", {
   # The regression guard: under the zero default no extra draw is taken, so the
   # RNG stream and every value are unchanged from before intercept_var existed.
-  set.seed(101); a <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L = LC, tied = FALSE)
-  set.seed(101); b <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L = LC,
+  set.seed(101); a <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L2 = LC, tied = FALSE)
+  set.seed(101); b <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L2 = LC,
                                     intercept_var = 0, tied = FALSE)
   expect_identical(a[["mfBm"]], b[["mfBm"]])
 
@@ -53,37 +53,37 @@ test_that("simulate_fBm is simulate_mfBm at a constant Hurst function", {
   # simulate_fBm(hurst = h) produced the process of exponent h / 2 instead.
   h <- 0.6
   set.seed(5)
-  a <- simulate_fBm(t = TG, hurst = h, L = LC, tied = FALSE)[["fBm"]]
+  a <- simulate_fBm(t = TG, hurst = h, L2 = LC, tied = FALSE)[["fBm"]]
   set.seed(5)
   b <- simulate_mfBm(t = TG, hurst_fun = function(t, ...) rep(h, length(t)),
-                     L = LC, tied = FALSE)[["mfBm"]]
+                     L2 = LC, tied = FALSE)[["mfBm"]]
   expect_equal(a, b, tolerance = 1e-8)
 
   # Increment variance scales as delta^(2 * hurst), not delta^hurst.
   tt <- c(0.5, 0.5 + 0.1)
   d2 <- vapply(seq_len(600), function(r) {
     set.seed(r)
-    diff(simulate_fBm(t = tt, hurst = h, L = LC, tied = FALSE)[["fBm"]])
+    diff(simulate_fBm(t = tt, hurst = h, L2 = LC, tied = FALSE)[["fBm"]])
   }, numeric(1))
   expect_equal(mean(d2 ^ 2), LC * 0.1 ^ (2 * h), tolerance = 0.15)
 })
 
 test_that("simulate_fBm behaves like simulate_mfBm under intercept_var", {
-  set.seed(41); a <- simulate_fBm(t = TG, hurst = 0.6, L = LC, tied = FALSE)
-  set.seed(41); b <- simulate_fBm(t = TG, hurst = 0.6, L = LC, intercept_var = 0, tied = FALSE)
+  set.seed(41); a <- simulate_fBm(t = TG, hurst = 0.6, L2 = LC, tied = FALSE)
+  set.seed(41); b <- simulate_fBm(t = TG, hurst = 0.6, L2 = LC, intercept_var = 0, tied = FALSE)
   expect_identical(a[["fBm"]], b[["fBm"]])
 
   set.seed(41)
-  c0 <- simulate_fBm(t = TG, hurst = 0.6, L = LC, intercept_var = 0, tied = FALSE)[["fBm"]]
+  c0 <- simulate_fBm(t = TG, hurst = 0.6, L2 = LC, intercept_var = 0, tied = FALSE)[["fBm"]]
   z <- stats::rnorm(1)
   set.seed(41)
-  c1 <- simulate_fBm(t = TG, hurst = 0.6, L = LC, intercept_var = IV, tied = FALSE)[["fBm"]]
+  c1 <- simulate_fBm(t = TG, hurst = 0.6, L2 = LC, intercept_var = IV, tied = FALSE)[["fBm"]]
   expect_equal(diff(c1), diff(c0), tolerance = 1e-12)
   expect_equal(mean(c1 - c0), sqrt(LC * IV) * z, tolerance = 1e-10)
 
-  set.seed(43); d0 <- simulate_fBm(t = TG, hurst = 0.6, L = LC, intercept_var = 0, tied = TRUE)
+  set.seed(43); d0 <- simulate_fBm(t = TG, hurst = 0.6, L2 = LC, intercept_var = 0, tied = TRUE)
   set.seed(43)
-  expect_warning(d1 <- simulate_fBm(t = TG, hurst = 0.6, L = LC, intercept_var = IV, tied = TRUE),
+  expect_warning(d1 <- simulate_fBm(t = TG, hurst = 0.6, L2 = LC, intercept_var = IV, tied = TRUE),
                  "ignored when 'tied = TRUE'")
   expect_identical(d0[["fBm"]], d1[["fBm"]])
 
@@ -93,9 +93,9 @@ test_that("simulate_fBm behaves like simulate_mfBm under intercept_var", {
 test_that("the intercept cancels in the increments", {
   # This is the property that leaves H_t and L_t unchanged: with a shared seed
   # the two paths differ by a constant, so their first differences coincide.
-  set.seed(7); p0 <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L = LC,
+  set.seed(7); p0 <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L2 = LC,
                                    intercept_var = 0, tied = FALSE)[["mfBm"]]
-  set.seed(7); p1 <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L = LC,
+  set.seed(7); p1 <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L2 = LC,
                                    intercept_var = IV, tied = FALSE)[["mfBm"]]
   expect_equal(diff(p1), diff(p0), tolerance = 1e-12)
   expect_equal(stats::sd(p1 - p0), 0, tolerance = 1e-12)
@@ -106,21 +106,21 @@ test_that("the intercept is calibrated to sqrt(L * intercept_var)", {
   # Exact check: the path draw consumes the same stream in both calls, so the
   # displacement is sqrt(L * intercept_var) times the very next standard normal.
   set.seed(21)
-  p0 <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L = LC,
+  p0 <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L2 = LC,
                       intercept_var = 0, tied = FALSE)[["mfBm"]]
   z <- stats::rnorm(1)
   set.seed(21)
-  p1 <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L = LC,
+  p1 <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L2 = LC,
                       intercept_var = IV, tied = FALSE)[["mfBm"]]
   expect_equal(mean(p1 - p0), sqrt(LC * IV) * z, tolerance = 1e-10)
 
   # Distributional cross-check on the same quantity.
   delta <- vapply(seq_len(300), function(r) {
     set.seed(r)
-    x0 <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L = LC,
+    x0 <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L2 = LC,
                         intercept_var = 0, tied = FALSE)[["mfBm"]]
     set.seed(r)
-    x1 <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L = LC,
+    x1 <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L2 = LC,
                         intercept_var = IV, tied = FALSE)[["mfBm"]]
     mean(x1 - x0)
   }, numeric(1))
@@ -133,7 +133,7 @@ test_that("the intercept widens the spread at the smallest design point", {
   spread <- function(iv) {
     vapply(seq_len(400), function(r) {
       set.seed(2000 + r)
-      simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L = LC,
+      simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L2 = LC,
                     intercept_var = iv, tied = FALSE)[["mfBm"]][1]
     }, numeric(1))
   }
@@ -147,11 +147,11 @@ test_that("intercept_var is refused when tied = TRUE", {
   # A tied-down path with a non-zero intercept is neither tied down at the
   # origin nor an intercept-shifted mfBm, so the intercept is dropped.
   set.seed(11)
-  a <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L = LC,
+  a <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L2 = LC,
                      intercept_var = 0, tied = TRUE)
   set.seed(11)
   expect_warning(
-    b <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L = LC,
+    b <- simulate_mfBm(t = TG, hurst_fun = hurst_logistic, L2 = LC,
                        intercept_var = IV, tied = TRUE),
     "ignored when 'tied = TRUE'")
   expect_identical(a[["mfBm"]], b[["mfBm"]])
@@ -179,7 +179,7 @@ test_that("intercept_var reaches simulate_mfBm in both design branches", {
 
   common_far <- function(...) {
     simulate_far(N = 4L, design = "common", M_distribution = NULL, t_distribution = NULL,
-                 t_common = t_com, hurst_fun = hurst_logistic, L = LC,
+                 t_common = t_com, hurst_fun = hurst_logistic, L2 = LC,
                  far_kernel = function(s, t) 9 / 4 * exp(-(t + 2 * s)^2),
                  far_mean = function(t) 4 * sin(1.5 * pi * t),
                  n_int_grid = 60L, n_burnin = 40L, remove_burnin = TRUE, ...)
@@ -190,7 +190,7 @@ test_that("intercept_var reaches simulate_mfBm in both design branches", {
 
   common_fma <- function(...) {
     simulate_fma(N = 4L, design = "common", M_distribution = NULL, t_distribution = NULL,
-                 t_common = t_com, hurst_fun = hurst_logistic, L = LC,
+                 t_common = t_com, hurst_fun = hurst_logistic, L2 = LC,
                  fma_kernel = function(s, t) 9 / 4 * exp(-(t + 2 * s)^2),
                  fma_mean = function(t) 4 * sin(1.5 * pi * t),
                  n_int_grid = 60L, n_burnin = 40L, remove_burnin = TRUE, ...)
