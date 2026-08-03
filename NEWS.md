@@ -77,6 +77,17 @@
 
 ## Bug fixes
 
+* `simulate_fBm()` was missing a factor of 2 in the exponent of its covariance:
+  it used `u^hurst + v^hurst - |u - v|^hurst` where fractional Brownian motion
+  requires `u^(2 hurst) + v^(2 hurst) - |u - v|^(2 hurst)`. The generated process
+  therefore had Hurst exponent `hurst / 2`, so `simulate_fBm(hurst = 0.6)`
+  returned paths of exponent 0.3 and disagreed with `simulate_mfBm()` given a
+  Hurst function constant at 0.6. **This changes the output**: `hurst` now means
+  what it says, and code calibrated against the old behaviour must halve its
+  `hurst` argument to reproduce the previous paths. `simulate_mfBm()`,
+  `simulate_far()` and `simulate_fma()` were never affected — they build their
+  covariance through `.covariance_mfBm()`, which always used the correct
+  exponent — so the packaged `data_far` dataset is unchanged.
 * The C++ layer passed unprotected `Rcpp::wrap()` temporaries into
   `Rcpp::Nullable<arma::vec>` parameters at 19 call sites. `Rcpp::Nullable`
   stores a bare `SEXP` without protecting it, so the garbage collector could

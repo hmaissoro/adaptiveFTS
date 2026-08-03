@@ -272,11 +272,15 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 #' @param tied \code{boolean}. If \code{TRUE}, the sample path is tied-down.
 #'
 #' @details
-#' Let \eqn{\xi} denote the standardised fractional Brownian motion with exponent \code{hurst}, whose variance
-#' satisfies \eqn{Var(\xi(1)) = 1}. The returned sample path is \eqn{\sqrt{L} \, \xi(t)} when
+#' Let \eqn{\xi} denote the standardised fractional Brownian motion with exponent \code{hurst}, that is the centred
+#' Gaussian process with covariance \eqn{(u^{2H} + v^{2H} - |u - v|^{2H}) / 2}. Its variance is
+#' \eqn{Var(\xi(t)) = t^{2H}}, so that \eqn{Var(\xi(1)) = 1}, and its increments satisfy
+#' \eqn{E[(\xi(t + \delta) - \xi(t))^2] = \delta^{2H}}. The returned sample path is \eqn{\sqrt{L} \, \xi(t)} when
 #' \code{intercept_var = 0} and \code{tied = FALSE}, and \eqn{\sqrt{L} \, (\xi(t) + Z)} otherwise, where \eqn{Z} is
 #' a centred Gaussian variable of variance \code{intercept_var}, drawn independently of \eqn{\xi} and constant in
 #' \code{t}. See the Details section of \code{\link{simulate_mfBm}} for the role of the intercept.
+#'
+#' This is the same process as \code{\link{simulate_mfBm}} given a Hurst function constant at \code{hurst}.
 #'
 #' @return A \code{data.table} containing 2 column : \code{t} and \code{fBm}, the sample path.
 #'
@@ -314,8 +318,9 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L = 1, interc
   tmp <- expand.grid(u = t, v = t)
   u <- tmp$u
   v <- tmp$v
+  hh <- 2 * hurst
   values <- (1 / 2) *
-    (u ** hurst + v ** hurst - abs(u - v) ** hurst)
+    (u ** hh + v ** hh - abs(u - v) ** hh)
   cov_mat <- matrix(values, ncol = length(t))
 
   out <- MASS::mvrnorm(1,
