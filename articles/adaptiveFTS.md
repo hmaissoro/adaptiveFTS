@@ -68,9 +68,9 @@ draws a FAR(1) sample. The curves are built on an integration grid of
 `n_int_grid` points, then observed at `M_distribution` random points per
 curve drawn from `t_distribution` (independent design) or at the common
 grid `t_common` (common design). The roughness of the sample paths is
-set by the Hurst function `hurst_fun` and the Hölder constant `L`, and
-the first `n_burnin` curves are dropped so that the returned sample is
-close to stationary.
+set by the Hurst function `hurst_fun` and the squared Hölder constant
+`L2`, and the first `n_burnin` curves are dropped so that the returned
+sample is close to stationary.
 
 ``` r
 
@@ -82,7 +82,7 @@ dt_sim <- simulate_far(
   t_distribution = runif,
   t_common = NULL,
   hurst_fun = hurst_logistic,
-  L = 4,
+  L2 = 4,
   far_kernel = function(s, t) 9 / 4 * exp(-(t + 2 * s) ** 2),
   far_mean = function(t) 4 * sin(1.5 * pi * t),
   n_int_grid = 100L,
@@ -90,14 +90,14 @@ dt_sim <- simulate_far(
   remove_burnin = TRUE)
 
 head(dt_sim)
-#>    id_curve        tobs    ttag   far_mean         X
-#>       <int>       <num>  <char>      <num>     <num>
-#> 1:        1 0.002338519 trandom 0.04407915 0.7264436
-#> 2:        1 0.031619531 trandom 0.59381111 3.3791868
-#> 3:        1 0.037706318 trandom 0.70701322 3.7074432
-#> 4:        1 0.103313245 trandom 1.87138461 3.7353709
-#> 5:        1 0.118140133 trandom 2.11362507 5.9565695
-#> 6:        1 0.123435143 trandom 2.19769500 6.2219460
+#>    id_curve        tobs    ttag   far_mean           X
+#>       <int>       <num>  <char>      <num>       <num>
+#> 1:        1 0.002338519 trandom 0.04407915 -2.58155115
+#> 2:        1 0.031619531 trandom 0.59381111 -1.63645971
+#> 3:        1 0.037706318 trandom 0.70701322 -1.43776541
+#> 4:        1 0.103313245 trandom 1.87138461 -2.65614825
+#> 5:        1 0.118140133 trandom 2.11362507 -0.46933534
+#> 6:        1 0.123435143 trandom 2.19769500  0.03569165
 ```
 
 The packaged `data_far` was drawn the same way. Its curves look like

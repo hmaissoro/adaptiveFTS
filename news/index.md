@@ -23,6 +23,7 @@
   | [`blup_fit()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup_fit.md), [`blup()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup.md), [`select_tikhonov_parameter()`](https://hmaissoro.github.io/adaptiveFTS/reference/select_tikhonov_parameter.md) | `n_cv_tikhonov`, `n_subgrid_bw` | `n_cv_curves`, `bw_subgrid_size` |
   | [`simulate_far()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.md), [`simulate_fma()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fma.md) | `Mdistribution`, `tdistribution`, `tdesign`, `tcommon`, `int_grid`, `burnin` | `M_distribution`, `t_distribution`, `design`, `t_common`, `n_int_grid`, `n_burnin` |
   | [`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md) | `shift_var` | `intercept_var` |
+  | [`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md), [`simulate_fBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fBm.md), [`simulate_far()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_far.md), [`simulate_fma()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fma.md) | `L` | `L2` |
 
   The adaptive estimators’ output column names are unchanged. The
   Rubìn-Panaretos estimators, whose bandwidth argument was renamed `h`
@@ -34,6 +35,20 @@
   now return a `bw` column instead of `h`, and
   [`estimate_autocov_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_rp.md)
   returns `bw_mean` instead of `optbw_mean`.
+
+- The simulators’ `L` argument is renamed `L2`, because that is what it
+  always was: it multiplies the covariance, so the returned path is
+  `sqrt(L) * xi` and its increments satisfy
+  `E[(X(t+d) - X(t))^2] = L * d^(2 H_t)`. The package’s model writes
+  that coefficient `L_t^2`, so `L` was the *squared* Hölder constant and
+  the Hölder constant itself was `sqrt(L)`. The estimator output columns
+  were renamed `Lt`/`Ls` -\> `Lt2`/`Ls2` in 0.2.0 for exactly this
+  reason; the generators are now consistent with them, and
+  `simulate_far(L2 = 4)` is the setting whose
+  [`estimate_locreg()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_locreg.md)
+  estimate of `Lt2` is 4. **Only the name changes** — the numerical
+  meaning of the argument is unchanged, so existing calls keep their
+  behaviour by renaming `L` to `L2`.
 
 - The Rubìn-Panaretos estimators take the kernel by name
   (`kernel_name = "epanechnikov"`) rather than as a function object,

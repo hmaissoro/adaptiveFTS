@@ -158,9 +158,10 @@ built on an integration grid of <code>n_int_grid</code> points, then
 observed at <code>M_distribution</code> random points per curve drawn
 from <code>t_distribution</code> (independent design) or at the common
 grid <code>t_common</code> (common design). The roughness of the sample
-paths is set by the Hurst function <code>hurst_fun</code> and the Hölder
-constant <code>L</code>, and the first <code>n_burnin</code> curves are
-dropped so that the returned sample is close to stationary.</p>
+paths is set by the Hurst function <code>hurst_fun</code> and the
+squared Hölder constant <code>L2</code>, and the first
+<code>n_burnin</code> curves are dropped so that the returned sample is
+close to stationary.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">42</span><span class="op">)</span></span>
 <span><span class="va">dt_sim</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/simulate_far.html">simulate_far</a></span><span class="op">(</span></span>
@@ -170,7 +171,7 @@ dropped so that the returned sample is close to stationary.</p>
 <span>  t_distribution <span class="op">=</span> <span class="va">runif</span>,</span>
 <span>  t_common <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  hurst_fun <span class="op">=</span> <span class="va">hurst_logistic</span>,</span>
-<span>  L <span class="op">=</span> <span class="fl">4</span>,</span>
+<span>  L2 <span class="op">=</span> <span class="fl">4</span>,</span>
 <span>  far_kernel <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">s</span>, <span class="va">t</span><span class="op">)</span> <span class="fl">9</span> <span class="op">/</span> <span class="fl">4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Log.html" class="external-link">exp</a></span><span class="op">(</span><span class="op">-</span><span class="op">(</span><span class="va">t</span> <span class="op">+</span> <span class="fl">2</span> <span class="op">*</span> <span class="va">s</span><span class="op">)</span> <span class="op">**</span> <span class="fl">2</span><span class="op">)</span>,</span>
 <span>  far_mean <span class="op">=</span> <span class="kw">function</span><span class="op">(</span><span class="va">t</span><span class="op">)</span> <span class="fl">4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">sin</a></span><span class="op">(</span><span class="fl">1.5</span> <span class="op">*</span> <span class="va">pi</span> <span class="op">*</span> <span class="va">t</span><span class="op">)</span>,</span>
 <span>  n_int_grid <span class="op">=</span> <span class="fl">100L</span>,</span>
@@ -178,14 +179,14 @@ dropped so that the returned sample is close to stationary.</p>
 <span>  remove_burnin <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">dt_sim</span><span class="op">)</span></span>
-<span><span class="co">#&gt;    id_curve        tobs    ttag   far_mean         X</span></span>
-<span><span class="co">#&gt;       &lt;int&gt;       &lt;num&gt;  &lt;char&gt;      &lt;num&gt;     &lt;num&gt;</span></span>
-<span><span class="co">#&gt; 1:        1 0.002338519 trandom 0.04407915 0.7264436</span></span>
-<span><span class="co">#&gt; 2:        1 0.031619531 trandom 0.59381111 3.3791868</span></span>
-<span><span class="co">#&gt; 3:        1 0.037706318 trandom 0.70701322 3.7074432</span></span>
-<span><span class="co">#&gt; 4:        1 0.103313245 trandom 1.87138461 3.7353709</span></span>
-<span><span class="co">#&gt; 5:        1 0.118140133 trandom 2.11362507 5.9565695</span></span>
-<span><span class="co">#&gt; 6:        1 0.123435143 trandom 2.19769500 6.2219460</span></span></code></pre></div>
+<span><span class="co">#&gt;    id_curve        tobs    ttag   far_mean           X</span></span>
+<span><span class="co">#&gt;       &lt;int&gt;       &lt;num&gt;  &lt;char&gt;      &lt;num&gt;       &lt;num&gt;</span></span>
+<span><span class="co">#&gt; 1:        1 0.002338519 trandom 0.04407915 -2.58155115</span></span>
+<span><span class="co">#&gt; 2:        1 0.031619531 trandom 0.59381111 -1.63645971</span></span>
+<span><span class="co">#&gt; 3:        1 0.037706318 trandom 0.70701322 -1.43776541</span></span>
+<span><span class="co">#&gt; 4:        1 0.103313245 trandom 1.87138461 -2.65614825</span></span>
+<span><span class="co">#&gt; 5:        1 0.118140133 trandom 2.11362507 -0.46933534</span></span>
+<span><span class="co">#&gt; 6:        1 0.123435143 trandom 2.19769500  0.03569165</span></span></code></pre></div>
 <p>The packaged <code>data_far</code> was drawn the same way. Its curves
 look like this.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
