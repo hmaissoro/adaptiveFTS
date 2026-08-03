@@ -294,6 +294,8 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
 #'
 #' This is the same process as \code{\link{simulate_mfBm}} given a Hurst function constant at \code{hurst}.
 #'
+#' This is the same process as \code{\link{simulate_mfBm}} given a Hurst function constant at \code{hurst}.
+#'
 #' @return A \code{data.table} containing 2 column : \code{t} and \code{fBm}, the sample path.
 #'
 #' @export
