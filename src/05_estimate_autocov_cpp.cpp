@@ -33,6 +33,15 @@ using namespace arma;
  //' @param common_bw A logical value indicating if the same bandwidth should be used for \code{s} and \code{t}. Default is \code{false}.
  //' @param center A logical value indicating if the data should be centered before estimation. Default is \code{true}.
  //' @param kernel_name \code{string}. Specifies the kernel function for estimation; default is "epanechnikov".
+ //' @param presmooth_bw Numeric (positive vector or scalar). Bandwidth used to presmooth
+ //' each curve in the local regularity step, see `estimate_locreg_cpp`. Default
+ //' \code{NULL} selects it by cross-validation.
+ //' @param Delta Numeric (positive). Length of the neighborhood of each point used in the
+ //' local regularity step. Default \code{NULL} estimates it from the data.
+ //' @param presmooth_bw_grid Numeric vector. Candidate bandwidths of the cross-validation
+ //' that selects \code{presmooth_bw}. Default \code{NULL} uses the default grid.
+ //' @param presmooth_nsubset Integer (positive). Number of curves used by that
+ //' cross-validation. Default \code{NULL} uses min(70, floor(N / 2)) curves.
  //' Supported kernels include: "epanechnikov", "biweight", "triweight", "tricube", "triangular", and "uniform".
  //'
  //' @return A \code{matrix} containing the following fourteen columns in order:
@@ -94,7 +103,11 @@ using namespace arma;
                                      const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
                                      const bool common_bw = false,
                                      const bool center = true,
-                                     const std::string kernel_name = "epanechnikov"){
+                                     const std::string kernel_name = "epanechnikov",
+                                     const Rcpp::Nullable<arma::vec> presmooth_bw = R_NilValue,
+                                     const Rcpp::Nullable<double> Delta = R_NilValue,
+                                     const Rcpp::Nullable<arma::vec> presmooth_bw_grid = R_NilValue,
+                                     const Rcpp::Nullable<int> presmooth_nsubset = R_NilValue){
    // NB : We consider that no vector is null
    // NB : if common_bw = TRUE, then the same bandwidth is used for s and t
    //      otherwise, a different bandwidth is use for s and for t.
@@ -150,8 +163,8 @@ using namespace arma;
      curve_idx[c] = arma::find(data_mat.col(0) == unique_id_curve(c));
 
    // Estimate local regularity
-   arma::mat mat_locreg_s = estimate_locreg_cpp(data, arma::unique(s), true, kernel_name, R_NilValue, R_NilValue);
-   arma::mat mat_locreg_t = estimate_locreg_cpp(data, arma::unique(t), true, kernel_name, R_NilValue, R_NilValue);
+   arma::mat mat_locreg_s = estimate_locreg_cpp(data, arma::unique(s), true, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset);
+   arma::mat mat_locreg_t = estimate_locreg_cpp(data, arma::unique(t), true, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset);
    arma::vec h(n_curve, fill::value(mat_locreg_s(0, 1))); // extract the presmoothing bandwidth
 
    // Estimate the error sd
@@ -505,6 +518,15 @@ using namespace arma;
  //' @param center A logical value indicating if the data should be centered before estimation. Default is \code{true}.
  //' @param correct_diagonal A logical value indicating whether the diagonal of the covariance should be corrected when \code{lag=0}.
  //' @param kernel_name A string specifying the kernel to use for estimation. Supported values are \code{"epanechnikov"}, \code{"biweight"}, \code{"triweight"}, \code{"tricube"}, \code{"triangular"}, \code{"uniform"}. Default is \code{"epanechnikov"}.
+ //' @param presmooth_bw Numeric (positive vector or scalar). Bandwidth used to presmooth
+ //' each curve in the local regularity step, see `estimate_locreg_cpp`. Default
+ //' \code{NULL} selects it by cross-validation.
+ //' @param Delta Numeric (positive). Length of the neighborhood of each point used in the
+ //' local regularity step. Default \code{NULL} estimates it from the data.
+ //' @param presmooth_bw_grid Numeric vector. Candidate bandwidths of the cross-validation
+ //' that selects \code{presmooth_bw}. Default \code{NULL} uses the default grid.
+ //' @param presmooth_nsubset Integer (positive). Number of curves used by that
+ //' cross-validation. Default \code{NULL} uses min(70, floor(N / 2)) curves.
  //'
  //' @return A \code{matrix} containing the following fourteen columns in order:
  //'          \itemize{
@@ -553,7 +575,11 @@ using namespace arma;
                                 const bool common_bw = false,
                                 const bool center = true,
                                 const bool correct_diagonal = true,
-                                const std::string kernel_name = "epanechnikov") {
+                                const std::string kernel_name = "epanechnikov",
+                                const Rcpp::Nullable<arma::vec> presmooth_bw = R_NilValue,
+                                const Rcpp::Nullable<double> Delta = R_NilValue,
+                                const Rcpp::Nullable<arma::vec> presmooth_bw_grid = R_NilValue,
+                                const Rcpp::Nullable<int> presmooth_nsubset = R_NilValue) {
    if (s.size() != t.size()) {
      stop("Arguments 's' and 't' must be of equal length.");
    } else if (s.size() == 0) {
@@ -594,7 +620,8 @@ using namespace arma;
    arma::mat mat_locreg(n, 6);
 
    if (bw_s.isNull() || bw_t.isNull()) {
-     arma::mat mat_risk = estimate_autocov_risk_cpp(data, svec, tvec, lag, bw_grid, common_bw, center, kernel_name);
+     arma::mat mat_risk = estimate_autocov_risk_cpp(data, svec, tvec, lag, bw_grid, common_bw, center, kernel_name,
+                                                   presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset);
      for (int k = 0; k < n; ++k) {
        arma::uvec idx_risk_cur = arma::find((mat_risk.col(0) == svec(k)) % (mat_risk.col(1) == tvec(k)));
        arma::vec risk = mat_risk(idx_risk_cur, arma::uvec({13}));

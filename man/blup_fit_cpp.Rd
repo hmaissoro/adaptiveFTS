@@ -12,7 +12,11 @@ blup_fit_cpp(
   homoscedastic,
   tikhonov,
   bw_subgrid_size,
-  kernel_name
+  kernel_name,
+  presmooth_bw = NULL,
+  Delta = NULL,
+  presmooth_bw_grid = NULL,
+  presmooth_nsubset = NULL
 )
 }
 \arguments{
@@ -31,6 +35,19 @@ blup_fit_cpp(
 \item{bw_subgrid_size}{Number of points per axis of the bandwidth sub-grid.}
 
 \item{kernel_name}{Kernel name.}
+
+\item{presmooth_bw}{Numeric (positive vector or scalar). Bandwidth used to presmooth
+each curve in the local regularity step, see \code{estimate_locreg_cpp}. Default
+\code{NULL} selects it by cross-validation.}
+
+\item{Delta}{Numeric (positive). Length of the neighborhood of each point used in the
+local regularity step. Default \code{NULL} estimates it from the data.}
+
+\item{presmooth_bw_grid}{Numeric vector. Candidate bandwidths of the cross-validation
+that selects \code{presmooth_bw}. Default \code{NULL} uses the default grid.}
+
+\item{presmooth_nsubset}{Integer (positive). Number of curves used by that
+cross-validation. Default \code{NULL} uses min(70, floor(N / 2)) curves.}
 }
 \value{
 A list with the cached bandwidths, the covariance operator, the

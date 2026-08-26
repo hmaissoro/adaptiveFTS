@@ -43,26 +43,26 @@ get_nw_optimal_bw_cpp <- function(data, bw_grid = NULL, nsubset = NULL, kernel_n
 #' Local Regularity Parameters Estimation
 NULL
 
-estimate_locreg_cpp <- function(data, t, center, kernel_name = "epanechnikov", h = NULL, Delta = NULL) {
-    .Call(`_adaptiveFTS_estimate_locreg_cpp`, data, t, center, kernel_name, h, Delta)
+estimate_locreg_cpp <- function(data, t, center, kernel_name = "epanechnikov", h = NULL, Delta = NULL, presmooth_bw_grid = NULL, presmooth_nsubset = NULL) {
+    .Call(`_adaptiveFTS_estimate_locreg_cpp`, data, t, center, kernel_name, h, Delta, presmooth_bw_grid, presmooth_nsubset)
 }
 
 #' Estimate the risk of the mean function
 NULL
 
-estimate_mean_risk_cpp <- function(data, t, bw_grid = NULL, kernel_name = "epanechnikov") {
-    .Call(`_adaptiveFTS_estimate_mean_risk_cpp`, data, t, bw_grid, kernel_name)
+estimate_mean_risk_cpp <- function(data, t, bw_grid = NULL, kernel_name = "epanechnikov", presmooth_bw = NULL, Delta = NULL, presmooth_bw_grid = NULL, presmooth_nsubset = NULL) {
+    .Call(`_adaptiveFTS_estimate_mean_risk_cpp`, data, t, bw_grid, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset)
 }
 
-estimate_mean_cpp <- function(data, t, bw = NULL, bw_grid = NULL, kernel_name = "epanechnikov") {
-    .Call(`_adaptiveFTS_estimate_mean_cpp`, data, t, bw, bw_grid, kernel_name)
+estimate_mean_cpp <- function(data, t, bw = NULL, bw_grid = NULL, kernel_name = "epanechnikov", presmooth_bw = NULL, Delta = NULL, presmooth_bw_grid = NULL, presmooth_nsubset = NULL) {
+    .Call(`_adaptiveFTS_estimate_mean_cpp`, data, t, bw, bw_grid, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset)
 }
 
 #' Estimate the risk of the covariance or autocovariance function
 NULL
 
-estimate_autocov_risk_cpp <- function(data, s, t, lag, bw_grid = NULL, common_bw = FALSE, center = TRUE, kernel_name = "epanechnikov") {
-    .Call(`_adaptiveFTS_estimate_autocov_risk_cpp`, data, s, t, lag, bw_grid, common_bw, center, kernel_name)
+estimate_autocov_risk_cpp <- function(data, s, t, lag, bw_grid = NULL, common_bw = FALSE, center = TRUE, kernel_name = "epanechnikov", presmooth_bw = NULL, Delta = NULL, presmooth_bw_grid = NULL, presmooth_nsubset = NULL) {
+    .Call(`_adaptiveFTS_estimate_autocov_risk_cpp`, data, s, t, lag, bw_grid, common_bw, center, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset)
 }
 
 get_upper_tri_couple <- function(s, t) {
@@ -73,19 +73,19 @@ sort_by_columns <- function(mat, first_col_idx, second_col_idx) {
     .Call(`_adaptiveFTS_sort_by_columns`, mat, first_col_idx, second_col_idx)
 }
 
-estimate_autocov_cpp <- function(data, s, t, lag, bw_s = NULL, bw_t = NULL, bw_grid = NULL, common_bw = FALSE, center = TRUE, correct_diagonal = TRUE, kernel_name = "epanechnikov") {
-    .Call(`_adaptiveFTS_estimate_autocov_cpp`, data, s, t, lag, bw_s, bw_t, bw_grid, common_bw, center, correct_diagonal, kernel_name)
+estimate_autocov_cpp <- function(data, s, t, lag, bw_s = NULL, bw_t = NULL, bw_grid = NULL, common_bw = FALSE, center = TRUE, correct_diagonal = TRUE, kernel_name = "epanechnikov", presmooth_bw = NULL, Delta = NULL, presmooth_bw_grid = NULL, presmooth_nsubset = NULL) {
+    .Call(`_adaptiveFTS_estimate_autocov_cpp`, data, s, t, lag, bw_s, bw_t, bw_grid, common_bw, center, correct_diagonal, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset)
 }
 
 #' Estimate the risk of the covariance segment function
 NULL
 
-estimate_cov_segment_risk_cpp <- function(data, t, bw_grid = NULL, center = TRUE, kernel_name = "epanechnikov") {
-    .Call(`_adaptiveFTS_estimate_cov_segment_risk_cpp`, data, t, bw_grid, center, kernel_name)
+estimate_cov_segment_risk_cpp <- function(data, t, bw_grid = NULL, center = TRUE, kernel_name = "epanechnikov", presmooth_bw = NULL, Delta = NULL, presmooth_bw_grid = NULL, presmooth_nsubset = NULL) {
+    .Call(`_adaptiveFTS_estimate_cov_segment_risk_cpp`, data, t, bw_grid, center, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset)
 }
 
-estimate_cov_segment_cpp <- function(data, t, bw = NULL, bw_grid = NULL, center = TRUE, kernel_name = "epanechnikov") {
-    .Call(`_adaptiveFTS_estimate_cov_segment_cpp`, data, t, bw, bw_grid, center, kernel_name)
+estimate_cov_segment_cpp <- function(data, t, bw = NULL, bw_grid = NULL, center = TRUE, kernel_name = "epanechnikov", presmooth_bw = NULL, Delta = NULL, presmooth_bw_grid = NULL, presmooth_nsubset = NULL) {
+    .Call(`_adaptiveFTS_estimate_cov_segment_cpp`, data, t, bw, bw_grid, center, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset)
 }
 
 estimate_sigma_cpp <- function(data, t) {
@@ -210,12 +210,21 @@ blup_autocov_at_cpp <- function(data, opt_bw, s, t, lag, correct_diagonal, kerne
 #' @param tikhonov Tikhonov regularisation parameter.
 #' @param bw_subgrid_size Number of points per axis of the bandwidth sub-grid.
 #' @param kernel_name Kernel name.
+#' @param presmooth_bw Numeric (positive vector or scalar). Bandwidth used to presmooth
+#' each curve in the local regularity step, see `estimate_locreg_cpp`. Default
+#' \code{NULL} selects it by cross-validation.
+#' @param Delta Numeric (positive). Length of the neighborhood of each point used in the
+#' local regularity step. Default \code{NULL} estimates it from the data.
+#' @param presmooth_bw_grid Numeric vector. Candidate bandwidths of the cross-validation
+#' that selects \code{presmooth_bw}. Default \code{NULL} uses the default grid.
+#' @param presmooth_nsubset Integer (positive). Number of curves used by that
+#' cross-validation. Default \code{NULL} uses min(70, floor(N / 2)) curves.
 #'
 #' @return A list with the cached bandwidths, the covariance operator, the
 #'   mean, the noise level, the regularised variance matrix and the residual.
 #' @keywords internal
-blup_fit_cpp <- function(data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, bw_subgrid_size, kernel_name) {
-    .Call(`_adaptiveFTS_blup_fit_cpp`, data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, bw_subgrid_size, kernel_name)
+blup_fit_cpp <- function(data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, bw_subgrid_size, kernel_name, presmooth_bw = NULL, Delta = NULL, presmooth_bw_grid = NULL, presmooth_nsubset = NULL) {
+    .Call(`_adaptiveFTS_blup_fit_cpp`, data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, bw_subgrid_size, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset)
 }
 
 #' Predict with the adaptive functional BLUP (C++ core)

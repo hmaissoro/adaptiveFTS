@@ -121,8 +121,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // estimate_locreg_cpp
-arma::mat estimate_locreg_cpp(const Rcpp::DataFrame data, const arma::vec t, const bool center, const std::string kernel_name, const Rcpp::Nullable<arma::vec> h, const Rcpp::Nullable<double> Delta);
-RcppExport SEXP _adaptiveFTS_estimate_locreg_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP, SEXP hSEXP, SEXP DeltaSEXP) {
+arma::mat estimate_locreg_cpp(const Rcpp::DataFrame data, const arma::vec t, const bool center, const std::string kernel_name, const Rcpp::Nullable<arma::vec> h, const Rcpp::Nullable<double> Delta, const Rcpp::Nullable<arma::vec> presmooth_bw_grid, const Rcpp::Nullable<int> presmooth_nsubset);
+RcppExport SEXP _adaptiveFTS_estimate_locreg_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP, SEXP hSEXP, SEXP DeltaSEXP, SEXP presmooth_bw_gridSEXP, SEXP presmooth_nsubsetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -132,13 +132,15 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type h(hSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<double> >::type Delta(DeltaSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_locreg_cpp(data, t, center, kernel_name, h, Delta));
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw_grid(presmooth_bw_gridSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<int> >::type presmooth_nsubset(presmooth_nsubsetSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_locreg_cpp(data, t, center, kernel_name, h, Delta, presmooth_bw_grid, presmooth_nsubset));
     return rcpp_result_gen;
 END_RCPP
 }
 // estimate_mean_risk_cpp
-arma::mat estimate_mean_risk_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<arma::vec> bw_grid, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_estimate_mean_risk_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP bw_gridSEXP, SEXP kernel_nameSEXP) {
+arma::mat estimate_mean_risk_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<arma::vec> bw_grid, const std::string kernel_name, const Rcpp::Nullable<arma::vec> presmooth_bw, const Rcpp::Nullable<double> Delta, const Rcpp::Nullable<arma::vec> presmooth_bw_grid, const Rcpp::Nullable<int> presmooth_nsubset);
+RcppExport SEXP _adaptiveFTS_estimate_mean_risk_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP bw_gridSEXP, SEXP kernel_nameSEXP, SEXP presmooth_bwSEXP, SEXP DeltaSEXP, SEXP presmooth_bw_gridSEXP, SEXP presmooth_nsubsetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -146,13 +148,17 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_grid(bw_gridSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_mean_risk_cpp(data, t, bw_grid, kernel_name));
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw(presmooth_bwSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<double> >::type Delta(DeltaSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw_grid(presmooth_bw_gridSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<int> >::type presmooth_nsubset(presmooth_nsubsetSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_mean_risk_cpp(data, t, bw_grid, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset));
     return rcpp_result_gen;
 END_RCPP
 }
 // estimate_mean_cpp
-arma::mat estimate_mean_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<arma::vec> bw, const Rcpp::Nullable<arma::vec> bw_grid, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_estimate_mean_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP bwSEXP, SEXP bw_gridSEXP, SEXP kernel_nameSEXP) {
+arma::mat estimate_mean_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<arma::vec> bw, const Rcpp::Nullable<arma::vec> bw_grid, const std::string kernel_name, const Rcpp::Nullable<arma::vec> presmooth_bw, const Rcpp::Nullable<double> Delta, const Rcpp::Nullable<arma::vec> presmooth_bw_grid, const Rcpp::Nullable<int> presmooth_nsubset);
+RcppExport SEXP _adaptiveFTS_estimate_mean_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP bwSEXP, SEXP bw_gridSEXP, SEXP kernel_nameSEXP, SEXP presmooth_bwSEXP, SEXP DeltaSEXP, SEXP presmooth_bw_gridSEXP, SEXP presmooth_nsubsetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -161,13 +167,17 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw(bwSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_grid(bw_gridSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_mean_cpp(data, t, bw, bw_grid, kernel_name));
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw(presmooth_bwSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<double> >::type Delta(DeltaSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw_grid(presmooth_bw_gridSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<int> >::type presmooth_nsubset(presmooth_nsubsetSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_mean_cpp(data, t, bw, bw_grid, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset));
     return rcpp_result_gen;
 END_RCPP
 }
 // estimate_autocov_risk_cpp
-arma::mat estimate_autocov_risk_cpp(const Rcpp::DataFrame data, const arma::vec s, const arma::vec t, const int lag, const Rcpp::Nullable<arma::vec> bw_grid, const bool common_bw, const bool center, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_estimate_autocov_risk_cpp(SEXP dataSEXP, SEXP sSEXP, SEXP tSEXP, SEXP lagSEXP, SEXP bw_gridSEXP, SEXP common_bwSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP) {
+arma::mat estimate_autocov_risk_cpp(const Rcpp::DataFrame data, const arma::vec s, const arma::vec t, const int lag, const Rcpp::Nullable<arma::vec> bw_grid, const bool common_bw, const bool center, const std::string kernel_name, const Rcpp::Nullable<arma::vec> presmooth_bw, const Rcpp::Nullable<double> Delta, const Rcpp::Nullable<arma::vec> presmooth_bw_grid, const Rcpp::Nullable<int> presmooth_nsubset);
+RcppExport SEXP _adaptiveFTS_estimate_autocov_risk_cpp(SEXP dataSEXP, SEXP sSEXP, SEXP tSEXP, SEXP lagSEXP, SEXP bw_gridSEXP, SEXP common_bwSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP, SEXP presmooth_bwSEXP, SEXP DeltaSEXP, SEXP presmooth_bw_gridSEXP, SEXP presmooth_nsubsetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -179,7 +189,11 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool >::type common_bw(common_bwSEXP);
     Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_autocov_risk_cpp(data, s, t, lag, bw_grid, common_bw, center, kernel_name));
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw(presmooth_bwSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<double> >::type Delta(DeltaSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw_grid(presmooth_bw_gridSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<int> >::type presmooth_nsubset(presmooth_nsubsetSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_autocov_risk_cpp(data, s, t, lag, bw_grid, common_bw, center, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -209,8 +223,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // estimate_autocov_cpp
-arma::mat estimate_autocov_cpp(const Rcpp::DataFrame data, const arma::vec s, const arma::vec t, const int lag, const Rcpp::Nullable<arma::vec> bw_s, const Rcpp::Nullable<arma::vec> bw_t, const Rcpp::Nullable<arma::vec> bw_grid, const bool common_bw, const bool center, const bool correct_diagonal, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_estimate_autocov_cpp(SEXP dataSEXP, SEXP sSEXP, SEXP tSEXP, SEXP lagSEXP, SEXP bw_sSEXP, SEXP bw_tSEXP, SEXP bw_gridSEXP, SEXP common_bwSEXP, SEXP centerSEXP, SEXP correct_diagonalSEXP, SEXP kernel_nameSEXP) {
+arma::mat estimate_autocov_cpp(const Rcpp::DataFrame data, const arma::vec s, const arma::vec t, const int lag, const Rcpp::Nullable<arma::vec> bw_s, const Rcpp::Nullable<arma::vec> bw_t, const Rcpp::Nullable<arma::vec> bw_grid, const bool common_bw, const bool center, const bool correct_diagonal, const std::string kernel_name, const Rcpp::Nullable<arma::vec> presmooth_bw, const Rcpp::Nullable<double> Delta, const Rcpp::Nullable<arma::vec> presmooth_bw_grid, const Rcpp::Nullable<int> presmooth_nsubset);
+RcppExport SEXP _adaptiveFTS_estimate_autocov_cpp(SEXP dataSEXP, SEXP sSEXP, SEXP tSEXP, SEXP lagSEXP, SEXP bw_sSEXP, SEXP bw_tSEXP, SEXP bw_gridSEXP, SEXP common_bwSEXP, SEXP centerSEXP, SEXP correct_diagonalSEXP, SEXP kernel_nameSEXP, SEXP presmooth_bwSEXP, SEXP DeltaSEXP, SEXP presmooth_bw_gridSEXP, SEXP presmooth_nsubsetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -225,13 +239,17 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
     Rcpp::traits::input_parameter< const bool >::type correct_diagonal(correct_diagonalSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_autocov_cpp(data, s, t, lag, bw_s, bw_t, bw_grid, common_bw, center, correct_diagonal, kernel_name));
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw(presmooth_bwSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<double> >::type Delta(DeltaSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw_grid(presmooth_bw_gridSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<int> >::type presmooth_nsubset(presmooth_nsubsetSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_autocov_cpp(data, s, t, lag, bw_s, bw_t, bw_grid, common_bw, center, correct_diagonal, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset));
     return rcpp_result_gen;
 END_RCPP
 }
 // estimate_cov_segment_risk_cpp
-arma::mat estimate_cov_segment_risk_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<arma::vec> bw_grid, const bool center, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_estimate_cov_segment_risk_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP bw_gridSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP) {
+arma::mat estimate_cov_segment_risk_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<arma::vec> bw_grid, const bool center, const std::string kernel_name, const Rcpp::Nullable<arma::vec> presmooth_bw, const Rcpp::Nullable<double> Delta, const Rcpp::Nullable<arma::vec> presmooth_bw_grid, const Rcpp::Nullable<int> presmooth_nsubset);
+RcppExport SEXP _adaptiveFTS_estimate_cov_segment_risk_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP bw_gridSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP, SEXP presmooth_bwSEXP, SEXP DeltaSEXP, SEXP presmooth_bw_gridSEXP, SEXP presmooth_nsubsetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -240,13 +258,17 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_grid(bw_gridSEXP);
     Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_cov_segment_risk_cpp(data, t, bw_grid, center, kernel_name));
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw(presmooth_bwSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<double> >::type Delta(DeltaSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw_grid(presmooth_bw_gridSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<int> >::type presmooth_nsubset(presmooth_nsubsetSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_cov_segment_risk_cpp(data, t, bw_grid, center, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset));
     return rcpp_result_gen;
 END_RCPP
 }
 // estimate_cov_segment_cpp
-arma::mat estimate_cov_segment_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<arma::vec> bw, const Rcpp::Nullable<arma::vec> bw_grid, const bool center, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_estimate_cov_segment_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP bwSEXP, SEXP bw_gridSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP) {
+arma::mat estimate_cov_segment_cpp(const Rcpp::DataFrame data, const arma::vec t, const Rcpp::Nullable<arma::vec> bw, const Rcpp::Nullable<arma::vec> bw_grid, const bool center, const std::string kernel_name, const Rcpp::Nullable<arma::vec> presmooth_bw, const Rcpp::Nullable<double> Delta, const Rcpp::Nullable<arma::vec> presmooth_bw_grid, const Rcpp::Nullable<int> presmooth_nsubset);
+RcppExport SEXP _adaptiveFTS_estimate_cov_segment_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP bwSEXP, SEXP bw_gridSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP, SEXP presmooth_bwSEXP, SEXP DeltaSEXP, SEXP presmooth_bw_gridSEXP, SEXP presmooth_nsubsetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -256,7 +278,11 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type bw_grid(bw_gridSEXP);
     Rcpp::traits::input_parameter< const bool >::type center(centerSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(estimate_cov_segment_cpp(data, t, bw, bw_grid, center, kernel_name));
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw(presmooth_bwSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<double> >::type Delta(DeltaSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw_grid(presmooth_bw_gridSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<int> >::type presmooth_nsubset(presmooth_nsubsetSEXP);
+    rcpp_result_gen = Rcpp::wrap(estimate_cov_segment_cpp(data, t, bw, bw_grid, center, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -513,8 +539,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // blup_fit_cpp
-Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data, const int id_conditioning_curve, const arma::vec bw_grid, const arma::vec rho, const bool homoscedastic, const double tikhonov, const int bw_subgrid_size, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_blup_fit_cpp(SEXP dataSEXP, SEXP id_conditioning_curveSEXP, SEXP bw_gridSEXP, SEXP rhoSEXP, SEXP homoscedasticSEXP, SEXP tikhonovSEXP, SEXP bw_subgrid_sizeSEXP, SEXP kernel_nameSEXP) {
+Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data, const int id_conditioning_curve, const arma::vec bw_grid, const arma::vec rho, const bool homoscedastic, const double tikhonov, const int bw_subgrid_size, const std::string kernel_name, const Rcpp::Nullable<arma::vec> presmooth_bw, const Rcpp::Nullable<double> Delta, const Rcpp::Nullable<arma::vec> presmooth_bw_grid, const Rcpp::Nullable<int> presmooth_nsubset);
+RcppExport SEXP _adaptiveFTS_blup_fit_cpp(SEXP dataSEXP, SEXP id_conditioning_curveSEXP, SEXP bw_gridSEXP, SEXP rhoSEXP, SEXP homoscedasticSEXP, SEXP tikhonovSEXP, SEXP bw_subgrid_sizeSEXP, SEXP kernel_nameSEXP, SEXP presmooth_bwSEXP, SEXP DeltaSEXP, SEXP presmooth_bw_gridSEXP, SEXP presmooth_nsubsetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -526,7 +552,11 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const double >::type tikhonov(tikhonovSEXP);
     Rcpp::traits::input_parameter< const int >::type bw_subgrid_size(bw_subgrid_sizeSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(blup_fit_cpp(data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, bw_subgrid_size, kernel_name));
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw(presmooth_bwSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<double> >::type Delta(DeltaSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw_grid(presmooth_bw_gridSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<int> >::type presmooth_nsubset(presmooth_nsubsetSEXP);
+    rcpp_result_gen = Rcpp::wrap(blup_fit_cpp(data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, bw_subgrid_size, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -567,15 +597,15 @@ static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_estimate_nw_cpp", (DL_FUNC) &_adaptiveFTS_estimate_nw_cpp, 5},
     {"_adaptiveFTS_estimate_nw_bw_cpp", (DL_FUNC) &_adaptiveFTS_estimate_nw_bw_cpp, 4},
     {"_adaptiveFTS_get_nw_optimal_bw_cpp", (DL_FUNC) &_adaptiveFTS_get_nw_optimal_bw_cpp, 4},
-    {"_adaptiveFTS_estimate_locreg_cpp", (DL_FUNC) &_adaptiveFTS_estimate_locreg_cpp, 6},
-    {"_adaptiveFTS_estimate_mean_risk_cpp", (DL_FUNC) &_adaptiveFTS_estimate_mean_risk_cpp, 4},
-    {"_adaptiveFTS_estimate_mean_cpp", (DL_FUNC) &_adaptiveFTS_estimate_mean_cpp, 5},
-    {"_adaptiveFTS_estimate_autocov_risk_cpp", (DL_FUNC) &_adaptiveFTS_estimate_autocov_risk_cpp, 8},
+    {"_adaptiveFTS_estimate_locreg_cpp", (DL_FUNC) &_adaptiveFTS_estimate_locreg_cpp, 8},
+    {"_adaptiveFTS_estimate_mean_risk_cpp", (DL_FUNC) &_adaptiveFTS_estimate_mean_risk_cpp, 8},
+    {"_adaptiveFTS_estimate_mean_cpp", (DL_FUNC) &_adaptiveFTS_estimate_mean_cpp, 9},
+    {"_adaptiveFTS_estimate_autocov_risk_cpp", (DL_FUNC) &_adaptiveFTS_estimate_autocov_risk_cpp, 12},
     {"_adaptiveFTS_get_upper_tri_couple", (DL_FUNC) &_adaptiveFTS_get_upper_tri_couple, 2},
     {"_adaptiveFTS_sort_by_columns", (DL_FUNC) &_adaptiveFTS_sort_by_columns, 3},
-    {"_adaptiveFTS_estimate_autocov_cpp", (DL_FUNC) &_adaptiveFTS_estimate_autocov_cpp, 11},
-    {"_adaptiveFTS_estimate_cov_segment_risk_cpp", (DL_FUNC) &_adaptiveFTS_estimate_cov_segment_risk_cpp, 5},
-    {"_adaptiveFTS_estimate_cov_segment_cpp", (DL_FUNC) &_adaptiveFTS_estimate_cov_segment_cpp, 6},
+    {"_adaptiveFTS_estimate_autocov_cpp", (DL_FUNC) &_adaptiveFTS_estimate_autocov_cpp, 15},
+    {"_adaptiveFTS_estimate_cov_segment_risk_cpp", (DL_FUNC) &_adaptiveFTS_estimate_cov_segment_risk_cpp, 9},
+    {"_adaptiveFTS_estimate_cov_segment_cpp", (DL_FUNC) &_adaptiveFTS_estimate_cov_segment_cpp, 10},
     {"_adaptiveFTS_estimate_sigma_cpp", (DL_FUNC) &_adaptiveFTS_estimate_sigma_cpp, 2},
     {"_adaptiveFTS_estimate_empirical_mom_cpp", (DL_FUNC) &_adaptiveFTS_estimate_empirical_mom_cpp, 6},
     {"_adaptiveFTS_estimate_empirical_autocov_cpp", (DL_FUNC) &_adaptiveFTS_estimate_empirical_autocov_cpp, 5},
@@ -594,7 +624,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_psd_project_cpp", (DL_FUNC) &_adaptiveFTS_psd_project_cpp, 1},
     {"_adaptiveFTS_blup_mean_at_cpp", (DL_FUNC) &_adaptiveFTS_blup_mean_at_cpp, 4},
     {"_adaptiveFTS_blup_autocov_at_cpp", (DL_FUNC) &_adaptiveFTS_blup_autocov_at_cpp, 7},
-    {"_adaptiveFTS_blup_fit_cpp", (DL_FUNC) &_adaptiveFTS_blup_fit_cpp, 8},
+    {"_adaptiveFTS_blup_fit_cpp", (DL_FUNC) &_adaptiveFTS_blup_fit_cpp, 12},
     {"_adaptiveFTS_blup_predict_cpp", (DL_FUNC) &_adaptiveFTS_blup_predict_cpp, 16},
     {NULL, NULL, 0}
 };

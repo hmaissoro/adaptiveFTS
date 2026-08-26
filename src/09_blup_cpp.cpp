@@ -292,6 +292,15 @@ arma::mat blup_autocov_at_cpp(const Rcpp::DataFrame data, const arma::mat opt_bw
 //' @param tikhonov Tikhonov regularisation parameter.
 //' @param bw_subgrid_size Number of points per axis of the bandwidth sub-grid.
 //' @param kernel_name Kernel name.
+//' @param presmooth_bw Numeric (positive vector or scalar). Bandwidth used to presmooth
+//' each curve in the local regularity step, see `estimate_locreg_cpp`. Default
+//' \code{NULL} selects it by cross-validation.
+//' @param Delta Numeric (positive). Length of the neighborhood of each point used in the
+//' local regularity step. Default \code{NULL} estimates it from the data.
+//' @param presmooth_bw_grid Numeric vector. Candidate bandwidths of the cross-validation
+//' that selects \code{presmooth_bw}. Default \code{NULL} uses the default grid.
+//' @param presmooth_nsubset Integer (positive). Number of curves used by that
+//' cross-validation. Default \code{NULL} uses min(70, floor(N / 2)) curves.
 //'
 //' @return A list with the cached bandwidths, the covariance operator, the
 //'   mean, the noise level, the regularised variance matrix and the residual.
@@ -304,7 +313,11 @@ Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data,
                         const bool homoscedastic,
                         const double tikhonov,
                         const int bw_subgrid_size,
-                        const std::string kernel_name) {
+                        const std::string kernel_name,
+                        const Rcpp::Nullable<arma::vec> presmooth_bw = R_NilValue,
+                        const Rcpp::Nullable<double> Delta = R_NilValue,
+                        const Rcpp::Nullable<arma::vec> presmooth_bw_grid = R_NilValue,
+                        const Rcpp::Nullable<int> presmooth_nsubset = R_NilValue) {
   arma::mat data_mat(data.nrows(), 3);
   data_mat.col(0) = as<arma::vec>(data["id_curve"]);
   data_mat.col(1) = as<arma::vec>(data["tobs"]);
@@ -329,13 +342,19 @@ Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data,
   Rcpp::NumericVector bw_grid_r = Rcpp::wrap(bw_grid);
   Rcpp::Nullable<arma::vec> bwg((SEXP) bw_grid_r);
 
-  arma::mat mean_risk = estimate_mean_risk_cpp(data, sub_vec, bwg, kernel_name);
+  // Only the three risk minimisations below can reach estimate_locreg_cpp. Every
+  // other estimator call in this file (mean_at / autocov_at) passes explicit cached
+  // bandwidths, which short-circuits the risk branch, so they need no forwarding.
+  arma::mat mean_risk = estimate_mean_risk_cpp(data, sub_vec, bwg, kernel_name,
+                                               presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset);
   arma::mat opt_mean = select_mean_optbw(mean_risk, sub_vec);
 
-  arma::mat cov_risk = estimate_autocov_risk_cpp(data, gs, gt, 0, bwg, false, true, kernel_name);
+  arma::mat cov_risk = estimate_autocov_risk_cpp(data, gs, gt, 0, bwg, false, true, kernel_name,
+                                                 presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset);
   arma::mat opt_cov = select_autocov_optbw(cov_risk, gs, gt);
 
-  arma::mat autocov_risk = estimate_autocov_risk_cpp(data, gs, gt, 1, bwg, false, true, kernel_name);
+  arma::mat autocov_risk = estimate_autocov_risk_cpp(data, gs, gt, 1, bwg, false, true, kernel_name,
+                                                     presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset);
   arma::mat opt_autocov = select_autocov_optbw(autocov_risk, gs, gt);
 
   Cond c = condition(data, opt_mean, opt_cov, Tn0, Yn0, rho, homoscedastic, tikhonov, kernel_name);
