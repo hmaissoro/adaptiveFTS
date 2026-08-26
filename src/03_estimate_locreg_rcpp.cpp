@@ -18,6 +18,12 @@ using namespace arma;
  //' and each element of the vector must correspond to a curve given in the same order as in \code{data}.
  //' @param Delta Numeric (positive). The length of the neighborhood of \code{t} around which the local regularity is to be estimated.
  //' Default \code{Delta = NULL} and thus it will be estimated from the data.
+ //' @param presmooth_bw_grid Numeric vector. Candidate bandwidths of the cross-validation
+ //' that selects \code{h} when \code{h = NULL}. Default \code{presmooth_bw_grid = NULL} uses
+ //' the default grid of `get_nw_optimal_bw_cpp`. Ignored when \code{h} is supplied.
+ //' @param presmooth_nsubset Integer (positive). Number of curves used by that cross-validation.
+ //' Default \code{presmooth_nsubset = NULL} uses min(70, floor(N / 2)) curves.
+ //' Ignored when \code{h} is supplied.
  //'
  //' @return A \code{matrix} containing the following six columns in order:
  //' \enumerate{
@@ -40,7 +46,9 @@ using namespace arma;
                                const bool center,
                                const std::string kernel_name = "epanechnikov",
                                const Rcpp::Nullable<arma::vec> h = R_NilValue,
-                               const Rcpp::Nullable<double> Delta = R_NilValue){
+                               const Rcpp::Nullable<double> Delta = R_NilValue,
+                               const Rcpp::Nullable<arma::vec> presmooth_bw_grid = R_NilValue,
+                               const Rcpp::Nullable<int> presmooth_nsubset = R_NilValue){
    if (t.size() == 0) {
      stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.");
    }
@@ -63,7 +71,7 @@ using namespace arma;
    arma::vec hvec_to_use(n_curve);
    if (h.isNull()) {
      // Get the bandwidth grid and estimate best bandwidth
-     double hbest = get_nw_optimal_bw_cpp(data, R_NilValue, R_NilValue, kernel_name);
+     double hbest = get_nw_optimal_bw_cpp(data, presmooth_bw_grid, presmooth_nsubset, kernel_name);
      hvec_to_use.fill(hbest);
    } else {
      arma::vec hvec = Rcpp::as<arma::vec>(h);
@@ -79,14 +87,19 @@ using namespace arma;
      }
    }
 
-   // Control on Delta
+   // Control on Delta. NB : the range test must read the *supplied* value; it
+   // previously tested `Delta_to_use`, which is still 0 at that point, so the
+   // two range clauses could never fire and a user-supplied Delta went unchecked.
    double Delta_to_use = 0;
-   if (Delta.isNull() || Delta_to_use < 0 || Delta_to_use > 1) {
+   if (Delta.isNull()) {
      // Estimate lambda
      double lambdahat = arma::mean(hist(data_mat.col(0), unique_id_curve));
      Delta_to_use = std::min(exp(- std::pow(log(lambdahat), 1.0 / 3)), 0.2);
    } else {
      Delta_to_use = as<double>(Delta);
+     if (!(Delta_to_use > 0) || Delta_to_use > 1) {
+       stop("If 'Delta' is not NULL, it must be a scalar value between 0 and 1.");
+     }
    }
 
    // Take into account the cases where t-Delta/2 < 0 and t + Delta/2

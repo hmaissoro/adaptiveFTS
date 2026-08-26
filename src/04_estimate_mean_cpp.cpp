@@ -20,6 +20,15 @@ using namespace arma;
  //' @param bw_grid A numeric vector representing the bandwidth grid in which the best smoothing parameter is selected for each t.
  //' It can be NULL, in which case it will be defined as an exponential grid of \eqn{N \times \lambda}.
  //' @param kernel_name A string specifying the kernel function of the Nadaraya-Watson estimator. Default is "epanechnikov".
+ //' @param presmooth_bw Numeric (positive vector or scalar). Bandwidth used to presmooth
+ //' each curve in the local regularity step, see `estimate_locreg_cpp`. Default
+ //' \code{NULL} selects it by cross-validation.
+ //' @param Delta Numeric (positive). Length of the neighborhood of each point used in the
+ //' local regularity step. Default \code{NULL} estimates it from the data.
+ //' @param presmooth_bw_grid Numeric vector. Candidate bandwidths of the cross-validation
+ //' that selects \code{presmooth_bw}. Default \code{NULL} uses the default grid.
+ //' @param presmooth_nsubset Integer (positive). Number of curves used by that
+ //' cross-validation. Default \code{NULL} uses min(70, floor(N / 2)) curves.
  //'
  //' @return A matrix containing the following ten columns:
  //'          \itemize{
@@ -71,7 +80,11 @@ using namespace arma;
  // [[Rcpp::export]]
  arma::mat estimate_mean_risk_cpp(const Rcpp::DataFrame data, const arma::vec t,
                                   const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
-                                  const std::string kernel_name = "epanechnikov") {
+                                  const std::string kernel_name = "epanechnikov",
+                                  const Rcpp::Nullable<arma::vec> presmooth_bw = R_NilValue,
+                                  const Rcpp::Nullable<double> Delta = R_NilValue,
+                                  const Rcpp::Nullable<arma::vec> presmooth_bw_grid = R_NilValue,
+                                  const Rcpp::Nullable<int> presmooth_nsubset = R_NilValue) {
    if (t.size() == 0) {
      Rcpp::stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.");
    }
@@ -112,7 +125,7 @@ using namespace arma;
    int bw_size = bw_grid_to_use.size();
 
    // Estimate local regularity
-   arma::mat mat_locreg = estimate_locreg_cpp(data, t, true, kernel_name, R_NilValue, R_NilValue);
+   arma::mat mat_locreg = estimate_locreg_cpp(data, t, true, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset);
    arma::vec h(n_curve, arma::fill::value(mat_locreg(0, 1))); // extract the presmoothing bandwidth
 
    // Estimate the error sd
@@ -228,6 +241,15 @@ using namespace arma;
  //' @param kernel_name A string specifying the kernel to be used. Supported kernels are:
  //' \code{"epanechnikov"}, \code{"biweight"}, \code{"triweight"}, \code{"tricube"},
  //' \code{"triangular"}, and \code{"uniform"}.
+ //' @param presmooth_bw Numeric (positive vector or scalar). Bandwidth used to presmooth
+ //' each curve in the local regularity step, see `estimate_locreg_cpp`. Default
+ //' \code{NULL} selects it by cross-validation.
+ //' @param Delta Numeric (positive). Length of the neighborhood of each point used in the
+ //' local regularity step. Default \code{NULL} estimates it from the data.
+ //' @param presmooth_bw_grid Numeric vector. Candidate bandwidths of the cross-validation
+ //' that selects \code{presmooth_bw}. Default \code{NULL} uses the default grid.
+ //' @param presmooth_nsubset Integer (positive). Number of curves used by that
+ //' cross-validation. Default \code{NULL} uses min(70, floor(N / 2)) curves.
  //' @return A matrix where each row contains the following columns:
  //' \itemize{
  //'   \item \code{t} - The evaluation point.
@@ -258,7 +280,11 @@ using namespace arma;
  arma::mat estimate_mean_cpp(const Rcpp::DataFrame data, const arma::vec t,
                              const Rcpp::Nullable<arma::vec> bw = R_NilValue,
                              const Rcpp::Nullable<arma::vec> bw_grid = R_NilValue,
-                             const std::string kernel_name = "epanechnikov"){
+                             const std::string kernel_name = "epanechnikov",
+                             const Rcpp::Nullable<arma::vec> presmooth_bw = R_NilValue,
+                             const Rcpp::Nullable<double> Delta = R_NilValue,
+                             const Rcpp::Nullable<arma::vec> presmooth_bw_grid = R_NilValue,
+                             const Rcpp::Nullable<int> presmooth_nsubset = R_NilValue){
    if (t.size() == 0) {
      stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.");
    }
@@ -288,7 +314,7 @@ using namespace arma;
    arma::vec Ht_used(n);
    arma::vec Lt_used(n);
    if (bw.isNull()) {
-     arma::mat mat_risk = estimate_mean_risk_cpp(data, t, bw_grid, kernel_name);
+     arma::mat mat_risk = estimate_mean_risk_cpp(data, t, bw_grid, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset);
      for (int k = 0; k < n; ++k) {
        // Find rows in mat_risk where the first column equals t(k)
        arma::uvec idx_risk_cur = arma::find(mat_risk.col(0) == t(k));

@@ -7,6 +7,8 @@ arma::mat estimate_locreg_cpp(const Rcpp::DataFrame data, const arma::vec t,
                               const bool center,
                               const std::string kernel_name = "epanechnikov",
                               const Rcpp::Nullable<arma::vec> h = R_NilValue,
-                              const Rcpp::Nullable<double> Delta = R_NilValue);
+                              const Rcpp::Nullable<double> Delta = R_NilValue,
+                              const Rcpp::Nullable<arma::vec> presmooth_bw_grid = R_NilValue,
+                              const Rcpp::Nullable<int> presmooth_nsubset = R_NilValue);
 
 #endif
