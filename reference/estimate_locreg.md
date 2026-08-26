@@ -17,6 +17,8 @@ estimate_locreg(
   t = 1/2,
   Delta = NULL,
   presmooth_bw = NULL,
+  presmooth_bw_grid = NULL,
+  presmooth_nsubset = NULL,
   kernel_name = "epanechnikov",
   center = TRUE
 )
@@ -69,6 +71,21 @@ estimate_locreg(
   cross-validation over every curve, as
   [get_nw_optimal_bw](https://hmaissoro.github.io/adaptiveFTS/reference/get_nw_optimal_bw.md)
   does.
+
+- presmooth_bw_grid:
+
+  `vector (numeric)`. Candidate bandwidths of the cross-validation that
+  selects `presmooth_bw` when the latter is `NULL`. Default `NULL` uses
+  the default grid of
+  [get_nw_optimal_bw](https://hmaissoro.github.io/adaptiveFTS/reference/get_nw_optimal_bw.md).
+  Ignored when `presmooth_bw` is supplied.
+
+- presmooth_nsubset:
+
+  `integer (positive)`. Number of curves used by that cross-validation.
+  Default `NULL` uses `min(70, floor(N / 2))` curves, where \\N\\ is the
+  number of curves. Lower it to speed up the selection on large samples.
+  Ignored when `presmooth_bw` is supplied.
 
 - kernel_name:
 

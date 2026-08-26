@@ -28,9 +28,7 @@ save_plot_tikz(
 
   A printable plot object — typically a
   [ggplot2::ggplot](https://ggplot2.tidyverse.org/reference/ggplot.html),
-  a
-  [`ggpubr::ggarrange`](https://rpkgs.datanovia.com/ggpubr/reference/ggarrange.html)
-  arrangement, or any object whose
+  a `ggpubr::ggarrange` arrangement, or any object whose
   [`print()`](https://rdrr.io/r/base/print.html) method draws to the
   current graphics device.
 

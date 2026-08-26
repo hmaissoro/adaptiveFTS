@@ -64,7 +64,11 @@ selection carried alongside the prediction.</p>
 <span>  tikhonov <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  tikhonov_grid <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  bw_grid <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  density_bw <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  density_bw <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  presmooth_bw <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  Delta <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  presmooth_bw_grid <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  presmooth_nsubset <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -149,6 +153,35 @@ Default <code>NULL</code> sets a geometric grid from the data.</p></dd>
 <dd><p>Optional fixed design-density bandwidth reused for every
 <code>estimate_density</code> call (independent design only). Default <code>NULL</code> selects it
 once via <code><a href="get_density_optimal_bw.html">get_density_optimal_bw()</a></code>.</p></dd>
+
+
+<dt id="arg-presmooth-bw">presmooth_bw<a class="anchor" aria-label="anchor" href="#arg-presmooth-bw"></a></dt>
+<dd><p><code>numeric (positive vector or scalar)</code>. Bandwidth of
+the Nadaraya-Watson estimator used to presmooth each curve before the
+regularity is estimated. A scalar applies the same bandwidth to every curve; a
+vector must hold one bandwidth per curve, in the order the curves appear in
+<code>data</code>. Default <code>NULL</code> selects a single bandwidth by cross-validation
+over every curve, as <a href="get_nw_optimal_bw.html">get_nw_optimal_bw</a> does.</p></dd>
+
+
+<dt id="arg-delta">Delta<a class="anchor" aria-label="anchor" href="#arg-delta"></a></dt>
+<dd><p><code>numeric (positive)</code>. Length of the neighbourhood around each
+point of <code>t</code> used to estimate the local regularity. Default <code>NULL</code>
+sets it from the data; see Details.</p></dd>
+
+
+<dt id="arg-presmooth-bw-grid">presmooth_bw_grid<a class="anchor" aria-label="anchor" href="#arg-presmooth-bw-grid"></a></dt>
+<dd><p><code>vector (numeric)</code>. Candidate bandwidths of the
+cross-validation that selects <code>presmooth_bw</code> when the latter is <code>NULL</code>.
+Default <code>NULL</code> uses the default grid of <a href="get_nw_optimal_bw.html">get_nw_optimal_bw</a>. Ignored
+when <code>presmooth_bw</code> is supplied.</p></dd>
+
+
+<dt id="arg-presmooth-nsubset">presmooth_nsubset<a class="anchor" aria-label="anchor" href="#arg-presmooth-nsubset"></a></dt>
+<dd><p><code>integer (positive)</code>. Number of curves used by
+that cross-validation. Default <code>NULL</code> uses <code>min(70, floor(N / 2))</code>
+curves, where \(N\) is the number of curves. Lower it to speed up the
+selection on large samples. Ignored when <code>presmooth_bw</code> is supplied.</p></dd>
 
 </dl></div>
     <div class="section level2">

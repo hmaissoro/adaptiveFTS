@@ -21,6 +21,10 @@ estimate_autocov_risk(
   bw_grid = NULL,
   common_bw = FALSE,
   center_curves = TRUE,
+  presmooth_bw = NULL,
+  Delta = NULL,
+  presmooth_bw_grid = NULL,
+  presmooth_nsubset = NULL,
   kernel_name = "epanechnikov"
 )
 ```
@@ -83,7 +87,40 @@ estimate_autocov_risk(
 - center_curves:
 
   `logical`. If `TRUE` (default), the curves are centred before
-  smoothing.
+  smoothing. It governs the moment and autocovariance estimators only:
+  the local regularity step always centres the curves.
+
+- presmooth_bw:
+
+  `numeric (positive vector or scalar)`. Bandwidth of the
+  Nadaraya-Watson estimator used to presmooth each curve before the
+  regularity is estimated. A scalar applies the same bandwidth to every
+  curve; a vector must hold one bandwidth per curve, in the order the
+  curves appear in `data`. Default `NULL` selects a single bandwidth by
+  cross-validation over every curve, as
+  [get_nw_optimal_bw](https://hmaissoro.github.io/adaptiveFTS/reference/get_nw_optimal_bw.md)
+  does.
+
+- Delta:
+
+  `numeric (positive)`. Length of the neighbourhood around each point of
+  `t` used to estimate the local regularity. Default `NULL` sets it from
+  the data; see Details.
+
+- presmooth_bw_grid:
+
+  `vector (numeric)`. Candidate bandwidths of the cross-validation that
+  selects `presmooth_bw` when the latter is `NULL`. Default `NULL` uses
+  the default grid of
+  [get_nw_optimal_bw](https://hmaissoro.github.io/adaptiveFTS/reference/get_nw_optimal_bw.md).
+  Ignored when `presmooth_bw` is supplied.
+
+- presmooth_nsubset:
+
+  `integer (positive)`. Number of curves used by that cross-validation.
+  Default `NULL` uses `min(70, floor(N / 2))` curves, where \\N\\ is the
+  number of curves. Lower it to speed up the selection on large samples.
+  Ignored when `presmooth_bw` is supplied.
 
 - kernel_name:
 

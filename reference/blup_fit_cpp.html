@@ -54,7 +54,11 @@ the R function <code><a href="blup_fit.html">blup_fit()</a></code>; not intended
 <span>  <span class="va">homoscedastic</span>,</span>
 <span>  <span class="va">tikhonov</span>,</span>
 <span>  <span class="va">bw_subgrid_size</span>,</span>
-<span>  <span class="va">kernel_name</span></span>
+<span>  <span class="va">kernel_name</span>,</span>
+<span>  presmooth_bw <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  Delta <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  presmooth_bw_grid <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  presmooth_nsubset <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -92,6 +96,27 @@ the R function <code><a href="blup_fit.html">blup_fit()</a></code>; not intended
 
 <dt id="arg-kernel-name">kernel_name<a class="anchor" aria-label="anchor" href="#arg-kernel-name"></a></dt>
 <dd><p>Kernel name.</p></dd>
+
+
+<dt id="arg-presmooth-bw">presmooth_bw<a class="anchor" aria-label="anchor" href="#arg-presmooth-bw"></a></dt>
+<dd><p>Numeric (positive vector or scalar). Bandwidth used to presmooth
+each curve in the local regularity step, see <code>estimate_locreg_cpp</code>. Default
+<code>NULL</code> selects it by cross-validation.</p></dd>
+
+
+<dt id="arg-delta">Delta<a class="anchor" aria-label="anchor" href="#arg-delta"></a></dt>
+<dd><p>Numeric (positive). Length of the neighborhood of each point used in the
+local regularity step. Default <code>NULL</code> estimates it from the data.</p></dd>
+
+
+<dt id="arg-presmooth-bw-grid">presmooth_bw_grid<a class="anchor" aria-label="anchor" href="#arg-presmooth-bw-grid"></a></dt>
+<dd><p>Numeric vector. Candidate bandwidths of the cross-validation
+that selects <code>presmooth_bw</code>. Default <code>NULL</code> uses the default grid.</p></dd>
+
+
+<dt id="arg-presmooth-nsubset">presmooth_nsubset<a class="anchor" aria-label="anchor" href="#arg-presmooth-nsubset"></a></dt>
+<dd><p>Integer (positive). Number of curves used by that
+cross-validation. Default <code>NULL</code> uses min(70, floor(N / 2)) curves.</p></dd>
 
 </dl></div>
     <div class="section level2">

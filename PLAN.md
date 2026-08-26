@@ -275,11 +275,9 @@ varying per-curve `M_n`, boundary domain points (t at 0/1), single-curve
 CRAN-legal.
 
 Files: new `tests/` tree, `DESCRIPTION` (Suggests + Config). Validation:
-`devtools::test()` green;
-[`covr::package_coverage()`](http://covr.r-lib.org/reference/package_coverage.md)
-shows every export hit at least once. Risks: long-running estimators —
-use minimal fixtures and precomputed bandwidths to keep tests sub-second
-where possible.
+`devtools::test()` green; `covr::package_coverage()` shows every export
+hit at least once. Risks: long-running estimators — use minimal fixtures
+and precomputed bandwidths to keep tests sub-second where possible.
 
 ------------------------------------------------------------------------
 

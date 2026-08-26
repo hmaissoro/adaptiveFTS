@@ -106,6 +106,42 @@
 
 ### New features
 
+- The local regularity step is now tunable from every adaptive
+  estimator. The estimators reach it through C++, which used to
+  hard-code its settings, so
+  [`estimate_mean_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean_risk.md),
+  [`estimate_mean()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_mean.md),
+  [`estimate_autocov_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_risk.md),
+  [`estimate_autocov()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov.md),
+  [`estimate_cov_segment_risk()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_cov_segment_risk.md),
+  [`estimate_cov_segment()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_cov_segment.md),
+  [`estimate_facf()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_facf.md),
+  [`blup_fit()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup_fit.md),
+  [`blup()`](https://hmaissoro.github.io/adaptiveFTS/reference/blup.md)
+  and
+  [`select_tikhonov_parameter()`](https://hmaissoro.github.io/adaptiveFTS/reference/select_tikhonov_parameter.md)
+  gain the four arguments
+  [`estimate_locreg()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_locreg.md)
+  already exposed: `presmooth_bw`, `Delta`, and the two new
+  cross-validation controls `presmooth_bw_grid` and `presmooth_nsubset`.
+  All default to `NULL` and reproduce the previous output bit-for-bit.
+
+  `presmooth_bw` is worth knowing about: the bandwidth chosen by the
+  regularity step is reused for the empirical moment and autocovariance
+  estimators that feed the risk, so setting it governs the whole
+  pre-smoothing stage rather than the regularity alone.
+
+  Note that `center_curves` still does not reach the regularity step,
+  which always centres the curves; this is now stated in the
+  documentation.
+
+- [`estimate_locreg()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_locreg.md)
+  gains `presmooth_bw_grid` and `presmooth_nsubset`, the candidate grid
+  and the number of curves used by the cross-validation that selects
+  `presmooth_bw`. Both are ignored when `presmooth_bw` is supplied.
+  Lowering `presmooth_nsubset` is the cheapest way to speed up the
+  selection on large samples.
+
 - [`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md)’s
   `shift_var` becomes `intercept_var` and is now exposed by
   [`simulate_fBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fBm.md),
@@ -122,6 +158,7 @@
   point, since `Var(xi(u)) = u^(2 H_u)` vanishes as `u -> 0`. The
   default `intercept_var = 0` reproduces the previous output
   bit-for-bit.
+
 - [`simulate_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_mfBm.md)
   and
   [`simulate_fBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fBm.md)
@@ -131,6 +168,13 @@
   a random ramp.
 
 ### Bug fixes
+
+- [`estimate_locreg()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_locreg.md)
+  did not validate a user-supplied `Delta`. The range check in the C++
+  core tested the still-uninitialised local variable rather than the
+  supplied value, so its two range clauses could never fire. `Delta` is
+  now checked in R, alongside the three other local regularity
+  arguments.
 
 - [`simulate_fBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/simulate_fBm.md)
   was missing a factor of 2 in the exponent of its covariance: it used
@@ -152,6 +196,7 @@
   [`.covariance_mfBm()`](https://hmaissoro.github.io/adaptiveFTS/reference/dot-covariance_mfBm.md),
   which always used the correct exponent — so the packaged `data_far`
   dataset is unchanged.
+
 - The C++ layer passed unprotected `Rcpp::wrap()` temporaries into
   `Rcpp::Nullable<arma::vec>` parameters at 19 call sites.
   `Rcpp::Nullable` stores a bare `SEXP` without protecting it, so the
@@ -170,11 +215,13 @@
   Every wrapped vector is now held in a protecting `Rcpp::NumericVector`
   for the duration of the call. Results are unchanged (bit-identical to
   the committed references).
+
 - [`estimate_autocov_bw_rp()`](https://hmaissoro.github.io/adaptiveFTS/reference/estimate_autocov_bw_rp.md)
   always returned a cross-validation error of zero, so the selected
   bandwidth was simply the first of the grid. The held-out mean
   estimates were read from the wrong grid object and silently resolved
   to `NULL`, which collapsed the error sum to zero for every candidate.
+
 - [`format_data()`](https://hmaissoro.github.io/adaptiveFTS/reference/format_data.md)
   mis-assigned observations when the rows of a curve were not contiguous
   in the input: the curve index was rebuilt from run lengths counted by
