@@ -71,6 +71,29 @@
 
 ## New features
 
+* The local regularity step is now tunable from every adaptive estimator. The
+  estimators reach it through C++, which used to hard-code its settings, so
+  `estimate_mean_risk()`, `estimate_mean()`, `estimate_autocov_risk()`,
+  `estimate_autocov()`, `estimate_cov_segment_risk()`, `estimate_cov_segment()`,
+  `estimate_facf()`, `blup_fit()`, `blup()` and `select_tikhonov_parameter()`
+  gain the four arguments `estimate_locreg()` already exposed:
+  `presmooth_bw`, `Delta`, and the two new cross-validation controls
+  `presmooth_bw_grid` and `presmooth_nsubset`. All default to `NULL` and
+  reproduce the previous output bit-for-bit.
+
+  `presmooth_bw` is worth knowing about: the bandwidth chosen by the regularity
+  step is reused for the empirical moment and autocovariance estimators that
+  feed the risk, so setting it governs the whole pre-smoothing stage rather than
+  the regularity alone.
+
+  Note that `center_curves` still does not reach the regularity step, which
+  always centres the curves; this is now stated in the documentation.
+* `estimate_locreg()` gains `presmooth_bw_grid` and `presmooth_nsubset`, the
+  candidate grid and the number of curves used by the cross-validation that
+  selects `presmooth_bw`. Both are ignored when `presmooth_bw` is supplied.
+  Lowering `presmooth_nsubset` is the cheapest way to speed up the selection on
+  large samples.
+
 * `simulate_mfBm()`'s `shift_var` becomes `intercept_var` and is now exposed by
   `simulate_fBm()`, `simulate_far()` and `simulate_fma()`. It is the variance of a per-curve random
   Gaussian intercept added to the innovation, expressed relative to the
@@ -87,6 +110,11 @@
   ramp.
 
 ## Bug fixes
+
+* `estimate_locreg()` did not validate a user-supplied `Delta`. The range check
+  in the C++ core tested the still-uninitialised local variable rather than the
+  supplied value, so its two range clauses could never fire. `Delta` is now
+  checked in R, alongside the three other local regularity arguments.
 
 * `simulate_fBm()` was missing a factor of 2 in the exponent of its covariance:
   it used `u^hurst + v^hurst - |u - v|^hurst` where fractional Brownian motion
