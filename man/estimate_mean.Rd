@@ -12,6 +12,10 @@ estimate_mean(
   t = c(1/4, 1/2, 3/4),
   bw = NULL,
   bw_grid = NULL,
+  presmooth_bw = NULL,
+  Delta = NULL,
+  presmooth_bw_grid = NULL,
+  presmooth_nsubset = NULL,
   kernel_name = "epanechnikov"
 )
 }
@@ -41,6 +45,27 @@ estimated by \link{estimate_mean_risk}.}
 \item{bw_grid}{\code{vector (numeric)}. Candidate bandwidths, from which
 \link{estimate_mean} picks the risk-minimising one at each \code{t}. Default
 \code{NULL} builds the grid from the data; see Details.}
+
+\item{presmooth_bw}{\code{numeric (positive vector or scalar)}. Bandwidth of
+the Nadaraya-Watson estimator used to presmooth each curve before the
+regularity is estimated. A scalar applies the same bandwidth to every curve; a
+vector must hold one bandwidth per curve, in the order the curves appear in
+\code{data}. Default \code{NULL} selects a single bandwidth by cross-validation
+over every curve, as \link{get_nw_optimal_bw} does.}
+
+\item{Delta}{\code{numeric (positive)}. Length of the neighbourhood around each
+point of \code{t} used to estimate the local regularity. Default \code{NULL}
+sets it from the data; see Details.}
+
+\item{presmooth_bw_grid}{\code{vector (numeric)}. Candidate bandwidths of the
+cross-validation that selects \code{presmooth_bw} when the latter is \code{NULL}.
+Default \code{NULL} uses the default grid of \link{get_nw_optimal_bw}. Ignored
+when \code{presmooth_bw} is supplied.}
+
+\item{presmooth_nsubset}{\code{integer (positive)}. Number of curves used by
+that cross-validation. Default \code{NULL} uses \code{min(70, floor(N / 2))}
+curves, where \eqn{N} is the number of curves. Lower it to speed up the
+selection on large samples. Ignored when \code{presmooth_bw} is supplied.}
 
 \item{kernel_name}{\code{string}. Kernel of the smoothing estimator, one of
 "epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and

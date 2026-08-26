@@ -56,7 +56,13 @@
 estimate_facf <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                           lag.max = 5L, t = NULL, n_grid = 25L,
                           bw_grid = NULL, common_bw = FALSE,
-                          center_curves = TRUE, kernel_name = "epanechnikov") {
+                          center_curves = TRUE,
+                          presmooth_bw = NULL, Delta = NULL,
+                          presmooth_bw_grid = NULL, presmooth_nsubset = NULL,
+                          kernel_name = "epanechnikov") {
+  .check_locreg_args(presmooth_bw = presmooth_bw, Delta = Delta,
+                     presmooth_bw_grid = presmooth_bw_grid,
+                     presmooth_nsubset = presmooth_nsubset)
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   kernel_name <- match.arg(
     arg = kernel_name,
@@ -91,7 +97,10 @@ estimate_facf <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   dt_cov0 <- estimate_autocov(
     data = data, s = t, t = t, lag = 0L, bw_grid = bw_grid,
     common_bw = common_bw, center_curves = center_curves, correct_diagonal = FALSE,
-    kernel_name = kernel_name)
+    kernel_name = kernel_name,
+    presmooth_bw = presmooth_bw, Delta = Delta,
+    presmooth_bw_grid = presmooth_bw_grid,
+    presmooth_nsubset = presmooth_nsubset)
   vec_cov0 <- dt_cov0[order(s), autocov]
   vec_cov0[is.nan(vec_cov0)] <- 0
   denom <- .trapz(t, vec_cov0)
@@ -104,7 +113,10 @@ estimate_facf <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     dt_l <- estimate_autocov(
       data = data, s = grid$s, t = grid$t, lag = l, bw_grid = bw_grid,
       common_bw = common_bw, center_curves = center_curves, correct_diagonal = FALSE,
-      kernel_name = kernel_name)
+      kernel_name = kernel_name,
+      presmooth_bw = presmooth_bw, Delta = Delta,
+      presmooth_bw_grid = presmooth_bw_grid,
+      presmooth_nsubset = presmooth_nsubset)
     dt_l[is.nan(autocov), autocov := 0]
     m <- as.matrix(
       data.table::dcast(dt_l[order(s, t)], s ~ t, value.var = "autocov")[, -1L])
