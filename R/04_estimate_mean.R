@@ -29,6 +29,7 @@
 #' @param kernel_name \code{string}. Kernel of the smoothing estimator, one of
 #' "epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
 #' "uniform".
+#' @inheritParams estimate_locreg
 #'
 #' @return A \code{data.table} with one row per (\code{t}, \code{h}) pair and
 #' columns:
@@ -70,10 +71,15 @@
 #'
 estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                t = c(1/4, 1/2, 3/4), bw_grid = NULL,
+                               presmooth_bw = NULL, Delta = NULL,
+                               presmooth_bw_grid = NULL, presmooth_nsubset = NULL,
                                kernel_name = "epanechnikov"){
   # Control easy checkable arguments
   if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
+  .check_locreg_args(presmooth_bw = presmooth_bw, Delta = Delta,
+                     presmooth_bw_grid = presmooth_bw_grid,
+                     presmooth_nsubset = presmooth_nsubset)
 
   # Check the name of the kernel
   kernel_name <- match.arg(
@@ -93,7 +99,10 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
   }
 
   # Estimate risk function using C++  function
-  dt_mean_risk <- estimate_mean_risk_cpp(data = data, t = t, bw_grid = bw_grid, kernel_name = kernel_name)
+  dt_mean_risk <- estimate_mean_risk_cpp(data = data, t = t, bw_grid = bw_grid, kernel_name = kernel_name,
+                                         presmooth_bw = presmooth_bw, Delta = Delta,
+                                         presmooth_bw_grid = presmooth_bw_grid,
+                                         presmooth_nsubset = presmooth_nsubset)
   dt_mean_risk <- data.table::as.data.table(dt_mean_risk)
   data.table::setnames(x = dt_mean_risk,
                        new = c("t", "h", "PN", "locreg_bw", "Ht", "Lt2", "bias_term",
@@ -160,6 +169,8 @@ estimate_mean_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "
 #'
 estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                           t = c(1/4, 1/2, 3/4), bw = NULL, bw_grid = NULL,
+                          presmooth_bw = NULL, Delta = NULL,
+                          presmooth_bw_grid = NULL, presmooth_nsubset = NULL,
                           kernel_name = "epanechnikov"){
   # Control on t, bw and kernel_name arguments
   # NB : The remaining arguments are controlled using the format_data and estimate_mean_risk functions, if required.
@@ -172,12 +183,19 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     choices = c("epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform")
   )
 
+  .check_locreg_args(presmooth_bw = presmooth_bw, Delta = Delta,
+                     presmooth_bw_grid = presmooth_bw_grid,
+                     presmooth_nsubset = presmooth_nsubset)
+
   # Control and format data
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
 
   # Estimate mean function using C++  function
-  dt_muhat <- estimate_mean_cpp(data = data, t = t, bw = bw, bw_grid = bw_grid, kernel_name = kernel_name)
+  dt_muhat <- estimate_mean_cpp(data = data, t = t, bw = bw, bw_grid = bw_grid, kernel_name = kernel_name,
+                                presmooth_bw = presmooth_bw, Delta = Delta,
+                                presmooth_bw_grid = presmooth_bw_grid,
+                                presmooth_nsubset = presmooth_nsubset)
   dt_muhat <- data.table::as.data.table(dt_muhat)
   data.table::setnames(x = dt_muhat, new = c("t", "optbw", "Ht", "Lt2", "PN", "muhat"))
   return(.as_adaptive_est(dt_muhat, "mean_est",

@@ -18,6 +18,10 @@ estimate_autocov(
   common_bw = FALSE,
   center_curves = TRUE,
   correct_diagonal = TRUE,
+  presmooth_bw = NULL,
+  Delta = NULL,
+  presmooth_bw_grid = NULL,
+  presmooth_nsubset = NULL,
   kernel_name = "epanechnikov"
 )
 }
@@ -63,11 +67,33 @@ for both arguments of the autocovariance; if \code{FALSE} (default), one
 bandwidth per argument. See Details.}
 
 \item{center_curves}{\code{logical}. If \code{TRUE} (default), the curves are
-centred before smoothing.}
+centred before smoothing. It governs the moment and autocovariance
+estimators only: the local regularity step always centres the curves.}
 
 \item{correct_diagonal}{\code{logical}. If \code{TRUE} (default), the
 observation-noise variance is subtracted from the diagonal when
 \code{lag = 0}. See Details.}
+
+\item{presmooth_bw}{\code{numeric (positive vector or scalar)}. Bandwidth of
+the Nadaraya-Watson estimator used to presmooth each curve before the
+regularity is estimated. A scalar applies the same bandwidth to every curve; a
+vector must hold one bandwidth per curve, in the order the curves appear in
+\code{data}. Default \code{NULL} selects a single bandwidth by cross-validation
+over every curve, as \link{get_nw_optimal_bw} does.}
+
+\item{Delta}{\code{numeric (positive)}. Length of the neighbourhood around each
+point of \code{t} used to estimate the local regularity. Default \code{NULL}
+sets it from the data; see Details.}
+
+\item{presmooth_bw_grid}{\code{vector (numeric)}. Candidate bandwidths of the
+cross-validation that selects \code{presmooth_bw} when the latter is \code{NULL}.
+Default \code{NULL} uses the default grid of \link{get_nw_optimal_bw}. Ignored
+when \code{presmooth_bw} is supplied.}
+
+\item{presmooth_nsubset}{\code{integer (positive)}. Number of curves used by
+that cross-validation. Default \code{NULL} uses \code{min(70, floor(N / 2))}
+curves, where \eqn{N} is the number of curves. Lower it to speed up the
+selection on large samples. Ignored when \code{presmooth_bw} is supplied.}
 
 \item{kernel_name}{\code{string}. Kernel of the smoothing estimator, one of
 "epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and

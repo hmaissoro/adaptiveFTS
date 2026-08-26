@@ -281,6 +281,49 @@ get_nw_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X
   return(presmooth_bw)
 }
 
+#' Validate the local regularity arguments forwarded to estimate_locreg_cpp
+#'
+#' The adaptive estimators reach the local regularity step from inside C++, so
+#' these four arguments are only checked here, once, before they are handed down.
+#' All four are optional; \code{NULL} means "use the C++ default", which is what
+#' every estimator did before they became settable.
+#'
+#' @param presmooth_bw The presmoothing bandwidth: a positive scalar, a vector of
+#'   one bandwidth per curve, or \code{NULL} to select it by cross-validation.
+#' @param Delta The neighbourhood length: a scalar in (0, 1), or \code{NULL}.
+#' @param presmooth_bw_grid The candidate grid of that cross-validation: a numeric
+#'   vector of at least two positive values, or \code{NULL}.
+#' @param presmooth_nsubset The number of curves used by that cross-validation: a
+#'   positive integer, or \code{NULL}.
+#' @return \code{NULL}, invisibly. Called for the side effect of erroring out.
+#' @keywords internal
+.check_locreg_args <- function(presmooth_bw = NULL, Delta = NULL,
+                               presmooth_bw_grid = NULL, presmooth_nsubset = NULL){
+  if (! is.null(presmooth_bw)) {
+    if (! (methods::is(presmooth_bw, "numeric") && all(is.finite(presmooth_bw)) &&
+           all(presmooth_bw > 0) && all(presmooth_bw <= 1)))
+      stop("'presmooth_bw' must be a numeric vector or scalar value(s) between 0 and 1.")
+  }
+  if (! is.null(Delta)) {
+    if (! (methods::is(Delta, "numeric") && length(Delta) == 1 && is.finite(Delta) &&
+           Delta > 0 && Delta <= 1))
+      stop("'Delta' must be a single numeric value between 0 and 1.")
+  }
+  if (! is.null(presmooth_bw_grid)) {
+    if (! (methods::is(presmooth_bw_grid, "numeric") && length(presmooth_bw_grid) > 1 &&
+           all(is.finite(presmooth_bw_grid)) && all(presmooth_bw_grid > 0) &&
+           all(presmooth_bw_grid <= 1)))
+      stop("'presmooth_bw_grid' must be a numeric vector of at least two values between 0 and 1.")
+  }
+  if (! is.null(presmooth_nsubset)) {
+    if (! (methods::is(presmooth_nsubset, "numeric") && length(presmooth_nsubset) == 1 &&
+           is.finite(presmooth_nsubset) && presmooth_nsubset >= 1 &&
+           presmooth_nsubset == as.integer(presmooth_nsubset)))
+      stop("'presmooth_nsubset' must be a single positive integer.")
+  }
+  invisible(NULL)
+}
+
 #' Default candidate bandwidth grid of the adaptive risk functions
 #'
 #' A 20-point geometric grid running from \eqn{4(N\lambda)^{-0.9}} to

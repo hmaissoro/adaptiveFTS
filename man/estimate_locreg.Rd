@@ -12,6 +12,8 @@ estimate_locreg(
   t = 1/2,
   Delta = NULL,
   presmooth_bw = NULL,
+  presmooth_bw_grid = NULL,
+  presmooth_nsubset = NULL,
   kernel_name = "epanechnikov",
   center = TRUE
 )
@@ -45,6 +47,16 @@ regularity is estimated. A scalar applies the same bandwidth to every curve; a
 vector must hold one bandwidth per curve, in the order the curves appear in
 \code{data}. Default \code{NULL} selects a single bandwidth by cross-validation
 over every curve, as \link{get_nw_optimal_bw} does.}
+
+\item{presmooth_bw_grid}{\code{vector (numeric)}. Candidate bandwidths of the
+cross-validation that selects \code{presmooth_bw} when the latter is \code{NULL}.
+Default \code{NULL} uses the default grid of \link{get_nw_optimal_bw}. Ignored
+when \code{presmooth_bw} is supplied.}
+
+\item{presmooth_nsubset}{\code{integer (positive)}. Number of curves used by
+that cross-validation. Default \code{NULL} uses \code{min(70, floor(N / 2))}
+curves, where \eqn{N} is the number of curves. Lower it to speed up the
+selection on large samples. Ignored when \code{presmooth_bw} is supplied.}
 
 \item{kernel_name}{\code{string}. Kernel of the presmoothing estimator, one of
 "epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and

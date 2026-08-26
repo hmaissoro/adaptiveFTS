@@ -8,11 +8,13 @@
 #' @param bw_grid A numeric vector. A bandwidth grid from which the best smoothing parameter is selected for each
 #' \code{t}.
 #' Default is \code{NULL}, in which case it is defined as an exponential grid of \eqn{N \times \lambda}.
-#' @param center_curves Logical. If \code{TRUE} (default), the curves are centred
-#' before smoothing.
+#' @param center_curves Logical. If \code{TRUE} (default), the curves are
+#' centred before smoothing. It governs the moment and autocovariance
+#' estimators only: the local regularity step always centres the curves.
 #' @param kernel_name Character string. Specifies the kernel function for estimation; default is \code{"epanechnikov"}.
 #' Supported kernels include: \code{"epanechnikov"}, \code{"biweight"}, \code{"triweight"}, \code{"tricube"},
 #' \code{"triangular"}, and \code{"uniform"}.
+#' @inheritParams estimate_locreg
 #'
 #' @return A \link[data.table]{data.table} with columns:
 #' \itemize{
@@ -64,10 +66,15 @@ estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", y
                                       t = c(1/4, 1/2, 3/4),
                                       bw_grid = NULL,
                                       center_curves = TRUE,
+                                      presmooth_bw = NULL, Delta = NULL,
+                                      presmooth_bw_grid = NULL, presmooth_nsubset = NULL,
                                       kernel_name = "epanechnikov"){
   # Control easy checkable arguments
   if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
+  .check_locreg_args(presmooth_bw = presmooth_bw, Delta = Delta,
+                     presmooth_bw_grid = presmooth_bw_grid,
+                     presmooth_nsubset = presmooth_nsubset)
 
   # Check the name of the kernel
   kernel_name <- match.arg(
@@ -89,7 +96,10 @@ estimate_cov_segment_risk <- function(data, idcol = "id_curve", tcol = "tobs", y
   # Estimate risk function using C++  function
   dt_risk <- estimate_cov_segment_risk_cpp(
     data = data, t = t, bw_grid = bw_grid,
-    center = center_curves, kernel_name = kernel_name)
+    center = center_curves, kernel_name = kernel_name,
+    presmooth_bw = presmooth_bw, Delta = Delta,
+    presmooth_bw_grid = presmooth_bw_grid,
+    presmooth_nsubset = presmooth_nsubset)
   dt_risk <- data.table::as.data.table(dt_risk)
   data.table::setnames(x = dt_risk,
                        new = c("t", "h", "PN", "locreg_bw", "Ht", "Lt2", "bias_term",
@@ -150,10 +160,15 @@ estimate_cov_segment <- function(data, idcol = "id_curve", tcol = "tobs", ycol =
                                  bw = NULL,
                                  bw_grid = NULL,
                                  center_curves = TRUE,
+                                 presmooth_bw = NULL, Delta = NULL,
+                                 presmooth_bw_grid = NULL, presmooth_nsubset = NULL,
                                  kernel_name = "epanechnikov"){
   # Control easy checkable arguments
   if (! (methods::is(t, "numeric") & all(data.table::between(t, 0, 1))))
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
+  .check_locreg_args(presmooth_bw = presmooth_bw, Delta = Delta,
+                     presmooth_bw_grid = presmooth_bw_grid,
+                     presmooth_nsubset = presmooth_nsubset)
 
   # Check the name of the kernel
   kernel_name <- match.arg(
@@ -175,7 +190,10 @@ estimate_cov_segment <- function(data, idcol = "id_curve", tcol = "tobs", ycol =
   # Estimate covariance segment function using C++  function
   dt_res <- estimate_cov_segment_cpp(
     data = data, t = t, bw = bw, bw_grid = bw_grid,
-    center = center_curves, kernel_name = kernel_name)
+    center = center_curves, kernel_name = kernel_name,
+    presmooth_bw = presmooth_bw, Delta = Delta,
+    presmooth_bw_grid = presmooth_bw_grid,
+    presmooth_nsubset = presmooth_nsubset)
   dt_res <- data.table::as.data.table(dt_res)
   data.table::setnames(x = dt_res, new = c("t", "optbw", "Ht", "Lt2", "PN", "cov_segment_hat",
                                            "covseg_correction", "cov_segment_hat_corrected"))

@@ -17,7 +17,11 @@ blup_fit(
   tikhonov = NULL,
   tikhonov_grid = NULL,
   bw_grid = NULL,
-  density_bw = NULL
+  density_bw = NULL,
+  presmooth_bw = NULL,
+  Delta = NULL,
+  presmooth_bw_grid = NULL,
+  presmooth_nsubset = NULL
 )
 }
 \arguments{
@@ -65,6 +69,27 @@ Default \code{NULL} sets a geometric grid from the data.}
 \item{density_bw}{Optional fixed design-density bandwidth reused for every
 \code{estimate_density} call (independent design only). Default \code{NULL} selects it
 once via \code{\link[=get_density_optimal_bw]{get_density_optimal_bw()}}.}
+
+\item{presmooth_bw}{\code{numeric (positive vector or scalar)}. Bandwidth of
+the Nadaraya-Watson estimator used to presmooth each curve before the
+regularity is estimated. A scalar applies the same bandwidth to every curve; a
+vector must hold one bandwidth per curve, in the order the curves appear in
+\code{data}. Default \code{NULL} selects a single bandwidth by cross-validation
+over every curve, as \link{get_nw_optimal_bw} does.}
+
+\item{Delta}{\code{numeric (positive)}. Length of the neighbourhood around each
+point of \code{t} used to estimate the local regularity. Default \code{NULL}
+sets it from the data; see Details.}
+
+\item{presmooth_bw_grid}{\code{vector (numeric)}. Candidate bandwidths of the
+cross-validation that selects \code{presmooth_bw} when the latter is \code{NULL}.
+Default \code{NULL} uses the default grid of \link{get_nw_optimal_bw}. Ignored
+when \code{presmooth_bw} is supplied.}
+
+\item{presmooth_nsubset}{\code{integer (positive)}. Number of curves used by
+that cross-validation. Default \code{NULL} uses \code{min(70, floor(N / 2))}
+curves, where \eqn{N} is the number of curves. Lower it to speed up the
+selection on large samples. Ignored when \code{presmooth_bw} is supplied.}
 }
 \value{
 An object of class \code{blup_fit}: a list whose main elements are:

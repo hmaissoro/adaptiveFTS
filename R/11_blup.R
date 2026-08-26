@@ -44,6 +44,7 @@
 #' @param density_bw Optional fixed design-density bandwidth reused for every
 #'   `estimate_density` call (independent design only). Default `NULL` selects it
 #'   once via [get_density_optimal_bw()].
+#' @inheritParams estimate_locreg
 #'
 #' @return An object of class `blup_fit`: a list whose main elements are:
 #'   \itemize{
@@ -69,8 +70,13 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                      kernel_name = "epanechnikov", homoscedastic = TRUE,
                      bw_subgrid_size = 10L, n_cv_curves = 30L,
                      id_conditioning_curve = NULL, tikhonov = NULL,
-                     tikhonov_grid = NULL, bw_grid = NULL, density_bw = NULL) {
+                     tikhonov_grid = NULL, bw_grid = NULL, density_bw = NULL,
+                     presmooth_bw = NULL, Delta = NULL,
+                     presmooth_bw_grid = NULL, presmooth_nsubset = NULL) {
 
+  .check_locreg_args(presmooth_bw = presmooth_bw, Delta = Delta,
+                     presmooth_bw_grid = presmooth_bw_grid,
+                     presmooth_nsubset = presmooth_nsubset)
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   kernel_name <- match.arg(
     arg = kernel_name,
@@ -114,7 +120,10 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       data = data, method = "cv", kernel_name = kernel_name,
       homoscedastic = homoscedastic, bw_subgrid_size = bw_subgrid_size,
       n_cv_curves = n_cv_curves, tikhonov_grid = tikhonov_grid,
-      bw_grid = bw_grid, density_bw = density_bw)
+      bw_grid = bw_grid, density_bw = density_bw,
+      presmooth_bw = presmooth_bw, Delta = Delta,
+      presmooth_bw_grid = presmooth_bw_grid,
+      presmooth_nsubset = presmooth_nsubset)
     tikhonov <- tikhonov_cv$tikhonov_star
   } else {
     tikhonov_cv <- NULL
@@ -124,7 +133,10 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
     data = data, id_conditioning_curve = as.integer(n0), bw_grid = as.numeric(bw_grid),
     rho = rho, homoscedastic = homoscedastic,
     tikhonov = tikhonov, bw_subgrid_size = as.integer(bw_subgrid_size),
-    kernel_name = kernel_name)
+    kernel_name = kernel_name,
+    presmooth_bw = presmooth_bw, Delta = Delta,
+    presmooth_bw_grid = presmooth_bw_grid,
+    presmooth_nsubset = presmooth_nsubset)
 
   return(structure(
     list(
@@ -254,13 +266,18 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                  kernel_name = "epanechnikov", homoscedastic = TRUE,
                  bw_subgrid_size = 10L, n_cv_curves = 30L,
                  id_conditioning_curve = NULL, tikhonov = NULL,
-                 tikhonov_grid = NULL, bw_grid = NULL, density_bw = NULL) {
+                 tikhonov_grid = NULL, bw_grid = NULL, density_bw = NULL,
+                 presmooth_bw = NULL, Delta = NULL,
+                 presmooth_bw_grid = NULL, presmooth_nsubset = NULL) {
   fit <- blup_fit(
     data = data, idcol = idcol, tcol = tcol, ycol = ycol,
     kernel_name = kernel_name, homoscedastic = homoscedastic,
     bw_subgrid_size = bw_subgrid_size, n_cv_curves = n_cv_curves,
     id_conditioning_curve = id_conditioning_curve, tikhonov = tikhonov,
-    tikhonov_grid = tikhonov_grid, bw_grid = bw_grid, density_bw = density_bw)
+    tikhonov_grid = tikhonov_grid, bw_grid = bw_grid, density_bw = density_bw,
+    presmooth_bw = presmooth_bw, Delta = Delta,
+    presmooth_bw_grid = presmooth_bw_grid,
+    presmooth_nsubset = presmooth_nsubset)
   return(structure(
     list(prediction = predict(fit, t = t, horizon = horizon),
          tikhonov = fit$tikhonov, tikhonov_cv = fit$tikhonov_cv),
@@ -313,8 +330,14 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
                                       method = c("cv"), kernel_name = "epanechnikov",
                                       homoscedastic = TRUE, bw_subgrid_size = 10L,
                                       n_cv_curves = 30L, tikhonov_grid = NULL,
-                                      bw_grid = NULL, density_bw = NULL) {
+                                      bw_grid = NULL, density_bw = NULL,
+                                      presmooth_bw = NULL, Delta = NULL,
+                                      presmooth_bw_grid = NULL,
+                                      presmooth_nsubset = NULL) {
   method <- match.arg(method)
+  .check_locreg_args(presmooth_bw = presmooth_bw, Delta = Delta,
+                     presmooth_bw_grid = presmooth_bw_grid,
+                     presmooth_nsubset = presmooth_nsubset)
 
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   kernel_name <- match.arg(
@@ -340,7 +363,10 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
   fit <- blup_fit(
     data = data_fit, kernel_name = kernel_name, homoscedastic = homoscedastic,
     bw_subgrid_size = bw_subgrid_size, id_conditioning_curve = max(fit_ids),
-    tikhonov = 1e-6, bw_grid = bw_grid, density_bw = density_bw)
+    tikhonov = 1e-6, bw_grid = bw_grid, density_bw = density_bw,
+    presmooth_bw = presmooth_bw, Delta = Delta,
+    presmooth_bw_grid = presmooth_bw_grid,
+    presmooth_nsubset = presmooth_nsubset)
 
   # Under the common design the operators do not vary across folds.
   if (is_common) {

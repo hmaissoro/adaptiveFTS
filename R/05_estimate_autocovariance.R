@@ -42,10 +42,12 @@
 #' for both arguments of the autocovariance; if \code{FALSE} (default), one
 #' bandwidth per argument. See Details.
 #' @param center_curves \code{logical}. If \code{TRUE} (default), the curves are
-#' centred before smoothing.
+#' centred before smoothing. It governs the moment and autocovariance
+#' estimators only: the local regularity step always centres the curves.
 #' @param kernel_name \code{string}. Kernel of the smoothing estimator, one of
 #' "epanechnikov" (default), "biweight", "triweight", "tricube", "triangular" and
 #' "uniform".
+#' @inheritParams estimate_locreg
 #'
 #' @return A \code{data.table} with one row per (pair, bandwidth) combination and
 #' columns:
@@ -97,6 +99,8 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
                                   bw_grid = NULL,
                                   common_bw = FALSE,
                                   center_curves = TRUE,
+                                  presmooth_bw = NULL, Delta = NULL,
+                                  presmooth_bw_grid = NULL, presmooth_nsubset = NULL,
                                   kernel_name = "epanechnikov"){
   # Control easy checkable arguments
   if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
@@ -105,6 +109,9 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
     stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.")
   if (! length(s) == length(t))
     stop("Arguments 's' and 't' must be of equal length.")
+  .check_locreg_args(presmooth_bw = presmooth_bw, Delta = Delta,
+                     presmooth_bw_grid = presmooth_bw_grid,
+                     presmooth_nsubset = presmooth_nsubset)
 
   # Check the name of the kernel
   kernel_name <- match.arg(
@@ -136,7 +143,10 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   # Estimate risk funciton using C++ function
   mat_autocov_risk <- estimate_autocov_risk_cpp(
     data = data, s = s, t = t, lag = lag, bw_grid = bw_grid,
-    common_bw = common_bw, center = center_curves, kernel_name = kernel_name)
+    common_bw = common_bw, center = center_curves, kernel_name = kernel_name,
+    presmooth_bw = presmooth_bw, Delta = Delta,
+    presmooth_bw_grid = presmooth_bw_grid,
+    presmooth_nsubset = presmooth_nsubset)
   dt_autocov_risk <- data.table::as.data.table(mat_autocov_risk)
   data.table::setnames(
     x = dt_autocov_risk,
@@ -248,6 +258,8 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
                              common_bw = FALSE,
                              center_curves = TRUE,
                              correct_diagonal = TRUE,
+                             presmooth_bw = NULL, Delta = NULL,
+                             presmooth_bw_grid = NULL, presmooth_nsubset = NULL,
                              kernel_name = "epanechnikov"){
   # Control easy checkable arguments
   if (! (methods::is(s, "numeric") & all(data.table::between(s, 0, 1))))
@@ -269,13 +281,19 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
 
   if (any(lag < 0)| (length(lag) > 1) | any(lag - floor(lag) > 0) | any(N <= lag))
     stop("'lag' must be a positive integer lower than the number of curves.")
+  .check_locreg_args(presmooth_bw = presmooth_bw, Delta = Delta,
+                     presmooth_bw_grid = presmooth_bw_grid,
+                     presmooth_nsubset = presmooth_nsubset)
 
   # Estimate autocovariance using C++ function
   mat_autocov <- estimate_autocov_cpp(
     data = data, s = s, t = t, lag = lag,
     bw_s = bw_s, bw_t = bw_t, bw_grid = bw_grid,
     common_bw = common_bw, center = center_curves,
-    correct_diagonal = correct_diagonal, kernel_name = kernel_name)
+    correct_diagonal = correct_diagonal, kernel_name = kernel_name,
+    presmooth_bw = presmooth_bw, Delta = Delta,
+    presmooth_bw_grid = presmooth_bw_grid,
+    presmooth_nsubset = presmooth_nsubset)
   dt_autocov <- data.table::as.data.table(mat_autocov)
 
   data.table::setnames(
