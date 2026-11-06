@@ -11,7 +11,6 @@ blup_fit(
   ycol = "X",
   kernel_name = "epanechnikov",
   homoscedastic = TRUE,
-  bw_subgrid_size = 10L,
   n_cv_curves = 30L,
   id_conditioning_curve = NULL,
   tikhonov = NULL,
@@ -44,9 +43,6 @@ values observed at those points.}
 
 \item{homoscedastic}{If \code{TRUE} (default) a constant noise variance (median of
 the pointwise estimates) is used; otherwise the t-varying estimates.}
-
-\item{bw_subgrid_size}{Number of points per axis of the coarse sub-grid on
-which the adaptive bandwidths are selected. Default \code{10}.}
 
 \item{n_cv_curves}{Number of trailing curves held out for the Tikhonov
 cross-validation when \code{tikhonov} is \code{NULL}. Default \code{30}.}
@@ -100,7 +96,11 @@ An object of class \code{blup_fit}: a list whose main elements are:
 noise level of the conditioning curve.
 \item \code{V}, \code{resid}: the regularised variance matrix and the conditioning
 residual.
-\item \code{opt_mean}, \code{opt_cov}, \code{opt_autocov}: the cached adaptive bandwidths.
+\item \code{bw_mean}, \code{bw_cov}: the adaptive bandwidths selected at the
+design points (\code{bw_cov} holds the \code{bw_s} and \code{bw_t} matrices of the
+covariance).
+\item \code{presmooth_bw}, \code{Delta}: the resolved local regularity settings,
+reused by \code{\link[=predict.blup_fit]{predict.blup_fit()}}.
 \item \code{data}, \code{kernel_name}, \code{is_common_design}, \code{density_bw}, \code{bw_grid},
 \code{tikhonov}, \code{homoscedastic}: the information needed by
 \code{\link[=predict.blup_fit]{predict.blup_fit()}}.
@@ -114,9 +114,11 @@ does not depend on the prediction points.
 }
 \details{
 The fit conditions on a single curve (its immediate successor is what
-\code{predict()} reconstructs) and caches the adaptive bandwidths, so that
-\code{predict()} only re-runs the cheap plug-in estimates at the requested
-prediction points. The covariance assembly is a single lag-1 block.
+\code{predict()} reconstructs). Every plug-in estimate is computed directly at the
+points where it is needed, with its own risk-minimising bandwidth: the mean
+and the covariance at the conditioning-curve design points here, and the mean
+and the lag-1 autocovariance at the prediction points in \code{predict()}. There is
+no bandwidth sub-grid. The covariance assembly is a single lag-1 block.
 }
 \seealso{
 \code{\link[=predict.blup_fit]{predict.blup_fit()}}, \code{\link[=get_density_optimal_bw]{get_density_optimal_bw()}}.

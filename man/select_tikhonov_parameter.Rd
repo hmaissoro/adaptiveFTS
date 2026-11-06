@@ -12,7 +12,6 @@ select_tikhonov_parameter(
   method = c("cv"),
   kernel_name = "epanechnikov",
   homoscedastic = TRUE,
-  bw_subgrid_size = 10L,
   n_cv_curves = 30L,
   tikhonov_grid = NULL,
   bw_grid = NULL,
@@ -46,9 +45,6 @@ cross-validation) is available.}
 
 \item{homoscedastic}{If \code{TRUE} (default) a constant noise variance (median of
 the pointwise estimates) is used; otherwise the t-varying estimates.}
-
-\item{bw_subgrid_size}{Number of points per axis of the coarse sub-grid on
-which the adaptive bandwidths are selected. Default \code{10}.}
 
 \item{n_cv_curves}{Number of trailing curves held out for the Tikhonov
 cross-validation when \code{tikhonov} is \code{NULL}. Default \code{30}.}
@@ -110,9 +106,9 @@ Two regimes:
 training block and only the conditioning values vary across the
 validation set.
 \item \strong{Independent design} — a rolling origin: for each target curve
-the plug-in estimates are refreshed on all curves observed up to its
-predecessor, with the adaptive bandwidths held fixed at those selected
-once on the initial block (cached in the fit).
+the plug-in estimates (and their risk-minimising bandwidths) are
+re-estimated on all curves observed up to its predecessor, directly at the
+predecessor's and the target's observation points.
 }
 Only the \eqn{M \times M} system depends on \eqn{\alpha}; it is solved for the
 whole grid from a single eigendecomposition per fold.

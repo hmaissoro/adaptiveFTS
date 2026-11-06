@@ -13,7 +13,6 @@ blup(
   horizon = 1L,
   kernel_name = "epanechnikov",
   homoscedastic = TRUE,
-  bw_subgrid_size = 10L,
   n_cv_curves = 30L,
   id_conditioning_curve = NULL,
   tikhonov = NULL,
@@ -50,9 +49,6 @@ values observed at those points.}
 
 \item{homoscedastic}{If \code{TRUE} (default) a constant noise variance (median of
 the pointwise estimates) is used; otherwise the t-varying estimates.}
-
-\item{bw_subgrid_size}{Number of points per axis of the coarse sub-grid on
-which the adaptive bandwidths are selected. Default \code{10}.}
 
 \item{n_cv_curves}{Number of trailing curves held out for the Tikhonov
 cross-validation when \code{tikhonov} is \code{NULL}. Default \code{30}.}

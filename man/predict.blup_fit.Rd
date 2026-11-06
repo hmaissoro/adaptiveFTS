@@ -15,8 +15,7 @@ conditioning-curve design points.}
 \item{horizon}{Integer prediction horizon (steps ahead). Default \code{1}. For
 \code{horizon > 1}, each intermediate curve is predicted on the target grid \code{t}
 and fed back as the new conditioning curve; the conditioning quantities are
-recomputed for that grid using the cached adaptive bandwidths (works for
-both designs).}
+estimated on that grid (works for both designs).}
 
 \item{newdata}{Optional numeric vector of conditioning-curve values at the
 fit's design points (\code{object$Tn0}), overriding \code{object$Yn0}. Used internally
@@ -43,10 +42,11 @@ prediction is built from the \code{(n_0 + i - 1)}-th predicted curve, and all
 intermediate horizons are returned.
 }
 \details{
-During multi-step prediction the estimation data is left unchanged: the mean,
-the (auto)covariance operators, the adaptive bandwidths and the noise level
-are estimated once and held fixed, and each predicted curve enters only as the
-conditioning values of the next step. Injecting a predicted (denoised) curve
+The mean and the lag-1 autocovariance are estimated directly at the prediction
+points, each with its own risk-minimising bandwidth. During multi-step
+prediction the estimation data is left unchanged: the operators on the target
+grid are estimated once and held fixed, and each predicted curve enters only
+as the conditioning values of the next step. Injecting a predicted (denoised) curve
 back into the estimation sample would bias those plug-in estimates, so it is
 deliberately avoided.
 }

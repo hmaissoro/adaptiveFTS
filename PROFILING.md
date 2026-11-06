@@ -72,3 +72,84 @@ touched.
 `tests/testthat/_refs/*.rds` — one per function (41 functions) plus
 `_timings.rds`. Every Phase-2 change is validated with `all.equal()` against the
 matching reference (fallback abs/rel tol 1e-10).
+
+---
+
+# Phase 6: porting the restructuring of the fast estimators (2026-11-06)
+
+Branch `perf/optimal-core`. Reference: M. Vimond's `estimate_mean_fast()` /
+`estimate_autocov_fast()` (FTS repository, `scripts/R/CHANGES.md` sections
+16-18), which made the pure-R estimators 19-88x faster with identical results by
+reorganising the computation: curves split once, per-curve quantities on the
+distinct points, dependence terms from matrices, one smoothing pass, risk and
+estimate in one pass, BLUP operators estimated directly at the points used.
+
+## What remained in our C++ core
+The same patterns, in C++ form: `arma::find()` scans of whole tables inside
+nested loops (per bandwidth, point, lag or pair), `std::function` kernels
+allocating a vector per call, sub-estimators re-converting the data and
+re-running the presmoothing cross-validation, and per-scalar R closures (density
+LSCV, Rubin-Panaretos `CJ()` products of all the observation pairs).
+
+## What was done
+- `src/00_core.h`: curves split once (`core::Curves`), scalar kernels,
+  compact-support windows on the sorted points (the original 0/1 predicates are
+  re-evaluated, so the indicators are unchanged).
+- `src/00_internal.h`: `*_impl` entry points shared by all the estimators.
+- Mean / covariance-segment risk: t x lag autocovariance matrix built once;
+  `rho_l` from integer co-occurrence counts of the active curves.
+- (Auto)covariance risk: point constants once on the distinct points of s and t;
+  per-curve cubes from the windows; sums over the curves active on both sides
+  (bit sets); fused argmin (the former finite-index argmin quirk is reproduced).
+- (Auto)covariance estimate: one smoothing pass per (point, bandwidth) tuple for
+  both the means and the cross products; diagonal correction over the
+  intersection of the windows.
+- Local regularity: one scalar quantile instead of a vector of identical ones.
+- Deterministic OpenMP (each output computed by one thread, same summation
+  order); no exception inside the parallel regions.
+- R level: density LSCV in C++; Rubin-Panaretos double sums factorised (with an
+  exact emulation of the former recycling when the mean vector is misaligned,
+  see below); simulators split the curves once; `gc()` calls removed.
+- BLUP: bandwidths selected directly at the points (no sub-grid). This is the
+  only change of results, by design.
+
+## Validation
+A/B harness (scratch scripts): 63 cases, i.e. every exported function plus the
+`_cpp` primitives, on the fixtures, an N = 150 / lambda = 40 random design, a
+common design and edge cases (duplicated pairs, scalar and per-pair bandwidths,
+tiny bandwidths, every kernel). Every non-BLUP output agrees with `main` within
+1e-10 (largest relative difference 2.4e-13; the simulators and several
+primitives are bit-identical). The test suite (402 expectations) passes.
+
+## Timings (N = 150, lambda = 40, Windows, 8 threads)
+| Call | main | branch | speed-up |
+|---|---|---|---|
+| `blup_fit()`, defaults | 33.2 s | 4.8 s | 6.9x |
+| `select_tikhonov_parameter()` (bandwidths now re-selected in each fold) | 10.6 s | 4.6 s | 2.3x |
+| `get_density_optimal_bw()` | 16.6 s | 0.17 s | 97x |
+| `simulate_far()` | 13.4 s | 8.5 s | 1.6x |
+| `estimate_facf()` | 16.6 s | 0.28 s | 59x |
+| `estimate_mean_risk_cpp()`, 80 t | 3.6 s | 0.02 s | 178x |
+| `estimate_mean()`, 80 t | 3.6 s | 0.03 s | 121x |
+| `estimate_autocov_cpp()`, lag 0, bw NULL, 35 x 35 | 3.6 s | 0.04 s | 90x |
+| `estimate_cov_segment()`, 80 t | 2.4 s | 0.06 s | 40x |
+| `predict_curve()`, 40 curves | 1.1 s | 0.20 s | 5.7x |
+| `estimate_autocov_rp()`, 20 curves, 4 pairs | 8.4 s | 0.01 s | ~840x |
+| `estimate_mean_bw_rp()`, 20 curves, 5 bandwidths | 6.8 s | 0.30 s | 23x |
+| `estimate_autocov_bw_rp()`, 4 curves x 4 points, 2 folds, 2 bandwidths | 440 s | 0.1 s | ~4000x |
+
+`simulate_far()` is now dominated by `MASS::mvrnorm()` and the mfBm covariance,
+which must stay as they are to keep the same random draws.
+
+## Pre-existing behaviours kept (for a separate decision)
+- `estimate_mean_cpp`, `estimate_cov_segment_cpp`, `estimate_autocov_cpp`: the
+  optimal bandwidth is taken at the position of the minimum *among the finite
+  risks*, applied to the list of *all* the candidates, so a non-finite risk
+  before the minimum shifts the choice.
+- `estimate_autocov_bw_rp()`: the mean estimated on the full sample is indexed
+  with the renumbered ids of the training curves, and the cartesian products
+  sorted the times, values and means independently; with unequal curve sizes
+  the means are recycled or NA. Reproduced exactly (`rp_q_recycled_cpp`), which
+  keeps that path quadratic in the number of observations.
+- The two-bandwidth branch of the autocovariance risk squares `pn_t` in its
+  variance term (noted earlier).
