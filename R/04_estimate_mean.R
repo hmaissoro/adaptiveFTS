@@ -248,101 +248,37 @@ estimate_mean <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #'
 estimate_mean_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                              t = c(1/4, 1/2, 3/4), bw, kernel_name = "epanechnikov"){
-  smooth_ker <- .select_kernel(kernel_name)
+  .select_kernel(kernel_name)
 
   # Format data
   data <- format_data(data = data, idcol = idcol, tcol = tcol, ycol = ycol)
   N <- data[, length(unique(id_curve))]
   lambdahat <- mean(data[, .N, by = "id_curve"][, N])
 
+  # The points t are processed by chunks (one chunk unless N x lambda is large),
+  # and, within a chunk, once per distinct value (in order of first appearance),
+  # as the former grouped data.table computation did. The kernel sums over the
+  # pooled observations are computed in C++ on the kernel window of each t.
   if (N <= 250 && lambdahat < 200) {
-    # Estimate mean function
-    Tn <- data[order(tobs), tobs]
-    Yn <- data[order(tobs), X]
-    data_curve <- kronecker(
-      X = matrix(data = rep(1, length(t)), ncol = 1),
-      Y = cbind(Tn, Yn)
-    )
-    colnames(data_curve) <- c("Tn", "Yn")
-    data_curve <- data.table::as.data.table(data_curve)
-    tvec <- rep(t, each = length(Tn))
-    data_curve[, t := tvec]
-    rm(Yn, Tn, tvec, data) ; gc() ; gc()
-
-    data_curve[, Tn_minus_t := (Tn - t)]
-    data_curve[, Tn_minus_t_over_bw := Tn_minus_t / bw]
-
-    # Compute mean Q and S function
-    dt_res_by_curve <- data_curve[
-      ,
-      .("Q0" = sum((Tn_minus_t ** 0) * Yn * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
-        "Q1" = sum((Tn_minus_t ** 1) * Yn * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
-        "S0" = sum((Tn_minus_t ** 0) * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
-        "S1" = sum((Tn_minus_t ** 1) * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
-        "S2" = sum((Tn_minus_t ** 2) * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N),
-      by = "t"
-    ]
-    rm(data_curve) ; gc() ; gc()
-
-    # Estimate mean
-    dt_res <- dt_res_by_curve[, .("muhat_RP" = (Q0 * S2 - Q1 * S1) / (S0 * S2 - S1 ** 2)), by = "t"]
-    dt_res[, "bw" := bw]
-    data.table::setcolorder(x = dt_res, neworder = c("t", "bw", "muhat_RP"))
-    rm(dt_res_by_curve) ; gc() ; gc()
-
+    t_list <- list(t)
+  } else if (N <= 450 && lambdahat <= 300) {
+    N_t_by_list <- 40 * 300 / 10
+    t_list <- split(t, ceiling(seq_along(t) / N_t_by_list))
+  } else if (N <= 1000 & lambdahat <= 50){
+    N_t_by_list <- 1000 * 40 / 50
+    t_list <- split(t, ceiling(seq_along(t) / N_t_by_list))
   } else {
-    # Split t if N x \lambda >> 0
-    if (N <= 450 && lambdahat <= 300) {
-      N_t_by_list <- 40 * 300 / 10
-      t_list <- split(t, ceiling(seq_along(t) / N_t_by_list))
-    } else if (N <= 1000 & lambdahat <= 50){
-      N_t_by_list <- 1000 * 40 / 50
-      t_list <- split(t, ceiling(seq_along(t) / N_t_by_list))
-    } else {
-      t_list <- t
-    }
-
-    # Estimate mean function
-    dt_res <- data.table::rbindlist(lapply(t_list, function(t_list_i, data, N, bw){
-      Tn <- data[order(tobs), tobs]
-      Yn <- data[order(tobs), X]
-      if (length(t_list_i) > 1) {
-        data_curve <- kronecker(
-          X = matrix(data = rep(1, length(t_list_i)), ncol = 1),
-          Y = cbind(Tn, Yn)
-        )
-        colnames(data_curve) <- c("Tn", "Yn")
-        data_curve <- data.table::as.data.table(data_curve)
-        tvec <- rep(t_list_i, each = length(Tn))
-        data_curve[, t := tvec]
-        rm(Yn, Tn, tvec) ; gc() ; gc()
-      } else {
-        data_curve <- data.table::data.table("Tn" = Tn, "Yn" = Yn, "t" = t_list_i)
-      }
-
-      data_curve[, Tn_minus_t := (Tn - t)]
-      data_curve[, Tn_minus_t_over_bw := Tn_minus_t / bw]
-
-      # Compute mean Q and S function
-      dt_res_by_t_list_i <- data_curve[
-        ,
-        .("Q0" = sum((Tn_minus_t ** 0) * Yn * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
-          "Q1" = sum((Tn_minus_t ** 1) * Yn * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
-          "S0" = sum((Tn_minus_t ** 0) * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
-          "S1" = sum((Tn_minus_t ** 1) * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N,
-          "S2" = sum((Tn_minus_t ** 2) * (1 / bw) * smooth_ker(Tn_minus_t_over_bw)) / N),
-        by = "t"
-      ]
-      rm(data_curve) ; gc() ; gc()
-      # Estimate mean
-      dt_res_by_t_list_i <- dt_res_by_t_list_i[, .("muhat_RP" = (Q0 * S2 - Q1 * S1) / (S0 * S2 - S1 ** 2)), by = "t"]
-      dt_res_by_t_list_i[, "bw" := bw]
-      data.table::setcolorder(x = dt_res_by_t_list_i, neworder = c("t", "bw", "muhat_RP"))
-
-      # Return
-      return(dt_res_by_t_list_i)
-    }, data = data, N = N, bw = bw))
+    t_list <- as.list(t)
   }
+  Tn <- data[order(tobs), tobs]
+  Yn <- data[order(tobs), X]
+  dt_res <- data.table::rbindlist(lapply(t_list, function(t_list_i) {
+    tu <- unique(t_list_i)
+    data.table::data.table(
+      "t" = tu, "bw" = bw,
+      "muhat_RP" = as.vector(rp_mean_cpp(Tn = Tn, Yn = Yn, t = tu, bw = bw, N = N,
+                                         kernel_name = kernel_name)))
+  }))
   return(dt_res)
 }
 
@@ -443,7 +379,5 @@ estimate_mean_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
     return(dt_res)
 
   }, data = data, fold = fold, kernel_name = kernel_name))
-  rm(data, fold) ; gc() ; gc()
-
   return(dt_bw)
 }

@@ -120,6 +120,33 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// density_loo_cpp
+arma::vec density_loo_cpp(const arma::vec x, const double h, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_density_loo_cpp(SEXP xSEXP, SEXP hSEXP, SEXP kernel_nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const double >::type h(hSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
+    rcpp_result_gen = Rcpp::wrap(density_loo_cpp(x, h, kernel_name));
+    return rcpp_result_gen;
+END_RCPP
+}
+// density_lscv_cpp
+arma::vec density_lscv_cpp(const arma::vec x, const arma::vec zgrid, const arma::vec bw_grid, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_density_lscv_cpp(SEXP xSEXP, SEXP zgridSEXP, SEXP bw_gridSEXP, SEXP kernel_nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec >::type x(xSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type zgrid(zgridSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type bw_grid(bw_gridSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
+    rcpp_result_gen = Rcpp::wrap(density_lscv_cpp(x, zgrid, bw_grid, kernel_name));
+    return rcpp_result_gen;
+END_RCPP
+}
 // estimate_locreg_cpp
 arma::mat estimate_locreg_cpp(const Rcpp::DataFrame data, const arma::vec t, const bool center, const std::string kernel_name, const Rcpp::Nullable<arma::vec> h, const Rcpp::Nullable<double> Delta, const Rcpp::Nullable<arma::vec> presmooth_bw_grid, const Rcpp::Nullable<int> presmooth_nsubset);
 RcppExport SEXP _adaptiveFTS_estimate_locreg_cpp(SEXP dataSEXP, SEXP tSEXP, SEXP centerSEXP, SEXP kernel_nameSEXP, SEXP hSEXP, SEXP DeltaSEXP, SEXP presmooth_bw_gridSEXP, SEXP presmooth_nsubsetSEXP) {
@@ -586,6 +613,66 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// rp_mean_cpp
+arma::vec rp_mean_cpp(const arma::vec Tn, const arma::vec Yn, const arma::vec t, const double bw, const double N, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_rp_mean_cpp(SEXP TnSEXP, SEXP YnSEXP, SEXP tSEXP, SEXP bwSEXP, SEXP NSEXP, SEXP kernel_nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec >::type Tn(TnSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type Yn(YnSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
+    Rcpp::traits::input_parameter< const double >::type bw(bwSEXP);
+    Rcpp::traits::input_parameter< const double >::type N(NSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
+    rcpp_result_gen = Rcpp::wrap(rp_mean_cpp(Tn, Yn, t, bw, N, kernel_name));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rp_pq_cpp
+arma::vec rp_pq_cpp(const arma::vec xk, const arma::vec xj, const arma::vec wk, const arma::vec wj, const arma::vec s, const arma::vec t, const double bw, const double p, const double q, const bool drop_diag, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_rp_pq_cpp(SEXP xkSEXP, SEXP xjSEXP, SEXP wkSEXP, SEXP wjSEXP, SEXP sSEXP, SEXP tSEXP, SEXP bwSEXP, SEXP pSEXP, SEXP qSEXP, SEXP drop_diagSEXP, SEXP kernel_nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec >::type xk(xkSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type xj(xjSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type wk(wkSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type wj(wjSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type s(sSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
+    Rcpp::traits::input_parameter< const double >::type bw(bwSEXP);
+    Rcpp::traits::input_parameter< const double >::type p(pSEXP);
+    Rcpp::traits::input_parameter< const double >::type q(qSEXP);
+    Rcpp::traits::input_parameter< const bool >::type drop_diag(drop_diagSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
+    rcpp_result_gen = Rcpp::wrap(rp_pq_cpp(xk, xj, wk, wj, s, t, bw, p, q, drop_diag, kernel_name));
+    return rcpp_result_gen;
+END_RCPP
+}
+// rp_q_recycled_cpp
+arma::vec rp_q_recycled_cpp(const arma::vec xk, const arma::vec xj, const arma::vec Yk, const arma::vec Yj, const arma::vec Mk, const arma::vec Mj, const arma::vec s, const arma::vec t, const double bw, const double p, const double q, const bool drop_diag, const std::string kernel_name);
+RcppExport SEXP _adaptiveFTS_rp_q_recycled_cpp(SEXP xkSEXP, SEXP xjSEXP, SEXP YkSEXP, SEXP YjSEXP, SEXP MkSEXP, SEXP MjSEXP, SEXP sSEXP, SEXP tSEXP, SEXP bwSEXP, SEXP pSEXP, SEXP qSEXP, SEXP drop_diagSEXP, SEXP kernel_nameSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< const arma::vec >::type xk(xkSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type xj(xjSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type Yk(YkSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type Yj(YjSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type Mk(MkSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type Mj(MjSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type s(sSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
+    Rcpp::traits::input_parameter< const double >::type bw(bwSEXP);
+    Rcpp::traits::input_parameter< const double >::type p(pSEXP);
+    Rcpp::traits::input_parameter< const double >::type q(qSEXP);
+    Rcpp::traits::input_parameter< const bool >::type drop_diag(drop_diagSEXP);
+    Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
+    rcpp_result_gen = Rcpp::wrap(rp_q_recycled_cpp(xk, xj, Yk, Yj, Mk, Mj, s, t, bw, p, q, drop_diag, kernel_name));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_biweight_kernel", (DL_FUNC) &_adaptiveFTS_biweight_kernel, 1},
@@ -597,6 +684,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_estimate_nw_cpp", (DL_FUNC) &_adaptiveFTS_estimate_nw_cpp, 5},
     {"_adaptiveFTS_estimate_nw_bw_cpp", (DL_FUNC) &_adaptiveFTS_estimate_nw_bw_cpp, 4},
     {"_adaptiveFTS_get_nw_optimal_bw_cpp", (DL_FUNC) &_adaptiveFTS_get_nw_optimal_bw_cpp, 4},
+    {"_adaptiveFTS_density_loo_cpp", (DL_FUNC) &_adaptiveFTS_density_loo_cpp, 3},
+    {"_adaptiveFTS_density_lscv_cpp", (DL_FUNC) &_adaptiveFTS_density_lscv_cpp, 4},
     {"_adaptiveFTS_estimate_locreg_cpp", (DL_FUNC) &_adaptiveFTS_estimate_locreg_cpp, 8},
     {"_adaptiveFTS_estimate_mean_risk_cpp", (DL_FUNC) &_adaptiveFTS_estimate_mean_risk_cpp, 8},
     {"_adaptiveFTS_estimate_mean_cpp", (DL_FUNC) &_adaptiveFTS_estimate_mean_cpp, 9},
@@ -626,6 +715,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_blup_autocov_at_cpp", (DL_FUNC) &_adaptiveFTS_blup_autocov_at_cpp, 7},
     {"_adaptiveFTS_blup_fit_cpp", (DL_FUNC) &_adaptiveFTS_blup_fit_cpp, 12},
     {"_adaptiveFTS_blup_predict_cpp", (DL_FUNC) &_adaptiveFTS_blup_predict_cpp, 16},
+    {"_adaptiveFTS_rp_mean_cpp", (DL_FUNC) &_adaptiveFTS_rp_mean_cpp, 6},
+    {"_adaptiveFTS_rp_pq_cpp", (DL_FUNC) &_adaptiveFTS_rp_pq_cpp, 11},
+    {"_adaptiveFTS_rp_q_recycled_cpp", (DL_FUNC) &_adaptiveFTS_rp_q_recycled_cpp, 13},
     {NULL, NULL, 0}
 };
 

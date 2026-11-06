@@ -1,43 +1,104 @@
 #include <RcppArmadillo.h>
 // [[Rcpp::depends(RcppArmadillo)]]
 
-#include "02_smoothing_rcpp.h"
+#include "00_internal.h"
 using namespace Rcpp;
 using namespace arma;
 
+// The constants of the risk functions, on the split curves (core::Curves): each
+// curve is smoothed once at the distinct points, the per-point vectors over the
+// curves are built directly (instead of being looked up in a long table of
+// smoothed values), and the lag products are taken by direct loops.
 
-// [[Rcpp::export]]
-arma::mat estimate_sigma_cpp(const Rcpp::DataFrame data, const arma::vec t){
+namespace {
+
+// Mean over the finite entries; an empty set behaves as arma::mean() does.
+double mean_finite(const double* x, arma::uword n) {
+  double sum = 0;
+  arma::uword k = 0;
+  for (arma::uword i = 0; i < n; ++i) if (std::isfinite(x[i])) { sum += x[i]; ++k; }
+  if (k == 0) return arma::mean(arma::vec());
+  return sum / k;
+}
+
+// Mean over the finite entries, NaN and `empty` set when there is none (the
+// caller raises arma::mean()'s error outside of any parallel region).
+double mean_finite_flag(const double* x, arma::uword n, bool& empty) {
+  double sum = 0;
+  arma::uword k = 0;
+  for (arma::uword i = 0; i < n; ++i) if (std::isfinite(x[i])) { sum += x[i]; ++k; }
+  if (k == 0) { empty = true; return arma::datum::nan; }
+  return sum / k;
+}
+
+// Mean over the finite entries, 0 when there is none (the NaN -> 0 convention
+// of the empirical autocovariances).
+double mean_finite_or_zero(const double* x, arma::uword n) {
+  double sum = 0;
+  arma::uword k = 0;
+  for (arma::uword i = 0; i < n; ++i) if (std::isfinite(x[i])) { sum += x[i]; ++k; }
+  return (k == 0) ? 0.0 : sum / k;
+}
+
+// Values of the curves at point t(j): curve by curve, and for each curve every
+// position holding the same value as t(j) (as arma::find() on the long table).
+arma::vec stack_by_curve(const arma::mat& X, const std::vector<arma::uword>& g) {
+  arma::vec x(X.n_rows * g.size());
+  arma::uword r = 0;
+  for (arma::uword c = 0; c < X.n_rows; ++c)
+    for (arma::uword jj : g) x(r++) = X(c, jj);
+  return x;
+}
+
+} // anonymous namespace
+
+arma::mat smooth_matrix(const core::Curves& C, const arma::vec& t, const arma::vec& h, core::Kern kern) {
+  arma::mat X(C.N, t.n_elem);
+  for (int c = 0; c < C.N; ++c) {
+    double hc = h(C.ids(c) - 1);
+    for (arma::uword j = 0; j < t.n_elem; ++j) X(c, j) = core::nw_at(C, c, t(j), hc, kern);
+  }
+  return X;
+}
+
+// The two observations closest to t (sort_index of |T - t| in the original
+// order) give Z_n = (Y_i - Y_j)^2 / 2. They are found by binary search on the
+// sorted points; when the second and third distances tie (the choice then
+// depends on sort_index), the original computation is used.
+arma::mat sigma_impl(const core::Curves& C, const arma::vec& t) {
   int n = t.size();
-  // Smooth curve
-  arma::mat data_mat(data.nrows(), 3);
-  data_mat.col(0) = as<arma::vec>(data["id_curve"]);
-  data_mat.col(1) = as<arma::vec>(data["tobs"]);
-  data_mat.col(2) = as<arma::vec>(data["X"]);
-  arma::vec unique_id_curve = arma::unique(data_mat.col(0));
-  double n_curve = unique_id_curve.n_elem;
-
-  // Initialize a matrix for output
   arma::mat mat_res_sig(n, 2);
-  for(int j = 0; j < n; ++j){
-    // Initialize a vector to store Z_n = 1/2 * (Y_{n,i_t} - Y_{n,j_t})^2
-    arma::vec zn_vec(n_curve);
-    for(int i = 0 ; i < n_curve; ++i){
-      // Extrat the current curve index data
-      double idx_cur_curve = unique_id_curve(i);
-      arma::uvec indices_cur = arma::find(data_mat.col(0) == idx_cur_curve);
-      arma::mat mat_cur = data_mat.rows(indices_cur);
-
-      // Compute absolute differences between elements of tobs and t(j)
-      arma::vec abs_diff = arma::abs(mat_cur.col(1) - t(j));
-
-      // Sort indices based on the absolute differences
-      arma::uvec idx = arma::sort_index(abs_diff);
-      arma::vec Yn = mat_cur.col(2);
-      double Zn = 0.5 * (Yn(idx(0)) - Yn(idx(1))) * (Yn(idx(0)) - Yn(idx(1)));
-
-      // Store the value
-      zn_vec(i) = Zn;
+  for (int j = 0; j < n; ++j) {
+    arma::vec zn_vec(C.N);
+    for (int c = 0; c < C.N; ++c) {
+      const std::vector<double>& ts = C.Ts[c];
+      const arma::vec& Yn = C.Y[c];
+      const arma::uword M = ts.size();
+      bool done = false;
+      if (M >= 3) {
+        arma::uword pos = std::lower_bound(ts.begin(), ts.end(), t(j)) - ts.begin();
+        arma::uword lo = (pos >= 3) ? pos - 3 : 0, hi = std::min<arma::uword>(M, pos + 3);
+        double d[3] = {arma::datum::inf, arma::datum::inf, arma::datum::inf};
+        arma::uword q[3] = {0, 0, 0};
+        for (arma::uword k = lo; k < hi; ++k) {
+          double dk = std::abs(ts[k] - t(j));
+          if (dk < d[2]) {
+            int m = 2;
+            while (m > 0 && dk < d[m - 1]) { d[m] = d[m - 1]; q[m] = q[m - 1]; --m; }
+            d[m] = dk; q[m] = k;
+          }
+        }
+        if (d[1] < d[2]) {
+          double y0 = Yn(C.perm[c][q[0]]), y1 = Yn(C.perm[c][q[1]]);
+          zn_vec(c) = 0.5 * (y0 - y1) * (y0 - y1);
+          done = true;
+        }
+      }
+      if (!done) {
+        arma::vec abs_diff = arma::abs(C.T[c] - t(j));
+        arma::uvec idx = arma::sort_index(abs_diff);
+        zn_vec(c) = 0.5 * (Yn(idx(0)) - Yn(idx(1))) * (Yn(idx(0)) - Yn(idx(1)));
+      }
     }
     double sig = sqrt(arma::mean(zn_vec));
     mat_res_sig.row(j) = {t(j), sig};
@@ -46,47 +107,18 @@ arma::mat estimate_sigma_cpp(const Rcpp::DataFrame data, const arma::vec t){
 }
 
 // [[Rcpp::export]]
-arma::mat estimate_empirical_mom_cpp(const Rcpp::DataFrame data, const arma::vec t,
-                                     const arma::vec h, const double mom_order,
-                                     const double center,
-                                     const std::string kernel_name = "epanechnikov"){
+arma::mat estimate_sigma_cpp(const Rcpp::DataFrame data, const arma::vec t){
+  return sigma_impl(core::make_curves(data), t);
+}
+
+arma::mat mom_impl(const core::Curves& C, const arma::vec& t, const arma::vec& h,
+                   const double mom_order, const double center, core::Kern kern) {
   int n = t.size();
-
-  // Smooth curve
-  arma::mat data_mat(data.nrows(), 3);
-  data_mat.col(0) = as<arma::vec>(data["id_curve"]);
-  data_mat.col(1) = as<arma::vec>(data["tobs"]);
-  data_mat.col(2) = as<arma::vec>(data["X"]);
-  arma::vec unique_id_curve = arma::unique(data_mat.col(0));
-
-  // Initialize a matrix for output
-  double n_curve = unique_id_curve.n_elem;
-  arma::mat mat_res_nw(n_curve * n, 3);
-  for (int i = 0 ; i < n_curve; ++i) {
-    // Extrat the current curve index data
-    double idx_cur_curve = unique_id_curve(i);
-    arma::uvec indices_cur = arma::find(data_mat.col(0) == idx_cur_curve);
-    arma::mat mat_cur = data_mat.rows(indices_cur);
-
-    // Smooth using Nadaraya-Watson estimator
-    arma::vec h_to_use(1, fill::value(h(idx_cur_curve - 1)));
-    arma::vec Xhat = estimate_nw_cpp(mat_cur.col(2), mat_cur.col(1), t, h_to_use, kernel_name);
-
-    // Store the data
-    arma::mat cur_mat(n, 3);
-    cur_mat.col(0) = idx_cur_curve * arma::ones(n);
-    cur_mat.col(1) = t;
-    cur_mat.col(2) = Xhat;
-    mat_res_nw(span(i * n, (i + 1) * n - 1), span(0, 2)) = cur_mat;
-  }
-
-  // Declare a matrix to store the computed moment for all lags
+  arma::mat X = smooth_matrix(C, t, h, kern);
+  std::vector<std::vector<arma::uword>> groups = core::same_value_groups(t);
   arma::mat mat_mom_res(n, 3);
   for (int idx_t = 0; idx_t < n; ++idx_t) {
-    // Extract all smooth data for each t
-    arma::uvec cur_idx = arma::find(mat_res_nw.col(1) == t(idx_t));
-    arma::mat mat_res_nw_by_t = mat_res_nw.rows(cur_idx);
-    arma::vec x = mat_res_nw_by_t.col(2);
+    arma::vec x = stack_by_curve(X, groups[idx_t]);
 
     // Estimate the mean and center if center = true
     if (center) {
@@ -99,21 +131,54 @@ arma::mat estimate_empirical_mom_cpp(const Rcpp::DataFrame data, const arma::vec
     arma::uvec finiteIndices = arma::find_finite(x_pow);
     double Ex_mom_order = 0;
     if (finiteIndices.is_empty()) {
-      // If autocov_vec contains only NaN values
       x_pow.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
       Ex_mom_order = arma::mean(x_pow);
     } else {
       Ex_mom_order = arma::mean(x_pow.elem(finiteIndices));
     }
-
-    // Store the result for one t
     mat_mom_res.row(idx_t) = {t(idx_t), mom_order, Ex_mom_order};
   }
   // Replace non-finite value by zero
   mat_mom_res.replace(datum::nan, 0);
   mat_mom_res.replace(datum::inf, 0);
-
   return mat_mom_res;
+}
+
+// [[Rcpp::export]]
+arma::mat estimate_empirical_mom_cpp(const Rcpp::DataFrame data, const arma::vec t,
+                                     const arma::vec h, const double mom_order,
+                                     const double center,
+                                     const std::string kernel_name = "epanechnikov"){
+  core::Kern kern = core::parse_kernel(kernel_name);
+  return mom_impl(core::make_curves(data), t, h, mom_order, center, kern);
+}
+
+// Empirical autocovariance of the smoothed curves at each t and each lag, as an
+// n x nlag matrix (NaN / Inf set to 0, as in the long table). The curves are
+// smoothed and the mean is computed once per t, not once per (t, lag).
+arma::mat emp_autocov_matrix(const core::Curves& C, const arma::vec& t, const arma::vec& h,
+                             const arma::vec& lag, core::Kern kern) {
+  int n = t.size();
+  int nlag = lag.size();
+  arma::mat X = smooth_matrix(C, t, h, kern);
+  std::vector<std::vector<arma::uword>> groups = core::same_value_groups(t);
+  arma::mat ac(n, nlag);
+  std::vector<double> prod;
+  for (int idx_t = 0; idx_t < n; ++idx_t) {
+    arma::vec x = stack_by_curve(X, groups[idx_t]);
+    const arma::uword N = x.n_elem;
+    double muhat = mean_finite(x.memptr(), N);
+    for (int l = 0; l < nlag; ++l) {
+      const arma::uword L = lag(l);
+      if (L > N - 1) Rcpp::stop("'lag' must be lower than the number of curves.");
+      const arma::uword m = N - L;
+      prod.resize(m);
+      for (arma::uword k = 0; k < m; ++k) prod[k] = (x(k) - muhat) * (x(k + L) - muhat);
+      double v = mean_finite_or_zero(prod.data(), m);
+      ac(idx_t, l) = std::isfinite(v) ? v : 0.0;
+    }
+  }
+  return ac;
 }
 
 // [[Rcpp::export]]
@@ -122,77 +187,107 @@ arma::mat estimate_empirical_autocov_cpp(const Rcpp::DataFrame data, const arma:
                                          const std::string kernel_name = "epanechnikov"){
   int n = t.size();
   int nlag = lag.size();
-  // Smooth curve
-  arma::mat data_mat(data.nrows(), 3);
-  data_mat.col(0) = as<arma::vec>(data["id_curve"]);
-  data_mat.col(1) = as<arma::vec>(data["tobs"]);
-  data_mat.col(2) = as<arma::vec>(data["X"]);
-  arma::vec unique_id_curve = arma::unique(data_mat.col(0));
-
-  // Initialize a matrix for output
-  double n_curve = unique_id_curve.n_elem;
-  arma::mat mat_res_nw(n_curve * n, 3);
-  for(int i = 0 ; i < n_curve; ++i){
-    // Extrat the current curve index data
-    double idx_cur_curve = unique_id_curve(i);
-    arma::uvec indices_cur = arma::find(data_mat.col(0) == idx_cur_curve);
-    arma::mat mat_cur = data_mat.rows(indices_cur);
-
-    // Smooth using Nadaraya-Watson estimator
-    arma::vec h_to_use(1, fill::value(h(idx_cur_curve - 1)));
-    arma::vec Xhat = estimate_nw_cpp(mat_cur.col(2), mat_cur.col(1), t, h_to_use, kernel_name);
-
-    // Store the data
-    arma::mat cur_mat(n, 3);
-    cur_mat.col(0) = idx_cur_curve * arma::ones(n);
-    cur_mat.col(1) = t;
-    cur_mat.col(2) = Xhat;
-    mat_res_nw(span(i * n, (i + 1) * n - 1), span(0, 2)) = cur_mat;
-  }
-
-  // Declare a matrix to store the computed autocovariance for all lags
+  core::Kern kern = core::parse_kernel(kernel_name);
+  arma::mat ac = emp_autocov_matrix(core::make_curves(data), t, h, lag, kern);
   arma::mat mat_autocov_res(nlag * n, 3);
-  for(int l = 0; l < nlag; ++l){
-    // Declare a matrix to store the computed autocovariance for one lag
-    arma::mat mat_cur_lag(n, 3);
-    for(int idx_t = 0; idx_t < n; ++idx_t){
-      // Extract all smooth data for each t
-      arma::uvec cur_idx = arma::find(mat_res_nw.col(1) == t(idx_t));
-      arma::mat mat_res_nw_by_t = mat_res_nw.rows(cur_idx);
-      arma::vec x = mat_res_nw_by_t.col(2);
-      double N = cur_idx.size();
-
-      // Estimate the mean
-      // arma::uvec finiteIndices_x = arma::find_finite(x);
-      arma::vec x_for_mean = x.elem(arma::find_finite(x));
-      double muhat = arma::mean(x_for_mean);
-      arma::vec xk = x.subvec(0, N - 1 - lag(l));
-      arma::vec xk_plus_lag = x.subvec(lag(l), N - 1);
-      arma::vec autocov_vec = (xk - muhat) % (xk_plus_lag - muhat);
-
-      // Remove NaN values and compute auto-covariance
-      arma::uvec finiteIndices = arma::find_finite(autocov_vec);
-      double autocov = 0;
-      if (finiteIndices.is_empty()) {
-        // If autocov_vec contains only NaN values
-        autocov_vec.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-        autocov = arma::mean(autocov_vec);
-      } else {
-        autocov = arma::mean(autocov_vec.elem(finiteIndices));
-      }
-
-      // Store the result for one lag
-      mat_cur_lag.row(idx_t) = {t(idx_t), lag(l), autocov};
-    }
-    // Append the result
-    mat_autocov_res(span(l * n, (l + 1) * n - 1), span(0, 2)) = mat_cur_lag;
-  }
-
-  // Replace non-finite value by zero
+  for (int l = 0; l < nlag; ++l)
+    for (int idx_t = 0; idx_t < n; ++idx_t)
+      mat_autocov_res.row(l * n + idx_t) = {t(idx_t), lag(l), ac(idx_t, l)};
   mat_autocov_res.replace(datum::nan, 0);
   mat_autocov_res.replace(datum::inf, 0);
-
   return mat_autocov_res;
+}
+
+// Empirical autocovariance of X_n(s) X_{n+cross_lag}(t) for each pair and each
+// lag. For pair j the products P_k = X_k(s) X_{k+cross_lag}(t) are formed once
+// (curve by curve, pairs equal to (s_j, t_j) pooled as the long-table look-up
+// did); gamma = mean of the finite P_k, and the autocovariance at each lag is
+// the mean of the finite (P_k - gamma)(P_{k+lag} - gamma), 0 if none. Output:
+// pairs x lags matrices of gamma and autocovariance (non-finite set to 0).
+void xsxt_matrices(const core::Curves& C, const arma::vec& s, const arma::vec& t,
+                   const int cross_lag, const arma::vec& lag, const arma::vec& h,
+                   core::Kern kern, const bool center, arma::vec& gamma, arma::mat& acov) {
+  const int n = s.size();
+  const int nlag = lag.size();
+  // Smooth at the distinct values of s and of t only
+  arma::vec us, ut;
+  std::vector<arma::uword> fs = core::distinct(s, us), ft = core::distinct(t, ut);
+  arma::mat Xs = smooth_matrix(C, us, h, kern);
+  arma::mat Xt = smooth_matrix(C, ut, h, kern);
+  std::vector<std::vector<arma::uword>> groups = core::same_pair_groups(s, t);
+  gamma.set_size(n);
+  acov.set_size(n, nlag);
+  // Size checks before the parallel loop (no exception may leave it)
+  for (int j = 0; j < n; ++j) {
+    const arma::uword N = C.N * groups[j].size();
+    if ((arma::uword) cross_lag > N - 1) Rcpp::stop("'cross_lag' must be lower than the number of curves.");
+    for (int l = 0; l < nlag; ++l)
+      if ((arma::uword) lag(l) > N - cross_lag - 1)
+        Rcpp::stop("'lag' must be lower than the number of curves minus 'cross_lag'.");
+  }
+  bool empty = false;
+#pragma omp parallel for schedule(dynamic)
+  for (int j = 0; j < n; ++j) {
+    bool empty_j = false;
+    const std::vector<arma::uword>& g = groups[j];
+    const arma::uword N = C.N * g.size();
+    std::vector<double> a(N), b(N);
+    arma::uword r = 0;
+    for (int c = 0; c < C.N; ++c)
+      for (arma::uword jj : g) { a[r] = Xs(c, fs[jj]); b[r] = Xt(c, ft[jj]); ++r; }
+
+    // Estimate the mean, center if necessary
+    double muhat_s = mean_finite_flag(a.data(), N, empty_j);
+    double muhat_t = mean_finite_flag(b.data(), N, empty_j);
+    if (center) for (arma::uword k = 0; k < N; ++k) { a[k] -= muhat_s; b[k] -= muhat_t; }
+
+    const arma::uword m = N - cross_lag;
+    std::vector<double> P(m), v(m);
+    for (arma::uword k = 0; k < m; ++k) P[k] = a[k] * b[k + cross_lag];
+    double g0 = mean_finite_flag(P.data(), m, empty_j);
+    gamma(j) = std::isfinite(g0) ? g0 : 0.0;
+
+    for (int l = 0; l < nlag; ++l) {
+      const arma::uword L = lag(l);
+      for (arma::uword k = 0; k < m - L; ++k) v[k] = (P[k] - g0) * (P[k + L] - g0);
+      double val = mean_finite_or_zero(v.data(), m - L);
+      acov(j, l) = std::isfinite(val) ? val : 0.0;
+    }
+    if (empty_j) {
+#pragma omp critical
+      empty = true;
+    }
+  }
+  if (empty) {
+    double err = arma::mean(arma::vec()); // same error as the former computation
+    (void) err;
+  }
+}
+
+// Per-pair quantities of the dependence term of the (auto)covariance risks: the
+// lag-0 autocovariance of X(s)X(t) and sum |2 autocov| over the non-zero lags,
+// counted once per pair equal to (s_j, t_j), as the long-table look-up did.
+void xsxt_dependence(const core::Curves& C, const arma::vec& s, const arma::vec& t,
+                     const int cross_lag, const arma::vec& lag, const arma::vec& h,
+                     core::Kern kern, const bool center, arma::vec& var0, arma::vec& lrsum) {
+  arma::vec gamma;
+  arma::mat acov;
+  xsxt_matrices(C, s, t, cross_lag, lag, h, kern, center, gamma, acov);
+  std::vector<std::vector<arma::uword>> groups = core::same_pair_groups(s, t);
+  const int n = s.size();
+  var0.set_size(n);
+  lrsum.set_size(n);
+  for (int j = 0; j < n; ++j) {
+    double v0 = arma::datum::nan, sum = 0;
+    bool found = false;
+    for (arma::uword l = 0; l < lag.n_elem; ++l) {
+      if (lag(l) == 0) { if (!found) { v0 = acov(j, l); found = true; } }
+      else sum += std::abs(2 * acov(j, l));
+    }
+    if (!found) Rcpp::stop("The lag-0 autocovariance of X(s)X(t) is required.");
+    var0(j) = v0;
+    lrsum(j) = sum * groups[j].size();
+  }
 }
 
 // Function to estimate empirical autocovariance for curves X(s)X(t)
@@ -208,106 +303,20 @@ arma::mat estimate_empirical_XsXt_autocov_cpp(const Rcpp::DataFrame data,
   int n = s.size();
   int nlag = lag.size();
   double clag = cross_lag;
+  core::Kern kern = core::parse_kernel(kernel_name);
+  arma::vec gamma;
+  arma::mat acov;
+  xsxt_matrices(core::make_curves(data), s, t, cross_lag, lag, h, kern, center, gamma, acov);
 
-  // Smooth curves
-  // Implement curve smoothing here
-  arma::mat data_mat(data.nrows(), 3);
-  data_mat.col(0) = as<arma::vec>(data["id_curve"]);
-  data_mat.col(1) = as<arma::vec>(data["tobs"]);
-  data_mat.col(2) = as<arma::vec>(data["X"]);
-  arma::vec unique_id_curve = arma::unique(data_mat.col(0));
-
-  // Initialize a matrix for output
-  double n_curve = unique_id_curve.n_elem;
-  arma::mat mat_res_nw(n_curve * n, 5);
-  for(int i = 0 ; i < n_curve; ++i){
-    // Extrat the current curve index data
-    double idx_cur_curve = unique_id_curve(i);
-    arma::uvec indices_cur = arma::find(data_mat.col(0) == idx_cur_curve);
-    arma::mat mat_cur = data_mat.rows(indices_cur);
-
-    // Smooth using Nadaraya-Watson estimator
-    arma::vec h_to_use(1, fill::value(h(idx_cur_curve - 1)));
-    arma::vec Xhat_s = estimate_nw_cpp(mat_cur.col(2), mat_cur.col(1), s, h_to_use, kernel_name);
-    arma::vec Xhat_t = estimate_nw_cpp(mat_cur.col(2), mat_cur.col(1), t, h_to_use, kernel_name);
-
-    // Store the data
-    arma::mat cur_mat(n, 5);
-    cur_mat.col(0) = idx_cur_curve * arma::ones(n);
-    cur_mat.col(1) = s;
-    cur_mat.col(2) = Xhat_s;
-    cur_mat.col(3) = t;
-    cur_mat.col(4) = Xhat_t;
-    mat_res_nw(span(i * n, (i + 1) * n - 1), span(0, 4)) = cur_mat;
-  }
-
-  // Implement the \gamma_{cross_lag}(s,t) estimation
-  // Estimate autocovariance
-  // Declare a matrix to store the computed autocovariance for all lags
   arma::mat mat_autocov_XsXt_res(nlag * n, 6);
-  for(int j = 0; j < n; ++j){
-    // Extract all smooth data for each t
-    arma::uvec cur_idx = arma::find((mat_res_nw.col(1) == s(j)) % (mat_res_nw.col(3) == t(j)));
-    arma::mat mat_res_nw_by_st = mat_res_nw.rows(cur_idx);
-    arma::vec Xhat_s = mat_res_nw_by_st.col(2);
-    arma::vec Xhat_t = mat_res_nw_by_st.col(4);
-    double N = cur_idx.size();
+  for (int j = 0; j < n; ++j)
+    for (int l = 0; l < nlag; ++l)
+      mat_autocov_XsXt_res.row(j * nlag + l) = {s(j), t(j), clag, lag(l), gamma(j), acov(j, l)};
 
-    // Estimate the mean
-    double muhat_s = arma::mean(Xhat_s.elem(arma::find_finite(Xhat_s)));
-    double muhat_t = arma::mean(Xhat_t.elem(arma::find_finite(Xhat_t)));
-    // Center data if necessary
-    if (center) {
-      Xhat_s -= muhat_s;
-      Xhat_t -= muhat_t;
-    }
-    arma::vec Xhat_s_n = Xhat_s.subvec(0, N - 1 - cross_lag);
-    arma::vec Xhat_t_n_plus_cross_lag = Xhat_t.subvec(cross_lag, N - 1);
-    arma::vec XsXt_cross_lag = Xhat_s_n % Xhat_t_n_plus_cross_lag;
-
-    // Remove NaN values and compute auto-covariance
-    arma::uvec finite_XsXt = arma::find_finite(XsXt_cross_lag);
-    double gamma_cross_lag = arma::mean(XsXt_cross_lag.elem(finite_XsXt));
-
-    // Compute the X(s)X_l(t) autocovariance for lag = 0, 1, ...
-    arma::mat mat_autocov_lag(nlag, 6);
-    for(int l = 0; l < nlag; ++l){
-      // For the argument s
-      arma::vec Xhat_s_i = Xhat_s.subvec(0, N - 1 - cross_lag - lag(l));
-      arma::vec Xhat_s_i_plus_lag = Xhat_s.subvec(lag(l), N - 1 - cross_lag);
-
-      // For the argument t
-      arma::vec Xhat_t_i_plus_cross_lag = Xhat_t.subvec(cross_lag, N - 1 - lag(l));
-      arma::vec Xhat_t_i_plus_cross_lag_plus_lag = Xhat_t.subvec(cross_lag + lag(l), N - 1);
-
-      arma::vec autocov_vec_lag = ((Xhat_s_i % Xhat_t_i_plus_cross_lag) - gamma_cross_lag) %
-        ((Xhat_s_i_plus_lag % Xhat_t_i_plus_cross_lag_plus_lag) - gamma_cross_lag);
-
-      // Remove NaN values and compute auto-covariance
-      arma::uvec finite_autocov_lag = arma::find_finite(autocov_vec_lag);
-      double XsXt_autocov = 0;
-      if (finite_autocov_lag.is_empty()) {
-        // If autocov_vec contains only NaN values
-        autocov_vec_lag.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-        XsXt_autocov = arma::mean(autocov_vec_lag);
-      } else {
-        XsXt_autocov = arma::mean(autocov_vec_lag.elem(finite_autocov_lag));
-      }
-
-
-      // Store the result for the X(s)X_l(t) autocovariance for lag = 0, 1, ...
-      mat_autocov_lag.row(l) = {s(j), t(j), clag, lag(l), gamma_cross_lag, XsXt_autocov};
-    }
-
-    mat_autocov_XsXt_res(span(j * nlag, (j + 1) * nlag - 1), span(0, 5)) = mat_autocov_lag;
-  }
-
-  // Return results
   // Replace non-finite value by zero and sort
   mat_autocov_XsXt_res.replace(datum::nan, 0);
   mat_autocov_XsXt_res.replace(datum::inf, 0);
   mat_autocov_XsXt_res = mat_autocov_XsXt_res.rows(arma::sort_index(mat_autocov_XsXt_res.col(0)));
-
   return mat_autocov_XsXt_res ;
 }
 
@@ -358,6 +367,38 @@ double estimate_numerator_DD_single_t(const arma::vec& Znvec_raw, const int max_
   return D_val;
 }
 
+// Numerator of \mathbb{D}(t; h) and P_N(t; h) for each point and bandwidth, as
+// n x n_bw matrices. The centred smoothed curves at t do not depend on the
+// bandwidth: they are computed once per point, and only pi_n(t; h) per (t, h).
+void dd_matrices(const core::Curves& C, const arma::vec& t, const arma::vec& bw_vec,
+                 const arma::vec& h, const int max_lag, core::Kern kern, const bool center,
+                 arma::mat& num, arma::mat& PN) {
+  const int n = t.size();
+  const int n_bw = bw_vec.size();
+  arma::mat X = smooth_matrix(C, t, h, kern);
+  std::vector<std::vector<arma::uword>> groups = core::same_value_groups(t);
+  num.set_size(n, n_bw);
+  PN.set_size(n, n_bw);
+  for (int j = 0; j < n; ++j) {
+    const std::vector<arma::uword>& g = groups[j];
+    arma::vec Xhat_t = stack_by_curve(X, g);
+    Xhat_t.replace(arma::datum::nan, 0.0);
+    Xhat_t.replace(arma::datum::inf, 0.0);
+    double muhat_t = arma::mean(Xhat_t.elem(arma::find_finite(Xhat_t)));
+    if (center) Xhat_t -= muhat_t;
+    for (int b = 0; b < n_bw; ++b) {
+      arma::vec pn_vec(Xhat_t.n_elem);
+      arma::uword r = 0;
+      for (int c = 0; c < C.N; ++c) {
+        double pn = core::pn_scaled(C, c, t(j), bw_vec(b));
+        for (arma::uword q = 0; q < g.size(); ++q) pn_vec(r++) = pn;
+      }
+      arma::vec Zn_vec_pn = pn_vec % Xhat_t;
+      PN(j, b) = arma::accu(pn_vec);
+      num(j, b) = estimate_numerator_DD_single_t(Zn_vec_pn, max_lag);
+    }
+  }
+}
 
 // Function to estimate empirical autocovariance for curves X(s)X(t)
 // [[Rcpp::export]]
@@ -370,77 +411,19 @@ arma::mat estimate_numerator_dependence_term_DD_cpp(const Rcpp::DataFrame data,
                                                     const bool center) {
   int n = t.size();
   int n_bw = bw_vec.size();
+  core::Kern kern = core::parse_kernel(kernel_name);
+  arma::mat num, PN;
+  dd_matrices(core::make_curves(data), t, bw_vec, h, max_lag, kern, center, num, PN);
 
-  // Prepare data
-  arma::mat data_mat(data.nrows(), 3);
-  data_mat.col(0) = as<arma::vec>(data["id_curve"]);
-  data_mat.col(1) = as<arma::vec>(data["tobs"]);
-  data_mat.col(2) = as<arma::vec>(data["X"]);
-  arma::vec unique_id_curve = arma::unique(data_mat.col(0));
-  int n_curve = unique_id_curve.n_elem;
-
-  // Smooth curves once per curve
-  arma::mat mat_res_nw(n_curve * n, 4);
-  for (int i = 0; i < n_curve; ++i) {
-    double idx_cur_curve = unique_id_curve(i);
-    arma::uvec indices_cur = arma::find(data_mat.col(0) == idx_cur_curve);
-    arma::mat mat_cur = data_mat.rows(indices_cur);
-
-    arma::vec h_to_use(1, arma::fill::value(h(idx_cur_curve - 1)));
-    arma::vec Xhat_t = estimate_nw_cpp(mat_cur.col(2), mat_cur.col(1), t, h_to_use, kernel_name);
-
-    arma::mat cur_mat(n, 4);
-    cur_mat.col(0).fill(idx_cur_curve);
-    cur_mat.col(1) = t;
-    cur_mat.col(3) = Xhat_t;
-
-    mat_res_nw.rows(i * n, (i + 1) * n - 1) = cur_mat;
-  }
-
-  // Prepare result matrix
   arma::mat mat_DD_res(n * n_bw, 4);
-
   for (int b = 0; b < n_bw; ++b) {
-    double bw = bw_vec(b);
-
     for (int j = 0; j < n; ++j) {
-      double t_j = t(j);
-      arma::uvec cur_idx = arma::find(mat_res_nw.col(1) == t_j);
-      arma::mat mat_res_nw_by_t = mat_res_nw.rows(cur_idx);
-
-      // Compute pn_vec for current bandwidth
-      arma::vec pn_vec(mat_res_nw_by_t.n_rows);
-      int nrow_t = mat_res_nw_by_t.n_rows;
-      for (int i = 0; i < nrow_t; ++i) {
-        double idx_cur_curve = mat_res_nw_by_t(i, 0);
-        arma::uvec indices_cur = arma::find(data_mat.col(0) == idx_cur_curve);
-        arma::mat mat_cur = data_mat.rows(indices_cur);
-
-        arma::vec Tn_t_diff_over_bw = (mat_cur.col(1) - t_j) / bw;
-        pn_vec(i) = arma::find(arma::abs(Tn_t_diff_over_bw) <= 1).is_empty() ? 0 : 1;
-      }
-
-      arma::vec Xhat_t = mat_res_nw_by_t.col(3);
-      Xhat_t.replace(arma::datum::nan, 0.0);
-      Xhat_t.replace(arma::datum::inf, 0.0);
-
-      double muhat_t = arma::mean(Xhat_t.elem(arma::find_finite(Xhat_t)));
-      if (center) {
-        Xhat_t -= muhat_t;
-      }
-
-      arma::vec Zn_vec_pn = pn_vec % Xhat_t;
-      double PN = arma::accu(pn_vec);
-      double DD_by_t = estimate_numerator_DD_single_t(Zn_vec_pn, max_lag);
-
       int idx_res = b * n + j;
-      mat_DD_res(idx_res, 0) = t_j;
-      mat_DD_res(idx_res, 1) = bw;
-      mat_DD_res(idx_res, 2) = DD_by_t;
-      mat_DD_res(idx_res, 3) = PN;
+      mat_DD_res(idx_res, 0) = t(j);
+      mat_DD_res(idx_res, 1) = bw_vec(b);
+      mat_DD_res(idx_res, 2) = num(j, b);
+      mat_DD_res(idx_res, 3) = PN(j, b);
     }
   }
-
   return mat_DD_res;
 }
-

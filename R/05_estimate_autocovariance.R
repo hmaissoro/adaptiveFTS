@@ -138,7 +138,7 @@ estimate_autocov_risk <- function(data, idcol = "id_curve", tcol = "tobs", ycol 
   dt_st <- dt_st[order(s,t)]
   s <- dt_st[, s]
   t <- dt_st[, t]
-  rm(dt_st) ; gc()
+  rm(dt_st)
 
   # Estimate risk funciton using C++ function
   mat_autocov_risk <- estimate_autocov_risk_cpp(
@@ -361,26 +361,15 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
   if (! (methods::is(bw, "numeric") & all(data.table::between(bw, 0, 1))  & length(bw) == 1))
     stop("'bw' must be a numeric scalar value between 0 and 1.")
 
-  # Extract observation points
+  # Observation points of the curves 1..N-lag (s side) and 1+lag..N (t side).
+  # The sum over every couple of them (couples of the same observation dropped
+  # at lag 0) factorises; see .rp_cross_sums().
   Tn <- data[id_curve %in% 1:(N - lag), tobs]
   Tn_plus_lag <- data[id_curve %in% (1 + lag):N, tobs]
-  rm(data); gc()
-
-  dt_tobs <- data.table::CJ(Tn, Tn_plus_lag)
-  if (lag == 0) {
-    ind_vec <- data.table::CJ(1:length(Tn), 1:length(Tn_plus_lag))[, which(V1 != V2)]
-    dt_tobs <- dt_tobs[ind_vec]
-    rm(ind_vec) ; gc()
-  }
-  xtk_vec <- dt_tobs[, Tn]
-  xthj_vec <- dt_tobs[, Tn_plus_lag]
-  rm(dt_tobs, Tn, Tn_plus_lag) ; gc()
-
-  # Calculation of the elements to be summed up
-  res <- (((xthj_vec - t) / bw ) ** p) * (((xtk_vec - s) / bw ) ** q) *
-    (1 / (bw ** 2)) * smooth_ker((xthj_vec - t) / bw) * smooth_ker((xtk_vec - s) / bw )
-  Spq_sum <- sum(res)
-  rm(res) ; gc()
+  Spq_sum <- rp_pq_cpp(xk = sort(Tn), xj = sort(Tn_plus_lag),
+                       wk = rep(1, length(Tn)), wj = rep(1, length(Tn_plus_lag)),
+                       s = s, t = t, bw = bw, p = p, q = q, drop_diag = (lag == 0),
+                       kernel_name = kernel_name)
   Spq <- Spq_sum / (N - lag)
   return(Spq)
 }
@@ -448,53 +437,64 @@ estimate_autocov <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X"
       data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       t = mean_rp[, tobs], bw = bw_mean, kernel_name = kernel_name)
     mean_rp[, muhat_RP := dt_mean[, muhat_RP]]
-    rm(dt_mean) ; gc()
   } else {
     mean_rp <- mean_rp[order(id_curve)]
   }
 
-  # Extract observation points and observed points
-  data <- data[order(id_curve)]
-  Tn <- data[id_curve %in% 1:(N - lag), tobs]
-  Tn_plus_lag <- data[id_curve %in% (1 + lag):N, tobs]
-  Yn <- data[id_curve %in% 1:(N - lag), X]
-  Yn_plus_lag <- data[id_curve %in% (1 + lag):N, X]
-  rm(data); gc()
-
-  # Extract mean function estimates
-  mean_rp <- mean_rp[order(id_curve)]
-  muhat_Tn <- mean_rp[id_curve %in% 1:(N - lag), muhat_RP]
-  muhat_Tn_plus_lag <- mean_rp[id_curve %in% (1 + lag):N, muhat_RP]
-  rm(mean_rp) ; gc()
-  # repeat data
-  dt_tobs <- data.table::CJ(Tn, Tn_plus_lag)
-  dt_Y <- data.table::CJ(Yn, Yn_plus_lag)
-  dt_mean <- data.table::CJ(muhat_Tn, muhat_Tn_plus_lag)
-  if (lag == 0) {
-    ind_vec <- data.table::CJ(1:length(Tn), 1:length(Tn_plus_lag))[, which(V1 != V2)]
-    dt_tobs <- dt_tobs[ind_vec]
-    dt_Y <- dt_Y[ind_vec]
-    dt_mean <- dt_mean[ind_vec]
-    rm(ind_vec) ; gc()
-  }
-  # Extract and clean
-  xtk_vec <- dt_tobs[, Tn]
-  xthj_vec <- dt_tobs[, Tn_plus_lag]
-  Ytk_vec <- dt_Y[, Yn]
-  Ythj_vec <- dt_Y[, Yn_plus_lag]
-  muhat_tk_vec <- dt_mean[, muhat_Tn]
-  muhat_xthj_vec <- dt_mean[, muhat_Tn_plus_lag]
-  rm(dt_tobs, dt_Y, dt_mean, Tn, Tn_plus_lag, Yn, Yn_plus_lag, muhat_Tn, muhat_Tn_plus_lag) ; gc()
-
-  # Calculate Q function
-  Gth <- (Ythj_vec - muhat_xthj_vec) * (Ytk_vec - muhat_tk_vec)
-  res <- Gth * (((xthj_vec - t) / bw ) ** p) * (((xtk_vec - s) / bw ) ** q) *
-    (1 / (bw ** 2)) * smooth_ker((xthj_vec - t) / bw) * smooth_ker((xtk_vec - s) / bw )
-
-  Qpq_sum <- sum(res)
-  rm(res) ; gc()
+  v <- .rp_q_vectors(data = data, mean_rp = mean_rp, N = N, lag = lag)
+  Qpq_sum <- .rp_q_sums(v = v, s = s, t = t, bw = bw, p = p, q = q, lag = lag,
+                        kernel_name = kernel_name)
   Qpq <- Qpq_sum / (N - lag)
   return(Qpq)
+}
+
+#' Observation vectors of the Rubin-Panaretos cross-product sums
+#'
+#' Builds, as the former computation did, the observation times, values and
+#' mean estimates of the curves 1..N-lag (s side) and 1+lag..N (t side). Each
+#' vector is sorted on its own, which is how the former cartesian products
+#' (data.table::CJ, sorted) paired them.
+#'
+#' @param data Formatted data.
+#' @param mean_rp Mean estimates (`id_curve`, `tobs`, `muhat_RP`).
+#' @param N Number of curves.
+#' @param lag Lag.
+#' @return A list of sorted vectors.
+#' @keywords internal
+.rp_q_vectors <- function(data, mean_rp, N, lag) {
+  data <- data[order(id_curve)]
+  mean_rp <- mean_rp[order(id_curve)]
+  return(list(
+    xk = sort(data[id_curve %in% 1:(N - lag), tobs]),
+    xj = sort(data[id_curve %in% (1 + lag):N, tobs]),
+    Yk = sort(data[id_curve %in% 1:(N - lag), X]),
+    Yj = sort(data[id_curve %in% (1 + lag):N, X]),
+    Mk = sort(mean_rp[id_curve %in% 1:(N - lag), muhat_RP]),
+    Mj = sort(mean_rp[id_curve %in% (1 + lag):N, muhat_RP])))
+}
+
+#' Weighted cross-product sums of the Rubin-Panaretos estimator
+#'
+#' The sum over the couples of observations of
+#' \eqn{(Y_j - \hat\mu_j)(Y_k - \hat\mu_k)} times the kernel weights. When the
+#' mean vectors match the observation vectors, the sum factorises into a product
+#' of one-dimensional sums ([rp_pq_cpp()]); otherwise the former element-wise
+#' computation, with its recycling, is emulated couple by couple
+#' ([rp_q_recycled_cpp()]).
+#'
+#' @param v Output of [.rp_q_vectors()].
+#' @inheritParams .Qpq_fun
+#' @return The sums, one per pair (s, t).
+#' @keywords internal
+.rp_q_sums <- function(v, s, t, bw, p, q, lag, kernel_name) {
+  if (length(v$Mk) == length(v$xk) && length(v$Mj) == length(v$xj)) {
+    return(as.vector(rp_pq_cpp(xk = v$xk, xj = v$xj, wk = v$Yk - v$Mk, wj = v$Yj - v$Mj,
+                               s = s, t = t, bw = bw, p = p, q = q, drop_diag = (lag == 0),
+                               kernel_name = kernel_name)))
+  }
+  return(as.vector(rp_q_recycled_cpp(xk = v$xk, xj = v$xj, Yk = v$Yk, Yj = v$Yj, Mk = v$Mk, Mj = v$Mj,
+                                     s = s, t = t, bw = bw, p = p, q = q, drop_diag = (lag == 0),
+                                     kernel_name = kernel_name)))
 }
 
 #' Estimate the Autocovariance Function by the Rubìn-Panaretos Method
@@ -596,7 +596,7 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
   dt_st <- dt_st[order(s,t)]
   s <- dt_st[, s]
   t <- dt_st[, t]
-  rm(dt_st) ; gc()
+  rm(dt_st)
 
   # Estimate mean function is it is NULL
   if (is.null(mean_rp)) {
@@ -609,42 +609,32 @@ estimate_autocov_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol = 
     mean_rp <- mean_rp[order(id_curve)]
   }
 
-  # Calculate S_{pq} and Q_{pq}
-  autocov_vec <- mapply(function(si, ti, bw, lag, bw_mean, mean_rp, data, ker){
-    # Calculate S_{pq} and A_1^{(\ell)},A_2^{(\ell)}, A_3^{(\ell)}
-    S00 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                    s = si, t = ti, lag = lag, p = 0, q = 0, bw = bw, kernel_name = ker)
-    S01 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                    s = si, t = ti, lag = lag, p = 0, q = 1, bw = bw, kernel_name = ker)
-    S02 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                    s = si, t = ti, lag = lag, p = 0, q = 2, bw = bw, kernel_name = ker)
-    S10 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                    s = si, t = ti, lag = lag, p = 1, q = 0, bw = bw, kernel_name = ker)
-    S11 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                    s = si, t = ti, lag = lag, p = 1, q = 1, bw = bw, kernel_name = ker)
-    S20 <- .Spq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
-                    s = si, t = ti, lag = lag, p = 2, q = 0, bw = bw, kernel_name = ker)
+  # S_{pq} and Q_{pq} for every pair at once (the same sums as .Spq_fun() and
+  # .Qpq_fun(), on vectors built once instead of once per pair and moment)
+  Tn <- sort(data[id_curve %in% 1:(N - lag), tobs])
+  Tn_plus_lag <- sort(data[id_curve %in% (1 + lag):N, tobs])
+  Spq <- function(p, q) {
+    as.vector(rp_pq_cpp(xk = Tn, xj = Tn_plus_lag, wk = rep(1, length(Tn)),
+                        wj = rep(1, length(Tn_plus_lag)), s = s, t = t, bw = bw, p = p, q = q,
+                        drop_diag = (lag == 0), kernel_name = kernel_name)) / (N - lag)
+  }
+  v <- .rp_q_vectors(data = data, mean_rp = mean_rp, N = N, lag = lag)
+  Qpq <- function(p, q) {
+    .rp_q_sums(v = v, s = s, t = t, bw = bw, p = p, q = q, lag = lag,
+               kernel_name = kernel_name) / (N - lag)
+  }
+  S00 <- Spq(0, 0) ; S01 <- Spq(0, 1) ; S02 <- Spq(0, 2)
+  S10 <- Spq(1, 0) ; S11 <- Spq(1, 1) ; S20 <- Spq(2, 0)
 
-    # calculate A_1^{(\ell)},A_2^{(\ell)}, A_3^{(\ell)} and B^{(\ell)}
-    A1 <- S20 * S02 - (S11 ** 2)
-    A2 <- S10 * S02 - S01 * S11
-    A3 <- S01 * S20 - S10 * S11
-    B <- A1 * S00 - A2 * S10 - A3 * S01
+  # calculate A_1^{(\ell)},A_2^{(\ell)}, A_3^{(\ell)} and B^{(\ell)}
+  A1 <- S20 * S02 - (S11 ** 2)
+  A2 <- S10 * S02 - S01 * S11
+  A3 <- S01 * S20 - S10 * S11
+  B <- A1 * S00 - A2 * S10 - A3 * S01
 
-    # Calculate Q_{pq}
-    Q00 <- .Qpq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", s = si, t = ti,
-                    lag = lag, p = 0, q = 0, bw = bw, mean_rp = mean_rp, bw_mean = bw_mean, kernel_name = ker)
-    Q10 <- .Qpq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", s = si, t = ti,
-                    lag = lag, p = 1, q = 0, bw = bw, mean_rp = mean_rp, bw_mean = bw_mean, kernel_name = ker)
-    Q01 <- .Qpq_fun(data = data, idcol = "id_curve", tcol = "tobs", ycol = "X", s = si, t = ti,
-                    lag = lag, p = 0, q = 1, bw = bw, mean_rp = mean_rp, bw_mean = bw_mean, kernel_name = ker)
-
-    # estimate autocovariance
-    R <- (A1 * Q00 - A2 * Q10 - A3 * Q01) / B
-
-    return(R)
-  }, si = s, ti = t, MoreArgs = list(bw = bw, lag = lag, data = data, bw_mean = bw_mean,
-                                     mean_rp = mean_rp, ker = kernel_name))
+  # estimate autocovariance
+  Q00 <- Qpq(0, 0) ; Q10 <- Qpq(1, 0) ; Q01 <- Qpq(0, 1)
+  autocov_vec <- (A1 * Q00 - A2 * Q10 - A3 * Q01) / B
   dt_res <- data.table::data.table("s" = s, "t" = t, "lag" = lag, "bw_mean" = bw_mean, "autocovhat_rp" = autocov_vec)
   return(dt_res)
 }
@@ -727,7 +717,7 @@ estimate_autocov_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol
       data = data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       t = mean_rp[, tobs], bw = bw_mean, kernel_name = kernel_name)
     mean_rp[, muhat_RP := dt_mean[, muhat_RP]]
-    rm(dt_mean) ; gc()
+    rm(dt_mean)
   } else {
     mean_rp <- mean_rp[order(id_curve)]
   }
@@ -766,7 +756,7 @@ estimate_autocov_bw_rp <- function(data, idcol = "id_curve", tcol = "tobs", ycol
         muhat_ti <- muhat_grid$muhat_ti
         muhat_tj <- muhat_grid$muhat_tj
 
-        rm(Tn, Yn, Tn_grid, Yn_grid, muhat_grid, muhat, dt_mean_test) ; gc()
+        rm(Tn, Yn, Tn_grid, Yn_grid, muhat_grid, muhat, dt_mean_test)
 
         # Estimation of mean on fold\f and test on f
         dt_autocov <- estimate_autocov_rp(

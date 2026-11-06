@@ -40,6 +40,32 @@ get_nw_optimal_bw_cpp <- function(data, bw_grid = NULL, nsubset = NULL, kernel_n
     .Call(`_adaptiveFTS_get_nw_optimal_bw_cpp`, data, bw_grid, nsubset, kernel_name)
 }
 
+#' Leave-one-out design-density estimate (C++ core)
+#'
+#' @param x Observation times of one curve.
+#' @param h Bandwidth.
+#' @param kernel_name Kernel name.
+#' @return The leave-one-out estimate at each point of `x`.
+#' @keywords internal
+density_loo_cpp <- function(x, h, kernel_name) {
+    .Call(`_adaptiveFTS_density_loo_cpp`, x, h, kernel_name)
+}
+
+#' Least-squares cross-validation scores of the design density (C++ core)
+#'
+#' For each bandwidth, the trapezoidal integral of the squared estimate over
+#' `zgrid` minus twice the mean leave-one-out estimate.
+#'
+#' @param x Observation times of one curve.
+#' @param zgrid Integration grid.
+#' @param bw_grid Candidate bandwidths.
+#' @param kernel_name Kernel name.
+#' @return The LSCV score per bandwidth.
+#' @keywords internal
+density_lscv_cpp <- function(x, zgrid, bw_grid, kernel_name) {
+    .Call(`_adaptiveFTS_density_lscv_cpp`, x, zgrid, bw_grid, kernel_name)
+}
+
 #' Local Regularity Parameters Estimation
 NULL
 
@@ -252,5 +278,64 @@ blup_fit_cpp <- function(data, id_conditioning_curve, bw_grid, rho, homoscedasti
 #' @keywords internal
 blup_predict_cpp <- function(data, opt_mean, opt_cov, opt_autocov, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, horizon, kernel_name) {
     .Call(`_adaptiveFTS_blup_predict_cpp`, data, opt_mean, opt_cov, opt_autocov, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, horizon, kernel_name)
+}
+
+#' Kernel sums of the Rubin-Panaretos mean estimator (C++ core)
+#'
+#' For each t, the local-linear mean
+#' \eqn{(Q_0 S_2 - Q_1 S_1) / (S_0 S_2 - S_1^2)} from the pooled observations,
+#' with \eqn{Q_p = \sum (T - t)^p Y K((T - t)/h) / (h N)} and
+#' \eqn{S_p = \sum (T - t)^p K((T - t)/h) / (h N)}.
+#'
+#' @param Tn,Yn Pooled observation times (sorted) and values.
+#' @param t Evaluation points.
+#' @param bw Bandwidth.
+#' @param N Number of curves.
+#' @param kernel_name Kernel name.
+#' @return The mean estimates at `t`.
+#' @keywords internal
+rp_mean_cpp <- function(Tn, Yn, t, bw, N, kernel_name) {
+    .Call(`_adaptiveFTS_rp_mean_cpp`, Tn, Yn, t, bw, N, kernel_name)
+}
+
+#' Cross sums of the Rubin-Panaretos autocovariance estimator (C++ core)
+#'
+#' For each pair (s, t), the sum over every couple of observations (k, j) of
+#' \eqn{w_j w_k ((x_j - t)/h)^p ((x_k - s)/h)^q K((x_j - t)/h) K((x_k - s)/h) / h^2},
+#' the couples k = j excluded when `drop_diag` (lag 0). The double sum
+#' factorises into the product of the two one-dimensional sums, each over the
+#' kernel window only.
+#'
+#' @param xk,xj Sorted observation times of the s side and of the t side.
+#' @param wk,wj Weights aligned with `xk` and `xj`.
+#' @param s,t The pairs.
+#' @param bw Bandwidth.
+#' @param p,q Powers of the t side and of the s side.
+#' @param drop_diag Whether to exclude the couples k = j (requires xk = xj).
+#' @param kernel_name Kernel name.
+#' @return The sums, one per pair.
+#' @keywords internal
+rp_pq_cpp <- function(xk, xj, wk, wj, s, t, bw, p, q, drop_diag, kernel_name) {
+    .Call(`_adaptiveFTS_rp_pq_cpp`, xk, xj, wk, wj, s, t, bw, p, q, drop_diag, kernel_name)
+}
+
+#' Cross sums of the Rubin-Panaretos estimator with recycled mean vectors (C++ core)
+#'
+#' Exact emulation, couple by couple, of the former data.table computation when
+#' the mean vectors do not have the length of the observation vectors (then the
+#' tables of observations and of means are indexed or recycled separately, as R
+#' does). Used only in that case; it visits every couple of observations.
+#'
+#' @param xk,xj,Yk,Yj,Mk,Mj Sorted observation times, values and means of the
+#'   s side and of the t side.
+#' @param s,t The pairs.
+#' @param bw Bandwidth.
+#' @param p,q Powers of the t side and of the s side.
+#' @param drop_diag Whether to exclude the couples k = j.
+#' @param kernel_name Kernel name.
+#' @return The sums, one per pair.
+#' @keywords internal
+rp_q_recycled_cpp <- function(xk, xj, Yk, Yj, Mk, Mj, s, t, bw, p, q, drop_diag, kernel_name) {
+    .Call(`_adaptiveFTS_rp_q_recycled_cpp`, xk, xj, Yk, Yj, Mk, Mj, s, t, bw, p, q, drop_diag, kernel_name)
 }
 

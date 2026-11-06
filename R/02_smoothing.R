@@ -163,7 +163,7 @@ estimate_nw_bw <- function(y, t, bw_grid = NULL, kernel_name = "epanechnikov") {
     bK <- length(t) ** (- 1 / 3)
     a <- exp((log(bK) - log(b0)) / K)
     bw_grid <- b0 * a ** (seq_len(K))
-    rm(b0, bK, a, K) ; gc()
+    rm(b0, bK, a, K)
   }
 
   # Use C++ function
@@ -247,7 +247,7 @@ get_nw_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X
     a <- exp((log(bK) - log(b0)) / K)
     bw_grid <- b0 * a ** (seq_len(K))
 
-    rm(K, b0, bK, a) ; gc()
+    rm(K, b0, bK, a)
   }
 
   # Estimate the bandwidths using the C++ function

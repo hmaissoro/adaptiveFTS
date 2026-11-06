@@ -40,7 +40,6 @@ get_real_data_mean <- function(t = seq(0.1, 0.9, len = 10)){
 
   # Remove objects
   rm(cost_mat, sint_mat, eta, basis_coef)
-  gc()
 
   return(muhat[, 1])
 }
@@ -102,7 +101,6 @@ get_real_data_far_kernel <- function(s = 0.2, t = 0.3, operator_norm = 0.5){
 
   # clean
   rm(basis_coef_mat, basis_coef)
-  gc()
 
   return(ker_values)
 }

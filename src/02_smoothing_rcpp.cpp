@@ -1,5 +1,6 @@
 #include <RcppArmadillo.h>
 // [[Rcpp::depends(RcppArmadillo)]]
+#include "00_internal.h"
 using namespace Rcpp;
 using namespace arma;
 
@@ -212,7 +213,6 @@ using namespace arma;
      stop("The vectors y and t must be non-empty numeric vectors of the same length.");
    }
    int m = tnew.size();
-   int n = y.size();
 
    // Check if h is non-negative
    // Control the presmoothing bandwidth
@@ -234,21 +234,15 @@ using namespace arma;
      stop("Unsupported kernel name. Choose from: epanechnikov, biweight, triweight, tricube, triangular, uniform.");
    }
 
-   // Select the kernel function
-   std::function<arma::vec(const arma::vec)> kernel_func = select_kernel(kernel_name);
-
-   // Calculate weight matrix A
-   arma::mat A = arma::zeros(m, n);
-
-   for (int i = 0; i < m; i++) {
-     A.row(i) = kernel_func((t - tnew(i)) / h_to_use(i)).t();
-
-     // Normalize each row
-     A.row(i) /= sum(A.row(i));
-   }
-
-   // Compute yhat
-   arma::vec yhat = A * y;
+   // The design is sorted once; each estimate only visits the points that can
+   // lie in the kernel support (compact on [-1, 1]).
+   core::Kern kern = core::parse_kernel(kernel_name);
+   std::vector<double> ts;
+   std::vector<arma::uword> perm;
+   core::sort_design(t, ts, perm);
+   arma::vec yhat(m);
+   for (int i = 0; i < m; i++)
+     yhat(i) = core::nw_sorted(ts, perm, y.memptr(), tnew(i), h_to_use(i), kern);
 
    return yhat;
  }
@@ -260,6 +254,34 @@ using namespace arma;
  Yn <- sin(2 * pi * Tn) + rnorm(n = n, mean = 0, sd = 0.25)
  estimate_nw_cpp(y = Yn, t = Tn, tnew = seq(0.1, 0.9, len = 100), h = 0.05)
  */
+
+// Leave-one-out cross-validation of the Nadaraya-Watson bandwidth on one curve:
+// for each candidate h, the residuals (y_i - yhat_i) / (1 - K(0) / S_i), with
+// S_i = sum_j K((t_j - t_i) / h), non-finite ones dropped; the first minimiser
+// of the mean squared metric (Inf when no residual is finite).
+double nw_bw_impl(const arma::vec& y, const arma::vec& t, const arma::vec& bw_grid, core::Kern kern) {
+  const int n = t.size();
+  const int bw_size = bw_grid.size();
+  std::vector<double> ts;
+  std::vector<arma::uword> perm;
+  core::sort_design(t, ts, perm);
+  const double K0 = core::kval(kern, 0.0);
+  arma::vec cv_error(bw_size);
+  for (int i = 0; i < bw_size; i++) {
+    const double h = bw_grid(i);
+    double sum2 = 0;
+    int nfin = 0;
+    for (int j = 0; j < n; j++) {
+      double S = 0;
+      double yhat = core::nw_sorted(ts, perm, y.memptr(), t(j), h, kern, &S);
+      double metric = (y(j) - yhat) / (1 - K0 / S);
+      if (std::isfinite(metric)) { sum2 += metric * metric; ++nfin; }
+    }
+    cv_error(i) = (nfin == 0) ? arma::datum::inf : sum2 / nfin;
+  }
+  arma::uword idx_min = arma::index_min(cv_error);
+  return bw_grid(idx_min);
+}
 
  //' Estimate Bandwidth for Nadaraya-Watson Kernel Regression by Cross-Validation
   //'
@@ -334,48 +356,43 @@ using namespace arma;
       stop("Unsupported kernel name. Choose from: epanechnikov, biweight, triweight, tricube, triangular, uniform.");
     }
 
-    // Select the kernel function
-    std::function<arma::vec(const arma::vec)> kernel_func = select_kernel(kernel_name);
-
-    // Compute the number of observations and the size of the bandwidth grid
-    int n = t.size();
-    int bw_size = bw_grid.size();
-
-    // Vector to store cross-validation errors for each bandwidth value
-    arma::vec cv_error(bw_size);
-
-    // Loop over each bandwidth value in the grid
-    for (int i = 0; i < bw_size; i++) {
-      // Current bandwidth value
-      arma::vec hi(1, fill::value(bw_grid(i)));
-
-      // Estimate the response values using Nadaraya-Watson kernel regression
-      arma::vec yhat = estimate_nw_cpp(y, t, t, hi, kernel_name);
-
-      // Calculate the weight matrix A
-      arma::mat wmat(n, n);
-      for (int j = 0; j < n; j++) {
-        wmat.col(j) = kernel_func((t - t(j)) / hi(0));
-      }
-
-      // Compute the residuals divided by the effective weights
-      arma::vec metric = (y - yhat) / (1 - kernel_func(arma::zeros(n)) / arma::sum(wmat, 1));
-
-      // Remove NaNs from the metric
-      metric = metric.elem(find_finite(metric));
-
-      // Calculate the mean squared error for cross-validation
-      metric = arma::pow(metric, 2);
-      cv_error(i) = metric.is_empty() ? arma::datum::inf : mean(metric);
-    }
-
-    // Find the bandwidth value with the minimum cross-validation error
-    arma::uword idx_min = arma::index_min(cv_error);
-
-    double hcv = bw_grid(idx_min);
-
-    return hcv;
+    return nw_bw_impl(y, t, bw_grid, core::parse_kernel(kernel_name));
   }
+
+// Presmoothing bandwidth: median of the cross-validated NW bandwidths of the
+// last nsubset curves (default min(70, floor(N / 2))).
+double nw_optimal_bw_impl(const core::Curves& C, const Nullable<arma::vec> bw_grid,
+                          const Nullable<int> nsubset, core::Kern kern) {
+  int n_curve = C.N;
+  double nsubset_val = 0;
+  if (nsubset.isNotNull()) {
+    nsubset_val = as<int>(nsubset);
+  } else {
+    nsubset_val = std::min(70.0, std::floor(n_curve * 0.5));
+  }
+  if (nsubset.isNotNull() && (nsubset_val > n_curve)) {
+    stop("If 'nsubset' is not NULL, it must be a positive integer less than or equal to the number of curves.");
+  }
+  arma::vec bw_grid_used;
+  if (bw_grid.isNull()) {
+    double lambdahat = C.lambdahat();
+    double b0 = 1 / lambdahat;
+    double bK = std::pow(lambdahat, -1 / 3.0);
+    bw_grid_used = arma::logspace(log10(b0), log10(bK), 15);
+  } else {
+    bw_grid_used = as<arma::vec>(bw_grid);
+  }
+  if (!bw_grid_used.is_finite() || bw_grid_used.size() == 0)
+    stop("bw_grid must be a non-empty numeric vector.");
+  arma::vec res_opt_bw(nsubset_val);
+  for (int i = 0; i < nsubset_val; ++i) {
+    const int c = n_curve - 1 - i;
+    if (!C.Y[c].is_finite() || C.Y[c].n_elem == 0)
+      stop("The vectors y and t must be non-empty numeric vectors of the same length.");
+    res_opt_bw(i) = nw_bw_impl(C.Y[c], C.T[c], bw_grid_used, kern);
+  }
+  return arma::median(res_opt_bw);
+}
 
  //' Estimate Optimal Bandwidth for Nadaraya-Watson Estimator
   //'
@@ -406,50 +423,78 @@ using namespace arma;
     if (std::find(supported_kernels.begin(), supported_kernels.end(), kernel_name) == supported_kernels.end()) {
       stop("Unsupported kernel name. Choose from: epanechnikov, biweight, triweight, tricube, triangular, uniform.");
     }
-    // Prepare the data
-    arma::mat data_mat(data.nrows(), 3);
-    data_mat.col(0) = as<arma::vec>(data["id_curve"]);
-    data_mat.col(1) = as<arma::vec>(data["tobs"]);
-    data_mat.col(2) = as<arma::vec>(data["X"]);
-    arma::vec unique_id_curve = arma::unique(data_mat.col(0));
-    int n_curve = unique_id_curve.n_elem;
-
-    // Set the number of subset of curves to be used to determine the best N-W bandwidth
-    double nsubset_val = 0;
-    if (nsubset.isNotNull()) {
-      nsubset_val = as<int>(nsubset);
-    } else {
-      nsubset_val = std::min(70.0, std::floor(n_curve * 0.5));
-    }
-    if (nsubset.isNotNull() && (nsubset_val > n_curve)) {
-      stop("If 'nsubset' is not NULL, it must be a positive integer less than or equal to the number of curves.");
-    }
-
-    // Set the bandwidth grid
-    arma::vec bw_grid_used;
-    if (bw_grid.isNull()) {
-
-      //// Estimate lambda
-      double lambdahat = arma::mean(hist(data_mat.col(0), unique_id_curve));
-      double b0 = 1 / lambdahat;
-      double bK = std::pow(lambdahat, -1 / 3.0);
-      bw_grid_used = arma::logspace(log10(b0), log10(bK), 15);
-    } else {
-      bw_grid_used = as<arma::vec>(bw_grid);
-    }
-
-    // Init to add optimal bandwidth
-    arma::vec res_opt_bw(nsubset_val);
-
-    // Estimate the best bandwidth
-    for (int i = 0; i < nsubset_val; ++i) {
-      arma::uvec indices_cur = arma::find(data_mat.col(0) == unique_id_curve(n_curve - 1 - i));
-      double hbest = estimate_nw_bw_cpp(data_mat(indices_cur, arma::uvec({2})), data_mat(indices_cur, arma::uvec({1})), bw_grid_used, kernel_name);
-      res_opt_bw(i) = hbest;
-    }
-
-    return arma::median(res_opt_bw);
+    return nw_optimal_bw_impl(core::make_curves(data), bw_grid, nsubset, core::parse_kernel(kernel_name));
   }
 
 
 
+
+// :::::::::::::: Design density (Parzen-Rosenblatt) ::::::::::::
+// Leave-one-out estimate at the observation points,
+// sum_{j != i} K((x_i - x_j) / h) / ((n - 1) h), on the sorted points (kernel
+// window), returned in the order of x.
+arma::vec density_loo_impl(const arma::vec& x, double h, core::Kern kern) {
+  const arma::uword n = x.n_elem;
+  std::vector<double> xs;
+  std::vector<arma::uword> perm;
+  core::sort_design(x, xs, perm);
+  arma::vec out(n);
+  for (arma::uword i = 0; i < n; ++i) {
+    arma::uword lo, hi;
+    core::window(xs, x(i), h, lo, hi);
+    double sum = 0;
+    for (arma::uword q = lo; q < hi; ++q) if (perm[q] != i) sum += core::kval(kern, (x(i) - xs[q]) / h);
+    out(i) = sum / ((n - 1) * h);
+  }
+  return out;
+}
+
+//' Leave-one-out design-density estimate (C++ core)
+//'
+//' @param x Observation times of one curve.
+//' @param h Bandwidth.
+//' @param kernel_name Kernel name.
+//' @return The leave-one-out estimate at each point of `x`.
+//' @keywords internal
+// [[Rcpp::export]]
+arma::vec density_loo_cpp(const arma::vec x, const double h, const std::string kernel_name) {
+  return density_loo_impl(x, h, core::parse_kernel(kernel_name));
+}
+
+//' Least-squares cross-validation scores of the design density (C++ core)
+//'
+//' For each bandwidth, the trapezoidal integral of the squared estimate over
+//' `zgrid` minus twice the mean leave-one-out estimate.
+//'
+//' @param x Observation times of one curve.
+//' @param zgrid Integration grid.
+//' @param bw_grid Candidate bandwidths.
+//' @param kernel_name Kernel name.
+//' @return The LSCV score per bandwidth.
+//' @keywords internal
+// [[Rcpp::export]]
+arma::vec density_lscv_cpp(const arma::vec x, const arma::vec zgrid, const arma::vec bw_grid,
+                           const std::string kernel_name) {
+  core::Kern kern = core::parse_kernel(kernel_name);
+  const arma::uword n = x.n_elem, nz = zgrid.n_elem;
+  std::vector<double> xs;
+  std::vector<arma::uword> perm;
+  core::sort_design(x, xs, perm);
+  arma::vec score(bw_grid.n_elem);
+  arma::vec f(nz);
+  for (arma::uword b = 0; b < bw_grid.n_elem; ++b) {
+    const double h = bw_grid(b);
+    for (arma::uword i = 0; i < nz; ++i) {
+      arma::uword lo, hi;
+      core::window(xs, zgrid(i), h, lo, hi);
+      double sum = 0;
+      for (arma::uword q = lo; q < hi; ++q) sum += core::kval(kern, (zgrid(i) - xs[q]) / h);
+      f(i) = sum / (n * h);
+    }
+    double integral = 0;
+    for (arma::uword i = 0; i + 1 < nz; ++i)
+      integral += (zgrid(i + 1) - zgrid(i)) * (f(i + 1) * f(i + 1) + f(i) * f(i)) / 2;
+    score(b) = integral - 2 * arma::mean(density_loo_impl(x, h, kern));
+  }
+  return score;
+}
