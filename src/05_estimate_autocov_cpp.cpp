@@ -5,6 +5,7 @@
 #include <map>
 #include <set>
 #include <utility>
+#include <cstdint>
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -73,11 +74,26 @@ arma::mat autocov_risk_impl(const core::Curves& C, const arma::vec& s, const arm
       c_pn[off + c] = r.pn; c_sbn[off + c] = r.sbn; c_max[off + c] = r.wmax;
     }
   }
-  // Curves n + lag (n = 0..N - lag - 1) with pi_n(t) = 1, per (point, bandwidth)
-  std::vector<std::vector<int>> active(nU * B);
+  // Active curves as bit sets over n = 0..N - lag - 1: s side pi_n(s) = 1
+  // (curve n), t side pi_{n+lag}(t) = 1 (curve n + lag). A pair only visits the
+  // curves active on both sides: the terms vanish elsewhere (pi_n = 0 implies
+  // b_n = max W = 0), except sum max W_{n+lag}(t) of the two-bandwidth variance
+  // term, which does not depend on s and is computed once per (point, h).
+  const int nn = nc - lag;
+  const int W = (nn + 63) / 64;
+  std::vector<std::uint64_t> bits_s((std::size_t) nU * B * W, 0), bits_t((std::size_t) nU * B * W, 0);
+  std::vector<double> tmax_sum(nU * B, 0.0);
   for (int ub = 0; ub < nU * B; ++ub) {
     const std::size_t off = (std::size_t) ub * nc;
-    for (int c = lag; c < nc; ++c) if (c_pn[off + c] != 0) active[ub].push_back(c);
+    std::uint64_t* bs_ = &bits_s[(std::size_t) ub * W];
+    std::uint64_t* bt_ = &bits_t[(std::size_t) ub * W];
+    for (int i = 0; i < nn; ++i) {
+      if (c_pn[off + i] != 0) bs_[i / 64] |= (std::uint64_t) 1 << (i % 64);
+      if (c_pn[off + i + lag] != 0) {
+        bt_[i / 64] |= (std::uint64_t) 1 << (i % 64);
+        tmax_sum[ub] += c_max[off + i + lag];
+      }
+    }
   }
 
   // ---- Risk
@@ -135,9 +151,10 @@ arma::mat autocov_risk_impl(const core::Curves& C, const arma::vec& s, const arm
         const double bw_s_pow = std::pow(bw, 2 * Hs), bw_t_pow = std::pow(bw, 2 * Ht);
         const std::size_t os = ((std::size_t) us * B + b) * nc, ot = ((std::size_t) ut * B + b) * nc;
         double PN_lag = 0, bias_term_num = 0, variance_term_num = 0;
-        for (int c : active[ut * B + b]) {
-          const int i = c - lag;
-          if (c_pn[os + i] == 0) continue;
+        const std::uint64_t* ms = &bits_s[((std::size_t) us * B + b) * W];
+        const std::uint64_t* mt = &bits_t[((std::size_t) ut * B + b) * W];
+        for (int w = 0; w < W; ++w) for (std::uint64_t x = ms[w] & mt[w]; x; x &= x - 1) {
+          const int i = w * 64 + __builtin_ctzll(x), c = i + lag;
           PN_lag += 1;
           bias_term_num += mom_t_square * Ls * bw_s_pow * c_sbn[os + i] +
             mom_s_square * Lt * bw_t_pow * c_sbn[ot + c];
@@ -156,17 +173,18 @@ arma::mat autocov_risk_impl(const core::Curves& C, const arma::vec& s, const arm
           const double bw_t = bw_grid_to_use(bt);
           const double bw_t_pow = std::pow(bw_t, 2 * Ht);
           const std::size_t ot = ((std::size_t) ut * B + bt) * nc;
-          double PN_lag = 0, B1 = 0, B2 = 0, C1 = 0, C2 = 0, C3 = 0;
-          for (int c : active[ut * B + bt]) {
-            const int i = c - lag;
-            const double pns = c_pn[os + i];
-            PN_lag += pns;
-            B1 += pns * c_sbn[os + i];
-            B2 += pns * c_sbn[ot + c];
-            // NB: this branch historically squares pn_t (not pn_s * pn_t) in
-            // the variance term; preserved (pn_t = 1 on the active curves).
+          // NB: this branch historically squares pn_t (not pn_s * pn_t) in the
+          // variance term; preserved: C2 runs over every curve with pn_t = 1.
+          double PN_lag = 0, B1 = 0, B2 = 0, C1 = 0, C3 = 0;
+          const double C2 = tmax_sum[ut * B + bt];
+          const std::uint64_t* ms = &bits_s[((std::size_t) us * B + bs) * W];
+          const std::uint64_t* mt = &bits_t[((std::size_t) ut * B + bt) * W];
+          for (int w = 0; w < W; ++w) for (std::uint64_t x = ms[w] & mt[w]; x; x &= x - 1) {
+            const int i = w * 64 + __builtin_ctzll(x), c = i + lag;
+            PN_lag += 1;
+            B1 += c_sbn[os + i];
+            B2 += c_sbn[ot + c];
             C1 += c_max[os + i];
-            C2 += c_max[ot + c];
             C3 += c_max[os + i] * c_max[ot + c];
           }
           double bias_term_num = mom_t_square * Ls * bw_s_pow * B1 + mom_s_square * Lt * bw_t_pow * B2;
@@ -490,85 +508,94 @@ arma::mat autocov_impl(const core::Curves& C, const arma::vec& s, const arma::ve
   arma::vec svec_u(svec_u_v), obs_u(obs_u_v), tvec_u(tvec_u_v), obt_u(obt_u_v);
   int Us = svec_u.n_elem, Ut = tvec_u.n_elem;
 
-  // Estimate mean function (once per distinct tuple, then expand by row)
-  arma::mat mat_mean_s = mean_impl(C, svec_u, obs_u, arma::vec(), kern, cfg).rows(map_s);
-  arma::mat mat_mean_t = mean_impl(C, tvec_u, obt_u, arma::vec(), kern, cfg).rows(map_t);
-  arma::vec muhat_s = mat_mean_s.col(5);
-  arma::vec muhat_t = mat_mean_t.col(5);
+  // Each curve smoothed once on each distinct tuple: estimate, support
+  // indicator (|T - x| <= b) and kernel sum, stored curve-contiguous per tuple.
+  // The same values give the means (all curves) and the cross products (curves
+  // n and n + lag), as estimate_mean_cpp and the former per-curve loop did.
+  for (int i = 0; i < n_curve; ++i)
+    if (!C.Y[i].is_finite() || !C.T[i].is_finite())
+      stop("The vectors y and t must be non-empty numeric vectors of the same length.");
+  arma::mat XS(n_curve, Us), PS(n_curve, Us), SS(n_curve, Us);
+  arma::mat XT(n_curve, Ut), PT(n_curve, Ut), ST(n_curve, Ut);
+  auto smooth_tuples = [&](const arma::vec& pts, const arma::vec& bws, int nu, arma::mat& X, arma::mat& P, arma::mat& S) {
+#pragma omp parallel for schedule(dynamic)
+    for (int j = 0; j < nu; ++j) {
+      for (int c = 0; c < n_curve; ++c) {
+        double sk, pn;
+        double x = core::nw_pn_abs(C, c, pts(j), bws(j), kern, sk, pn);
+        X(c, j) = std::isfinite(x) ? x : 0;
+        P(c, j) = pn;
+        S(c, j) = sk;
+      }
+    }
+  };
+  smooth_tuples(svec_u, obs_u, Us, XS, PS, SS);
+  smooth_tuples(tvec_u, obt_u, Ut, XT, PT, ST);
+
+  // Mean function at each tuple (P_N and mu_N over all the curves)
+  auto tuple_means = [&](const arma::mat& X, const arma::mat& P, int nu, arma::vec& PNu, arma::vec& muu) {
+    PNu.set_size(nu); muu.set_size(nu);
+    for (int j = 0; j < nu; ++j) {
+      double pn_sum = 0, num = 0;
+      for (int c = 0; c < n_curve; ++c) { pn_sum += P(c, j); num += P(c, j) * X(c, j); }
+      PNu(j) = pn_sum; muu(j) = num / pn_sum;
+    }
+  };
+  arma::vec PN_s_u, mu_s_u, PN_t_u, mu_t_u;
+  tuple_means(XS, PS, Us, PN_s_u, mu_s_u);
+  tuple_means(XT, PT, Ut, PN_t_u, mu_t_u);
+  arma::vec PN_s = PN_s_u.elem(map_s), muhat_s = mu_s_u.elem(map_s);
+  arma::vec PN_t = PN_t_u.elem(map_t), muhat_t = mu_t_u.elem(map_t);
 
   // Error sd for the diagonal correction (once per distinct point)
   arma::vec vec_sig_s(n, arma::fill::zeros);
   arma::vec vec_sig_t(n, arma::fill::zeros);
-  if (lag == 0 && correct_diagonal) {
+  const bool diag = (lag == 0 && correct_diagonal);
+  if (diag) {
     arma::vec sig_s_u = sigma_impl(C, svec_u).col(1);
     arma::vec sig_t_u = sigma_impl(C, tvec_u).col(1);
     vec_sig_s = sig_s_u.elem(map_s);
     vec_sig_t = sig_t_u.elem(map_t);
   }
 
-  // Compute the autocovariance function
+  // Cross products, curve by curve (in order) for each pair. The diagonal
+  // correction sums W_s W_t (W = K / sum K, 0 when the sum is 0) over the
+  // intersection of the two kernel windows of the curve (lag 0: same curve).
   arma::vec PN_lag(n, arma::fill::zeros);
   arma::vec autocov_numerator(n, arma::fill::zeros);
   arma::vec diag_correct_numerator(n, arma::fill::zeros);
-  arma::vec Xhat_s_u(Us), Xhat_t_u(Ut), pn_s_u(Us), pn_t_u(Ut);
-
-  struct Win { arma::uword lo, hi; std::vector<double> w; };
-  std::vector<Win> Ws(Us), Wt(Ut);
-  auto weights = [&](int c, double x, double b, Win& W) {
-    core::window(C, c, x, b, W.lo, W.hi);
-    const std::vector<double>& ts = C.Ts[c];
-    W.w.resize(W.hi - W.lo);
-    double S = 0;
-    for (arma::uword q = W.lo; q < W.hi; ++q) { W.w[q - W.lo] = core::kval(kern, (ts[q] - x) / b); S += W.w[q - W.lo]; }
-    for (double& v : W.w) { v /= S; if (!std::isfinite(v)) v = 0; }
-  };
-
-  for (int i = 0; i < n_curve - lag; ++i) {
-    const int cs = i, ct = i + lag;
-    if (!C.Y[cs].is_finite() || !C.T[cs].is_finite() || !C.Y[ct].is_finite() || !C.T[ct].is_finite())
-      stop("The vectors y and t must be non-empty numeric vectors of the same length.");
-
-    // Smooth and support indicators, once per distinct tuple
-#pragma omp parallel for schedule(static)
-    for (int j = 0; j < Us; ++j) {
-      double x = core::nw_at(C, cs, svec_u(j), obs_u(j), kern);
-      Xhat_s_u(j) = std::isfinite(x) ? x : 0;
-      pn_s_u(j) = core::pn_abs(C, cs, svec_u(j), obs_u(j));
-    }
-#pragma omp parallel for schedule(static)
-    for (int j = 0; j < Ut; ++j) {
-      double x = core::nw_at(C, ct, tvec_u(j), obt_u(j), kern);
-      Xhat_t_u(j) = std::isfinite(x) ? x : 0;
-      pn_t_u(j) = core::pn_abs(C, ct, tvec_u(j), obt_u(j));
-    }
-
-    const bool diag = (lag == 0 && correct_diagonal);
-    if (diag) {
-#pragma omp parallel for schedule(static)
-      for (int j = 0; j < Us; ++j) weights(cs, svec_u(j), obs_u(j), Ws[j]);
-#pragma omp parallel for schedule(static)
-      for (int j = 0; j < Ut; ++j) weights(ct, tvec_u(j), obt_u(j), Wt[j]);
-    }
-
-#pragma omp parallel for schedule(static)
-    for (int k = 0; k < n; ++k) {
-      const double ps = pn_s_u(map_s(k)), pt = pn_t_u(map_t(k));
-      const double xs = Xhat_s_u(map_s(k)), xt = Xhat_t_u(map_t(k));
-      PN_lag(k) += ps * pt;
+#pragma omp parallel for schedule(dynamic)
+  for (int k = 0; k < n; ++k) {
+    const arma::uword js = map_s(k), jt = map_t(k);
+    const double xs0 = svec_u(js), bs0 = obs_u(js), xt0 = tvec_u(jt), bt0 = obt_u(jt);
+    double pnl = 0, num = 0, dnum = 0;
+    for (int i = 0; i < n_curve - lag; ++i) {
+      const int cs = i, ct = i + lag;
+      const double ps = PS(cs, js), pt = PT(ct, jt);
+      const double xs = XS(cs, js), xt = XT(ct, jt);
+      pnl += ps * pt;
       if (center) {
-        autocov_numerator(k) += ps * pt * (xs - muhat_s(k)) * (xt - muhat_t(k));
+        num += ps * pt * (xs - muhat_s(k)) * (xt - muhat_t(k));
       } else {
-        autocov_numerator(k) += ps * pt * xs * xt;
+        num += ps * pt * xs * xt;
       }
-      if (diag) {
-        const Win& a = Ws[map_s(k)];
-        const Win& b = Wt[map_t(k)];
-        const arma::uword lo = std::max(a.lo, b.lo), hi = std::min(a.hi, b.hi);
+      if (diag && ps * pt != 0) {
+        const double Ss = SS(cs, js), St = ST(ct, jt);
         double wp = 0;
-        for (arma::uword q = lo; q < hi; ++q) wp += a.w[q - a.lo] * b.w[q - b.lo];
-        diag_correct_numerator(k) += vec_sig_s(k) * vec_sig_t(k) * ps * pt * wp;
+        if (Ss != 0 && St != 0 && std::isfinite(Ss) && std::isfinite(St)) {
+          arma::uword ls, hs, lt, ht;
+          core::window(C, cs, xs0, bs0, ls, hs);
+          core::window(C, ct, xt0, bt0, lt, ht);
+          const std::vector<double>& ts = C.Ts[cs];
+          for (arma::uword q = std::max(ls, lt); q < std::min(hs, ht); ++q)
+            wp += (core::kval(kern, (ts[q] - xs0) / bs0) / Ss) * (core::kval(kern, (ts[q] - xt0) / bt0) / St);
+        }
+        dnum += vec_sig_s(k) * vec_sig_t(k) * ps * pt * wp;
       }
     }
+    PN_lag(k) = pnl;
+    autocov_numerator(k) = num;
+    diag_correct_numerator(k) = dnum;
   }
 
   // Compute autocovariance estimate
@@ -594,10 +621,10 @@ arma::mat autocov_impl(const core::Curves& C, const arma::vec& s, const arma::ve
   res_autocov.col(5) = mat_locreg.col(3);
   res_autocov.col(6) = mat_locreg.col(4);
   res_autocov.col(7) = mat_locreg.col(5);
-  res_autocov.col(8) = mat_mean_s.col(4);
-  res_autocov.col(9) = mat_mean_s.col(5);
-  res_autocov.col(10) = mat_mean_t.col(4);
-  res_autocov.col(11) = mat_mean_t.col(5);
+  res_autocov.col(8) = PN_s;
+  res_autocov.col(9) = muhat_s;
+  res_autocov.col(10) = PN_t;
+  res_autocov.col(11) = muhat_t;
   res_autocov.col(12) = PN_lag;
   res_autocov.col(13) = autocovhat;
 

@@ -137,6 +137,26 @@ inline double nw_at(const Curves& C, int c, double x, double b, Kern k) {
   return nw_sorted(C.Ts[c], C.perm[c], C.Y[c].memptr(), x, b, k);
 }
 
+// One window pass on curve c: the Nadaraya-Watson estimate at x (NaN when the
+// kernel sum is 0), the kernel sum, and the indicator |T - x| <= b.
+inline double nw_pn_abs(const Curves& C, int c, double x, double b, Kern k, double& sumK, double& pn) {
+  arma::uword lo, hi;
+  window(C, c, x, b, lo, hi);
+  const std::vector<double>& ts = C.Ts[c];
+  const std::vector<arma::uword>& p = C.perm[c];
+  const double* Y = C.Y[c].memptr();
+  double S = 0, num = 0;
+  pn = 0;
+  for (arma::uword j = lo; j < hi; ++j) {
+    double w = kval(k, (ts[j] - x) / b);
+    S += w;
+    num += w * Y[p[j]];
+    if (std::abs(ts[j] - x) <= b) pn = 1.0;
+  }
+  sumK = S;
+  return num / S;
+}
+
 // Indicator that curve c has a point with |(T - x) / b| <= 1.
 inline double pn_scaled(const Curves& C, int c, double x, double b) {
   arma::uword lo, hi;

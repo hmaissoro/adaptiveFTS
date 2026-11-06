@@ -93,6 +93,7 @@ arma::mat locreg_impl(const core::Curves& C, const arma::vec& t, const bool cent
 
   // Smoothed curves at t1, t2, t3: n_curve x n matrices
   arma::mat X1(n_curve, n), X2(n_curve, n), X3(n_curve, n);
+#pragma omp parallel for schedule(static)
   for (int c = 0; c < n_curve; ++c) {
     double hc = hvec_to_use(C.ids(c) - 1);
     for (int j = 0; j < n; ++j) {
@@ -123,12 +124,20 @@ arma::mat locreg_impl(const core::Curves& C, const arma::vec& t, const bool cent
     arma::vec filtered_xt2 = xt2.elem(finiteIndices);
     arma::vec filtered_xt3 = xt3.elem(finiteIndices);
 
-    // Remove extreme values
-    arma::vec p0025(finiteIndices.size(), fill::value(0.025));
-    arma::vec p0975(finiteIndices.size(), fill::value(0.975));
-    arma::uvec rxt1 = (filtered_xt1 >= arma::quantile(filtered_xt1, p0025)) % (filtered_xt1 <= arma::quantile(filtered_xt1, p0975));
-    arma::uvec rxt2 = (filtered_xt2 >= arma::quantile(filtered_xt2, p0025)) % (filtered_xt2 <= arma::quantile(filtered_xt2, p0975));
-    arma::uvec rxt3 = (filtered_xt3 >= arma::quantile(filtered_xt3, p0025)) % (filtered_xt3 <= arma::quantile(filtered_xt3, p0975));
+    // Remove extreme values (outside the 2.5% / 97.5% quantiles; the former code
+    // computed the same quantile once per element)
+    const arma::vec probs = {0.025, 0.975};
+    arma::uvec rxt1, rxt2, rxt3;
+    if (finiteIndices.is_empty()) {
+      rxt1 = rxt2 = rxt3 = arma::uvec();
+    } else {
+      arma::vec q1 = arma::quantile(filtered_xt1, probs);
+      arma::vec q2 = arma::quantile(filtered_xt2, probs);
+      arma::vec q3 = arma::quantile(filtered_xt3, probs);
+      rxt1 = (filtered_xt1 >= q1(0)) % (filtered_xt1 <= q1(1));
+      rxt2 = (filtered_xt2 >= q2(0)) % (filtered_xt2 <= q2(1));
+      rxt3 = (filtered_xt3 >= q3(0)) % (filtered_xt3 <= q3(1));
+    }
 
     arma::vec xt1_final = filtered_xt1.elem(arma::find(rxt1 % rxt2 % rxt3));
     arma::vec xt2_final = filtered_xt2.elem(arma::find(rxt1 % rxt2 % rxt3));
