@@ -116,7 +116,7 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
     stop("'change_point_position' must be scalar value between 0 and 1.")
   }
 
-  if (! (methods::is(slope, "numeric") && slope > 0 && length(slope) == 1)) {
+  if (! (length(slope) == 1 && methods::is(slope, "numeric") && slope > 0)) {
     stop("'slope' must be a positive scalar value.")
   }
 
@@ -240,10 +240,10 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
   if (!methods::is(hurst_fun, "function")) {
     stop("'hurst_fun' must be a function.")
   }
-  if (! (methods::is(L2, "numeric") && L2 > 0 && length(L2) == 1)) {
+  if (! (length(L2) == 1 && methods::is(L2, "numeric") && L2 > 0)) {
     stop("'L2' must be a positive scalar value.")
   }
-  if (! (methods::is(intercept_var, "numeric") && intercept_var >= 0 && length(intercept_var) == 1)) {
+  if (! (length(intercept_var) == 1 && methods::is(intercept_var, "numeric") && intercept_var >= 0)) {
     stop("'intercept_var' must be a non-negative scalar value.")
   }
 
@@ -323,7 +323,7 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L2 = 1, inter
     stop("'hurst' must be a positive scalar value between 0 and 1.")
   if (! (methods::is(L2, "numeric") & L2 > 0 & length(L2) == 1))
     stop("'L2' must be a positive scalar value.")
-  if (! (methods::is(intercept_var, "numeric") && intercept_var >= 0 && length(intercept_var) == 1))
+  if (! (length(intercept_var) == 1 && methods::is(intercept_var, "numeric") && intercept_var >= 0))
     stop("'intercept_var' must be a non-negative scalar value.")
 
   if (tied && intercept_var > 0) {
@@ -511,7 +511,7 @@ simulate_far <- function(N = 2L, lambda = 70L,
     stop("'hurst_fun' must be a function.")
   if (! (methods::is(L2, "numeric") & L2 > 0 & length(L2) == 1))
     stop("'L2' must be a positive scalar value.")
-  if (! (methods::is(intercept_var, "numeric") && intercept_var >= 0 && length(intercept_var) == 1))
+  if (! (length(intercept_var) == 1 && methods::is(intercept_var, "numeric") && intercept_var >= 0))
     stop("'intercept_var' must be a non-negative scalar value.")
   if (! methods::is(far_kernel, "function"))
     stop("'far_kernel' must be bevariate function")
@@ -722,7 +722,7 @@ simulate_fma <- function(N = 2L, lambda = 70L,
     stop("'hurst_fun' must be a function.")
   if (! (methods::is(L2, "numeric") & L2 > 0 & length(L2) == 1))
     stop("'L2' must be a positive scalar value.")
-  if (! (methods::is(intercept_var, "numeric") && intercept_var >= 0 && length(intercept_var) == 1))
+  if (! (length(intercept_var) == 1 && methods::is(intercept_var, "numeric") && intercept_var >= 0))
     stop("'intercept_var' must be a non-negative scalar value.")
   if (! methods::is(fma_kernel, "function"))
     stop("'fma_kernel' must be bevariate function")
