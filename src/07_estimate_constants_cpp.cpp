@@ -362,9 +362,251 @@ void xsxt_matrices(const core::Curves& C, const arma::vec& s, const arma::vec& t
 // Per-pair quantities of the dependence term of the (auto)covariance risks: the
 // lag-0 autocovariance of X(s)X(t) and sum |2 autocov| over the non-zero lags,
 // counted once per pair equal to (s_j, t_j), as the long-table look-up did.
+// ---------------------------------------------------------------------------
+// X(s)X(t) dependence quantities on a grid of pairs, by matrix products.
+//
+// For the pair (s, t), P_k = a_k(s) b_{k+l}(t), k < m (l = cross lag, a and b
+// the centred smoothed curves), and the lag-L autocovariance is the mean, over
+// the k < m - L where P_k and P_{k+L} are finite, of (P_k - g)(P_{k+L} - g).
+// With P0 = P set to 0 where not finite and Z the (few) k where it is not:
+//   sum (P_k - g)(P_{k+L} - g) = T1 - g (T2 + T3) + g^2 n_f,
+//   T1 = sum_k [a0_k a0_{k+L}] [b0_{k+l} b0_{k+l+L}]   (a0, b0: 0 where not finite)
+//   T2 = sum_{k < m-L, k+L not in Z} P0_k,   T3 = sum_{k < m-L, k not in Z} P0_{k+L},
+//   n_f = #{k < m - L : k, k + L not in Z}.
+// T1 is, for fixed L, a product of an s-only and a t-only factor: for every
+// (s, t) of the grid it is one matrix product per lag (4 x 4 blocks of dot
+// products). T2, T3 and n_f come from prefix sums of P0, corrected on Z.
+namespace {
+
+inline void dot_block(const double* const* A, int ni, const double* const* Bm, int nj,
+                      arma::uword len, double out[4][4]) {
+  if (ni == 4 && nj == 4) {
+    const double *a0 = A[0], *a1 = A[1], *a2 = A[2], *a3 = A[3];
+    const double *b0 = Bm[0], *b1 = Bm[1], *b2 = Bm[2], *b3 = Bm[3];
+    double c00 = 0, c01 = 0, c02 = 0, c03 = 0, c10 = 0, c11 = 0, c12 = 0, c13 = 0;
+    double c20 = 0, c21 = 0, c22 = 0, c23 = 0, c30 = 0, c31 = 0, c32 = 0, c33 = 0;
+#pragma omp simd reduction(+:c00,c01,c02,c03,c10,c11,c12,c13,c20,c21,c22,c23,c30,c31,c32,c33)
+    for (arma::uword k = 0; k < len; ++k) {
+      const double x0 = a0[k], x1 = a1[k], x2 = a2[k], x3 = a3[k];
+      const double y0 = b0[k], y1 = b1[k], y2 = b2[k], y3 = b3[k];
+      c00 += x0 * y0; c01 += x0 * y1; c02 += x0 * y2; c03 += x0 * y3;
+      c10 += x1 * y0; c11 += x1 * y1; c12 += x1 * y2; c13 += x1 * y3;
+      c20 += x2 * y0; c21 += x2 * y1; c22 += x2 * y2; c23 += x2 * y3;
+      c30 += x3 * y0; c31 += x3 * y1; c32 += x3 * y2; c33 += x3 * y3;
+    }
+    out[0][0] = c00; out[0][1] = c01; out[0][2] = c02; out[0][3] = c03;
+    out[1][0] = c10; out[1][1] = c11; out[1][2] = c12; out[1][3] = c13;
+    out[2][0] = c20; out[2][1] = c21; out[2][2] = c22; out[2][3] = c23;
+    out[3][0] = c30; out[3][1] = c31; out[3][2] = c32; out[3][3] = c33;
+    return;
+  }
+  for (int i = 0; i < ni; ++i)
+    for (int j = 0; j < nj; ++j) {
+      const double *x = A[i], *y = Bm[j];
+      double c = 0;
+#pragma omp simd reduction(+:c)
+      for (arma::uword k = 0; k < len; ++k) c += x[k] * y[k];
+      out[i][j] = c;
+    }
+}
+
+} // anonymous namespace
+
+// Returns false (and leaves the outputs untouched) when the grid method does
+// not apply; the caller then uses the direct computation.
+bool xsxt_dependence_grid(const core::Curves& C, const arma::vec& s, const arma::vec& t,
+                          const int cl, const arma::vec& lag, const arma::vec& h,
+                          core::Kern kern, const bool center, arma::vec& var0, arma::vec& lrsum) {
+  const int n = s.n_elem, N = C.N;
+  if (cl < 0 || cl > N - 1) return false;
+  const arma::uword m = N - cl;
+  if (lag.n_elem != m) return false;
+  for (arma::uword l = 0; l < m; ++l) if (lag(l) != (double) l) return false;
+  // Distinct points, sorted (an upper-triangular set of pairs then leaves the
+  // blocks below the diagonal empty)
+  arma::vec vs = arma::unique(s), vt = arma::unique(t);
+  const int Us = vs.n_elem, Ut = vt.n_elem;
+  if ((double) n < 0.25 * Us * Ut || Us < 4 || Ut < 4) return false;
+  std::vector<int> pos((std::size_t) Us * Ut, -1);
+  std::vector<arma::uword> is(n), it(n);
+  for (int k = 0; k < n; ++k) {
+    is[k] = std::lower_bound(vs.begin(), vs.end(), s(k)) - vs.begin();
+    it[k] = std::lower_bound(vt.begin(), vt.end(), t(k)) - vt.begin();
+    std::size_t idx = (std::size_t) is[k] * Ut + it[k];
+    if (pos[idx] >= 0) return false;   // duplicated pair: direct path
+    pos[idx] = k;
+  }
+
+  // Centred values (0 where not finite), curve-contiguous rows; not-finite
+  // positions per row
+  arma::mat Xs = smooth_matrix(C, vs, h, kern), Xt = smooth_matrix(C, vt, h, kern);
+  auto prep = [&](const arma::mat& X, int U, std::vector<double>& v, std::vector<std::vector<int>>& nanpos) {
+    v.assign((std::size_t) U * N, 0.0);
+    nanpos.assign(U, std::vector<int>());
+    for (int u = 0; u < U; ++u) {
+      double sum = 0; int cnt = 0;
+      for (int c = 0; c < N; ++c) if (std::isfinite(X(c, u))) { sum += X(c, u); ++cnt; }
+      if (cnt == 0) return false;      // the direct path raises the error
+      const double mu = sum / cnt;
+      for (int c = 0; c < N; ++c) {
+        const double x = X(c, u);
+        if (!std::isfinite(x)) { nanpos[u].push_back(c); continue; }
+        const double y = center ? x - mu : x;
+        if (!(std::abs(y) < 1e75)) return false;
+        v[(std::size_t) u * N + c] = y;
+      }
+    }
+    return true;
+  };
+  std::vector<double> a, b;
+  std::vector<std::vector<int>> nan_s, nan_t;
+  if (!prep(Xs, Us, a, nan_s) || !prep(Xt, Ut, b, nan_t)) return false;
+
+  // Z for a pair: the k < m where a_k or b_{k+l} is not finite
+  auto pair_Z = [&](int i, int j, std::vector<int>& Z) {
+    Z.clear();
+    for (int c : nan_s[i]) if (c < (int) m) Z.push_back(c);
+    for (int c : nan_t[j]) if (c - cl >= 0) Z.push_back(c - cl);
+    std::sort(Z.begin(), Z.end());
+    Z.erase(std::unique(Z.begin(), Z.end()), Z.end());
+  };
+  // Pairs with many missing values: the corrections would cost more than the
+  // direct sums, so those pairs are computed directly (below)
+  std::vector<int> direct_pairs;
+  {
+    std::vector<int> Z;
+    for (int k = 0; k < n; ++k) {
+      pair_Z(is[k], it[k], Z);
+      if ((arma::uword) Z.size() >= m) return false;    // no finite product: error in the direct path
+      if (2 * Z.size() > m) {
+        direct_pairs.push_back(k);
+        pos[(std::size_t) is[k] * Ut + it[k]] = -2;      // not in the grid computation
+      }
+    }
+  }
+
+  std::vector<char> block_needed(((Us + 3) / 4) * ((Ut + 3) / 4), 0);
+  const int SB = (Us + 3) / 4, TB = (Ut + 3) / 4;
+  for (int k = 0; k < n; ++k)
+    if (pos[(std::size_t) is[k] * Ut + it[k]] >= 0) block_needed[(is[k] / 4) * TB + it[k] / 4] = 1;
+
+  std::vector<double> V0((std::size_t) Us * Ut, 0.0), LR((std::size_t) Us * Ut, 0.0);
+#pragma omp parallel for schedule(dynamic)
+  for (int sb = 0; sb < SB; ++sb) {
+    const int i0 = sb * 4, ni = std::min(4, Us - i0);
+    bool any = false;
+    for (int tb = 0; tb < TB; ++tb) any = any || block_needed[sb * TB + tb];
+    if (!any) continue;
+    // Per pair of the row block (requested pairs only): g, and for every lag L
+    // the sums T2(L), T3(L) and the count n_f(L) (prefix sums of P0 corrected
+    // on Z, all the lags at once): cT2, cT3, cNF, each m long per pair.
+    std::vector<double> cT2((std::size_t) ni * Ut * m), cT3((std::size_t) ni * Ut * m),
+      cNF((std::size_t) ni * Ut * m), gv((std::size_t) ni * Ut, 0.0), pr(m + 1), P0(m);
+    std::vector<char> req((std::size_t) ni * Ut, 0);
+    std::vector<int> Z;
+    for (int i = 0; i < ni; ++i)
+      for (int j = 0; j < Ut; ++j) {
+        const std::size_t q = (std::size_t) i * Ut + j;
+        if (pos[(std::size_t) (i0 + i) * Ut + j] < 0) continue;
+        req[q] = 1;
+        pair_Z(i0 + i, j, Z);
+        const double *ai = &a[(std::size_t) (i0 + i) * N], *bj = &b[(std::size_t) j * N + cl];
+        pr[0] = 0;
+        for (arma::uword k = 0; k < m; ++k) { P0[k] = ai[k] * bj[k]; pr[k + 1] = pr[k] + P0[k]; }
+        // g: the mean of the finite products (the zeros at Z add nothing)
+        gv[q] = pr[m] / (double) (m - Z.size());
+        double *t2 = &cT2[q * m], *t3 = &cT3[q * m], *nf = &cNF[q * m];
+        for (arma::uword L = 0; L < m; ++L) {
+          t2[L] = pr[m - L];               // sum_{k < m-L} P0_k
+          t3[L] = pr[m] - pr[L];           // sum_{k < m-L} P0_{k+L}
+          nf[L] = (double) (m - L);
+        }
+        for (int z : Z) {
+          // k = z - L (k + L in Z), L <= z: drop P0_k from T2, and that k
+          for (int L = 0; L <= z; ++L) { t2[L] -= P0[z - L]; nf[L] -= 1; }
+          // k = z (k in Z), L < m - z: drop P0_{k+L} from T3, and that k
+          for (int L = 0; L < (int) m - z; ++L) { t3[L] -= P0[z + L]; nf[L] -= 1; }
+        }
+        // k and k + L both in Z were dropped twice
+        nf[0] += (double) Z.size();
+        for (std::size_t u = 0; u < Z.size(); ++u)
+          for (std::size_t v = u + 1; v < Z.size(); ++v) nf[Z[v] - Z[u]] += 1;
+      }
+    std::vector<double> As(4 * m), Bt(4 * m);
+    for (arma::uword L = 0; L < m; ++L) {
+      const arma::uword len = m - L;
+      for (int i = 0; i < ni; ++i) {
+        const double* ai = &a[(std::size_t) (i0 + i) * N];
+        double* A1 = &As[i * m];
+        for (arma::uword k = 0; k < len; ++k) A1[k] = ai[k] * ai[k + L];
+      }
+      for (int tb = 0; tb < TB; ++tb) {
+        if (!block_needed[sb * TB + tb]) continue;
+        const int j0 = tb * 4, nj = std::min(4, Ut - j0);
+        for (int j = 0; j < nj; ++j) {
+          const double* bj = &b[(std::size_t) (j0 + j) * N + cl];
+          double* B1 = &Bt[j * m];
+          for (arma::uword k = 0; k < len; ++k) B1[k] = bj[k] * bj[k + L];
+        }
+        double T[4][4];
+        const double* Ap[4] = {&As[0], &As[m], &As[2 * m], &As[3 * m]};
+        const double* Bp[4] = {&Bt[0], &Bt[m], &Bt[2 * m], &Bt[3 * m]};
+        dot_block(Ap, ni, Bp, nj, len, T);
+        for (int i = 0; i < ni; ++i)
+          for (int j = 0; j < nj; ++j) {
+            const std::size_t q = (std::size_t) i * Ut + (j0 + j);
+            if (!req[q]) continue;
+            const double g = gv[q];
+            const double T2 = cT2[q * m + L], T3 = cT3[q * m + L], nf = cNF[q * m + L];
+            double acov = (nf == 0) ? 0.0 : (T[i][j] - g * (T2 + T3) + g * g * nf) / nf;
+            if (!std::isfinite(acov)) acov = 0.0;
+            const std::size_t idx = (std::size_t) (i0 + i) * Ut + (j0 + j);
+            if (L == 0) V0[idx] = acov; else LR[idx] += std::abs(2 * acov);
+          }
+      }
+    }
+  }
+
+  // The pairs with many missing values: the direct sums (NaN-aware lag sums)
+#pragma omp parallel for schedule(dynamic)
+  for (int q = 0; q < (int) direct_pairs.size(); ++q) {
+    const int k = direct_pairs[q], i = is[k], j = it[k];
+    const double *ai = &a[(std::size_t) i * N], *bj = &b[(std::size_t) j * N + cl];
+    std::vector<double> f(m, 1.0), z(m);
+    for (int c : nan_s[i]) if (c < (int) m) f[c] = 0.0;
+    for (int c : nan_t[j]) if (c - cl >= 0) f[c - cl] = 0.0;
+    double sum = 0, cnt = 0;
+    for (arma::uword kk = 0; kk < m; ++kk) { z[kk] = ai[kk] * bj[kk]; sum += z[kk]; cnt += f[kk]; }
+    const double g = sum / cnt;
+    for (arma::uword kk = 0; kk < m; ++kk) z[kk] = (f[kk] != 0) ? z[kk] - g : 0.0;
+    std::vector<double> sums(m), cnts(m);
+    lag_sums(z.data(), f.data(), m, lag, sums.data(), cnts.data());
+    double lr = 0, v0 = 0;
+    for (arma::uword L = 0; L < m; ++L) {
+      double acov = (cnts[L] == 0) ? 0.0 : sums[L] / cnts[L];
+      if (!std::isfinite(acov)) acov = 0.0;
+      if (L == 0) v0 = acov; else lr += std::abs(2 * acov);
+    }
+    const std::size_t idx = (std::size_t) i * Ut + j;
+    V0[idx] = v0;
+    LR[idx] = lr;
+  }
+
+  var0.set_size(n);
+  lrsum.set_size(n);
+  for (int k = 0; k < n; ++k) {
+    const std::size_t idx = (std::size_t) is[k] * Ut + it[k];
+    var0(k) = V0[idx];
+    lrsum(k) = LR[idx];
+  }
+  return true;
+}
+
 void xsxt_dependence(const core::Curves& C, const arma::vec& s, const arma::vec& t,
                      const int cross_lag, const arma::vec& lag, const arma::vec& h,
                      core::Kern kern, const bool center, arma::vec& var0, arma::vec& lrsum) {
+  // Dense grids of pairs: matrix products (see xsxt_dependence_grid)
+  if (xsxt_dependence_grid(C, s, t, cross_lag, lag, h, kern, center, var0, lrsum)) return;
   arma::vec gamma;
   arma::mat acov;
   xsxt_matrices(C, s, t, cross_lag, lag, h, kern, center, gamma, acov);

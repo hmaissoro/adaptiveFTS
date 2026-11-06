@@ -197,3 +197,24 @@ main; the BLUP identical to the previous round).
 What remains in a fold at N = 300 is close to the work the estimator needs: the
 X(s)X(t) autocovariances (all the lags of every pair, O(N^2) per pair) and the
 C_3 products (B^2 N per pair).
+
+## Round 4: thread control and the X(s)X(t) lag autocovariances as matrix products (2026-11-07)
+
+- **`set_threads()` / `get_threads()`** (and `ADAPTIVEFTS_NUM_THREADS` at load):
+  the OpenMP thread count of the compiled estimators. Results do not depend on
+  it (tested: 1, 2 and the default give `identical()` outputs). For Monte Carlo
+  studies, one worker per processor with `set_threads(1)` avoids
+  oversubscription.
+- **Matrix-product form of the X(s)X(t) dependence quantities** (risk of the
+  (auto)covariance, dense grids of pairs). With P_k = a_k(s) b_{k+l}(t),
+  sum (P_k - g)(P_{k+L} - g) = T1 - g (T2 + T3) + g^2 n_f, and
+  T1 = sum [a_k a_{k+L}] [b_{k+l} b_{k+l+L}] is, for each lag, a product of an
+  s-only and a t-only factor: one matrix product per lag for the whole grid
+  (4 x 4 blocks of vectorised dot products). T2, T3 and n_f come from prefix sums
+  of P, corrected on the few positions where a smoothed value is NaN (vectorised,
+  all the lags at once). Pairs with very many NaN, duplicated pairs, sparse pair
+  sets and other lag sets keep the direct computation.
+
+One Tikhonov fold at N = 300, lambda = 100 with the CV-selected presmoothing
+bandwidth: 0.87 s -> 0.7 s; `select_tikhonov_parameter()` there: 25.9 s -> 23.2 s.
+At N = 150: one fold 0.10 s -> 0.08 s.

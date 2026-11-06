@@ -331,3 +331,20 @@ rp_q_recycled_cpp <- function(xk, xj, Yk, Yj, Mk, Mj, s, t, bw, p, q, drop_diag,
     .Call(`_adaptiveFTS_rp_q_recycled_cpp`, xk, xj, Yk, Yj, Mk, Mj, s, t, bw, p, q, drop_diag, kernel_name)
 }
 
+#' Set the number of threads of the compiled estimators (C++ core)
+#'
+#' @param n Number of threads; `0` or less uses every available processor.
+#' @return The previous number of threads.
+#' @keywords internal
+set_threads_cpp <- function(n) {
+    .Call(`_adaptiveFTS_set_threads_cpp`, n)
+}
+
+#' Get the number of threads of the compiled estimators (C++ core)
+#'
+#' @return The number of threads used by the next parallel computation.
+#' @keywords internal
+get_threads_cpp <- function() {
+    .Call(`_adaptiveFTS_get_threads_cpp`)
+}
+

@@ -660,6 +660,27 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// set_threads_cpp
+int set_threads_cpp(int n);
+RcppExport SEXP _adaptiveFTS_set_threads_cpp(SEXP nSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< int >::type n(nSEXP);
+    rcpp_result_gen = Rcpp::wrap(set_threads_cpp(n));
+    return rcpp_result_gen;
+END_RCPP
+}
+// get_threads_cpp
+int get_threads_cpp();
+RcppExport SEXP _adaptiveFTS_get_threads_cpp() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(get_threads_cpp());
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_biweight_kernel", (DL_FUNC) &_adaptiveFTS_biweight_kernel, 1},
@@ -704,6 +725,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_rp_mean_cpp", (DL_FUNC) &_adaptiveFTS_rp_mean_cpp, 6},
     {"_adaptiveFTS_rp_pq_cpp", (DL_FUNC) &_adaptiveFTS_rp_pq_cpp, 11},
     {"_adaptiveFTS_rp_q_recycled_cpp", (DL_FUNC) &_adaptiveFTS_rp_q_recycled_cpp, 13},
+    {"_adaptiveFTS_set_threads_cpp", (DL_FUNC) &_adaptiveFTS_set_threads_cpp, 1},
+    {"_adaptiveFTS_get_threads_cpp", (DL_FUNC) &_adaptiveFTS_get_threads_cpp, 0},
     {NULL, NULL, 0}
 };
 

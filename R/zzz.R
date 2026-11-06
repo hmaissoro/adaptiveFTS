@@ -14,3 +14,10 @@ globalVariables(
     "cov_segment_hat", "covseg_correction", "cov_segment_hat_corrected",
     "optbw_s", "optbw_t", "h", "hs", "ht", "cov_segment_risk", "bw",
     "parameter", "value", "grp", "facf"))
+
+.onLoad <- function(libname, pkgname) {
+  # Optional thread setting for the compiled estimators (see set_threads())
+  n <- suppressWarnings(as.integer(Sys.getenv("ADAPTIVEFTS_NUM_THREADS", "")))
+  if (length(n) == 1 && !is.na(n) && n >= 1) set_threads_cpp(n)
+  invisible(NULL)
+}

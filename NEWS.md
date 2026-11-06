@@ -116,6 +116,12 @@
 
 ## New features
 
+* `set_threads()` and `get_threads()` set and report the number of OpenMP
+  threads of the compiled estimators (the environment variable
+  `ADAPTIVEFTS_NUM_THREADS` is applied when the package is loaded). Results do
+  not depend on the number of threads; for Monte Carlo studies run in parallel
+  processes, `set_threads(1)` in each worker avoids oversubscribing the machine.
+
 * The local regularity step is now tunable from every adaptive estimator. The
   estimators reach it through C++, which used to hard-code its settings, so
   `estimate_mean_risk()`, `estimate_mean()`, `estimate_autocov_risk()`,
