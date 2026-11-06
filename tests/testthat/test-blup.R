@@ -41,8 +41,13 @@ test_that("blup_fit returns a well-formed object", {
   fit <- blup_fit(dt, tikhonov = 1e-6, bw_grid = bwg)
   expect_s3_class(fit, "blup_fit")
   expect_true(all(c("V", "c0hat", "muhat_Tn0", "rho", "Tn0",
-                    "opt_mean", "opt_cov", "opt_autocov") %in% names(fit)))
+                    "bw_mean", "bw_cov", "presmooth_bw", "Delta") %in% names(fit)))
   M <- fit$Mn0
+  # the bandwidths are selected directly at the design points (no sub-grid)
+  expect_length(fit$bw_mean, M)
+  expect_equal(dim(fit$bw_cov$bw_s), c(M, M))
+  expect_true(all(fit$bw_mean %in% bwg))
+  expect_true(all(fit$bw_cov$bw_s %in% bwg) && all(fit$bw_cov$bw_t %in% bwg))
   expect_equal(dim(fit$V), c(M, M))
   expect_equal(dim(fit$c0hat), c(M, M))
   # V is symmetric positive-definite: C0 is projected onto the PSD cone, so
@@ -108,7 +113,7 @@ test_that("select_tikhonov_parameter shrinks n_cv_curves with a warning", {
   bwg <- seq(0.05, 0.2, length.out = 5)
   w <- testthat::capture_warnings(
     cv <- select_tikhonov_parameter(dt, tikhonov_grid = exp(seq(-2, 0, length.out = 4)),
-                                    n_cv_curves = 100L, bw_subgrid_size = 5L, bw_grid = bwg))
+                                    n_cv_curves = 100L, bw_grid = bwg))
   expect_true(any(grepl("number of curves", w)))
   expect_length(cv$val_ids, floor(18 / 2))
 })

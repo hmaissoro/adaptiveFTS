@@ -11,6 +11,25 @@
                     function(tt) identical(tt, reference_design), logical(1))))
 }
 
+#' Default bandwidth grid of the adaptive BLUP
+#'
+#' A 15-point geometric grid from \eqn{0.5/\lambda} (common design) or
+#' \eqn{0.5/\sqrt{N\lambda}} (independent design) down to 0.05.
+#'
+#' @param data A formatted `data.table`.
+#' @param is_common Whether the design is common across curves.
+#' @return The candidate bandwidths.
+#' @keywords internal
+.blup_bw_grid <- function(data, is_common) {
+  N <- data[, length(unique(id_curve))]
+  lambdahat <- data[, .(Mn = .N), by = id_curve][, mean(Mn)]
+  K <- 15
+  b0 <- ifelse(is_common, 0.5 / lambdahat, 0.5 / ((N * lambdahat) ** (1 / 2)))
+  bK <- 0.05
+  a <- exp((log(bK) - log(b0)) / K)
+  return(b0 * a ** (seq_len(K)))
+}
+
 #' Fit the adaptive functional BLUP
 #'
 #' Estimates every component of the adaptive Best Linear Unbiased Predictor that
@@ -18,16 +37,16 @@
 #'
 #' @details
 #' The fit conditions on a single curve (its immediate successor is what
-#' `predict()` reconstructs) and caches the adaptive bandwidths, so that
-#' `predict()` only re-runs the cheap plug-in estimates at the requested
-#' prediction points. The covariance assembly is a single lag-1 block.
+#' `predict()` reconstructs). Every plug-in estimate is computed directly at the
+#' points where it is needed, with its own risk-minimising bandwidth: the mean
+#' and the covariance at the conditioning-curve design points here, and the mean
+#' and the lag-1 autocovariance at the prediction points in `predict()`. There is
+#' no bandwidth sub-grid. The covariance assembly is a single lag-1 block.
 #'
 #' @inheritParams format_data
 #' @param kernel_name Kernel name. Default `"epanechnikov"`.
 #' @param homoscedastic If `TRUE` (default) a constant noise variance (median of
 #'   the pointwise estimates) is used; otherwise the t-varying estimates.
-#' @param bw_subgrid_size Number of points per axis of the coarse sub-grid on
-#'   which the adaptive bandwidths are selected. Default `10`.
 #' @param n_cv_curves Number of trailing curves held out for the Tikhonov
 #'   cross-validation when `tikhonov` is `NULL`. Default `30`.
 #' @param id_conditioning_curve Integer id of the curve conditioned on. Its
@@ -54,7 +73,11 @@
 #'       noise level of the conditioning curve.
 #'     \item `V`, `resid`: the regularised variance matrix and the conditioning
 #'       residual.
-#'     \item `opt_mean`, `opt_cov`, `opt_autocov`: the cached adaptive bandwidths.
+#'     \item `bw_mean`, `bw_cov`: the adaptive bandwidths selected at the
+#'       design points (`bw_cov` holds the `bw_s` and `bw_t` matrices of the
+#'       covariance).
+#'     \item `presmooth_bw`, `Delta`: the resolved local regularity settings,
+#'       reused by [predict.blup_fit()].
 #'     \item `data`, `kernel_name`, `is_common_design`, `density_bw`, `bw_grid`,
 #'       `tikhonov`, `homoscedastic`: the information needed by
 #'       [predict.blup_fit()].
@@ -68,7 +91,7 @@
 #' @importFrom methods is
 blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                      kernel_name = "epanechnikov", homoscedastic = TRUE,
-                     bw_subgrid_size = 10L, n_cv_curves = 30L,
+                     n_cv_curves = 30L,
                      id_conditioning_curve = NULL, tikhonov = NULL,
                      tikhonov_grid = NULL, bw_grid = NULL, density_bw = NULL,
                      presmooth_bw = NULL, Delta = NULL,
@@ -103,22 +126,14 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   }
   root_Dn0 <- diag(sqrt(rho))
 
-  if (is.null(bw_grid)) {
-    N <- data[, length(unique(id_curve))]
-    lambdahat <- data[, .(Mn = .N), by = id_curve][, mean(Mn)]
-    K <- 15
-    b0 <- ifelse(is_common_design, 0.5 / lambdahat, 0.5 / ((N * lambdahat) ** (1 / 2)))
-    bK <- 0.05
-    a <- exp((log(bK) - log(b0)) / K)
-    bw_grid <- b0 * a ** (seq_len(K))
-  }
+  if (is.null(bw_grid)) bw_grid <- .blup_bw_grid(data, is_common_design)
 
   # The inner blup_fit() call in select_tikhonov_parameter() passes an explicit
   # tikhonov, so this does not recurse.
   if (is.null(tikhonov)) {
     tikhonov_cv <- select_tikhonov_parameter(
       data = data, method = "cv", kernel_name = kernel_name,
-      homoscedastic = homoscedastic, bw_subgrid_size = bw_subgrid_size,
+      homoscedastic = homoscedastic,
       n_cv_curves = n_cv_curves, tikhonov_grid = tikhonov_grid,
       bw_grid = bw_grid, density_bw = density_bw,
       presmooth_bw = presmooth_bw, Delta = Delta,
@@ -132,8 +147,7 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   cpp <- blup_fit_cpp(
     data = data, id_conditioning_curve = as.integer(n0), bw_grid = as.numeric(bw_grid),
     rho = rho, homoscedastic = homoscedastic,
-    tikhonov = tikhonov, bw_subgrid_size = as.integer(bw_subgrid_size),
-    kernel_name = kernel_name,
+    tikhonov = tikhonov, kernel_name = kernel_name,
     presmooth_bw = presmooth_bw, Delta = Delta,
     presmooth_bw_grid = presmooth_bw_grid,
     presmooth_nsubset = presmooth_nsubset)
@@ -151,9 +165,10 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
       root_Dn0 = root_Dn0,
       density_bw = density_bw,
       bw_grid = bw_grid,
-      opt_mean = cpp$opt_mean,
-      opt_cov = cpp$opt_cov,
-      opt_autocov = cpp$opt_autocov,
+      bw_mean = as.vector(cpp$bw_mean),
+      bw_cov = list(bw_s = cpp$bw_cov_s, bw_t = cpp$bw_cov_t),
+      presmooth_bw = as.vector(cpp$presmooth_bw),
+      Delta = cpp$Delta,
       muhat_Tn0 = as.vector(cpp$muhat_Tn0),
       c0hat = cpp$c0hat,
       sigma2 = if (homoscedastic) as.numeric(cpp$sigma2) else as.vector(cpp$sigma2),
@@ -177,10 +192,11 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' intermediate horizons are returned.
 #'
 #' @details
-#' During multi-step prediction the estimation data is left unchanged: the mean,
-#' the (auto)covariance operators, the adaptive bandwidths and the noise level
-#' are estimated once and held fixed, and each predicted curve enters only as the
-#' conditioning values of the next step. Injecting a predicted (denoised) curve
+#' The mean and the lag-1 autocovariance are estimated directly at the prediction
+#' points, each with its own risk-minimising bandwidth. During multi-step
+#' prediction the estimation data is left unchanged: the operators on the target
+#' grid are estimated once and held fixed, and each predicted curve enters only
+#' as the conditioning values of the next step. Injecting a predicted (denoised) curve
 #' back into the estimation sample would bias those plug-in estimates, so it is
 #' deliberately avoided.
 #'
@@ -190,8 +206,7 @@ blup_fit <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @param horizon Integer prediction horizon (steps ahead). Default `1`. For
 #'   `horizon > 1`, each intermediate curve is predicted on the target grid `t`
 #'   and fed back as the new conditioning curve; the conditioning quantities are
-#'   recomputed for that grid using the cached adaptive bandwidths (works for
-#'   both designs).
+#'   estimated on that grid (works for both designs).
 #' @param newdata Optional numeric vector of conditioning-curve values at the
 #'   fit's design points (`object$Tn0`), overriding `object$Yn0`. Used internally
 #'   for the multi-step recursion; must have length `object$Mn0`.
@@ -223,13 +238,13 @@ predict.blup_fit <- function(object, t = object$Tn0, horizon = 1L, newdata = NUL
   density_bw <- if (is.null(object$density_bw)) 0.1 else object$density_bw
 
   out <- blup_predict_cpp(
-    data = object$data, opt_mean = object$opt_mean, opt_cov = object$opt_cov,
-    opt_autocov = object$opt_autocov, Tn0 = as.numeric(object$Tn0),
+    data = object$data, Tn0 = as.numeric(object$Tn0),
     muhat_Tn0 = as.numeric(object$muhat_Tn0), V = object$V, root_D = object$root_Dn0,
     Yn0 = as.numeric(Yn0), density_bw = density_bw,
     is_common = object$is_common_design, homoscedastic = object$homoscedastic,
     tikhonov = object$tikhonov, t = as.numeric(t), horizon = horizon,
-    kernel_name = object$kernel_name)
+    kernel_name = object$kernel_name, bw_grid = as.numeric(object$bw_grid),
+    presmooth_bw = as.numeric(object$presmooth_bw), Delta = as.numeric(object$Delta))
 
   return(data.table::data.table(
     horizon = as.integer(out[, 1]), t = out[, 2],
@@ -264,7 +279,7 @@ predict.blup_fit <- function(object, t = object$Tn0, horizon = 1L, newdata = NUL
 blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                  t = seq(0.01, 0.99, length.out = 99), horizon = 1L,
                  kernel_name = "epanechnikov", homoscedastic = TRUE,
-                 bw_subgrid_size = 10L, n_cv_curves = 30L,
+                 n_cv_curves = 30L,
                  id_conditioning_curve = NULL, tikhonov = NULL,
                  tikhonov_grid = NULL, bw_grid = NULL, density_bw = NULL,
                  presmooth_bw = NULL, Delta = NULL,
@@ -272,7 +287,7 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
   fit <- blup_fit(
     data = data, idcol = idcol, tcol = tcol, ycol = ycol,
     kernel_name = kernel_name, homoscedastic = homoscedastic,
-    bw_subgrid_size = bw_subgrid_size, n_cv_curves = n_cv_curves,
+    n_cv_curves = n_cv_curves,
     id_conditioning_curve = id_conditioning_curve, tikhonov = tikhonov,
     tikhonov_grid = tikhonov_grid, bw_grid = bw_grid, density_bw = density_bw,
     presmooth_bw = presmooth_bw, Delta = Delta,
@@ -301,9 +316,9 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #'     training block and only the conditioning values vary across the
 #'     validation set.
 #'   \item \strong{Independent design} — a rolling origin: for each target curve
-#'     the plug-in estimates are refreshed on all curves observed up to its
-#'     predecessor, with the adaptive bandwidths held fixed at those selected
-#'     once on the initial block (cached in the fit).
+#'     the plug-in estimates (and their risk-minimising bandwidths) are
+#'     re-estimated on all curves observed up to its predecessor, directly at the
+#'     predecessor's and the target's observation points.
 #' }
 #' Only the \eqn{M \times M} system depends on \eqn{\alpha}; it is solved for the
 #' whole grid from a single eigendecomposition per fold.
@@ -328,7 +343,7 @@ blup <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
 #' @import data.table
 select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", ycol = "X",
                                       method = c("cv"), kernel_name = "epanechnikov",
-                                      homoscedastic = TRUE, bw_subgrid_size = 10L,
+                                      homoscedastic = TRUE,
                                       n_cv_curves = 30L, tikhonov_grid = NULL,
                                       bw_grid = NULL, density_bw = NULL,
                                       presmooth_bw = NULL, Delta = NULL,
@@ -360,20 +375,33 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
       data = data_fit, idcol = "id_curve", tcol = "tobs", ycol = "X",
       kernel_name = kernel_name, lower = 0, upper = 1)
 
-  fit <- blup_fit(
-    data = data_fit, kernel_name = kernel_name, homoscedastic = homoscedastic,
-    bw_subgrid_size = bw_subgrid_size, id_conditioning_curve = max(fit_ids),
-    tikhonov = 1e-6, bw_grid = bw_grid, density_bw = density_bw,
-    presmooth_bw = presmooth_bw, Delta = Delta,
-    presmooth_bw_grid = presmooth_bw_grid,
-    presmooth_nsubset = presmooth_nsubset)
+  if (is.null(bw_grid))
+    bw_grid <- .blup_bw_grid(data_fit, .is_common_design(data = data_fit, idcol = "id_curve", tcol = "tobs"))
+
+  # Plug-in operators at the design Td and at the target points tpred, each
+  # estimate at its own risk-minimising bandwidth.
+  operators <- function(d, Td, tpred) {
+    blup_operators_cpp(
+      data = d, Td = Td, tpred = tpred, bw_grid = as.numeric(bw_grid),
+      kernel_name = kernel_name, presmooth_bw = presmooth_bw, Delta = Delta,
+      presmooth_bw_grid = presmooth_bw_grid, presmooth_nsubset = presmooth_nsubset)
+  }
+  noise <- function(sig2) if (homoscedastic) stats::median(sig2, na.rm = TRUE) else sig2
+
+  # Curves split once (data is sorted by id_curve, then tobs).
+  T_by <- split(data[["tobs"]], data[["id_curve"]])
+  Y_by <- split(data[["X"]], data[["id_curve"]])
+  key <- function(id) as.character(id)
 
   # Under the common design the operators do not vary across folds.
   if (is_common) {
-    Tn0 <- fit$Tn0
-    c1_common <- blup_autocov_at_cpp(data_fit, fit$opt_autocov, Tn0, Tn0, 1L, FALSE, kernel_name)
-    A0_common <- fit$root_Dn0 %*% fit$c0hat %*% fit$root_Dn0 + diag(fit$sigma2 * fit$rho)
-    C1rD_common <- t(c1_common) %*% fit$root_Dn0
+    Tn0 <- sort(unique(T_by[[key(max(fit_ids))]]))
+    ops <- operators(data_fit, Tn0, Tn0)
+    rho0 <- rep(1 / length(Tn0), length(Tn0))
+    root_D0 <- diag(sqrt(rho0))
+    A0_common <- root_D0 %*% psd_project_cpp(ops$c0) %*% root_D0 + diag(noise(as.vector(ops$sigma2)) * rho0)
+    C1rD_common <- t(ops$c1) %*% root_D0
+    mu0 <- as.vector(ops$muhat_d)
   }
 
   # Everything that does not depend on the Tikhonov parameter, per fold.
@@ -381,27 +409,23 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
   for (k in seq_len(n_cv_curves)) {
     id_targ <- ids[val_pos[k]]
     id_prev <- ids[val_pos[k] - 1L]
-    Y_prev <- data[id_curve == id_prev][order(tobs), X]
-    Y_targ <- data[id_curve == id_targ][order(tobs), X]
+    Y_prev <- Y_by[[key(id_prev)]]
+    Y_targ <- Y_by[[key(id_targ)]]
 
     if (is_common) {
       folds[[k]] <- list(
-        A0 = A0_common, C1rD = C1rD_common, mu_pred = fit$muhat_Tn0,
-        resid = fit$root_Dn0 %*% matrix(Y_prev - fit$muhat_Tn0, ncol = 1),
+        A0 = A0_common, C1rD = C1rD_common, mu_pred = mu0,
+        resid = root_D0 %*% matrix(Y_prev - mu0, ncol = 1),
         Y_targ = Y_targ, rho_targ = rep(1 / length(Y_targ), length(Y_targ)))
     } else {
-      # Rolling origin, with the bandwidths held fixed at those cached in `fit`.
+      # Rolling origin: every plug-in estimate is refreshed on the curves
+      # observed up to the predecessor of the target.
       data_roll <- data[id_curve <= id_prev]
-      Tprev <- data[id_curve == id_prev, sort(unique(tobs))]
-      Ttarg <- data[id_curve == id_targ, sort(unique(tobs))]
-      c0 <- blup_autocov_at_cpp(data_roll, fit$opt_cov, Tprev, Tprev, 0L, TRUE, kernel_name)
-      c0 <- psd_project_cpp(c0)
-      c1 <- blup_autocov_at_cpp(data_roll, fit$opt_autocov, Tprev, Ttarg, 1L, FALSE, kernel_name)
-      mu_prev <- blup_mean_at_cpp(data_roll, fit$opt_mean, Tprev, kernel_name)
-      mu_targ <- blup_mean_at_cpp(data_roll, fit$opt_mean, Ttarg, kernel_name)
-      sig2 <- adaptiveFTS::estimate_sigma(
-        data = data_roll, idcol = "id_curve", tcol = "tobs", ycol = "X", t = Tprev)[, sig ** 2]
-      if (homoscedastic) sig2 <- stats::median(sig2, na.rm = TRUE)
+      Tprev <- sort(unique(T_by[[key(id_prev)]]))
+      Ttarg <- sort(unique(T_by[[key(id_targ)]]))
+      ops <- operators(data_roll, Tprev, Ttarg)
+      c0 <- psd_project_cpp(ops$c0)
+      sig2 <- noise(as.vector(ops$sigma2))
       ghat <- estimate_density(x = Tprev, h = density_bw, kernel_name = kernel_name,
                                lower = 0, upper = 1)$estimate
       rho <- 1 / (length(Tprev) * pmax(ghat, 1e-6))
@@ -412,8 +436,9 @@ select_tikhonov_parameter <- function(data, idcol = "id_curve", tcol = "tobs", y
       rho_targ <- 1 / (length(Ttarg) * pmax(ghat_targ, 1e-6))
       rho_targ <- rho_targ / sum(rho_targ)
       folds[[k]] <- list(
-        A0 = root_D %*% c0 %*% root_D + diag(sig2 * rho), C1rD = t(c1) %*% root_D,
-        mu_pred = mu_targ, resid = root_D %*% matrix(Y_prev - mu_prev, ncol = 1),
+        A0 = root_D %*% c0 %*% root_D + diag(sig2 * rho), C1rD = t(ops$c1) %*% root_D,
+        mu_pred = as.vector(ops$muhat_pred),
+        resid = root_D %*% matrix(Y_prev - as.vector(ops$muhat_d), ncol = 1),
         Y_targ = Y_targ, rho_targ = rho_targ)
     }
   }

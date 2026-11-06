@@ -189,44 +189,34 @@ psd_project_cpp <- function(M) {
     .Call(`_adaptiveFTS_psd_project_cpp`, M)
 }
 
-#' Mean at new locations using cached bandwidths (C++ core)
+#' Plug-in operators of the adaptive BLUP at given points (C++ core)
 #'
-#' Reuses the adaptive mean bandwidths cached in a `blup_fit` object. Called by
-#' `select_tikhonov_parameter()`; not intended to be used directly.
-#'
-#' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
-#' @param opt_mean Cached mean adaptive-bandwidth matrix (`t`, `bw`).
-#' @param t Evaluation locations (assumed sorted).
-#' @param kernel_name Kernel name.
-#' @return The mean estimates at `t`.
-#' @keywords internal
-blup_mean_at_cpp <- function(data, opt_mean, t, kernel_name) {
-    .Call(`_adaptiveFTS_blup_mean_at_cpp`, data, opt_mean, t, kernel_name)
-}
-
-#' (Auto)covariance block at new locations using cached bandwidths (C++ core)
-#'
-#' Reuses the adaptive (auto)covariance bandwidths cached in a `blup_fit`
-#' object. Called by `select_tikhonov_parameter()`; not intended to be used directly.
+#' Estimates, each at its own risk-minimising bandwidth, the mean at the design
+#' `Td` and at the prediction points `tpred`, the covariance on `Td x Td`, the
+#' pointwise noise variance at `Td` and the lag-1 autocovariance on
+#' `Td x tpred`. Called by `select_tikhonov_parameter()`; not intended to be
+#' used directly.
 #'
 #' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
-#' @param opt_bw Cached (auto)covariance bandwidth matrix (`s`, `t`, `bw_s`,
-#'   `bw_t`).
-#' @param s,t Evaluation locations (rows indexed by `s`, columns by `t`).
-#' @param lag 0 for the covariance, 1 for the lag-1 autocovariance.
-#' @param correct_diagonal Whether to correct the covariance diagonal.
+#' @param Td Design points (sorted).
+#' @param tpred Prediction points (sorted); may be empty.
+#' @param bw_grid Bandwidth grid of the adaptive risks.
 #' @param kernel_name Kernel name.
-#' @return A `length(s)` by `length(t)` matrix of \eqn{\hat c_{lag}(s_i, t_j)}.
+#' @param presmooth_bw,Delta,presmooth_bw_grid,presmooth_nsubset Local
+#'   regularity settings, see `estimate_locreg_cpp`.
+#' @return A list with `muhat_d`, `c0` (not projected), `sigma2` (pointwise),
+#'   `muhat_pred` and `c1`.
 #' @keywords internal
-blup_autocov_at_cpp <- function(data, opt_bw, s, t, lag, correct_diagonal, kernel_name) {
-    .Call(`_adaptiveFTS_blup_autocov_at_cpp`, data, opt_bw, s, t, lag, correct_diagonal, kernel_name)
+blup_operators_cpp <- function(data, Td, tpred, bw_grid, kernel_name, presmooth_bw = NULL, Delta = NULL, presmooth_bw_grid = NULL, presmooth_nsubset = NULL) {
+    .Call(`_adaptiveFTS_blup_operators_cpp`, data, Td, tpred, bw_grid, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset)
 }
 
 #' Fit the adaptive functional BLUP (C++ core)
 #'
 #' Estimates every prediction-point-independent component of the adaptive
-#' Best Linear Unbiased Predictor and caches the adaptive bandwidths. Called by
-#' the R function \code{blup_fit()}; not intended to be used directly.
+#' Best Linear Unbiased Predictor, with the bandwidths selected directly at the
+#' conditioning-curve design points. Called by the R function \code{blup_fit()};
+#' not intended to be used directly.
 #'
 #' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
 #' @param id_conditioning_curve Integer id of the conditioning curve.
@@ -234,7 +224,6 @@ blup_autocov_at_cpp <- function(data, opt_bw, s, t, lag, correct_diagonal, kerne
 #' @param rho Design weights of the conditioning curve.
 #' @param homoscedastic Whether to use a constant noise variance.
 #' @param tikhonov Tikhonov regularisation parameter.
-#' @param bw_subgrid_size Number of points per axis of the bandwidth sub-grid.
 #' @param kernel_name Kernel name.
 #' @param presmooth_bw Numeric (positive vector or scalar). Bandwidth used to presmooth
 #' each curve in the local regularity step, see `estimate_locreg_cpp`. Default
@@ -246,21 +235,22 @@ blup_autocov_at_cpp <- function(data, opt_bw, s, t, lag, correct_diagonal, kerne
 #' @param presmooth_nsubset Integer (positive). Number of curves used by that
 #' cross-validation. Default \code{NULL} uses min(70, floor(N / 2)) curves.
 #'
-#' @return A list with the cached bandwidths, the covariance operator, the
-#'   mean, the noise level, the regularised variance matrix and the residual.
+#' @return A list with the selected bandwidths, the covariance operator, the
+#'   mean, the noise level, the regularised variance matrix, the residual and
+#'   the resolved local regularity settings.
 #' @keywords internal
-blup_fit_cpp <- function(data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, bw_subgrid_size, kernel_name, presmooth_bw = NULL, Delta = NULL, presmooth_bw_grid = NULL, presmooth_nsubset = NULL) {
-    .Call(`_adaptiveFTS_blup_fit_cpp`, data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, bw_subgrid_size, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset)
+blup_fit_cpp <- function(data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, kernel_name, presmooth_bw = NULL, Delta = NULL, presmooth_bw_grid = NULL, presmooth_nsubset = NULL) {
+    .Call(`_adaptiveFTS_blup_fit_cpp`, data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset)
 }
 
 #' Predict with the adaptive functional BLUP (C++ core)
 #'
 #' Evaluates the adaptive BLUP at the prediction points, looping for
-#' h-step-ahead prediction. Called by \code{predict.blup_fit()}; not intended
-#' to be used directly.
+#' h-step-ahead prediction. The mean at the prediction points and the lag-1
+#' autocovariance are estimated directly at those points. Called by
+#' \code{predict.blup_fit()}; not intended to be used directly.
 #'
 #' @param data A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.
-#' @param opt_mean,opt_cov,opt_autocov Cached adaptive-bandwidth matrices.
 #' @param Tn0 Conditioning-curve design points.
 #' @param muhat_Tn0 Mean at the conditioning-curve design points.
 #' @param V Regularised variance matrix of the fit.
@@ -273,11 +263,13 @@ blup_fit_cpp <- function(data, id_conditioning_curve, bw_grid, rho, homoscedasti
 #' @param t Prediction points.
 #' @param horizon Prediction horizon (steps ahead).
 #' @param kernel_name Kernel name.
+#' @param bw_grid Bandwidth grid of the adaptive risks.
+#' @param presmooth_bw,Delta Local regularity settings resolved by the fit.
 #'
-#' @return A matrix with columns \code{t}, \code{muhat}, \code{prediction}.
+#' @return A matrix with columns \code{horizon}, \code{t}, \code{muhat}, \code{prediction}.
 #' @keywords internal
-blup_predict_cpp <- function(data, opt_mean, opt_cov, opt_autocov, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, horizon, kernel_name) {
-    .Call(`_adaptiveFTS_blup_predict_cpp`, data, opt_mean, opt_cov, opt_autocov, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, horizon, kernel_name)
+blup_predict_cpp <- function(data, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, horizon, kernel_name, bw_grid, presmooth_bw, Delta) {
+    .Call(`_adaptiveFTS_blup_predict_cpp`, data, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, horizon, kernel_name, bw_grid, presmooth_bw, Delta)
 }
 
 #' Kernel sums of the Rubin-Panaretos mean estimator (C++ core)

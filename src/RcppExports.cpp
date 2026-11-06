@@ -534,40 +534,28 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// blup_mean_at_cpp
-arma::vec blup_mean_at_cpp(const Rcpp::DataFrame data, const arma::mat opt_mean, const arma::vec t, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_blup_mean_at_cpp(SEXP dataSEXP, SEXP opt_meanSEXP, SEXP tSEXP, SEXP kernel_nameSEXP) {
+// blup_operators_cpp
+Rcpp::List blup_operators_cpp(const Rcpp::DataFrame data, const arma::vec Td, const arma::vec tpred, const arma::vec bw_grid, const std::string kernel_name, const Rcpp::Nullable<arma::vec> presmooth_bw, const Rcpp::Nullable<double> Delta, const Rcpp::Nullable<arma::vec> presmooth_bw_grid, const Rcpp::Nullable<int> presmooth_nsubset);
+RcppExport SEXP _adaptiveFTS_blup_operators_cpp(SEXP dataSEXP, SEXP TdSEXP, SEXP tpredSEXP, SEXP bw_gridSEXP, SEXP kernel_nameSEXP, SEXP presmooth_bwSEXP, SEXP DeltaSEXP, SEXP presmooth_bw_gridSEXP, SEXP presmooth_nsubsetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type opt_mean(opt_meanSEXP);
-    Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type Td(TdSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type tpred(tpredSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type bw_grid(bw_gridSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(blup_mean_at_cpp(data, opt_mean, t, kernel_name));
-    return rcpp_result_gen;
-END_RCPP
-}
-// blup_autocov_at_cpp
-arma::mat blup_autocov_at_cpp(const Rcpp::DataFrame data, const arma::mat opt_bw, const arma::vec s, const arma::vec t, const int lag, const bool correct_diagonal, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_blup_autocov_at_cpp(SEXP dataSEXP, SEXP opt_bwSEXP, SEXP sSEXP, SEXP tSEXP, SEXP lagSEXP, SEXP correct_diagonalSEXP, SEXP kernel_nameSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type opt_bw(opt_bwSEXP);
-    Rcpp::traits::input_parameter< const arma::vec >::type s(sSEXP);
-    Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
-    Rcpp::traits::input_parameter< const int >::type lag(lagSEXP);
-    Rcpp::traits::input_parameter< const bool >::type correct_diagonal(correct_diagonalSEXP);
-    Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(blup_autocov_at_cpp(data, opt_bw, s, t, lag, correct_diagonal, kernel_name));
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw(presmooth_bwSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<double> >::type Delta(DeltaSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw_grid(presmooth_bw_gridSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::Nullable<int> >::type presmooth_nsubset(presmooth_nsubsetSEXP);
+    rcpp_result_gen = Rcpp::wrap(blup_operators_cpp(data, Td, tpred, bw_grid, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset));
     return rcpp_result_gen;
 END_RCPP
 }
 // blup_fit_cpp
-Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data, const int id_conditioning_curve, const arma::vec bw_grid, const arma::vec rho, const bool homoscedastic, const double tikhonov, const int bw_subgrid_size, const std::string kernel_name, const Rcpp::Nullable<arma::vec> presmooth_bw, const Rcpp::Nullable<double> Delta, const Rcpp::Nullable<arma::vec> presmooth_bw_grid, const Rcpp::Nullable<int> presmooth_nsubset);
-RcppExport SEXP _adaptiveFTS_blup_fit_cpp(SEXP dataSEXP, SEXP id_conditioning_curveSEXP, SEXP bw_gridSEXP, SEXP rhoSEXP, SEXP homoscedasticSEXP, SEXP tikhonovSEXP, SEXP bw_subgrid_sizeSEXP, SEXP kernel_nameSEXP, SEXP presmooth_bwSEXP, SEXP DeltaSEXP, SEXP presmooth_bw_gridSEXP, SEXP presmooth_nsubsetSEXP) {
+Rcpp::List blup_fit_cpp(const Rcpp::DataFrame data, const int id_conditioning_curve, const arma::vec bw_grid, const arma::vec rho, const bool homoscedastic, const double tikhonov, const std::string kernel_name, const Rcpp::Nullable<arma::vec> presmooth_bw, const Rcpp::Nullable<double> Delta, const Rcpp::Nullable<arma::vec> presmooth_bw_grid, const Rcpp::Nullable<int> presmooth_nsubset);
+RcppExport SEXP _adaptiveFTS_blup_fit_cpp(SEXP dataSEXP, SEXP id_conditioning_curveSEXP, SEXP bw_gridSEXP, SEXP rhoSEXP, SEXP homoscedasticSEXP, SEXP tikhonovSEXP, SEXP kernel_nameSEXP, SEXP presmooth_bwSEXP, SEXP DeltaSEXP, SEXP presmooth_bw_gridSEXP, SEXP presmooth_nsubsetSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -577,26 +565,22 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec >::type rho(rhoSEXP);
     Rcpp::traits::input_parameter< const bool >::type homoscedastic(homoscedasticSEXP);
     Rcpp::traits::input_parameter< const double >::type tikhonov(tikhonovSEXP);
-    Rcpp::traits::input_parameter< const int >::type bw_subgrid_size(bw_subgrid_sizeSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw(presmooth_bwSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<double> >::type Delta(DeltaSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<arma::vec> >::type presmooth_bw_grid(presmooth_bw_gridSEXP);
     Rcpp::traits::input_parameter< const Rcpp::Nullable<int> >::type presmooth_nsubset(presmooth_nsubsetSEXP);
-    rcpp_result_gen = Rcpp::wrap(blup_fit_cpp(data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, bw_subgrid_size, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset));
+    rcpp_result_gen = Rcpp::wrap(blup_fit_cpp(data, id_conditioning_curve, bw_grid, rho, homoscedastic, tikhonov, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset));
     return rcpp_result_gen;
 END_RCPP
 }
 // blup_predict_cpp
-arma::mat blup_predict_cpp(const Rcpp::DataFrame data, const arma::mat opt_mean, const arma::mat opt_cov, const arma::mat opt_autocov, const arma::vec Tn0, const arma::vec muhat_Tn0, const arma::mat V, const arma::mat root_D, const arma::vec Yn0, const double density_bw, const bool is_common, const bool homoscedastic, const double tikhonov, const arma::vec t, const int horizon, const std::string kernel_name);
-RcppExport SEXP _adaptiveFTS_blup_predict_cpp(SEXP dataSEXP, SEXP opt_meanSEXP, SEXP opt_covSEXP, SEXP opt_autocovSEXP, SEXP Tn0SEXP, SEXP muhat_Tn0SEXP, SEXP VSEXP, SEXP root_DSEXP, SEXP Yn0SEXP, SEXP density_bwSEXP, SEXP is_commonSEXP, SEXP homoscedasticSEXP, SEXP tikhonovSEXP, SEXP tSEXP, SEXP horizonSEXP, SEXP kernel_nameSEXP) {
+arma::mat blup_predict_cpp(const Rcpp::DataFrame data, const arma::vec Tn0, const arma::vec muhat_Tn0, const arma::mat V, const arma::mat root_D, const arma::vec Yn0, const double density_bw, const bool is_common, const bool homoscedastic, const double tikhonov, const arma::vec t, const int horizon, const std::string kernel_name, const arma::vec bw_grid, const arma::vec presmooth_bw, const double Delta);
+RcppExport SEXP _adaptiveFTS_blup_predict_cpp(SEXP dataSEXP, SEXP Tn0SEXP, SEXP muhat_Tn0SEXP, SEXP VSEXP, SEXP root_DSEXP, SEXP Yn0SEXP, SEXP density_bwSEXP, SEXP is_commonSEXP, SEXP homoscedasticSEXP, SEXP tikhonovSEXP, SEXP tSEXP, SEXP horizonSEXP, SEXP kernel_nameSEXP, SEXP bw_gridSEXP, SEXP presmooth_bwSEXP, SEXP DeltaSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< const Rcpp::DataFrame >::type data(dataSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type opt_mean(opt_meanSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type opt_cov(opt_covSEXP);
-    Rcpp::traits::input_parameter< const arma::mat >::type opt_autocov(opt_autocovSEXP);
     Rcpp::traits::input_parameter< const arma::vec >::type Tn0(Tn0SEXP);
     Rcpp::traits::input_parameter< const arma::vec >::type muhat_Tn0(muhat_Tn0SEXP);
     Rcpp::traits::input_parameter< const arma::mat >::type V(VSEXP);
@@ -609,7 +593,10 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec >::type t(tSEXP);
     Rcpp::traits::input_parameter< const int >::type horizon(horizonSEXP);
     Rcpp::traits::input_parameter< const std::string >::type kernel_name(kernel_nameSEXP);
-    rcpp_result_gen = Rcpp::wrap(blup_predict_cpp(data, opt_mean, opt_cov, opt_autocov, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, horizon, kernel_name));
+    Rcpp::traits::input_parameter< const arma::vec >::type bw_grid(bw_gridSEXP);
+    Rcpp::traits::input_parameter< const arma::vec >::type presmooth_bw(presmooth_bwSEXP);
+    Rcpp::traits::input_parameter< const double >::type Delta(DeltaSEXP);
+    rcpp_result_gen = Rcpp::wrap(blup_predict_cpp(data, Tn0, muhat_Tn0, V, root_D, Yn0, density_bw, is_common, homoscedastic, tikhonov, t, horizon, kernel_name, bw_grid, presmooth_bw, Delta));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -711,9 +698,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_adaptiveFTS_ensure_positive_definite", (DL_FUNC) &_adaptiveFTS_ensure_positive_definite, 2},
     {"_adaptiveFTS_estimate_curve_cpp", (DL_FUNC) &_adaptiveFTS_estimate_curve_cpp, 8},
     {"_adaptiveFTS_psd_project_cpp", (DL_FUNC) &_adaptiveFTS_psd_project_cpp, 1},
-    {"_adaptiveFTS_blup_mean_at_cpp", (DL_FUNC) &_adaptiveFTS_blup_mean_at_cpp, 4},
-    {"_adaptiveFTS_blup_autocov_at_cpp", (DL_FUNC) &_adaptiveFTS_blup_autocov_at_cpp, 7},
-    {"_adaptiveFTS_blup_fit_cpp", (DL_FUNC) &_adaptiveFTS_blup_fit_cpp, 12},
+    {"_adaptiveFTS_blup_operators_cpp", (DL_FUNC) &_adaptiveFTS_blup_operators_cpp, 9},
+    {"_adaptiveFTS_blup_fit_cpp", (DL_FUNC) &_adaptiveFTS_blup_fit_cpp, 11},
     {"_adaptiveFTS_blup_predict_cpp", (DL_FUNC) &_adaptiveFTS_blup_predict_cpp, 16},
     {"_adaptiveFTS_rp_mean_cpp", (DL_FUNC) &_adaptiveFTS_rp_mean_cpp, 6},
     {"_adaptiveFTS_rp_pq_cpp", (DL_FUNC) &_adaptiveFTS_rp_pq_cpp, 11},
