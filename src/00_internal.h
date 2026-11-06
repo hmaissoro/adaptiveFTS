@@ -56,15 +56,30 @@ arma::mat mean_impl(const core::Curves& C, const arma::vec& t, const arma::vec& 
 struct AutocovBest {          // first minimiser of the risk, per pair
   arma::vec bw_s, bw_t, Hs, Ls, Ht, Lt;
 };
+// Point constants of the (auto)covariance risk on the distinct points U (local
+// regularity, noise level, second moments, D numerators, per-curve cubes on
+// (point, bandwidth, curve)); they do not depend on the pairs nor on the lag,
+// so several risks on the same points can share them.
+struct AutocovPoints {
+  arma::vec U, bw_grid;
+  arma::mat locU, sigU, momU, ddnum, ddPN;
+  double h0 = 0;
+  int B = 0;
+  bool center = true;
+  std::vector<double> c_pn, c_sbn, c_max;
+};
+AutocovPoints autocov_points(const core::Curves& C, const arma::vec& pts, const arma::vec& bw_grid,
+                             const bool center, core::Kern kern, const LocregCfg& cfg);
 arma::vec default_autocov_bw_grid(const core::Curves& C);
 arma::mat autocov_risk_impl(const core::Curves& C, const arma::vec& s, const arma::vec& t,
                             const int lag, const arma::vec& bw_grid, const bool common_bw,
                             const bool center, core::Kern kern, const LocregCfg& cfg,
-                            const bool full, AutocovBest* best);
+                            const bool full, AutocovBest* best, const AutocovPoints* shared = nullptr);
 arma::mat autocov_impl(const core::Curves& C, const arma::vec& s, const arma::vec& t, const int lag,
                        const bool has_bw, const arma::vec& bw_s, const arma::vec& bw_t,
                        const arma::vec& bw_grid, const bool common_bw, const bool center,
-                       const bool correct_diagonal, core::Kern kern, const LocregCfg& cfg);
+                       const bool correct_diagonal, core::Kern kern, const LocregCfg& cfg,
+                       const AutocovPoints* shared = nullptr);
 arma::mat get_upper_tri_couple(const arma::vec& s, const arma::vec& t);
 arma::mat sort_by_columns(const arma::mat& mat, arma::uword first_col_idx, arma::uword second_col_idx);
 

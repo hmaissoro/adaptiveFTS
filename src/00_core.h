@@ -199,6 +199,54 @@ inline RiskStats risk_stats(const Curves& C, int c, double x, double b, double H
   return r;
 }
 
+// risk_stats() for every bandwidth of `bws` at once. |(T - x)/h|^{2H} =
+// |T - x|^{2H} h^{-2H}: the power of each observation is computed once (on the
+// widest window) and reused for every bandwidth. Results for bandwidth b go to
+// pn[b * stride], wmax[b * stride], sbn[b * stride].
+inline void risk_stats_multi(const Curves& C, int c, double x, const double* bws, int B, double H, Kern k,
+                             double* pn, double* wmax, double* sbn, std::size_t stride) {
+  const std::vector<double>& ts = C.Ts[c];
+  double bmax = 0;
+  bool ok = std::isfinite(x);
+  for (int b = 0; b < B; ++b) { if (!(bws[b] > 0) || !std::isfinite(bws[b])) ok = false; bmax = std::max(bmax, bws[b]); }
+  if (!ok) {   // degenerate inputs: the direct computation
+    for (int b = 0; b < B; ++b) {
+      RiskStats r = risk_stats(C, c, x, bws[b], H, k);
+      pn[b * stride] = r.pn; wmax[b * stride] = r.wmax; sbn[b * stride] = r.sbn;
+    }
+    return;
+  }
+  arma::uword lo0, hi0;
+  window(ts, x, bmax, lo0, hi0);
+  double apow_buf[256];
+  std::vector<double> apow_vec;
+  double* apow = apow_buf;
+  if (hi0 - lo0 > 256) { apow_vec.resize(hi0 - lo0); apow = apow_vec.data(); }
+  for (arma::uword j = lo0; j < hi0; ++j) apow[j - lo0] = std::pow(std::abs(ts[j] - x), 2 * H);
+  for (int b = 0; b < B; ++b) {
+    const double bw = bws[b];
+    arma::uword lo, hi;
+    window(ts, x, bw, lo, hi);
+    double S = 0, kmax = 0, s2h = 0, p = 0;
+    for (arma::uword j = lo; j < hi; ++j) {
+      double u = (ts[j] - x) / bw;
+      double w = kval(k, u);
+      if (!std::isfinite(w)) w = 0;
+      if (std::abs(u) <= 1) p = 1.0;
+      S += w;
+      if (w > kmax) kmax = w;
+      s2h += apow[j - lo0] * std::abs(w);
+    }
+    pn[b * stride] = p;
+    if (S != 0 && std::isfinite(S)) {
+      wmax[b * stride] = kmax / S;
+      sbn[b * stride] = s2h * std::pow(bw, -2 * H) / S;
+    } else {
+      wmax[b * stride] = 0; sbn[b * stride] = 0;
+    }
+  }
+}
+
 // First position of each distinct value of v, and for each element its group.
 inline std::vector<int> first_index(const arma::vec& v) {
   std::map<double, int> first;

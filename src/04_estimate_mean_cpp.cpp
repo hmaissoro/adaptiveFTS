@@ -2,6 +2,7 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+#include <cstdint>
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -50,22 +51,29 @@ arma::mat mean_risk_impl(const core::Curves& C, const arma::vec& t, const arma::
   }
 
   arma::mat mat_res_risk(bw_size * n, 10);
-  const int n_tasks = bw_size * n;
+  // Per t: the per-curve quantities for every bandwidth at once (shared powers),
+  // then each bandwidth.
 #pragma omp parallel for schedule(dynamic)
-  for (int task = 0; task < n_tasks; ++task) {
-    const int idx_bw = task / n, k = task % n;
+  for (int k = 0; k < n; ++k) {
+  const double Ht = Ht_k(k), Lt = Lt_k(k), sig_square = sig2_k(k);
+  std::vector<double> q_pn((std::size_t) bw_size * n_curve), q_wm((std::size_t) bw_size * n_curve),
+    q_sb((std::size_t) bw_size * n_curve);
+  for (int i = 0; i < n_curve; ++i)
+    core::risk_stats_multi(C, i, t(k), bw_grid_to_use.memptr(), bw_size, Ht, kern,
+                           &q_pn[i], &q_wm[i], &q_sb[i], n_curve);
+  for (int idx_bw = 0; idx_bw < bw_size; ++idx_bw) {
     const double bw = bw_grid_to_use(idx_bw);
-    const double Ht = Ht_k(k), Lt = Lt_k(k), sig_square = sig2_k(k);
     const double bw_pow = std::pow(bw, 2 * Ht);
+    const double *rp = &q_pn[(std::size_t) idx_bw * n_curve], *rw = &q_wm[(std::size_t) idx_bw * n_curve],
+      *rs = &q_sb[(std::size_t) idx_bw * n_curve];
 
     std::vector<int> active;
     active.reserve(n_curve);
     double bias_term_num = 0, variance_term_num = 0;
     for (int i = 0; i < n_curve; ++i) {
-      core::RiskStats r = core::risk_stats(C, i, t(k), bw, Ht, kern);
-      if (r.pn > 0) active.push_back(i);
-      bias_term_num += Lt * bw_pow * r.pn * r.sbn;
-      variance_term_num += sig_square * r.pn * r.wmax;
+      if (rp[i] > 0) active.push_back(i);
+      bias_term_num += Lt * bw_pow * rp[i] * rs[i];
+      variance_term_num += sig_square * rp[i] * rw[i];
     }
 
     // P_N(t;h), bias and variance terms
@@ -74,10 +82,22 @@ arma::mat mean_risk_impl(const core::Curves& C, const arma::vec& t, const arma::
     double variance_term = 2 * variance_term_num / (PN * PN);
 
     // Dependence term: lag 0, then 2 gamma_l rho_l with rho_l = c_l / P_N
+    // c_l = #{n : pi_n pi_{n+l} = 1} = popcount(pi AND (pi shifted by l)),
+    // on 64-bit words (exact integers).
+    const int W = (n_curve + 63) / 64;
+    std::vector<std::uint64_t> bits(W + 1, 0);
+    for (int c : active) bits[c / 64] |= (std::uint64_t) 1 << (c % 64);
     std::vector<int> cnt(n_curve, 0);
-    const int na = active.size();
-    for (int a = 0; a < na; ++a)
-      for (int b = a + 1; b < na; ++b) ++cnt[active[b] - active[a]];
+    for (int ell = 1; ell < n_curve; ++ell) {
+      const int q = ell / 64, r = ell % 64;
+      int count = 0;
+      for (int w = 0; w + q < W; ++w) {
+        std::uint64_t shifted = bits[w + q] >> r;
+        if (r != 0) shifted |= bits[w + q + 1] << (64 - r);
+        count += __builtin_popcountll(bits[w] & shifted);
+      }
+      cnt[ell] = count;
+    }
     const int k0 = first[k];
     double dep_sum = ac(k0, 0);
     for (int ell = 1; ell < n_curve; ++ell) {
@@ -91,6 +111,7 @@ arma::mat mean_risk_impl(const core::Curves& C, const arma::vec& t, const arma::
     const arma::uword nr = mat_res_risk.n_rows, ri = idx_bw * n + k;
     const double vals[10] = {t(k), bw, PN, h(0), Ht, Lt, bias_term, variance_term, dependence_term, mean_risk};
     for (int col = 0; col < 10; ++col) row[ri + col * nr] = vals[col];
+  }
   }
   return mat_res_risk;
 }

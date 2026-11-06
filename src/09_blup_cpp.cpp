@@ -76,7 +76,7 @@ void mean_direct(const core::Curves& C, const arma::vec& pts, const arma::vec& b
 // selected by the risk at each pair.
 void cov_direct(const core::Curves& C, const arma::vec& s, const arma::vec& t, int lag,
                 bool correct_diagonal, const arma::vec& bwg, core::Kern kern, const LocregCfg& cfg,
-                arma::mat& block, arma::mat& bw_s, arma::mat& bw_t) {
+                arma::mat& block, arma::mat& bw_s, arma::mat& bw_t, const AutocovPoints* shared = nullptr) {
   const arma::uword ns = s.n_elem, nt = t.n_elem;
   arma::vec gs(ns * nt), gt(ns * nt);
   for (arma::uword j = 0; j < nt; ++j)
@@ -85,7 +85,7 @@ void cov_direct(const core::Curves& C, const arma::vec& s, const arma::vec& t, i
       gt(j * ns + i) = t(j);
     }
   arma::mat out = autocov_impl(C, gs, gt, lag, false, arma::vec(), arma::vec(), bwg,
-                               false, true, correct_diagonal, kern, cfg);
+                               false, true, correct_diagonal, kern, cfg, shared);
   std::map<std::pair<double, double>, arma::uword> row_of;
   for (arma::uword r = 0; r < out.n_rows; ++r) row_of.emplace(std::make_pair(out(r, 0), out(r, 1)), r);
   block.set_size(ns, nt); bw_s.set_size(ns, nt); bw_t.set_size(ns, nt);
@@ -177,11 +177,13 @@ Rcpp::List blup_operators_cpp(const Rcpp::DataFrame data, const arma::vec Td, co
       out(i) = mu_U(std::lower_bound(U.begin(), U.end(), x(i)) - U.begin());
     return out;
   };
+  // C0 and C1 share their point constants (computed once on Td and tpred)
+  AutocovPoints pts = autocov_points(C, U, bw_grid, true, kern, cfg);
   arma::mat c0, b0s, b0t;
-  cov_direct(C, Td, Td, 0, true, bw_grid, kern, cfg, c0, b0s, b0t);
+  cov_direct(C, Td, Td, 0, true, bw_grid, kern, cfg, c0, b0s, b0t, &pts);
   arma::vec sig2 = arma::square(sigma_impl(C, Td).col(1));
   arma::mat c1, b1s, b1t;
-  if (tpred.n_elem > 0) cov_direct(C, Td, tpred, 1, false, bw_grid, kern, cfg, c1, b1s, b1t);
+  if (tpred.n_elem > 0) cov_direct(C, Td, tpred, 1, false, bw_grid, kern, cfg, c1, b1s, b1t, &pts);
   return Rcpp::List::create(
     Rcpp::Named("muhat_d") = at(Td),
     Rcpp::Named("c0") = c0,
@@ -334,11 +336,12 @@ arma::mat blup_predict_cpp(const Rcpp::DataFrame data,
   if (horizon >= 2) {
     arma::vec rho = compute_rho(tpred, is_common, density_bw, kern);
     arma::mat rD = arma::diagmat(arma::sqrt(rho));
+    AutocovPoints pts = autocov_points(C, tpred, bw_grid, true, kern, cfg);
     arma::mat c0raw, b0s, b0t;
-    cov_direct(C, tpred, tpred, 0, true, bw_grid, kern, cfg, c0raw, b0s, b0t);
+    cov_direct(C, tpred, tpred, 0, true, bw_grid, kern, cfg, c0raw, b0s, b0t, &pts);
     arma::mat Vp = variance_matrix(psd_project(c0raw), noise_variance(C, tpred, homoscedastic), rho, tikhonov);
     arma::mat c1p, bps, bpt;
-    cov_direct(C, tpred, tpred, 1, false, bw_grid, kern, cfg, c1p, bps, bpt);
+    cov_direct(C, tpred, tpred, 1, false, bw_grid, kern, cfg, c1p, bps, bpt, &pts);
     arma::mat gain = c1p.t() * rD;
     for (int step = 2; step <= horizon; ++step) {
       arma::vec r = rD * (pred - muhat_t);

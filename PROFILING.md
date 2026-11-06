@@ -153,3 +153,47 @@ which must stay as they are to keep the same random draws.
   keeps that path quadratic in the number of observations.
 - The two-bandwidth branch of the autocovariance risk squares `pn_t` in its
   variance term (noted earlier).
+
+## Round 3: kernels that do less work (2026-11-06)
+
+Measured at N = 300, lambda = 100 (one Tikhonov fold: 1.8 s before this round),
+each idea validated on the A/B harness (all non-BLUP outputs within 1e-10 of
+main; the BLUP identical to the previous round).
+
+- **Nested supports.** pi_n(x; h) = 1{some |T - x| / h <= 1} only switches from
+  0 to 1 as h grows (IEEE division is monotone), so along the sorted bandwidths
+  each curve enters a support once. In the two-bandwidth risk, P_N, B_1, C_1
+  (s-side quantities over the t-active curves) and B_2 become cumulative sums
+  along the entry order: one pass over the curves per bandwidth instead of one
+  dot product per bandwidth couple. Only C_3 = sum max W_s max W_t stays a
+  (vectorised) dot product per couple: 5 dot products -> about 1. The nesting is
+  checked per point; a dense fallback remains.
+- **Dense vectorised dot products** (`omp simd`): inactive curves contribute exact
+  zeros (pi_n = 0 implies b_n = max W = 0), so the sums run contiguously over all
+  the curves instead of following bit sets.
+- **Precomputed D terms**: D(u; h) = num / P_N^3 once per (point, bandwidth);
+  P_N^3 of a count is an exact product; bandwidth powers once per pair.
+- **Shared powers**: |(T - x)/h|^{2H} = |T - x|^{2H} h^{-2H}, so each observation's
+  power is computed once for the 15 bandwidths (mean, covariance-segment and
+  (auto)covariance risks).
+- **Shared point constants** between C0 and C1 of the BLUP (local regularity,
+  noise, moments, D numerators, per-curve cubes on T_d U t_pred).
+- **Lag sums**: NaN-aware (values set to 0 plus a finiteness indicator, same
+  mean-of-finite-products semantics), four lags per pass (independent
+  accumulators, each lag summed in its own order).
+- **Popcount lag counts** in the mean risk: c_l = popcount(pi AND (pi >> l)).
+- Parallel D numerators and smoothing matrices.
+
+| Call | main | round 2 | round 3 |
+|---|---|---|---|
+| `blup_fit()` defaults, N = 150, lambda = 40 | 33.2 s | 4.8 s | 2.6 s |
+| `select_tikhonov_parameter()`, N = 150 | 10.6 s | 4.6 s | 2.3 s |
+| `blup_fit()`, N = 300, lambda = 100 | (not run) | 58 s | 25.6 s |
+| one Tikhonov fold, N = 300 | | 1.8 s | 0.8 s |
+| `estimate_mean()`, 80 t, N = 150 | 3.6 s | 0.03 s | 0.01 s |
+| `estimate_facf()`, N = 150 | 16.6 s | 0.28 s | 0.19 s |
+| `estimate_cov_segment()`, 80 t | 2.4 s | 0.06 s | 0.03 s |
+
+What remains in a fold at N = 300 is close to the work the estimator needs: the
+X(s)X(t) autocovariances (all the lags of every pair, O(N^2) per pair) and the
+C_3 products (B^2 N per pair).

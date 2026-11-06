@@ -31,29 +31,59 @@ arma::vec default_autocov_bw_grid(const core::Curves& C) {
 //   - The per-curve quantities pi_n, b_n(2H) and max W depend on (point, h, curve)
 //     only: they are computed once, from the kernel window of each curve, and laid
 //     out contiguously over the curves.
-//   - Every term of the risk carries pi_n(t) of the curve n + lag, so the sums
-//     over the curves only visit the curves where it is 1 (active lists).
+//   - Every sum over the curves is a dot product of an s-side and a t-side
+//     vector (see below), run contiguously over the curves (vectorised).
+//   - The point constants can be computed once for several risks on the same
+//     points (AutocovPoints, used by the BLUP for C0 and C1).
 // With `full`, the risk matrix of estimate_autocov_risk_cpp is filled; with
 // `best`, the first minimiser of the finite risks is kept per pair, in the row
 // order of that matrix, without materialising it.
+AutocovPoints autocov_points(const core::Curves& C, const arma::vec& pts, const arma::vec& bw_grid_to_use,
+                             const bool center, core::Kern kern, const LocregCfg& cfg) {
+  AutocovPoints P;
+  const int nc = C.N, B = bw_grid_to_use.size();
+  P.U = arma::unique(pts);
+  P.B = B;
+  P.center = center;
+  P.bw_grid = bw_grid_to_use;
+  const int nU = P.U.n_elem;
+  P.locU = locreg_impl(C, P.U, true, kern, cfg);
+  P.h0 = P.locU(0, 1);
+  arma::vec h(nc, fill::value(P.h0)); // the presmoothing bandwidth
+  P.sigU = sigma_impl(C, P.U);
+  P.momU = mom_impl(C, P.U, h, 2, center, kern);
+  dd_matrices(C, P.U, bw_grid_to_use, h, 3, kern, center, P.ddnum, P.ddPN);
+  const std::size_t cube = (std::size_t) nU * B * nc;
+  P.c_pn.resize(cube); P.c_sbn.resize(cube); P.c_max.resize(cube);
+  // Every bandwidth at once per (point, curve) (shared powers |T - x|^{2H})
+#pragma omp parallel for schedule(dynamic)
+  for (int uc = 0; uc < nU * nc; ++uc) {
+    const int u = uc / nc, c = uc % nc;
+    const double H = P.locU(u, 4), x = P.U(u);
+    const std::size_t off = (std::size_t) u * B * nc + c;
+    core::risk_stats_multi(C, c, x, bw_grid_to_use.memptr(), B, H, kern,
+                           &P.c_pn[off], &P.c_max[off], &P.c_sbn[off], nc);
+  }
+  return P;
+}
+
 arma::mat autocov_risk_impl(const core::Curves& C, const arma::vec& s, const arma::vec& t,
                             const int lag, const arma::vec& bw_grid_to_use, const bool common_bw,
                             const bool center, core::Kern kern, const LocregCfg& cfg,
-                            const bool full, AutocovBest* best) {
+                            const bool full, AutocovBest* best, const AutocovPoints* shared) {
   const int n = t.size();
   const int nc = C.N;
   const int B = bw_grid_to_use.size();
 
-  // ---- Point constants, once on the distinct points of s and t
-  arma::vec U = arma::unique(arma::join_cols(s, t));
-  const int nU = U.n_elem;
-  arma::mat locU = locreg_impl(C, U, true, kern, cfg);
-  const double h0 = locU(0, 1);
+  // ---- Point constants, once on the distinct points of s and t (or shared)
+  AutocovPoints own;
+  if (!shared) own = autocov_points(C, arma::join_cols(s, t), bw_grid_to_use, center, kern, cfg);
+  const AutocovPoints& PC = shared ? *shared : own;
+  const arma::vec& U = PC.U;
+  const arma::mat &locU = PC.locU, &sigU = PC.sigU, &momU = PC.momU, &ddnum = PC.ddnum, &ddPN = PC.ddPN;
+  const double h0 = PC.h0;
   arma::vec h(nc, fill::value(h0)); // the presmoothing bandwidth
-  arma::mat sigU = sigma_impl(C, U);
-  arma::mat momU = mom_impl(C, U, h, 2, center, kern);
-  arma::mat ddnum, ddPN;
-  dd_matrices(C, U, bw_grid_to_use, h, 3, kern, center, ddnum, ddPN);
+  const std::vector<double> &c_pn = PC.c_pn, &c_sbn = PC.c_sbn, &c_max = PC.c_max;
   arma::vec XsXtvar_k, sumabslr_k;
   xsxt_dependence(C, s, t, lag, arma::regspace(0, nc - lag - 1), h, kern, center, XsXtvar_k, sumabslr_k);
 
@@ -61,40 +91,65 @@ arma::mat autocov_risk_impl(const core::Curves& C, const arma::vec& s, const arm
   std::vector<int> ks(n), kt(n);
   for (int k = 0; k < n; ++k) { ks[k] = posU(s(k)); kt[k] = posU(t(k)); }
 
-  // ---- Per-curve quantities on (point, bandwidth, curve), curves contiguous
-  const std::size_t cube = (std::size_t) nU * B * nc;
-  std::vector<double> c_pn(cube), c_sbn(cube), c_max(cube);
-#pragma omp parallel for schedule(dynamic)
-  for (int ub = 0; ub < nU * B; ++ub) {
-    const int u = ub / B, b = ub % B;
-    const double H = locU(u, 4), x = U(u), bw = bw_grid_to_use(b);
-    const std::size_t off = ((std::size_t) u * B + b) * nc;
-    for (int c = 0; c < nc; ++c) {
-      core::RiskStats r = core::risk_stats(C, c, x, bw, H, kern);
-      c_pn[off + c] = r.pn; c_sbn[off + c] = r.sbn; c_max[off + c] = r.wmax;
-    }
-  }
-  // Active curves as bit sets over n = 0..N - lag - 1: s side pi_n(s) = 1
-  // (curve n), t side pi_{n+lag}(t) = 1 (curve n + lag). A pair only visits the
-  // curves active on both sides: the terms vanish elsewhere (pi_n = 0 implies
-  // b_n = max W = 0), except sum max W_{n+lag}(t) of the two-bandwidth variance
-  // term, which does not depend on s and is computed once per (point, h).
-  const int nn = nc - lag;
-  const int W = (nn + 63) / 64;
-  std::vector<std::uint64_t> bits_s((std::size_t) nU * B * W, 0), bits_t((std::size_t) nU * B * W, 0);
+  const int nU = U.n_elem;
+  // Every sum of the risk over the curves is a dot product between an s-side
+  // vector (pi_n(s), b_n(s), max W_n(s), curve n) and a t-side vector (same
+  // quantities for the curve n + lag): pi_n = 0 implies b_n = max W_n = 0, so
+  // the inactive curves contribute exact zeros and the products can run over
+  // every curve, contiguously (vectorised). The only exception, sum of
+  // max W_{n+lag}(t) of the two-bandwidth variance term, does not depend on s
+  // and is computed once per (point, bandwidth).
+  const int nn = std::max(nc - lag, 0);
   std::vector<double> tmax_sum(nU * B, 0.0);
   for (int ub = 0; ub < nU * B; ++ub) {
     const std::size_t off = (std::size_t) ub * nc;
-    std::uint64_t* bs_ = &bits_s[(std::size_t) ub * W];
-    std::uint64_t* bt_ = &bits_t[(std::size_t) ub * W];
+    for (int i = 0; i < nn; ++i) if (c_pn[off + i + lag] != 0) tmax_sum[ub] += c_max[off + i + lag];
+  }
+
+  // Nested supports. pi_n(x; h) = 1{some |T_n - x| / h <= 1} can only switch
+  // from 0 to 1 as h grows (IEEE division is monotone), so along the bandwidths
+  // sorted increasingly each curve enters the support once and stays. Sums of
+  // s-side quantities over the curves active on the t side (P_N, B_1, C_1),
+  // and of t-side quantities over the curves active on the s side (B_2), are
+  // then cumulative sums along the entry order: one pass over the curves gives
+  // every bandwidth, instead of one dot product per bandwidth. The nesting is
+  // checked; a point where it fails uses the dense products.
+  std::vector<int> ord(B);
+  for (int b = 0; b < B; ++b) ord[b] = b;
+  std::stable_sort(ord.begin(), ord.end(), [&](int a, int b) { return bw_grid_to_use(a) < bw_grid_to_use(b); });
+  // Curves grouped by entry rank, per point and side: entry_*[u] lists the
+  // curves (index n of the s-side curve n, t-side curve n + lag) by increasing
+  // rank, start_*[u][p] .. start_*[u][p + 1] those entering at rank p.
+  std::vector<std::vector<int>> entry_s(nU), entry_t(nU), start_s(nU), start_t(nU);
+  std::vector<char> nested_s(nU, 1), nested_t(nU, 1);
+  auto build_entry = [&](int u, int shift, std::vector<int>& entry, std::vector<int>& start, char& nested) {
+    std::vector<int> rank(nn, B);
     for (int i = 0; i < nn; ++i) {
-      if (c_pn[off + i] != 0) bs_[i / 64] |= (std::uint64_t) 1 << (i % 64);
-      if (c_pn[off + i + lag] != 0) {
-        bt_[i / 64] |= (std::uint64_t) 1 << (i % 64);
-        tmax_sum[ub] += c_max[off + i + lag];
+      for (int pr = 0; pr < B; ++pr) {
+        const double pn = c_pn[((std::size_t) u * B + ord[pr]) * nc + i + shift];
+        if (rank[i] == B) { if (pn != 0) rank[i] = pr; }
+        else if (pn == 0) nested = 0;
       }
     }
+    start.assign(B + 1, 0);
+    for (int i = 0; i < nn; ++i) if (rank[i] < B) ++start[rank[i] + 1];
+    for (int pr = 0; pr < B; ++pr) start[pr + 1] += start[pr];
+    entry.assign(start[B], 0);
+    std::vector<int> pos(start.begin(), start.end() - 1);
+    for (int i = 0; i < nn; ++i) if (rank[i] < B) entry[pos[rank[i]]++] = i;
+  };
+  if (!common_bw) {
+#pragma omp parallel for schedule(dynamic)
+    for (int u = 0; u < nU; ++u) {
+      build_entry(u, 0, entry_s[u], start_s[u], nested_s[u]);
+      build_entry(u, lag, entry_t[u], start_t[u], nested_t[u]);
+    }
   }
+
+  // D(u; h) = num_D / P_N^3 once per (point, bandwidth)
+  arma::mat DU(nU, B);
+  for (int u = 0; u < nU; ++u)
+    for (int b = 0; b < B; ++b) DU(u, b) = ddnum(u, b) / std::pow(ddPN(u, b), 3);
 
   // ---- Risk
   const int n_rows_res = common_bw ? B * n : B * B * n;
@@ -123,11 +178,12 @@ arma::mat autocov_risk_impl(const core::Curves& C, const arma::vec& s, const arm
       double bias_term = 4 * bias_term_num / PN_lag;
       double variance_term = 4 * variance_term_num / (PN_lag * PN_lag);
       double num_Ds = ddnum(us, idx_bw_s), num_Dt = ddnum(ut, idx_bw_t);
-      double PNs = ddPN(us, idx_bw_s), PNt = ddPN(ut, idx_bw_t);
-      double Ds = num_Ds / std::pow(PNs, 3);
-      double Dt = num_Dt / std::pow(PNt, 3);
-      double Ds_t = num_Ds / std::pow(PN_lag, 3);
-      double Dt_s = num_Dt / std::pow(PN_lag, 3);
+      double Ds = DU(us, idx_bw_s);
+      double Dt = DU(ut, idx_bw_t);
+      // P_N is a count: its cube is exact (= std::pow(P_N, 3))
+      const double PN3 = PN_lag * PN_lag * PN_lag;
+      double Ds_t = num_Ds / PN3;
+      double Dt_s = num_Dt / PN3;
       double first_dependence_term = 15 * (sqrt(Ds_t * Dt) + sqrt(Dt_s * Ds) + 3 * sqrt(Ds * Dt)) / PN_lag;
       double second_dependence_term = (XsXtvar + sumabslr / PN_lag) / PN_lag;
       double dependence_term = first_dependence_term + second_dependence_term;
@@ -150,19 +206,71 @@ arma::mat autocov_risk_impl(const core::Curves& C, const arma::vec& s, const arm
         const double bw = bw_grid_to_use(b);
         const double bw_s_pow = std::pow(bw, 2 * Hs), bw_t_pow = std::pow(bw, 2 * Ht);
         const std::size_t os = ((std::size_t) us * B + b) * nc, ot = ((std::size_t) ut * B + b) * nc;
-        double PN_lag = 0, bias_term_num = 0, variance_term_num = 0;
-        const std::uint64_t* ms = &bits_s[((std::size_t) us * B + b) * W];
-        const std::uint64_t* mt = &bits_t[((std::size_t) ut * B + b) * W];
-        for (int w = 0; w < W; ++w) for (std::uint64_t x = ms[w] & mt[w]; x; x &= x - 1) {
-          const int i = w * 64 + __builtin_ctzll(x), c = i + lag;
-          PN_lag += 1;
-          bias_term_num += mom_t_square * Ls * bw_s_pow * c_sbn[os + i] +
-            mom_s_square * Lt * bw_t_pow * c_sbn[ot + c];
-          variance_term_num += sig_s_square * mom_t_square * c_max[os + i] +
-            sig_t_square * mom_s_square * c_max[ot + c] +
-            sig_s_square * sig_t_square * c_max[os + i] * c_max[ot + c];
+        const double *sp = &c_pn[os], *ss = &c_sbn[os], *sm = &c_max[os];
+        const double *tp = &c_pn[ot + lag], *tsb = &c_sbn[ot + lag], *tm = &c_max[ot + lag];
+        double PN_lag = 0, B1 = 0, B2 = 0, V1 = 0, V2 = 0, V3 = 0;
+#pragma omp simd reduction(+:PN_lag,B1,B2,V1,V2,V3)
+        for (int i = 0; i < nn; ++i) {
+          PN_lag += sp[i] * tp[i];
+          B1 += tp[i] * ss[i];
+          B2 += sp[i] * tsb[i];
+          V1 += tp[i] * sm[i];
+          V2 += sp[i] * tm[i];
+          V3 += sm[i] * tm[i];
         }
+        double bias_term_num = mom_t_square * Ls * bw_s_pow * B1 + mom_s_square * Lt * bw_t_pow * B2;
+        double variance_term_num = sig_s_square * mom_t_square * V1 + sig_t_square * mom_s_square * V2 +
+          sig_s_square * sig_t_square * V3;
         finish(bw, bw, b, b, PN_lag, bias_term_num, variance_term_num, (arma::uword) b * n + k);
+      }
+    } else if (nested_s[us] && nested_t[ut]) {
+      // P_N, B_1, C_1 by cumulative sums along the t-side entry order, B_2 along
+      // the s-side entry order; C_3 as a dense product.
+      std::vector<double> PNm(B * B), B1m(B * B), C1m(B * B), B2m(B * B);
+      for (int bs = 0; bs < B; ++bs) {
+        const std::size_t os = ((std::size_t) us * B + bs) * nc;
+        const double *sp = &c_pn[os], *ss = &c_sbn[os], *sm = &c_max[os];
+        double a_pn = 0, a_b1 = 0, a_c1 = 0;
+        for (int pr = 0; pr < B; ++pr) {
+          for (int q = start_t[ut][pr]; q < start_t[ut][pr + 1]; ++q) {
+            const int i = entry_t[ut][q];
+            a_pn += sp[i]; a_b1 += ss[i]; a_c1 += sm[i];
+          }
+          const int bt = ord[pr];
+          PNm[bs * B + bt] = a_pn; B1m[bs * B + bt] = a_b1; C1m[bs * B + bt] = a_c1;
+        }
+      }
+      for (int bt = 0; bt < B; ++bt) {
+        const double* tsb = &c_sbn[((std::size_t) ut * B + bt) * nc + lag];
+        double a_b2 = 0;
+        for (int pr = 0; pr < B; ++pr) {
+          for (int q = start_s[us][pr]; q < start_s[us][pr + 1]; ++q) a_b2 += tsb[entry_s[us][q]];
+          B2m[ord[pr] * B + bt] = a_b2;
+        }
+      }
+      std::vector<double> pow_t(B);
+      for (int bt = 0; bt < B; ++bt) pow_t[bt] = std::pow(bw_grid_to_use(bt), 2 * Ht);
+      for (int bs = 0; bs < B; ++bs) {
+        const double bw_s = bw_grid_to_use(bs);
+        const double bw_s_pow = std::pow(bw_s, 2 * Hs);
+        const double* sm = &c_max[((std::size_t) us * B + bs) * nc];
+        for (int bt = 0; bt < B; ++bt) {
+          const double bw_t = bw_grid_to_use(bt);
+          const double bw_t_pow = pow_t[bt];
+          const double* tm = &c_max[((std::size_t) ut * B + bt) * nc + lag];
+          // NB: this branch historically squares pn_t (not pn_s * pn_t) in the
+          // variance term; preserved: C2 runs over every curve with pn_t = 1.
+          const double C2 = tmax_sum[ut * B + bt];
+          double C3 = 0;
+#pragma omp simd reduction(+:C3)
+          for (int i = 0; i < nn; ++i) C3 += sm[i] * tm[i];
+          const int ix = bs * B + bt;
+          double bias_term_num = mom_t_square * Ls * bw_s_pow * B1m[ix] + mom_s_square * Lt * bw_t_pow * B2m[ix];
+          double variance_term_num = sig_s_square * mom_t_square * C1m[ix] + sig_t_square * mom_s_square * C2 +
+            sig_s_square * sig_t_square * C3;
+          finish(bw_s, bw_t, bs, bt, PNm[ix], bias_term_num, variance_term_num,
+                 (arma::uword) bs * B * n + (arma::uword) bt * n + k);
+        }
       }
     } else {
       for (int bs = 0; bs < B; ++bs) {
@@ -175,17 +283,17 @@ arma::mat autocov_risk_impl(const core::Curves& C, const arma::vec& s, const arm
           const std::size_t ot = ((std::size_t) ut * B + bt) * nc;
           // NB: this branch historically squares pn_t (not pn_s * pn_t) in the
           // variance term; preserved: C2 runs over every curve with pn_t = 1.
-          double PN_lag = 0, B1 = 0, B2 = 0, C1 = 0, C3 = 0;
           const double C2 = tmax_sum[ut * B + bt];
-          const std::uint64_t* ms = &bits_s[((std::size_t) us * B + bs) * W];
-          const std::uint64_t* mt = &bits_t[((std::size_t) ut * B + bt) * W];
-          for (int w = 0; w < W; ++w) for (std::uint64_t x = ms[w] & mt[w]; x; x &= x - 1) {
-            const int i = w * 64 + __builtin_ctzll(x), c = i + lag;
-            PN_lag += 1;
-            B1 += c_sbn[os + i];
-            B2 += c_sbn[ot + c];
-            C1 += c_max[os + i];
-            C3 += c_max[os + i] * c_max[ot + c];
+          const double *sp = &c_pn[os], *ss = &c_sbn[os], *sm = &c_max[os];
+          const double *tp = &c_pn[ot + lag], *tsb = &c_sbn[ot + lag], *tm = &c_max[ot + lag];
+          double PN_lag = 0, B1 = 0, B2 = 0, C1 = 0, C3 = 0;
+#pragma omp simd reduction(+:PN_lag,B1,B2,C1,C3)
+          for (int i = 0; i < nn; ++i) {
+            PN_lag += sp[i] * tp[i];
+            B1 += tp[i] * ss[i];
+            B2 += sp[i] * tsb[i];
+            C1 += tp[i] * sm[i];
+            C3 += sm[i] * tm[i];
           }
           double bias_term_num = mom_t_square * Ls * bw_s_pow * B1 + mom_s_square * Lt * bw_t_pow * B2;
           double variance_term_num = sig_s_square * mom_t_square * C1 + sig_t_square * mom_s_square * C2 +
@@ -313,7 +421,7 @@ arma::mat autocov_risk_impl(const core::Curves& C, const arma::vec& s, const arm
    core::Curves C = core::make_curves(data);
    arma::vec bw_grid_to_use = bw_grid.isNull() ? default_autocov_bw_grid(C) : Rcpp::as<arma::vec>(bw_grid);
    LocregCfg cfg = resolve_locreg(C, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset, kern);
-   return autocov_risk_impl(C, s, t, lag, bw_grid_to_use, common_bw, center, kern, cfg, true, nullptr);
+   return autocov_risk_impl(C, s, t, lag, bw_grid_to_use, common_bw, center, kern, cfg, true, nullptr, nullptr);
  }
 
  //' Get Unique Pairs of Elements in Upper Triangular Form
@@ -424,7 +532,8 @@ arma::mat autocov_risk_impl(const core::Curves& C, const arma::vec& s, const arm
 arma::mat autocov_impl(const core::Curves& C, const arma::vec& s, const arma::vec& t, const int lag,
                        const bool has_bw, const arma::vec& bw_s_in, const arma::vec& bw_t_in,
                        const arma::vec& bw_grid, const bool common_bw, const bool center,
-                       const bool correct_diagonal, core::Kern kern, const LocregCfg& cfg) {
+                       const bool correct_diagonal, core::Kern kern, const LocregCfg& cfg,
+                       const AutocovPoints* shared) {
   const int n_curve = C.N;
 
   // Vector to be used in the estimation procedure
@@ -444,7 +553,7 @@ arma::mat autocov_impl(const core::Curves& C, const arma::vec& s, const arma::ve
 
   if (!has_bw) {
     AutocovBest best;
-    autocov_risk_impl(C, svec, tvec, lag, bw_grid, common_bw, center, kern, cfg, false, &best);
+    autocov_risk_impl(C, svec, tvec, lag, bw_grid, common_bw, center, kern, cfg, false, &best, shared);
     optbw_s_to_use = best.bw_s;
     optbw_t_to_use = best.bw_t;
     mat_locreg.col(0) = svec;
@@ -743,8 +852,8 @@ arma::mat autocov_impl(const core::Curves& C, const arma::vec& s, const arma::ve
      arma::vec bw_grid_to_use = bw_grid.isNull() ? default_autocov_bw_grid(C) : Rcpp::as<arma::vec>(bw_grid);
      LocregCfg cfg = resolve_locreg(C, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset, kern);
      return autocov_impl(C, s, t, lag, false, arma::vec(), arma::vec(), bw_grid_to_use, common_bw,
-                         center, correct_diagonal, kern, cfg);
+                         center, correct_diagonal, kern, cfg, nullptr);
    }
    return autocov_impl(C, s, t, lag, true, Rcpp::as<arma::vec>(bw_s), Rcpp::as<arma::vec>(bw_t),
-                       arma::vec(), common_bw, center, correct_diagonal, kern, LocregCfg());
+                       arma::vec(), common_bw, center, correct_diagonal, kern, LocregCfg(), nullptr);
  }

@@ -102,7 +102,10 @@
   about 90x, `estimate_cov_segment()` about 40x, `estimate_facf()` about 60x.
 * The design-density cross-validation (`get_density_optimal_bw()`,
   `estimate_density()`) runs in C++ (about 100x faster), and `blup_fit()` with
-  its default Tikhonov cross-validation goes from 33 s to under 5 s at that size.
+  its default Tikhonov cross-validation goes from 33 s to under 3 s at that size.
+  The two-bandwidth risk exploits the nesting of the kernel supports along the
+  bandwidth grid (cumulative sums instead of one dot product per bandwidth
+  couple).
 * The Rubin-Panaretos estimators no longer build the cartesian product of all
   the observation pairs: the double sums factorise into products of
   one-dimensional kernel sums. `estimate_autocov_rp()` is several hundred times

@@ -31,6 +31,16 @@ double mean_finite_flag(const double* x, arma::uword n, bool& empty) {
   return sum / k;
 }
 
+// Every finite entry of x is within 1e150 of c (so the products of centred
+// entries cannot overflow); the non-finite entries are NaN, not infinite.
+bool bounded_or_nan(const double* x, arma::uword n, double c) {
+  for (arma::uword i = 0; i < n; ++i) {
+    if (std::isfinite(x[i])) { if (!(std::abs(x[i] - c) < 1e150)) return false; }
+    else if (!std::isnan(x[i])) return false;
+  }
+  return true;
+}
+
 // Mean over the finite entries, 0 when there is none (the NaN -> 0 convention
 // of the empirical autocovariances).
 double mean_finite_or_zero(const double* x, arma::uword n) {
@@ -50,10 +60,57 @@ arma::vec stack_by_curve(const arma::mat& X, const std::vector<arma::uword>& g) 
   return x;
 }
 
+// Lag sums, four lags per pass over the data (one load of z[k] for four
+// independent accumulators); each lag keeps its own sequential order in k.
+//   out[l] = sum_{k < m - L_l} z[k] z[k + L_l]           (cnt == nullptr)
+//   and cnt[l] = sum_{k < m - L_l} f[k] f[k + L_l]       (indicators f)
+template <bool WITH_CNT>
+void lag_sums_t(const double* z, const double* f, arma::uword m, const arma::vec& lag,
+                double* out, double* cnt) {
+  const arma::uword nlag = lag.n_elem;
+  arma::uword l = 0;
+  for (; l + 4 <= nlag; l += 4) {
+    const arma::uword L0 = lag(l), L1 = lag(l + 1), L2 = lag(l + 2), L3 = lag(l + 3);
+    const arma::uword Lmax = std::max(std::max(L0, L1), std::max(L2, L3));
+    const arma::uword common = m - Lmax;
+    double s0 = 0, s1 = 0, s2 = 0, s3 = 0, c0 = 0, c1 = 0, c2 = 0, c3 = 0;
+    for (arma::uword k = 0; k < common; ++k) {
+      const double zk = z[k];
+      s0 += zk * z[k + L0]; s1 += zk * z[k + L1]; s2 += zk * z[k + L2]; s3 += zk * z[k + L3];
+      if (WITH_CNT) { const double fk = f[k]; c0 += fk * f[k + L0]; c1 += fk * f[k + L1]; c2 += fk * f[k + L2]; c3 += fk * f[k + L3]; }
+    }
+    double* sv[4] = {&s0, &s1, &s2, &s3};
+    double* cv[4] = {&c0, &c1, &c2, &c3};
+    const arma::uword Ls[4] = {L0, L1, L2, L3};
+    for (int j = 0; j < 4; ++j) {
+      for (arma::uword k = common; k < m - Ls[j]; ++k) {
+        *sv[j] += z[k] * z[k + Ls[j]];
+        if (WITH_CNT) *cv[j] += f[k] * f[k + Ls[j]];
+      }
+      out[l + j] = *sv[j];
+      if (WITH_CNT) cnt[l + j] = *cv[j];
+    }
+  }
+  for (; l < nlag; ++l) {
+    const arma::uword L = lag(l);
+    double sum = 0, c = 0;
+    for (arma::uword k = 0; k < m - L; ++k) { sum += z[k] * z[k + L]; if (WITH_CNT) c += f[k] * f[k + L]; }
+    out[l] = sum;
+    if (WITH_CNT) cnt[l] = c;
+  }
+}
+
+void lag_sums(const double* z, const double* f, arma::uword m, const arma::vec& lag,
+              double* out, double* cnt) {
+  if (f) lag_sums_t<true>(z, f, m, lag, out, cnt);
+  else lag_sums_t<false>(z, f, m, lag, out, cnt);
+}
+
 } // anonymous namespace
 
 arma::mat smooth_matrix(const core::Curves& C, const arma::vec& t, const arma::vec& h, core::Kern kern) {
   arma::mat X(C.N, t.n_elem);
+#pragma omp parallel for schedule(static)
   for (int c = 0; c < C.N; ++c) {
     double hc = h(C.ids(c) - 1);
     for (arma::uword j = 0; j < t.n_elem; ++j) X(c, j) = core::nw_at(C, c, t(j), hc, kern);
@@ -168,9 +225,21 @@ arma::mat emp_autocov_matrix(const core::Curves& C, const arma::vec& t, const ar
     arma::vec x = stack_by_curve(X, groups[idx_t]);
     const arma::uword N = x.n_elem;
     double muhat = mean_finite(x.memptr(), N);
+    bool all_finite = std::isfinite(muhat);
+    for (arma::uword k = 0; k < N && all_finite; ++k)
+      all_finite = std::isfinite(x(k)) && std::abs(x(k) - muhat) < 1e150;
+    for (int l = 0; l < nlag; ++l)
+      if ((arma::uword) lag(l) > N - 1) Rcpp::stop("'lag' must be lower than the number of curves.");
+    if (all_finite) {
+      // Every product finite: plain (vectorised) means
+      std::vector<double> z(N), sums(nlag);
+      for (arma::uword k = 0; k < N; ++k) z[k] = x(k) - muhat;
+      lag_sums(z.data(), nullptr, N, lag, sums.data(), nullptr);
+      for (int l = 0; l < nlag; ++l) ac(idx_t, l) = sums[l] / (N - (arma::uword) lag(l));
+      continue;
+    }
     for (int l = 0; l < nlag; ++l) {
       const arma::uword L = lag(l);
-      if (L > N - 1) Rcpp::stop("'lag' must be lower than the number of curves.");
       const arma::uword m = N - L;
       prod.resize(m);
       for (arma::uword k = 0; k < m; ++k) prod[k] = (x(k) - muhat) * (x(k + L) - muhat);
@@ -247,11 +316,37 @@ void xsxt_matrices(const core::Curves& C, const arma::vec& s, const arma::vec& t
     double g0 = mean_finite_flag(P.data(), m, empty_j);
     gamma(j) = std::isfinite(g0) ? g0 : 0.0;
 
-    for (int l = 0; l < nlag; ++l) {
-      const arma::uword L = lag(l);
-      for (arma::uword k = 0; k < m - L; ++k) v[k] = (P[k] - g0) * (P[k + L] - g0);
-      double val = mean_finite_or_zero(v.data(), m - L);
-      acov(j, l) = std::isfinite(val) ? val : 0.0;
+    // Fast path when every product is finite (and far from overflow): the
+    // lag products (P_k - g)(P_{k+L} - g) are all finite, so the mean of the
+    // finite ones is their plain mean, vectorised.
+    bool all_finite = std::isfinite(g0);
+    for (arma::uword k = 0; k < m && all_finite; ++k)
+      all_finite = std::isfinite(P[k]) && std::abs(P[k] - g0) < 1e150;
+    if (all_finite) {
+      for (arma::uword k = 0; k < m; ++k) v[k] = P[k] - g0;
+      std::vector<double> sums(nlag);
+      lag_sums(v.data(), nullptr, m, lag, sums.data(), nullptr);
+      for (int l = 0; l < nlag; ++l) acov(j, l) = sums[l] / (m - (arma::uword) lag(l));
+    } else if (std::isfinite(g0) && bounded_or_nan(P.data(), m, g0)) {
+      // Some products are NaN (empty smoothing windows): the mean of the finite
+      // lag products is sum(z_k z_{k+L}) / sum(f_k f_{k+L}) with z = P - g set to
+      // 0 and f = 0 where P is not finite (two vectorised dot products).
+      std::vector<double> f(m);
+      for (arma::uword k = 0; k < m; ++k) {
+        const bool ok = std::isfinite(P[k]);
+        v[k] = ok ? P[k] - g0 : 0.0;
+        f[k] = ok ? 1.0 : 0.0;
+      }
+      std::vector<double> sums(nlag), cnts(nlag);
+      lag_sums(v.data(), f.data(), m, lag, sums.data(), cnts.data());
+      for (int l = 0; l < nlag; ++l) acov(j, l) = (cnts[l] == 0) ? 0.0 : sums[l] / cnts[l];
+    } else {
+      for (int l = 0; l < nlag; ++l) {
+        const arma::uword L = lag(l);
+        for (arma::uword k = 0; k < m - L; ++k) v[k] = (P[k] - g0) * (P[k + L] - g0);
+        double val = mean_finite_or_zero(v.data(), m - L);
+        acov(j, l) = std::isfinite(val) ? val : 0.0;
+      }
     }
     if (empty_j) {
 #pragma omp critical
@@ -379,6 +474,7 @@ void dd_matrices(const core::Curves& C, const arma::vec& t, const arma::vec& bw_
   std::vector<std::vector<arma::uword>> groups = core::same_value_groups(t);
   num.set_size(n, n_bw);
   PN.set_size(n, n_bw);
+#pragma omp parallel for schedule(dynamic)
   for (int j = 0; j < n; ++j) {
     const std::vector<arma::uword>& g = groups[j];
     arma::vec Xhat_t = stack_by_curve(X, g);

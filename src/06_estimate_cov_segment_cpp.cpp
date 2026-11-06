@@ -44,21 +44,26 @@ arma::mat cov_segment_risk_impl(const core::Curves& C, const arma::vec& t, const
   }
 
   arma::mat mat_res_risk(bw_size * n, 10);
-  const int n_tasks = bw_size * n;
 #pragma omp parallel for schedule(dynamic)
-  for (int task = 0; task < n_tasks; ++task) {
-    const int idx_bw = task / n, k = task % n;
+  for (int k = 0; k < n; ++k) {
+  const double Ht = Ht_k(k), Lt = Lt_k(k), sig_square = sig2_k(k);
+  const double mom_t_square = mat_mom_t(pos[k], 2);
+  std::vector<double> q_pn((std::size_t) bw_size * n_curve), q_wm((std::size_t) bw_size * n_curve),
+    q_sb((std::size_t) bw_size * n_curve);
+  for (int i = 0; i < n_curve; ++i)
+    core::risk_stats_multi(C, i, t(k), bw_grid_to_use.memptr(), bw_size, Ht, kern,
+                           &q_pn[i], &q_wm[i], &q_sb[i], n_curve);
+  for (int idx_bw = 0; idx_bw < bw_size; ++idx_bw) {
     const double bw = bw_grid_to_use(idx_bw);
-    const double Ht = Ht_k(k), Lt = Lt_k(k), sig_square = sig2_k(k);
-    const double mom_t_square = mat_mom_t(pos[k], 2);
     const double bw_pow = std::pow(bw, 2 * Ht);
+    const double *rp = &q_pn[(std::size_t) idx_bw * n_curve], *rw = &q_wm[(std::size_t) idx_bw * n_curve],
+      *rs = &q_sb[(std::size_t) idx_bw * n_curve];
 
     double PN = 0, bias_term_num = 0, variance_term_num = 0;
     for (int i = 0; i < n_curve; ++i) {
-      core::RiskStats r = core::risk_stats(C, i, t(k), bw, Ht, kern);
-      PN += r.pn;
-      bias_term_num += Lt * bw_pow * r.pn * r.sbn;
-      variance_term_num += sig_square * r.pn * r.wmax;
+      PN += rp[i];
+      bias_term_num += Lt * bw_pow * rp[i] * rs[i];
+      variance_term_num += sig_square * rp[i] * rw[i];
     }
 
     // Bias and variance terms
@@ -80,6 +85,7 @@ arma::mat cov_segment_risk_impl(const core::Curves& C, const arma::vec& t, const
     const arma::uword nr = mat_res_risk.n_rows, ri = idx_bw * n + k;
     const double vals[10] = {t(k), bw, PN, h(0), Ht, Lt, bias_term, variance_term, dependence_term, cov_segment_risk};
     for (int col = 0; col < 10; ++col) M[ri + col * nr] = vals[col];
+  }
   }
   return mat_res_risk;
 }
