@@ -12,8 +12,11 @@
 #' instance with `parallel::parLapply()` or the `future` package), each process
 #' starts as many threads as there are processors, so the machine is
 #' oversubscribed. Call `set_threads(1)` in every worker (or set the environment
-#' variable `ADAPTIVEFTS_NUM_THREADS=1` before the workers start) and run one
-#' worker per processor: the replications then run side by side at full speed.
+#' variable `ADAPTIVEFTS_NUM_THREADS=1` before the workers start) to keep one
+#' thread per worker. How much this gains over running the replications one
+#' after the other with all the threads depends on the problem size and the
+#' machine: the estimators are already parallel inside, so for large problems
+#' the gain is small; it is largest for many small replications.
 #'
 #' The environment variable `ADAPTIVEFTS_NUM_THREADS`, when set to a positive
 #' integer, is applied when the package is loaded. OpenMP's own limits (such as

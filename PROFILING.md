@@ -215,6 +215,12 @@ C_3 products (B^2 N per pair).
   all the lags at once). Pairs with very many NaN, duplicated pairs, sparse pair
   sets and other lag sets keep the direct computation.
 
+Monte Carlo check (8 replications of `blup_fit()` + `predict()`, N = 150, 8
+logical processors): sequential with all the threads 18.7 s; 8 workers with all
+the threads 15.5 s; 8 workers with `set_threads(1)` 15.3 s (identical results).
+The estimators already use the cores well, so the gain of process-level
+parallelism is small here (1.2x); it matters more for many small problems.
+
 One Tikhonov fold at N = 300, lambda = 100 with the CV-selected presmoothing
 bandwidth: 0.87 s -> 0.7 s; `select_tikhonov_parameter()` there: 25.9 s -> 23.2 s.
 At N = 150: one fold 0.10 s -> 0.08 s.
