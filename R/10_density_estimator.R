@@ -1,28 +1,3 @@
-#' Select the kernel function used by the density estimator
-#'
-#' Maps a kernel name to the corresponding (vectorised) kernel evaluated by the
-#' package's compiled kernels. Only the kernels shared with the rest of the
-#' package are supported.
-#'
-#' @param kernel_name A string giving the kernel name.
-#'
-#' @return A function taking a numeric vector `u` and returning the kernel
-#'   values `K(u)`.
-#' @keywords internal
-.select_density_kernel <- function(kernel_name) {
-  return(switch(
-    kernel_name,
-    epanechnikov = epanechnikov_kernel,
-    biweight     = biweight_kernel,
-    triweight    = triweight_kernel,
-    tricube      = tricube_kernel,
-    triangular   = triangular_kernel,
-    uniform      = uniform_kernel,
-    stop("Unsupported kernel name. Choose from: epanechnikov, biweight, ",
-         "triweight, tricube, triangular, uniform.")
-  ))
-}
-
 #' Trapezoidal integration
 #'
 #' Base-R trapezoidal rule, used to avoid a dependency on `pracma::trapz`.
@@ -41,31 +16,28 @@
 #'
 #' @param x Observation times of a single curve.
 #' @param hval Bandwidth.
-#' @param kern Kernel function.
+#' @param kernel_name Kernel name.
 #' @return The vector \eqn{\widehat g_{h}^{(-i)}(x_i)}, in the order of `x`.
 #' @keywords internal
-.density_loo_estimate <- function(x, hval, kern) {
-  n <- length(x)
-  return(vapply(seq_len(n), function(i) {
-    sum(kern((x[i] - x[-i]) / hval)) / ((n - 1) * hval)
-  }, numeric(1)))
+.density_loo_estimate <- function(x, hval, kernel_name) {
+  return(as.vector(density_loo_cpp(x = x, h = hval, kernel_name = kernel_name)))
 }
 
 #' Least-squares cross-validation score of the design-density bandwidth
 #'
 #' @param hval Bandwidth.
 #' @param x Observation times of a single curve.
-#' @param kern Kernel function.
+#' @param kernel_name Kernel name.
 #' @param lower,upper Bounds of the domain.
-#' @return The LSCV score at `hval`.
+#' @return The LSCV score at each value of `hval` (vectorised over `hval`): the
+#'   trapezoidal integral of the squared estimate over a 500-point grid minus
+#'   twice the mean leave-one-out estimate, computed in C++ on the kernel
+#'   windows of the sorted points.
 #' @keywords internal
-.density_cv_score <- function(hval, x, kern, lower, upper) {
-  n <- length(x)
+.density_cv_score <- function(hval, x, kernel_name, lower, upper) {
   zgrid <- seq(lower, upper, length.out = 500L)
-  fvals <- vapply(zgrid, function(zi) sum(kern((zi - x) / hval)) / (n * hval), numeric(1))
-  integral_term <- .trapz(zgrid, fvals ** 2)
-  loo_term <- .density_loo_estimate(x, hval, kern)
-  return(integral_term - 2 * mean(loo_term))
+  return(as.vector(density_lscv_cpp(x = x, zgrid = zgrid, bw_grid = hval,
+                                    kernel_name = kernel_name)))
 }
 
 #' Leave-one-out Parzen-Rosenblatt density estimator
@@ -127,8 +99,6 @@ estimate_density <- function(x, h = NULL, bw_grid = NULL,
     arg = kernel_name,
     choices = c("epanechnikov", "biweight", "triweight", "tricube", "triangular", "uniform")
   )
-  kern <- .select_density_kernel(kernel_name)
-
   if (!is.null(h)) {
     if (!(methods::is(h, "numeric") && length(h) == 1L && h > 0))
       stop("'h' must be a single positive numeric value.")
@@ -137,7 +107,7 @@ estimate_density <- function(x, h = NULL, bw_grid = NULL,
       bw_grid = bw_grid,
       cv_curve = NULL,
       kernel_name = kernel_name,
-      estimate = .density_loo_estimate(x, h, kern)
+      estimate = .density_loo_estimate(x, h, kernel_name)
     ))
   }
 
@@ -145,9 +115,8 @@ estimate_density <- function(x, h = NULL, bw_grid = NULL,
     bw_grid <- exp(seq(log(0.01), log(0.3), length.out = 30))
   }
 
-  cv_curve <- vapply(bw_grid, function(hval) {
-    tryCatch(.density_cv_score(hval, x, kern, lower, upper), error = function(e) NA_real_)
-  }, numeric(1))
+  cv_curve <- tryCatch(.density_cv_score(bw_grid, x, kernel_name, lower, upper),
+                       error = function(e) rep(NA_real_, length(bw_grid)))
   if (!any(is.finite(cv_curve)))
     stop("CV score could not be computed for any h in bw_grid.")
 
@@ -160,7 +129,7 @@ estimate_density <- function(x, h = NULL, bw_grid = NULL,
     bw_grid = bw_grid,
     cv_curve = cv_curve,
     kernel_name = kernel_name,
-    estimate = .density_loo_estimate(x, h_star, kern)
+    estimate = .density_loo_estimate(x, h_star, kernel_name)
   ))
 }
 
@@ -217,8 +186,10 @@ get_density_optimal_bw <- function(data, idcol = "id_curve", tcol = "tobs", ycol
 
   sample_ids <- if (!is.null(nsubset)) sample(x = ids, size = nsubset) else ids
 
+  # Observation times split by curve once
+  tobs_by_curve <- split(data[["tobs"]], data[["id_curve"]])
   h_stars <- vapply(sample_ids, function(idc) {
-    tvals <- data[id_curve == idc, sort(unique(tobs))]
+    tvals <- sort(unique(tobs_by_curve[[as.character(idc)]]))
     tryCatch(
       suppressWarnings(estimate_density(
         x = tvals, h = NULL, bw_grid = bw_grid,

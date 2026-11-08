@@ -2,14 +2,186 @@
 #ifdef _OPENMP
 #include <omp.h>
 #endif
+#include <cstdint>
 
 // [[Rcpp::depends(RcppArmadillo)]]
 
-#include "02_smoothing_rcpp.h"
-#include "03_estimate_locreg_rcpp.h"
-#include "07_estimate_constants_cpp.h"
+#include "00_internal.h"
 using namespace Rcpp;
 using namespace arma;
+
+// Default bandwidth grid of the mean risk.
+arma::vec default_mean_bw_grid(const core::Curves& C) {
+  double n_curve = C.N;
+  double lambdahat = C.lambdahat();
+  double b0 = std::pow(n_curve * lambdahat, -1 / (2 * 0.05 + 1)); // rate with minimum local exponent = 0.05
+  double bK = 0.2; // rate with maximum local exponent = 1
+  return arma::logspace(log10(b0), log10(bK), 20);
+}
+
+// Risk of the mean estimator on the bandwidth grid (Myriam Vimond's phase A
+// restructuring, in C++). The local regularity, the noise level and the
+// empirical autocovariances (t x lag matrix) are computed once; for each
+// (h, t) the per-curve quantities pi_n, max W and b_n(2H) come from the kernel
+// window of each curve, and the dependence term sum_l 2 gamma_l(t) rho_l(t;h)
+// uses the counts c_l = #{n : pi_n pi_{n+l} = 1} over the active curves.
+arma::mat mean_risk_impl(const core::Curves& C, const arma::vec& t, const arma::vec& bw_grid_to_use,
+                         core::Kern kern, const LocregCfg& cfg) {
+  const int n = t.size();
+  const int n_curve = C.N;
+  const int bw_size = bw_grid_to_use.size();
+
+  // Estimate local regularity
+  arma::mat mat_locreg = locreg_impl(C, t, true, kern, cfg);
+  arma::vec h(n_curve, arma::fill::value(mat_locreg(0, 1))); // the presmoothing bandwidth
+
+  // Estimate the error sd
+  arma::mat mat_sig = sigma_impl(C, t);
+
+  // Estimate the autocovariance, lags 0..N-1 (one row per t)
+  arma::mat ac = emp_autocov_matrix(C, t, h, arma::regspace(0, n_curve - 1), kern);
+
+  // Per-t constants (first occurrence of each value of t, as the look-ups did)
+  std::vector<int> first = core::first_index(t);
+  arma::vec Ht_k(n), Lt_k(n), sig2_k(n);
+  for (int k = 0; k < n; ++k) {
+    Ht_k(k) = mat_locreg(first[k], 4);
+    Lt_k(k) = mat_locreg(first[k], 5);
+    sig2_k(k) = mat_sig(first[k], 1) * mat_sig(first[k], 1);
+  }
+
+  arma::mat mat_res_risk(bw_size * n, 10);
+  // Per t: the per-curve quantities for every bandwidth at once (shared powers),
+  // then each bandwidth.
+#pragma omp parallel for schedule(dynamic)
+  for (int k = 0; k < n; ++k) {
+  const double Ht = Ht_k(k), Lt = Lt_k(k), sig_square = sig2_k(k);
+  std::vector<double> q_pn((std::size_t) bw_size * n_curve), q_wm((std::size_t) bw_size * n_curve),
+    q_sb((std::size_t) bw_size * n_curve);
+  for (int i = 0; i < n_curve; ++i)
+    core::risk_stats_multi(C, i, t(k), bw_grid_to_use.memptr(), bw_size, Ht, kern,
+                           &q_pn[i], &q_wm[i], &q_sb[i], n_curve);
+  for (int idx_bw = 0; idx_bw < bw_size; ++idx_bw) {
+    const double bw = bw_grid_to_use(idx_bw);
+    const double bw_pow = std::pow(bw, 2 * Ht);
+    const double *rp = &q_pn[(std::size_t) idx_bw * n_curve], *rw = &q_wm[(std::size_t) idx_bw * n_curve],
+      *rs = &q_sb[(std::size_t) idx_bw * n_curve];
+
+    std::vector<int> active;
+    active.reserve(n_curve);
+    double bias_term_num = 0, variance_term_num = 0;
+    for (int i = 0; i < n_curve; ++i) {
+      if (rp[i] > 0) active.push_back(i);
+      bias_term_num += Lt * bw_pow * rp[i] * rs[i];
+      variance_term_num += sig_square * rp[i] * rw[i];
+    }
+
+    // P_N(t;h), bias and variance terms
+    double PN = active.size();
+    double bias_term = 2 * bias_term_num / PN;
+    double variance_term = 2 * variance_term_num / (PN * PN);
+
+    // Dependence term: lag 0, then 2 gamma_l rho_l with rho_l = c_l / P_N
+    // c_l = #{n : pi_n pi_{n+l} = 1} = popcount(pi AND (pi shifted by l)),
+    // on 64-bit words (exact integers).
+    const int W = (n_curve + 63) / 64;
+    std::vector<std::uint64_t> bits(W + 1, 0);
+    for (int c : active) bits[c / 64] |= (std::uint64_t) 1 << (c % 64);
+    std::vector<int> cnt(n_curve, 0);
+    for (int ell = 1; ell < n_curve; ++ell) {
+      const int q = ell / 64, r = ell % 64;
+      int count = 0;
+      for (int w = 0; w + q < W; ++w) {
+        std::uint64_t shifted = bits[w + q] >> r;
+        if (r != 0) shifted |= bits[w + q + 1] << (64 - r);
+        count += __builtin_popcountll(bits[w] & shifted);
+      }
+      cnt[ell] = count;
+    }
+    const int k0 = first[k];
+    double dep_sum = ac(k0, 0);
+    for (int ell = 1; ell < n_curve; ++ell) {
+      double rho = cnt[ell] / PN;
+      dep_sum += 2 * ac(k0, ell) * rho;
+    }
+    double dependence_term = 2 * std::abs(dep_sum) / PN;
+    double mean_risk = bias_term + variance_term + dependence_term;
+
+    double* row = mat_res_risk.memptr();
+    const arma::uword nr = mat_res_risk.n_rows, ri = idx_bw * n + k;
+    const double vals[10] = {t(k), bw, PN, h(0), Ht, Lt, bias_term, variance_term, dependence_term, mean_risk};
+    for (int col = 0; col < 10; ++col) row[ri + col * nr] = vals[col];
+  }
+  }
+  return mat_res_risk;
+}
+
+// Adaptive mean at t: the bandwidth minimising the risk at each t (first finite
+// minimum) when `bw` is empty, else `bw`; then each curve is smoothed once at t.
+arma::mat mean_impl(const core::Curves& C, const arma::vec& t, const arma::vec& bw,
+                    const arma::vec& bw_grid, core::Kern kern, const LocregCfg& cfg) {
+  const int n = t.size();
+  arma::vec optbw_to_use(n);
+  arma::vec Ht_used(n, arma::fill::zeros);
+  arma::vec Lt_used(n, arma::fill::zeros);
+  if (bw.n_elem == 0) {
+    arma::mat mat_risk = mean_risk_impl(C, t, bw_grid, kern, cfg);
+    const int bw_size = bw_grid.n_elem;
+    std::vector<std::vector<arma::uword>> groups = core::same_value_groups(t);
+    for (int k = 0; k < n; ++k) {
+      // As the former selection: the position of the first minimum among the
+      // finite risks, applied to the list of all the rows of t(k).
+      std::vector<arma::uword> rows;
+      double best = arma::datum::inf;
+      arma::uword best_rank = 0, n_finite = 0;
+      for (int b = 0; b < bw_size; ++b)
+        for (arma::uword kk : groups[k]) {
+          arma::uword row = b * n + kk;
+          rows.push_back(row);
+          double r = mat_risk(row, 9);
+          if (std::isfinite(r)) {
+            if (n_finite == 0 || r < best) { best = r; best_rank = n_finite; }
+            ++n_finite;
+          }
+        }
+      if (n_finite == 0) Rcpp::stop("index_min(): object has no elements");
+      arma::uword best_row = rows[best_rank];
+      optbw_to_use(k) = mat_risk(best_row, 1);
+      Ht_used(k) = mat_risk(best_row, 4);
+      Lt_used(k) = mat_risk(best_row, 5);
+    }
+  } else {
+    if ((int) bw.n_elem != n) stop("If 'bw' is not NULL, it must be the same length as 't'.");
+    optbw_to_use = bw;
+  }
+
+  // Compute the mean function
+  arma::vec PN(n, fill::zeros);
+  arma::vec mean_numerator(n, fill::zeros);
+  for (int i = 0; i < C.N; ++i)
+    if (!C.Y[i].is_finite() || !C.T[i].is_finite())
+      stop("The vectors y and t must be non-empty numeric vectors of the same length.");
+#pragma omp parallel for schedule(dynamic)
+  for (int j = 0; j < n; ++j) {
+    for (int i = 0; i < C.N; ++i) {
+      double Xhat = core::nw_at(C, i, t(j), optbw_to_use(j), kern);
+      if (!std::isfinite(Xhat)) Xhat = 0;
+      double pn = core::pn_abs(C, i, t(j), optbw_to_use(j));
+      PN(j) += pn;
+      mean_numerator(j) += pn * Xhat;
+    }
+  }
+  arma::vec muhat = mean_numerator / PN;
+
+  arma::mat mat_res_mean(n, 6);
+  mat_res_mean.col(0) = t;
+  mat_res_mean.col(1) = optbw_to_use;
+  mat_res_mean.col(2) = Ht_used;
+  mat_res_mean.col(3) = Lt_used;
+  mat_res_mean.col(4) = PN;
+  mat_res_mean.col(5) = muhat;
+  return mat_res_mean;
+}
 
 //' Estimate the risk of the mean function
  //'
@@ -88,140 +260,11 @@ using namespace arma;
    if (t.size() == 0) {
      Rcpp::stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.");
    }
-
-   // Check if kernel_name is supported
-   std::vector<std::string> supported_kernels = {"epanechnikov", "biweight", "triweight",
-                                                 "tricube", "triangular", "uniform"};
-   if (std::find(supported_kernels.begin(), supported_kernels.end(), kernel_name) == supported_kernels.end()) {
-     Rcpp::stop("Unsupported kernel name. Choose from: epanechnikov, biweight, triweight, tricube, triangular, uniform.");
-   }
-
-   // Select the kernel function
-   std::function<arma::vec(const arma::vec)> kernel_func = select_kernel(kernel_name);
-
-   // Take the length of the vector t
-   int n = t.size();
-
-   // Convert data to matrix
-   arma::mat data_mat(data.nrows(), 3);
-   data_mat.col(0) = Rcpp::as<arma::vec>(data["id_curve"]);
-   data_mat.col(1) = Rcpp::as<arma::vec>(data["tobs"]);
-   data_mat.col(2) = Rcpp::as<arma::vec>(data["X"]);
-   arma::vec unique_id_curve = arma::unique(data_mat.col(0));
-   double n_curve = unique_id_curve.n_elem;
-
-   // Set the bandwidth grid
-   arma::vec bw_grid_to_use;
-   if (bw_grid.isNull()) {
-     // Estimate lambda
-     double lambdahat = arma::mean(arma::hist(data_mat.col(0), unique_id_curve));
-     double b0 = std::pow(n_curve * lambdahat, -1 / (2 * 0.05 + 1)); // rate with minimum local exponent = 0.05
-     // double bK = 4 * std::pow(n_curve * lambdahat, -1 / (2 * 1 + 1)); // rate with maximum local exponent = 1
-     double bK = 0.2; // rate with maximum local exponent = 1
-     bw_grid_to_use = arma::logspace(log10(b0), log10(bK), 20);
-   } else {
-     bw_grid_to_use = Rcpp::as<arma::vec>(bw_grid);
-   }
-   int bw_size = bw_grid_to_use.size();
-
-   // Estimate local regularity
-   arma::mat mat_locreg = estimate_locreg_cpp(data, t, true, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset);
-   arma::vec h(n_curve, arma::fill::value(mat_locreg(0, 1))); // extract the presmoothing bandwidth
-
-   // Estimate the error sd
-   arma::mat mat_sig = estimate_sigma_cpp(data, t);
-   arma::vec sig_vec = mat_sig.col(1);
-
-   // Estimate the autocovariance
-   arma::mat mat_emp_autocov = estimate_empirical_autocov_cpp(data, t, h, arma::regspace(0, n_curve-1), kernel_name);
-
-   // Compute the risk for each t and each bandwidth in bw_grid
-   arma::mat mat_res_risk(bw_size * n, 10);
-
-   // Precompute each curve's row indices once (curve ids are 1..n_curve). These
-   // were recomputed with arma::find() inside the innermost loop (per bandwidth,
-   // per t, per curve), which dominated the runtime. Caching changes nothing.
-   std::vector<arma::uvec> curve_idx((arma::uword) n_curve);
-   for (arma::uword c = 0; c < (arma::uword) n_curve; ++c)
-     curve_idx[c] = arma::find(data_mat.col(0) == (double)(c + 1));
-
-   // Parallelize outer loop
-#pragma omp parallel for
-   for (int idx_bw = 0; idx_bw < bw_size; ++idx_bw) {
-     for (int k = 0; k < n; ++k) {
-       // Extract local regularity parameters for each t
-       arma::uvec idx_locreg_cur = arma::find(mat_locreg.col(0) == t(k));
-       double Ht = mat_locreg(idx_locreg_cur(0), 4);
-       double Lt = mat_locreg(idx_locreg_cur(0), 5);
-
-       // Compute the weight vectors for each t and for each bw
-       // and replace replace non-finite values with 0
-       arma::vec Tn_t_diff_over_bw = (data_mat.col(1) - t(k)) / bw_grid_to_use(idx_bw);
-       arma::vec wvec = kernel_func(Tn_t_diff_over_bw);
-       wvec.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-
-       // Extract the sd
-       arma::uvec cur_idx_sig = arma::find(mat_sig.col(0) == t(k));
-       double sig_square = sig_vec(cur_idx_sig(0)) * sig_vec(cur_idx_sig(0));
-
-       // Init output
-       arma::vec pn_vec(n_curve);
-       double bias_term_num = 0;
-       double variance_term_num = 0;
-
-       for (int i = 0; i < n_curve; ++i) {
-         // Extract the current curve index data (precomputed)
-         const arma::uvec& idx_i = curve_idx[i];
-
-         // Extract weight
-         arma::vec wvec_i = wvec(idx_i) / arma::accu(wvec(idx_i));
-         wvec_i.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-
-         // Compute and store the vector \pi_n(t;h)
-         pn_vec(i) = arma::find(abs(Tn_t_diff_over_bw(idx_i)) <= 1).is_empty() ? 0 : 1;
-
-         // Compute bias term numerator
-         // // compute and b_n(t;h)
-         arma::vec bn_vec = arma::pow(arma::abs(Tn_t_diff_over_bw(idx_i)), 2 * Ht) % arma::abs(wvec_i);
-
-         // // Compute bias term numerator
-         bias_term_num += Lt * std::pow(bw_grid_to_use(idx_bw), 2 * Ht) * pn_vec(i) * arma::sum(bn_vec);
-
-         // Compute variance term numerator
-         variance_term_num += sig_square * pn_vec(i) * wvec_i.max();
-       }
-
-       // Compute P_N(t;h)
-       double PN = arma::accu(pn_vec);
-
-       // Compute bias term
-       double bias_term = 2 * bias_term_num / PN;
-
-       // Compute variance term
-       double variance_term = 2 * variance_term_num / (PN * PN);
-
-       // Compute dependence term
-       arma::vec dep_term_all_lag(n_curve);
-       // Add the lag-0 autocovariance to the vector
-       arma::uvec idx_lag0 = arma::find((mat_emp_autocov.col(0) == t(k)) % (mat_emp_autocov.col(1) == 0));
-       dep_term_all_lag(0) = mat_emp_autocov(idx_lag0(0), 2);
-       for (int ell = 1; ell < n_curve; ++ell) {
-         arma::vec pi_i = pn_vec.subvec(0, n_curve - 1 - ell);
-         arma::vec pi_i_plus_ell = pn_vec.subvec(ell, n_curve - 1);
-         double rho = arma::sum(pi_i % pi_i_plus_ell) / PN;
-         arma::uvec idx_lag = arma::find(mat_emp_autocov.col(0) == t(k) && mat_emp_autocov.col(1) == ell);
-         dep_term_all_lag(ell) = 2 * mat_emp_autocov(idx_lag(0), 2) * rho;
-       }
-       double dependence_term = 2 * std::abs(arma::accu(dep_term_all_lag)) / PN;
-       double mean_risk = bias_term + variance_term + dependence_term;
-
-#pragma omp critical
-{
-  mat_res_risk.row(idx_bw * n + k) = {t(k), bw_grid_to_use(idx_bw), PN, h(0), Ht, Lt, bias_term, variance_term, dependence_term, mean_risk};
-}
-     }
-   }
-   return mat_res_risk;
+   core::Kern kern = core::parse_kernel(kernel_name);
+   core::Curves C = core::make_curves(data);
+   arma::vec bw_grid_to_use = bw_grid.isNull() ? default_mean_bw_grid(C) : Rcpp::as<arma::vec>(bw_grid);
+   LocregCfg cfg = resolve_locreg(C, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset, kern);
+   return mean_risk_impl(C, t, bw_grid_to_use, kern, cfg);
  }
 
 
@@ -288,96 +331,15 @@ using namespace arma;
    if (t.size() == 0) {
      stop("'t' must be a numeric vector or scalar value(s) between 0 and 1.");
    }
-   // Check if kernel_name is one of the supported kernels
-   std::vector<std::string> supported_kernels = {"epanechnikov", "biweight", "triweight",
-                                                 "tricube", "triangular", "uniform"};
-   if (std::find(supported_kernels.begin(), supported_kernels.end(), kernel_name) == supported_kernels.end()) {
-     stop("Unsupported kernel name. Choose from: epanechnikov, biweight, triweight, tricube, triangular, uniform.");
-   }
-
-   // Select the kernel function
-   std::function<arma::vec(const arma::vec)> kernel_func = select_kernel(kernel_name);
-
-   // Take the length of the vector t
-   int n = t.size();
-
-   // Convert data to matrix
-   arma::mat data_mat(data.nrows(), 3);
-   data_mat.col(0) = as<arma::vec>(data["id_curve"]);
-   data_mat.col(1) = as<arma::vec>(data["tobs"]);
-   data_mat.col(2) = as<arma::vec>(data["X"]);
-   arma::vec unique_id_curve = arma::unique(data_mat.col(0));
-   double n_curve = unique_id_curve.n_elem;
-
-   // Estimate / Verify optimal risk function
-   arma::vec optbw_to_use(n);
-   arma::vec Ht_used(n);
-   arma::vec Lt_used(n);
+   core::Kern kern = core::parse_kernel(kernel_name);
+   core::Curves C = core::make_curves(data);
    if (bw.isNull()) {
-     arma::mat mat_risk = estimate_mean_risk_cpp(data, t, bw_grid, kernel_name, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset);
-     for (int k = 0; k < n; ++k) {
-       // Find rows in mat_risk where the first column equals t(k)
-       arma::uvec idx_risk_cur = arma::find(mat_risk.col(0) == t(k));
-
-       // Extract the risk column for those rows
-       arma::vec risk = mat_risk(idx_risk_cur, arma::uvec({9}));
-
-       // Find the minimum index in the risk column, ignoring non-finite values
-       arma::uword idx_min = arma::index_min(risk.elem(arma::find_finite(risk)));
-
-       // Extract values corresponding to the minimum risk index
-       optbw_to_use(k) = mat_risk(idx_risk_cur(idx_min), 1);
-       Ht_used(k) = mat_risk(idx_risk_cur(idx_min), 4);
-       Lt_used(k) = mat_risk(idx_risk_cur(idx_min), 5);
-     }
-   } else {
-     arma::vec optbw_cur = as<arma::vec>(bw);
-     int optbw_cur_size = optbw_cur.size();
-     if (optbw_cur_size != n) {
-       stop("If 'bw' is not NULL, it must be the same length as 't'.");
-     } else {
-       optbw_to_use = optbw_cur;
-     }
+     arma::vec bw_grid_to_use = bw_grid.isNull() ? default_mean_bw_grid(C) : Rcpp::as<arma::vec>(bw_grid);
+     LocregCfg cfg = resolve_locreg(C, presmooth_bw, Delta, presmooth_bw_grid, presmooth_nsubset, kern);
+     return mean_impl(C, t, arma::vec(), bw_grid_to_use, kern, cfg);
    }
-
-   // Compute the mean function
-   // Init output
-   arma::mat mat_res_mean(n, 6);
-   arma::vec PN(n, fill::zeros);
-   arma::vec mean_numerator(n, fill::zeros);
-
-   for(int i = 0 ; i < n_curve; ++i){
-     // Extrat the current curve index data
-     double idx_cur_curve = unique_id_curve(i);
-     arma::uvec indices_cur = arma::find(data_mat.col(0) == idx_cur_curve);
-     arma::vec Tnvec = data_mat(indices_cur, arma::uvec({1}));
-     arma::vec Ynvec = data_mat(indices_cur, arma::uvec({2}));
-
-     // Smooth using Nadaraya-Watson estimator
-     arma::vec Xhat = estimate_nw_cpp(Ynvec, Tnvec, t, optbw_to_use, kernel_name);
-     Xhat.replace(arma::datum::nan, 0).replace(arma::datum::inf, 0).replace(-arma::datum::inf, 0);
-
-     // Compute the vector p_n(t;h) and update P_N(t;h)
-     arma::vec pn = arma::regspace(0, n - 1);
-     pn.transform([t, optbw_to_use, Tnvec](int j) { return  arma::find(abs((Tnvec - t(j))) <= optbw_to_use(j)).is_empty() ? 0 : 1 ;});
-     PN += pn;
-
-     // Estimate the mean function numerator
-     mean_numerator += pn % Xhat;
-
-   }
-
-   // Compute \widehat \mu_N(t;h)
-   arma::vec muhat = mean_numerator / PN;
-
-   // return the result
-   mat_res_mean.col(0) = t;
-   mat_res_mean.col(1) = optbw_to_use;
-   mat_res_mean.col(2) = Ht_used;
-   mat_res_mean.col(3) = Lt_used;
-   mat_res_mean.col(4) = PN;
-   mat_res_mean.col(5) = muhat;
-   return mat_res_mean;
+   arma::vec bw_vec = Rcpp::as<arma::vec>(bw);
+   if ((int) bw_vec.n_elem != (int) t.n_elem)
+     stop("If 'bw' is not NULL, it must be the same length as 't'.");
+   return mean_impl(C, t, bw_vec, arma::vec(), kern, LocregCfg());
  }
-
-

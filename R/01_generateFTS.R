@@ -116,7 +116,7 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
     stop("'change_point_position' must be scalar value between 0 and 1.")
   }
 
-  if (! (methods::is(slope, "numeric") && slope > 0 && length(slope) == 1)) {
+  if (! (length(slope) == 1 && methods::is(slope, "numeric") && slope > 0)) {
     stop("'slope' must be a positive scalar value.")
   }
 
@@ -135,8 +135,13 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' @return A positive \code{Float} corresponding to the value the function evaluate at (x,y).
 #'
 .constant_d <- function(x, y) {
-  a <- gamma(2 * x + 1) * gamma(2 * y + 1) * sin(pi * x) * sin(pi * y)
-  b <- 2 * gamma(x + y + 1) * sin(pi * (x + y) / 2)
+  # Same element-wise formula; the special functions are evaluated once per
+  # distinct value (x and y typically repeat a few values over a grid).
+  once <- function(z, f) { uz <- unique(z); f(uz)[match(z, uz)] }
+  sxy <- x + y
+  a <- once(x, function(z) gamma(2 * z + 1)) * once(y, function(z) gamma(2 * z + 1)) *
+    once(x, function(z) sin(pi * z)) * once(y, function(z) sin(pi * z))
+  b <- 2 * once(sxy, function(z) gamma(z + 1)) * once(sxy, function(z) sin(pi * z / 2))
   val <- sqrt(a) / b
   return(val)
 }
@@ -151,9 +156,9 @@ hurst_logistic <- function(t, h_left = 0.2, h_right = 0.8, slope = 30,
 #' @return a \code{matrix} of \code{t} x \code{t} covariance.
 #'
 .covariance_mfBm <- function(t = seq(0.2, 0.8, len = 10), hurst_fun = hurst_logistic, ...) {
-  tmp <- expand.grid(u = t, v = t)
-  u <- tmp$u
-  v <- tmp$v
+  # All couples (u, v), u varying fastest (as expand.grid(u = t, v = t))
+  u <- rep(t, times = length(t))
+  v <- rep(t, each = length(t))
   hu <- hurst_fun(u, ...)
   hv <- hurst_fun(v, ...)
   hh <- hu + hv
@@ -235,10 +240,10 @@ simulate_mfBm <- function(t = seq(0.2, 0.8, len = 50), hurst_fun = hurst_logisti
   if (!methods::is(hurst_fun, "function")) {
     stop("'hurst_fun' must be a function.")
   }
-  if (! (methods::is(L2, "numeric") && L2 > 0 && length(L2) == 1)) {
+  if (! (length(L2) == 1 && methods::is(L2, "numeric") && L2 > 0)) {
     stop("'L2' must be a positive scalar value.")
   }
-  if (! (methods::is(intercept_var, "numeric") && intercept_var >= 0 && length(intercept_var) == 1)) {
+  if (! (length(intercept_var) == 1 && methods::is(intercept_var, "numeric") && intercept_var >= 0)) {
     stop("'intercept_var' must be a non-negative scalar value.")
   }
 
@@ -318,7 +323,7 @@ simulate_fBm <- function(t = seq(0.2, 0.8, len = 20), hurst = 0.6, L2 = 1, inter
     stop("'hurst' must be a positive scalar value between 0 and 1.")
   if (! (methods::is(L2, "numeric") & L2 > 0 & length(L2) == 1))
     stop("'L2' must be a positive scalar value.")
-  if (! (methods::is(intercept_var, "numeric") && intercept_var >= 0 && length(intercept_var) == 1))
+  if (! (length(intercept_var) == 1 && methods::is(intercept_var, "numeric") && intercept_var >= 0))
     stop("'intercept_var' must be a non-negative scalar value.")
 
   if (tied && intercept_var > 0) {
@@ -506,7 +511,7 @@ simulate_far <- function(N = 2L, lambda = 70L,
     stop("'hurst_fun' must be a function.")
   if (! (methods::is(L2, "numeric") & L2 > 0 & length(L2) == 1))
     stop("'L2' must be a positive scalar value.")
-  if (! (methods::is(intercept_var, "numeric") && intercept_var >= 0 && length(intercept_var) == 1))
+  if (! (length(intercept_var) == 1 && methods::is(intercept_var, "numeric") && intercept_var >= 0))
     stop("'intercept_var' must be a non-negative scalar value.")
   if (! methods::is(far_kernel, "function"))
     stop("'far_kernel' must be bevariate function")
@@ -528,11 +533,12 @@ simulate_far <- function(N = 2L, lambda = 70L,
                                  M_distribution = M_distribution,
                                  t_distribution = t_distribution)
     M <- dt_rdesign[, unique(Mn), by = "id_curve"][, V1]
+    Tn_by_curve <- split(dt_rdesign[["Tn"]], dt_rdesign[["id_curve"]])
 
     dt_far <- data.table::rbindlist(lapply(1:n, function(i, dt_rdesign, grid, t_common, M, hurst_fun, L2,
                                                          intercept_var){
       # Combine design + integration grid + t_common
-      tall <- c(dt_rdesign[id_curve == i, Tn], grid, t_common)
+      tall <- c(Tn_by_curve[[as.character(i)]], grid, t_common)
       ttag <- c(rep("trandom", M[i]), rep("int_grid", length(grid)), rep("tcommon", length(t_common)))
       dt <- data.table::data.table("id_curve" = i, "tall" = tall, "ttag" = ttag)
       dt <- dt[order(tall)]
@@ -565,22 +571,32 @@ simulate_far <- function(N = 2L, lambda = 70L,
     }, t_common = t_common, grid = grid, hurst_fun = hurst_fun, L2 = L2, intercept_var = intercept_var))
   }
 
-  # Generate FAR(1)
-  dt_far[id_curve == 1, X := far_mean + eps]
+  # Generate FAR(1). The rows of each curve are split once (in table order)
+  # instead of filtered at every step.
+  rows_by_curve <- split(seq_len(nrow(dt_far)), dt_far[["id_curve"]])
+  tall_all <- dt_far[["tall"]]
+  eps_all <- dt_far[["eps"]]
+  mean_all <- dt_far[["far_mean"]]
+  is_grid <- dt_far[["ttag"]] == "int_grid"
+  X <- rep(NA_real_, nrow(dt_far))
+  r1 <- rows_by_curve[["1"]]
+  X[r1] <- mean_all[r1] + eps_all[r1]
   for(i in 2:n){
-    tall <- dt_far[id_curve == i, tall]
-    Xold_centred <- dt_far[id_curve == i - 1 & ttag == "int_grid", X - far_mean]
-    Xold_centred <- matrix(Xold_centred, ncol = 1)
-    Enew <- dt_far[id_curve == i, eps]
-    far_mean_new <- dt_far[id_curve == i, far_mean]
+    ri <- rows_by_curve[[as.character(i)]]
+    rold <- rows_by_curve[[as.character(i - 1)]]
+    rold <- rold[is_grid[rold]]
+    tall <- tall_all[ri]
+    Xold_centred <- matrix(X[rold] - mean_all[rold], ncol = 1)
+    Enew <- eps_all[ri]
+    far_mean_new <- mean_all[ri]
 
-    tmp <- expand.grid(u = tall, v = grid)
-    u <- tmp$u
-    v <- tmp$v
+    u <- rep(tall, times = n_int_grid)
+    v <- rep(grid, each = length(tall))
     beta <- matrix(far_kernel(u,v), ncol = n_int_grid, byrow = FALSE)
     Xi <- far_mean_new + as.numeric((1/n_int_grid) * beta %*% Xold_centred + Enew)
-    dt_far[id_curve == i, X := Xi]
+    X[ri] <- Xi
   }
+  data.table::set(dt_far, j = "X", value = X)
 
   # Remove the data for integral approximation
   dt_far <- dt_far[ttag != "int_grid"]
@@ -706,7 +722,7 @@ simulate_fma <- function(N = 2L, lambda = 70L,
     stop("'hurst_fun' must be a function.")
   if (! (methods::is(L2, "numeric") & L2 > 0 & length(L2) == 1))
     stop("'L2' must be a positive scalar value.")
-  if (! (methods::is(intercept_var, "numeric") && intercept_var >= 0 && length(intercept_var) == 1))
+  if (! (length(intercept_var) == 1 && methods::is(intercept_var, "numeric") && intercept_var >= 0))
     stop("'intercept_var' must be a non-negative scalar value.")
   if (! methods::is(fma_kernel, "function"))
     stop("'fma_kernel' must be bevariate function")
@@ -727,11 +743,12 @@ simulate_fma <- function(N = 2L, lambda = 70L,
                                  M_distribution = M_distribution,
                                  t_distribution = t_distribution)
     M <- dt_rdesign[, unique(Mn), by = "id_curve"][, V1]
+    Tn_by_curve <- split(dt_rdesign[["Tn"]], dt_rdesign[["id_curve"]])
 
     dt_fma <- data.table::rbindlist(lapply(1:n, function(i, dt_rdesign, grid, t_common, M, hurst_fun, L2,
                                                          intercept_var){
       # Combine design + integration grid + t_common
-      tall <- c(dt_rdesign[id_curve == i, Tn], grid, t_common)
+      tall <- c(Tn_by_curve[[as.character(i)]], grid, t_common)
       ttag <- c(rep("trandom", M[i]), rep("int_grid", length(grid)), rep("tcommon", length(t_common)))
       dt <- data.table::data.table("id_curve" = i, "tall" = tall, "ttag" = ttag)
       dt <- dt[order(tall)]
@@ -764,21 +781,32 @@ simulate_fma <- function(N = 2L, lambda = 70L,
     }, t_common = t_common, grid = grid, hurst_fun = hurst_fun, L2 = L2, intercept_var = intercept_var))
   }
 
-  # Generate FAR(1)
-  dt_fma[id_curve == 1, X := fma_mean + eps]
+  # Generate FMA(1). The rows of each curve are split once (in table order)
+  # instead of filtered at every step.
+  rows_by_curve <- split(seq_len(nrow(dt_fma)), dt_fma[["id_curve"]])
+  tall_all <- dt_fma[["tall"]]
+  eps_all <- dt_fma[["eps"]]
+  mean_all <- dt_fma[["fma_mean"]]
+  is_grid <- dt_fma[["ttag"]] == "int_grid"
+  X <- rep(NA_real_, nrow(dt_fma))
+  r1 <- rows_by_curve[["1"]]
+  X[r1] <- mean_all[r1] + eps_all[r1]
   for(i in 2:n){
-    tall <- dt_fma[id_curve == i, tall]
-    Eold <- dt_fma[id_curve == i - 1 & ttag == "int_grid", eps]
-    Enew <- dt_fma[id_curve == i, eps]
-    fma_mean_new <- dt_fma[id_curve == i, fma_mean]
+    ri <- rows_by_curve[[as.character(i)]]
+    rold <- rows_by_curve[[as.character(i - 1)]]
+    rold <- rold[is_grid[rold]]
+    tall <- tall_all[ri]
+    Eold <- eps_all[rold]
+    Enew <- eps_all[ri]
+    fma_mean_new <- mean_all[ri]
 
-    tmp <- expand.grid(u = tall, v = grid)
-    u <- tmp$u
-    v <- tmp$v
+    u <- rep(tall, times = n_int_grid)
+    v <- rep(grid, each = length(tall))
     beta <- matrix(fma_kernel(u,v), ncol = n_int_grid, byrow = FALSE)
     Xi <- fma_mean_new + Enew + as.numeric((1 / n_int_grid) * beta %*% matrix(Eold, ncol = 1))
-    dt_fma[id_curve == i, X := Xi]
+    X[ri] <- Xi
   }
+  data.table::set(dt_fma, j = "X", value = X)
 
   # Remove the data for integral approximation
   dt_fma <- dt_fma[ttag != "int_grid"]

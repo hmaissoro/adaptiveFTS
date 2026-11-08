@@ -154,10 +154,10 @@ test_that("blup_fit forwards the knobs to the three risk minimisations", {
   fit_def <- blup_fit(dt, tikhonov = 1e-6, bw_grid = bwg)
   fit_bw  <- blup_fit(dt, tikhonov = 1e-6, bw_grid = bwg, presmooth_bw = 0.05)
 
-  # One risk minimisation per cached bandwidth set; all three must move.
-  expect_false(same(fit_def$opt_mean, fit_bw$opt_mean))
-  expect_false(same(fit_def$opt_cov, fit_bw$opt_cov))
-  expect_false(same(fit_def$opt_autocov, fit_bw$opt_autocov))
+  # The bandwidths selected by the risk minimisations must move.
+  expect_false(same(fit_def$bw_mean, fit_bw$bw_mean))
+  expect_false(same(fit_def$bw_cov, fit_bw$bw_cov))
+  expect_false(same(fit_def$presmooth_bw, fit_bw$presmooth_bw))
 
   # ... and so must the quantities built on them.
   expect_false(same(fit_def$muhat_Tn0, fit_bw$muhat_Tn0))

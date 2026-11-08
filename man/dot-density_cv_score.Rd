@@ -4,19 +4,22 @@
 \alias{.density_cv_score}
 \title{Least-squares cross-validation score of the design-density bandwidth}
 \usage{
-.density_cv_score(hval, x, kern, lower, upper)
+.density_cv_score(hval, x, kernel_name, lower, upper)
 }
 \arguments{
 \item{hval}{Bandwidth.}
 
 \item{x}{Observation times of a single curve.}
 
-\item{kern}{Kernel function.}
+\item{kernel_name}{Kernel name.}
 
 \item{lower, upper}{Bounds of the domain.}
 }
 \value{
-The LSCV score at \code{hval}.
+The LSCV score at each value of \code{hval} (vectorised over \code{hval}): the
+trapezoidal integral of the squared estimate over a 500-point grid minus
+twice the mean leave-one-out estimate, computed in C++ on the kernel
+windows of the sorted points.
 }
 \description{
 Least-squares cross-validation score of the design-density bandwidth

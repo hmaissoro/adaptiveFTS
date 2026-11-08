@@ -339,7 +339,7 @@ estimate_empirical_XsXt_autocov <- function(data, idcol = "id_curve", tcol = "to
   dt_st <- dt_st[order(s,t)]
   s <- dt_st[, s]
   t <- dt_st[, t]
-  rm(dt_st) ; gc()
+  rm(dt_st)
 
   presmooth_bw <- .resolve_presmooth_bw(presmooth_bw, data, N, kernel_name)
 

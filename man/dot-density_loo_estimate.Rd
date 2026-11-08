@@ -4,14 +4,14 @@
 \alias{.density_loo_estimate}
 \title{Leave-one-out Parzen-Rosenblatt estimate at the observation points}
 \usage{
-.density_loo_estimate(x, hval, kern)
+.density_loo_estimate(x, hval, kernel_name)
 }
 \arguments{
 \item{x}{Observation times of a single curve.}
 
 \item{hval}{Bandwidth.}
 
-\item{kern}{Kernel function.}
+\item{kernel_name}{Kernel name.}
 }
 \value{
 The vector \eqn{\widehat g_{h}^{(-i)}(x_i)}, in the order of \code{x}.

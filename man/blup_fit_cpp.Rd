@@ -11,7 +11,6 @@ blup_fit_cpp(
   rho,
   homoscedastic,
   tikhonov,
-  bw_subgrid_size,
   kernel_name,
   presmooth_bw = NULL,
   Delta = NULL,
@@ -32,8 +31,6 @@ blup_fit_cpp(
 
 \item{tikhonov}{Tikhonov regularisation parameter.}
 
-\item{bw_subgrid_size}{Number of points per axis of the bandwidth sub-grid.}
-
 \item{kernel_name}{Kernel name.}
 
 \item{presmooth_bw}{Numeric (positive vector or scalar). Bandwidth used to presmooth
@@ -50,12 +47,14 @@ that selects \code{presmooth_bw}. Default \code{NULL} uses the default grid.}
 cross-validation. Default \code{NULL} uses min(70, floor(N / 2)) curves.}
 }
 \value{
-A list with the cached bandwidths, the covariance operator, the
-mean, the noise level, the regularised variance matrix and the residual.
+A list with the selected bandwidths, the covariance operator, the
+mean, the noise level, the regularised variance matrix, the residual and
+the resolved local regularity settings.
 }
 \description{
 Estimates every prediction-point-independent component of the adaptive
-Best Linear Unbiased Predictor and caches the adaptive bandwidths. Called by
-the R function \code{blup_fit()}; not intended to be used directly.
+Best Linear Unbiased Predictor, with the bandwidths selected directly at the
+conditioning-curve design points. Called by the R function \code{blup_fit()};
+not intended to be used directly.
 }
 \keyword{internal}

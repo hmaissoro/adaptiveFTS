@@ -62,6 +62,25 @@
   after `L`. Callers that pass `far_kernel`/`fma_kernel` and the arguments after
   it *by position* must be updated; named calls are unaffected. Likewise
   `simulate_fBm()` gains `intercept_var` after `L`, ahead of `tied`.
+* The adaptive BLUP no longer selects its bandwidths on a coarse sub-grid and
+  looks them up by nearest neighbour: every plug-in estimate is computed
+  directly at the points where it is needed, with its own risk-minimising
+  bandwidth (the mean at the conditioning-curve design and at the prediction
+  points, the covariance on the design x design grid, the lag-1 autocovariance
+  on the design x prediction grid). Consequently:
+  * `bw_subgrid_size` is removed from `blup_fit()`, `blup()` and
+    `select_tikhonov_parameter()`;
+  * a `blup_fit` object stores `bw_mean`, `bw_cov` (the selected bandwidths)
+    and `presmooth_bw`, `Delta` (the resolved local regularity settings)
+    instead of `opt_mean`, `opt_cov` and `opt_autocov`;
+  * in `select_tikhonov_parameter()` (independent design), each rolling-origin
+    fold re-estimates every plug-in quantity, bandwidths included, on the curves
+    up to the predecessor of its target, so the cross-validation scores the
+    estimator actually used.
+
+  BLUP predictions change accordingly. On 10 simulated FAR samples (N = 150,
+  lambda = 40) the one-step-ahead MSE was 2.99 against 3.12 for the sub-grid
+  BLUP.
 * `format_data()` now validates its result instead of passing questionable data
   on to the estimators. It fails when the observation points fall outside
   `[0, 1]` (the domain the estimators assume), when the observation points or
@@ -69,7 +88,39 @@
   when a curve carries repeated observation points. Data that used to flow
   through and yield `NaN` estimates now stops at the formatting step.
 
+## Performance
+
+* The C++ estimators were restructured on a shared core (after the fast
+  estimators of M. Vimond): the data are split by curve once, kernels are
+  evaluated as scalars on the compact-support window of each curve, every
+  per-point constant (local regularity, noise level, moments, dependence
+  numerators) is computed once on the distinct points, the dependence terms are
+  built from matrices instead of table look-ups, and the risk minimisation is
+  fused into the estimators. The results are unchanged (all outputs agree with
+  the previous code to within 1e-10, most to 1e-15). At N = 150 curves,
+  lambda = 40: `estimate_mean()` is about 120x faster, `estimate_autocov()`
+  about 90x, `estimate_cov_segment()` about 40x, `estimate_facf()` about 60x.
+* The design-density cross-validation (`get_density_optimal_bw()`,
+  `estimate_density()`) runs in C++ (about 100x faster), and `blup_fit()` with
+  its default Tikhonov cross-validation goes from 33 s to under 3 s at that size.
+  The two-bandwidth risk exploits the nesting of the kernel supports along the
+  bandwidth grid (cumulative sums instead of one dot product per bandwidth
+  couple).
+* The Rubin-Panaretos estimators no longer build the cartesian product of all
+  the observation pairs: the double sums factorise into products of
+  one-dimensional kernel sums. `estimate_autocov_rp()` is several hundred times
+  faster and `estimate_autocov_bw_rp()` thousands of times faster, with
+  unchanged results.
+* `simulate_far()` and `simulate_fma()` split the curves once in their
+  recursions (same random draws, identical output).
+
 ## New features
+
+* `set_threads()` and `get_threads()` set and report the number of OpenMP
+  threads of the compiled estimators (the environment variable
+  `ADAPTIVEFTS_NUM_THREADS` is applied when the package is loaded). Results do
+  not depend on the number of threads; for Monte Carlo studies run in parallel
+  processes, `set_threads(1)` in each worker avoids oversubscribing the machine.
 
 * The local regularity step is now tunable from every adaptive estimator. The
   estimators reach it through C++, which used to hard-code its settings, so

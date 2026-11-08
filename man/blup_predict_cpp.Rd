@@ -6,9 +6,6 @@
 \usage{
 blup_predict_cpp(
   data,
-  opt_mean,
-  opt_cov,
-  opt_autocov,
   Tn0,
   muhat_Tn0,
   V,
@@ -20,13 +17,14 @@ blup_predict_cpp(
   tikhonov,
   t,
   horizon,
-  kernel_name
+  kernel_name,
+  bw_grid,
+  presmooth_bw,
+  Delta
 )
 }
 \arguments{
 \item{data}{A DataFrame with columns \code{id_curve}, \code{tobs}, \code{X}.}
-
-\item{opt_mean, opt_cov, opt_autocov}{Cached adaptive-bandwidth matrices.}
 
 \item{Tn0}{Conditioning-curve design points.}
 
@@ -51,13 +49,18 @@ blup_predict_cpp(
 \item{horizon}{Prediction horizon (steps ahead).}
 
 \item{kernel_name}{Kernel name.}
+
+\item{bw_grid}{Bandwidth grid of the adaptive risks.}
+
+\item{presmooth_bw, Delta}{Local regularity settings resolved by the fit.}
 }
 \value{
-A matrix with columns \code{t}, \code{muhat}, \code{prediction}.
+A matrix with columns \code{horizon}, \code{t}, \code{muhat}, \code{prediction}.
 }
 \description{
 Evaluates the adaptive BLUP at the prediction points, looping for
-h-step-ahead prediction. Called by \code{predict.blup_fit()}; not intended
-to be used directly.
+h-step-ahead prediction. The mean at the prediction points and the lag-1
+autocovariance are estimated directly at those points. Called by
+\code{predict.blup_fit()}; not intended to be used directly.
 }
 \keyword{internal}
